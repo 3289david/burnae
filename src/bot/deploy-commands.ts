@@ -3,25 +3,26 @@ import { REST, Routes } from "discord.js";
 import { commandDefinitions } from "./commands";
 
 /**
- * 슬래시 명령어를 디스코드에 등록한다. 봇 최초 배포 시, 그리고 명령어를 바꿀 때마다 1회 실행.
- * 실행: npm run bot:deploy-commands
+ * 슬래시 명령어를 Burnae 공식 서버(DISCORD_GUILD_ID) 하나에만 등록한다.
+ * 봇이 공식 서버 전용이라 항상 길드 단위로 등록 — 전역 등록과 달리 즉시 반영된다.
+ * 실행: npm run bot:deploy-commands (최초 배포 시, 명령어를 바꿀 때마다 재실행)
  */
 async function main() {
   const token = process.env.DISCORD_BOT_TOKEN;
   const clientId = process.env.DISCORD_CLIENT_ID;
-  const guildId = process.env.DISCORD_GUILD_ID; // 지정하면 해당 서버에만 즉시 반영(개발용), 없으면 전역 등록(전파 최대 1시간)
+  const guildId = process.env.DISCORD_GUILD_ID;
 
-  if (!token || !clientId) {
-    throw new Error("DISCORD_BOT_TOKEN / DISCORD_CLIENT_ID 환경변수가 필요합니다.");
+  if (!token || !clientId || !guildId) {
+    throw new Error(
+      "DISCORD_BOT_TOKEN / DISCORD_CLIENT_ID / DISCORD_GUILD_ID 환경변수가 모두 필요합니다.",
+    );
   }
 
   const rest = new REST().setToken(token);
-  const route = guildId
-    ? Routes.applicationGuildCommands(clientId, guildId)
-    : Routes.applicationCommands(clientId);
-
-  const result = await rest.put(route, { body: commandDefinitions });
-  console.log(`✅ 슬래시 명령어 ${(result as unknown[]).length}개 등록 완료${guildId ? ` (길드: ${guildId})` : " (전역)"}`);
+  const result = await rest.put(Routes.applicationGuildCommands(clientId, guildId), {
+    body: commandDefinitions,
+  });
+  console.log(`✅ 슬래시 명령어 ${(result as unknown[]).length}개를 공식 서버(${guildId})에 등록 완료`);
 }
 
 main().catch((err) => {

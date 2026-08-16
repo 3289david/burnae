@@ -1,40 +1,57 @@
 import "dotenv/config";
-import { ActivityType, Client, GatewayIntentBits, Events, ChannelType } from "discord.js";
+import { ActivityType, Client, GatewayIntentBits, Events } from "discord.js";
 import { handleCommand, handleAutocomplete } from "./commands";
 import { startCrashWatcher } from "./watcher";
 
+/**
+ * 이 봇은 Burnae 공식 디스코드 서버(burnae.kr 커뮤니티) 딱 하나에서만 동작한다.
+ * 고객이 자기 서버에 이 봇을 초대하는 구조가 아니다 — 일반 방문객도, 고객도
+ * 전부 공식 서버에 들어와서 이 봇을 함께 쓴다. DISCORD_GUILD_ID로 그 서버를
+ * 고정하고, 혹시 다른 길드에 잘못 추가되더라도 거기서는 응답하지 않는다.
+ */
 const token = process.env.DISCORD_BOT_TOKEN;
+const officialGuildId = process.env.DISCORD_GUILD_ID;
+
 if (!token) {
   console.error("DISCORD_BOT_TOKEN 환경변수가 설정되지 않았습니다.");
   process.exit(1);
 }
+if (!officialGuildId) {
+  console.error("DISCORD_GUILD_ID 환경변수가 설정되지 않았습니다. Burnae 공식 서버 ID를 입력하세요.");
+  process.exit(1);
+}
 
-// 이 봇은 Burnae 하나가 소유하는 단일 봇이며, 여러 고객의 디스코드 서버(길드)에
-// 동시에 설치되어 동작한다. 계정 연동은 discordUserId 기준으로 전역이라
-// 어떤 길드에서 명령어를 쓰든 항상 본인 소유 서버만 조회/조작된다.
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const client = new Client({
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
+});
 
 client.once(Events.ClientReady, (c) => {
-  console.log(`[bot] 로그인됨: ${c.user.tag} — 현재 ${c.guilds.cache.size}개 서버에 설치됨`);
+  console.log(`[bot] 로그인됨: ${c.user.tag} — 공식 서버: ${officialGuildId}`);
   c.user.setActivity("/도움말", { type: ActivityType.Listening });
   startCrashWatcher(client);
 });
 
-client.on(Events.GuildCreate, async (guild) => {
-  console.log(`[bot] 새 서버에 추가됨: ${guild.name} (${guild.id}) — 총 ${guild.client.guilds.cache.size}개`);
-  const channel = guild.systemChannel;
-  if (channel?.type === ChannelType.GuildText) {
-    await channel
-      .send("🔥 Burnae 봇이 추가됐어요! `/도움말` 을 입력하면 사용법을 볼 수 있어요.")
-      .catch(() => {});
-  }
-});
-
-client.on(Events.GuildDelete, (guild) => {
-  console.log(`[bot] 서버에서 제거됨: ${guild.name} (${guild.id})`);
+client.on(Events.GuildMemberAdd, async (member) => {
+  if (member.guild.id !== officialGuildId) return;
+  await member
+    .send(
+      "🔥 Burnae 공식 서버에 오신 걸 환영해요!\n`/도움말` 을 입력하면 사용법을 볼 수 있어요. `/요금제`로 플랜도 바로 확인해보세요.",
+    )
+    .catch(() => {
+      // DM을 막아둔 유저면 조용히 무시
+    });
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
+  if (interaction.inGuild() && interaction.guildId !== officialGuildId) {
+    if (interaction.isRepliable()) {
+      await interaction
+        .reply({ content: "이 봇은 Burnae 공식 디스코드 서버 전용이에요.", ephemeral: true })
+        .catch(() => {});
+    }
+    return;
+  }
+
   try {
     if (interaction.isChatInputCommand()) {
       await handleCommand(interaction);

@@ -88,25 +88,37 @@ bash <(curl -s https://pterodactyl-installer.se)
 
 ---
 
-## 4. 디스코드 봇 (Burnae 소유 · 여러 고객 서버에 설치되는 구조)
+## 4. 디스코드 봇 (Burnae **공식 서버 전용**)
 
-Burnae가 만드는 봇은 **하나**이고, 이 하나의 봇을 고객들이 각자 자기 디스코드 서버(친구들 SMP
-디스코드 등)에 초대해서 씁니다. 계정 연동은 디스코드 유저 ID 기준이라 어느 서버에서 명령어를
-쓰든 항상 그 사람 본인의 Burnae 서버만 조회/조작됩니다 — 서버별 봇을 따로 만들 필요 없습니다.
+⚠️ 고객이 이 봇을 자기 디스코드 서버에 초대하는 구조가 **아닙니다**. Burnae 공식 디스코드
+서버(burnae.kr 커뮤니티) **딱 하나**에서만 동작하고, 일반 방문객과 고객 모두 그 서버에
+들어와서 함께 씁니다. `src/bot/index.ts`가 `DISCORD_GUILD_ID`로 지정한 서버가 아니면 아예
+응답하지 않도록 막아둡니다.
 
-1. https://discord.com/developers/applications → New Application → 이름 "Burnae"
-2. Bot 탭 → Reset Token → `DISCORD_BOT_TOKEN`
-3. General Information 탭 → Application ID → `DISCORD_CLIENT_ID`
-4. OAuth2 → URL Generator → scope `bot` + `applications.commands` 체크, **권한은 아무것도 선택하지
-   않아도 됩니다** (콘솔 상태 조회/전원 제어는 상호작용 응답과 DM만 쓰므로 채널 권한이 필요 없음).
-   생성된 초대 링크를 복사해두세요 — 이게 나중에 **고객들에게 나눠줄 "봇 초대 링크"** 입니다
-   (예: 대시보드 `/dashboard/account`에 버튼으로 붙여도 됨).
-5. 슬래시 명령어를 **전역으로** 등록합니다 (`.env`에 `DISCORD_GUILD_ID`를 비워두면 전역 등록 —
-   모든 고객의 서버에서 동일하게 명령어가 뜹니다. 전파에는 최대 1시간 걸릴 수 있어요):
+제공 명령어:
+- 누구나: `/도움말` `/요금제` `/이벤트` `/문의`(비공개 문의 스레드 생성)
+- `/link`로 Burnae 계정을 연동한 사람만: `/서버목록` `/상태` `/시작` `/정지` `/재시작`
+- 연동 성공 시 설정해둔 "고객" 역할이 자동으로 부여됩니다.
+- 서버가 예기치 않게 꺼지면 소유자에게 DM으로 알립니다.
+
+설정 순서:
+
+1. Burnae 공식 디스코드 서버를 먼저 만들고(또는 기존 서버 사용), 서버 ID를 복사해 `DISCORD_GUILD_ID`에
+   입력합니다. (디스코드 설정 → 고급 → 개발자 모드 켜기 → 서버 아이콘 우클릭 → ID 복사)
+2. https://discord.com/developers/applications → New Application → 이름 "Burnae"
+3. Bot 탭 → **Privileged Gateway Intents**에서 **Server Members Intent**를 켭니다
+   (신규 멤버 환영 메시지 + 역할 자동 부여에 필요). → Reset Token → `DISCORD_BOT_TOKEN`
+4. General Information 탭 → Application ID → `DISCORD_CLIENT_ID`
+5. OAuth2 → URL Generator → scope `bot` + `applications.commands` 체크 (권한은 필요 시
+   "채널 관리"만 — `/문의`가 비공개 스레드를 만들려면 필요) → 생성된 링크로 **공식 서버에만** 봇을 초대합니다.
+6. (선택) 서버에 "고객" 역할과 운영진 역할을 만들고 각 역할 ID를 `DISCORD_CUSTOMER_ROLE_ID`,
+   `DISCORD_SUPPORT_ROLE_ID`에 입력합니다.
+7. 공식 서버 초대 링크(길드 초대 링크, 봇 초대 링크 아님)를 `NEXT_PUBLIC_DISCORD_SERVER_INVITE_URL`에
+   넣으면 대시보드에 "공식 디스코드 참여하기" 버튼으로 노출됩니다.
+8. 슬래시 명령어를 공식 서버에 등록합니다 (길드 단위 등록이라 즉시 반영됩니다):
    ```bash
    npm run bot:deploy-commands
    ```
-   개발 중 특정 서버에서 즉시 테스트하고 싶을 때만 `DISCORD_GUILD_ID`를 임시로 채우고 실행하세요.
 
 ---
 

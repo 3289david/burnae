@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import OAuthButtons from "@/components/OAuthButtons";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -39,7 +40,17 @@ export default function RegisterPage() {
         <Link href="/" className="text-xl font-bold">🔥 Burnae</Link>
         <h1 className="mt-6 text-2xl font-bold">회원가입</h1>
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-3">
+        <div className="mt-6">
+          <OAuthButtons />
+        </div>
+
+        <div className="flex items-center gap-3 my-5 text-xs text-text-dim">
+          <div className="flex-1 h-px bg-border" />
+          또는
+          <div className="flex-1 h-px bg-border" />
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-3">
           <input
             required
             maxLength={20}

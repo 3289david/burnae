@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import OAuthButtons from "@/components/OAuthButtons";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -10,6 +11,12 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const oauthError = params.get("error");
+    if (oauthError) setError(oauthError);
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -38,7 +45,17 @@ export default function LoginPage() {
         <Link href="/" className="text-xl font-bold">🔥 Burnae</Link>
         <h1 className="mt-6 text-2xl font-bold">로그인</h1>
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-3">
+        <div className="mt-6">
+          <OAuthButtons />
+        </div>
+
+        <div className="flex items-center gap-3 my-5 text-xs text-text-dim">
+          <div className="flex-1 h-px bg-border" />
+          또는
+          <div className="flex-1 h-px bg-border" />
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-3">
           <input
             type="email"
             required

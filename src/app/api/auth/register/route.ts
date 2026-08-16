@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { hashPassword, createSessionCookie } from "@/lib/auth";
+import { hashPassword, createSessionCookie, resolveInitialRole } from "@/lib/auth";
 
 const schema = z.object({
   email: z.string().email(),
@@ -31,10 +31,10 @@ export async function POST(request: Request) {
 
   const passwordHash = await hashPassword(password);
   const user = await prisma.user.create({
-    data: { email, passwordHash, name },
+    data: { email, passwordHash, name, role: resolveInitialRole(email) },
   });
 
-  await createSessionCookie({ sub: user.id, role: user.role });
+  await createSessionCookie({ sub: user.id, role: user.role, email: user.email });
 
   return NextResponse.json({ id: user.id, email: user.email, name: user.name });
 }

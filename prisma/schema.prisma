@@ -27,7 +27,8 @@ enum UserStatus {
 model User {
   id                     String     @id @default(cuid())
   email                  String     @unique
-  passwordHash           String
+  /// OAuth(구글/깃허브/디스코드)로만 가입한 유저는 비밀번호가 없음
+  passwordHash           String?
   name                   String
   role                   UserRole   @default(USER)
   status                 UserStatus @default(ACTIVE)
@@ -45,8 +46,28 @@ model User {
   auditLogs         AuditLog[]
   teamMemberships   ServerMember[]
   couponRedemptions CouponRedemption[]
+  oauthAccounts     OAuthAccount[]
 
   @@index([email])
+}
+
+enum OAuthProvider {
+  GOOGLE
+  GITHUB
+  DISCORD
+}
+
+/// 소셜 로그인 연결 정보. 한 유저가 여러 프로바이더로 로그인할 수 있음(이메일 기준 자동 연결)
+model OAuthAccount {
+  id                String        @id @default(cuid())
+  userId            String
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider          OAuthProvider
+  providerAccountId String
+  createdAt         DateTime      @default(now())
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
 }
 
 // ────────────────────────────────

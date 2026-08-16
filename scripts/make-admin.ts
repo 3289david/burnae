@@ -5,19 +5,28 @@ import { PrismaPg } from "@prisma/adapter-pg";
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
-/** 사용: npm run make-admin -- you@example.com  (먼저 웹에서 회원가입을 마친 이메일이어야 함) */
+/**
+ * 복구용 스크립트. 관리자 패널은 오직 ADMIN_EMAIL(기본값 davideom0414@gmail.com) 하나만
+ * 들어갈 수 있고, 그 이메일로 가입/로그인하면 자동으로 ADMIN이 되므로 평소엔 필요 없다.
+ * DB를 직접 만졌거나 role이 꼬였을 때 복구용으로만 사용.
+ * 사용: npm run make-admin
+ */
 async function main() {
-  const email = process.argv[2];
-  if (!email) {
-    console.error("사용법: npm run make-admin -- you@example.com");
+  const adminEmail = (process.env.ADMIN_EMAIL ?? "davideom0414@gmail.com").toLowerCase();
+
+  const user = await prisma.user.findUnique({ where: { email: adminEmail } });
+  if (!user) {
+    console.error(
+      `${adminEmail} 계정이 아직 없습니다. 먼저 웹에서 이 이메일로 회원가입(또는 소셜 로그인)을 한 번 해주세요.`,
+    );
     process.exit(1);
   }
 
-  const user = await prisma.user.update({
-    where: { email },
+  const updated = await prisma.user.update({
+    where: { id: user.id },
     data: { role: "ADMIN" },
   });
-  console.log(`✅ ${user.email} 을(를) 관리자로 지정했습니다.`);
+  console.log(`✅ ${updated.email} 을(를) 관리자로 지정했습니다.`);
 }
 
 main()

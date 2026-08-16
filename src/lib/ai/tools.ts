@@ -1,4 +1,4 @@
-import type Anthropic from "@anthropic-ai/sdk";
+import type OpenAI from "openai";
 import { PteroClient } from "@/lib/pterodactyl";
 import type { Server } from "@/generated/prisma/client";
 import type { AiRiskLevel } from "@/generated/prisma/enums";
@@ -9,20 +9,22 @@ import type { AiRiskLevel } from "@/generated/prisma/enums";
  * 위험도(riskLevel)에 따라 SAFE는 즉시 실행, 그 외는 사용자 승인 후에만 실행된다.
  */
 
+type JsonSchema = Record<string, unknown>;
+
 export interface ToolDef {
   riskLevel: AiRiskLevel;
-  anthropic: Anthropic.Tool;
+  name: string;
+  description: string;
+  parameters: JsonSchema;
   run: (server: Server, input: Record<string, unknown>) => Promise<unknown>;
 }
 
 export const AI_TOOLS: Record<string, ToolDef> = {
   get_server_status: {
     riskLevel: "SAFE",
-    anthropic: {
-      name: "get_server_status",
-      description: "서버의 현재 상태(온라인 여부, CPU/RAM/디스크 사용량, 가동시간)를 조회한다.",
-      input_schema: { type: "object", properties: {} },
-    },
+    name: "get_server_status",
+    description: "서버의 현재 상태(온라인 여부, CPU/RAM/디스크 사용량, 가동시간)를 조회한다.",
+    parameters: { type: "object", properties: {} },
     run: async (server) => {
       if (!server.pterodactylIdentifier) return { status: "PROVISIONING" };
       return PteroClient.getServerResources(server.pterodactylIdentifier);
@@ -31,11 +33,9 @@ export const AI_TOOLS: Record<string, ToolDef> = {
 
   read_recent_console: {
     riskLevel: "SAFE",
-    anthropic: {
-      name: "read_recent_console",
-      description: "서버 콘솔의 최근 출력 로그를 읽어 오류나 상태를 분석한다.",
-      input_schema: { type: "object", properties: {} },
-    },
+    name: "read_recent_console",
+    description: "서버 콘솔의 최근 출력 로그를 읽어 오류나 상태를 분석한다.",
+    parameters: { type: "object", properties: {} },
     run: async (server) => {
       if (!server.pterodactylIdentifier) return { lines: [] };
       const lines = await PteroClient.captureRecentConsoleOutput(server.pterodactylIdentifier);
@@ -45,14 +45,12 @@ export const AI_TOOLS: Record<string, ToolDef> = {
 
   list_files: {
     riskLevel: "SAFE",
-    anthropic: {
-      name: "list_files",
-      description: "서버의 특정 디렉터리 안 파일/폴더 목록을 조회한다.",
-      input_schema: {
-        type: "object",
-        properties: { directory: { type: "string", description: "예: '/', '/plugins'" } },
-        required: ["directory"],
-      },
+    name: "list_files",
+    description: "서버의 특정 디렉터리 안 파일/폴더 목록을 조회한다.",
+    parameters: {
+      type: "object",
+      properties: { directory: { type: "string", description: "예: '/', '/plugins'" } },
+      required: ["directory"],
     },
     run: async (server, input) => {
       if (!server.pterodactylIdentifier) return { files: [] };
@@ -66,14 +64,12 @@ export const AI_TOOLS: Record<string, ToolDef> = {
 
   read_file: {
     riskLevel: "SAFE",
-    anthropic: {
-      name: "read_file",
-      description: "서버의 특정 파일 내용을 읽는다. (예: server.properties, config.yml)",
-      input_schema: {
-        type: "object",
-        properties: { path: { type: "string" } },
-        required: ["path"],
-      },
+    name: "read_file",
+    description: "서버의 특정 파일 내용을 읽는다. (예: server.properties, config.yml)",
+    parameters: {
+      type: "object",
+      properties: { path: { type: "string" } },
+      required: ["path"],
     },
     run: async (server, input) => {
       if (!server.pterodactylIdentifier) throw new Error("서버가 아직 준비 중입니다.");
@@ -87,14 +83,12 @@ export const AI_TOOLS: Record<string, ToolDef> = {
 
   write_file: {
     riskLevel: "CONFIRM",
-    anthropic: {
-      name: "write_file",
-      description: "서버의 특정 파일 내용을 새로 작성/수정한다.",
-      input_schema: {
-        type: "object",
-        properties: { path: { type: "string" }, content: { type: "string" } },
-        required: ["path", "content"],
-      },
+    name: "write_file",
+    description: "서버의 특정 파일 내용을 새로 작성/수정한다.",
+    parameters: {
+      type: "object",
+      properties: { path: { type: "string" }, content: { type: "string" } },
+      required: ["path", "content"],
     },
     run: async (server, input) => {
       if (!server.pterodactylIdentifier) throw new Error("서버가 아직 준비 중입니다.");
@@ -109,14 +103,12 @@ export const AI_TOOLS: Record<string, ToolDef> = {
 
   execute_console_command: {
     riskLevel: "CONFIRM",
-    anthropic: {
-      name: "execute_console_command",
-      description: "서버 콘솔에 명령어를 실행한다. (예: /gamerule keepInventory true)",
-      input_schema: {
-        type: "object",
-        properties: { command: { type: "string" } },
-        required: ["command"],
-      },
+    name: "execute_console_command",
+    description: "서버 콘솔에 명령어를 실행한다. (예: /gamerule keepInventory true)",
+    parameters: {
+      type: "object",
+      properties: { command: { type: "string" } },
+      required: ["command"],
     },
     run: async (server, input) => {
       if (!server.pterodactylIdentifier) throw new Error("서버가 아직 준비 중입니다.");
@@ -127,11 +119,9 @@ export const AI_TOOLS: Record<string, ToolDef> = {
 
   restart_server: {
     riskLevel: "CONFIRM",
-    anthropic: {
-      name: "restart_server",
-      description: "서버를 재시작한다. 설정 변경 후 적용할 때 사용.",
-      input_schema: { type: "object", properties: {} },
-    },
+    name: "restart_server",
+    description: "서버를 재시작한다. 설정 변경 후 적용할 때 사용.",
+    parameters: { type: "object", properties: {} },
     run: async (server) => {
       if (!server.pterodactylIdentifier) throw new Error("서버가 아직 준비 중입니다.");
       await PteroClient.sendPowerAction(server.pterodactylIdentifier, "restart");
@@ -141,11 +131,9 @@ export const AI_TOOLS: Record<string, ToolDef> = {
 
   stop_server: {
     riskLevel: "CONFIRM",
-    anthropic: {
-      name: "stop_server",
-      description: "서버를 정지한다.",
-      input_schema: { type: "object", properties: {} },
-    },
+    name: "stop_server",
+    description: "서버를 정지한다.",
+    parameters: { type: "object", properties: {} },
     run: async (server) => {
       if (!server.pterodactylIdentifier) throw new Error("서버가 아직 준비 중입니다.");
       await PteroClient.sendPowerAction(server.pterodactylIdentifier, "stop");
@@ -155,11 +143,9 @@ export const AI_TOOLS: Record<string, ToolDef> = {
 
   start_server: {
     riskLevel: "SAFE",
-    anthropic: {
-      name: "start_server",
-      description: "서버를 시작한다.",
-      input_schema: { type: "object", properties: {} },
-    },
+    name: "start_server",
+    description: "서버를 시작한다.",
+    parameters: { type: "object", properties: {} },
     run: async (server) => {
       if (!server.pterodactylIdentifier) throw new Error("서버가 아직 준비 중입니다.");
       await PteroClient.sendPowerAction(server.pterodactylIdentifier, "start");
@@ -169,13 +155,11 @@ export const AI_TOOLS: Record<string, ToolDef> = {
 
   create_backup: {
     riskLevel: "CONFIRM",
-    anthropic: {
-      name: "create_backup",
-      description: "서버의 현재 상태를 백업한다. 위험한 작업 전에 자동으로도 호출된다.",
-      input_schema: {
-        type: "object",
-        properties: { name: { type: "string" } },
-      },
+    name: "create_backup",
+    description: "서버의 현재 상태를 백업한다. 위험한 작업 전에 자동으로도 호출된다.",
+    parameters: {
+      type: "object",
+      properties: { name: { type: "string" } },
     },
     run: async (server, input) => {
       if (!server.pterodactylIdentifier) throw new Error("서버가 아직 준비 중입니다.");
@@ -189,17 +173,15 @@ export const AI_TOOLS: Record<string, ToolDef> = {
 
   delete_files: {
     riskLevel: "DANGEROUS",
-    anthropic: {
-      name: "delete_files",
-      description: "서버의 파일/폴더를 삭제한다. 되돌릴 수 없으니 신중하게 사용.",
-      input_schema: {
-        type: "object",
-        properties: {
-          directory: { type: "string" },
-          files: { type: "array", items: { type: "string" } },
-        },
-        required: ["directory", "files"],
+    name: "delete_files",
+    description: "서버의 파일/폴더를 삭제한다. 되돌릴 수 없으니 신중하게 사용.",
+    parameters: {
+      type: "object",
+      properties: {
+        directory: { type: "string" },
+        files: { type: "array", items: { type: "string" } },
       },
+      required: ["directory", "files"],
     },
     run: async (server, input) => {
       if (!server.pterodactylIdentifier) throw new Error("서버가 아직 준비 중입니다.");
@@ -214,14 +196,12 @@ export const AI_TOOLS: Record<string, ToolDef> = {
 
   restore_backup: {
     riskLevel: "DANGEROUS",
-    anthropic: {
-      name: "restore_backup",
-      description: "지정한 백업으로 서버를 복원한다. 현재 데이터를 덮어쓴다.",
-      input_schema: {
-        type: "object",
-        properties: { backupUuid: { type: "string" } },
-        required: ["backupUuid"],
-      },
+    name: "restore_backup",
+    description: "지정한 백업으로 서버를 복원한다. 현재 데이터를 덮어쓴다.",
+    parameters: {
+      type: "object",
+      properties: { backupUuid: { type: "string" } },
+      required: ["backupUuid"],
     },
     run: async (server, input) => {
       if (!server.pterodactylIdentifier) throw new Error("서버가 아직 준비 중입니다.");
@@ -232,7 +212,9 @@ export const AI_TOOLS: Record<string, ToolDef> = {
   },
 };
 
-export function anthropicToolList(): Anthropic.Tool[] {
-  return Object.values(AI_TOOLS).map((t) => t.anthropic);
+export function openAiToolList(): OpenAI.Chat.Completions.ChatCompletionTool[] {
+  return Object.values(AI_TOOLS).map((t) => ({
+    type: "function",
+    function: { name: t.name, description: t.description, parameters: t.parameters },
+  }));
 }
-

@@ -8,6 +8,9 @@ CREATE TYPE "UserRole" AS ENUM ('USER', 'ADMIN');
 CREATE TYPE "UserStatus" AS ENUM ('ACTIVE', 'SUSPENDED');
 
 -- CreateEnum
+CREATE TYPE "OAuthProvider" AS ENUM ('GOOGLE', 'GITHUB', 'DISCORD');
+
+-- CreateEnum
 CREATE TYPE "NodeStatus" AS ENUM ('ONLINE', 'OFFLINE', 'MAINTENANCE');
 
 -- CreateEnum
@@ -38,7 +41,7 @@ CREATE TYPE "AiActionStatus" AS ENUM ('PENDING_APPROVAL', 'APPROVED', 'REJECTED'
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
-    "passwordHash" TEXT NOT NULL,
+    "passwordHash" TEXT,
     "name" TEXT NOT NULL,
     "role" "UserRole" NOT NULL DEFAULT 'USER',
     "status" "UserStatus" NOT NULL DEFAULT 'ACTIVE',
@@ -48,6 +51,17 @@ CREATE TABLE "User" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "OAuthAccount" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "provider" "OAuthProvider" NOT NULL,
+    "providerAccountId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "OAuthAccount_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -367,6 +381,12 @@ CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 CREATE INDEX "User_email_idx" ON "User"("email");
 
 -- CreateIndex
+CREATE INDEX "OAuthAccount_userId_idx" ON "OAuthAccount"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "OAuthAccount_provider_providerAccountId_key" ON "OAuthAccount"("provider", "providerAccountId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "HostNode_pterodactylNodeId_key" ON "HostNode"("pterodactylNodeId");
 
 -- CreateIndex
@@ -464,6 +484,9 @@ CREATE INDEX "AuditLog_targetType_targetId_idx" ON "AuditLog"("targetType", "tar
 
 -- CreateIndex
 CREATE INDEX "_ProductToServerTemplate_B_index" ON "_ProductToServerTemplate"("B");
+
+-- AddForeignKey
+ALTER TABLE "OAuthAccount" ADD CONSTRAINT "OAuthAccount_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Order" ADD CONSTRAINT "Order_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

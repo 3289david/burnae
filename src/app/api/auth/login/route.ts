@@ -17,9 +17,9 @@ export async function POST(request: Request) {
 
   const { email, password } = parsed.data;
   const user = await prisma.user.findUnique({ where: { email } });
-  if (!user || !(await verifyPassword(password, user.passwordHash))) {
+  if (!user || !user.passwordHash || !(await verifyPassword(password, user.passwordHash))) {
     return NextResponse.json(
-      { error: "이메일 또는 비밀번호가 올바르지 않습니다." },
+      { error: "이메일 또는 비밀번호가 올바르지 않습니다. 소셜 로그인으로 가입했다면 그 방법으로 로그인해주세요." },
       { status: 401 },
     );
   }
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     );
   }
 
-  await createSessionCookie({ sub: user.id, role: user.role });
+  await createSessionCookie({ sub: user.id, role: user.role, email: user.email });
 
   return NextResponse.json({
     id: user.id,

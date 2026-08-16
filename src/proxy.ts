@@ -4,14 +4,22 @@ import { jwtVerify } from "jose";
 
 const COOKIE_NAME = "burnae_session";
 
-async function readRole(request: NextRequest): Promise<string | null> {
+// lib/auth.ts는 Node 전용 모듈(prisma, next/headers)을 물고 있어 Edge에서 못 쓰므로
+// 관리자 이메일 검증 로직을 여기서도 최소한으로 복제해둔다 (안전장치는 이중으로).
+function isAdminEmail(email: string | undefined): boolean {
+  if (!email) return false;
+  const adminEmail = (process.env.ADMIN_EMAIL ?? "davideom0414@gmail.com").toLowerCase();
+  return email.toLowerCase() === adminEmail;
+}
+
+async function readSession(request: NextRequest) {
   const token = request.cookies.get(COOKIE_NAME)?.value;
   if (!token) return null;
   const secret = process.env.AUTH_SECRET;
   if (!secret) return null;
   try {
     const { payload } = await jwtVerify(token, new TextEncoder().encode(secret));
-    return (payload.role as string) ?? null;
+    return { role: payload.role as string | undefined, email: payload.email as string | undefined };
   } catch {
     return null;
   }
@@ -19,10 +27,10 @@ async function readRole(request: NextRequest): Promise<string | null> {
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const role = await readRole(request);
+  const session = await readSession(request);
 
   if (pathname.startsWith("/admin")) {
-    if (role !== "ADMIN") {
+    if (!session || session.role !== "ADMIN" || !isAdminEmail(session.email)) {
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("next", pathname);
       return NextResponse.redirect(loginUrl);
@@ -30,7 +38,7 @@ export async function proxy(request: NextRequest) {
   }
 
   if (pathname.startsWith("/dashboard")) {
-    if (!role) {
+    if (!session) {
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("next", pathname);
       return NextResponse.redirect(loginUrl);

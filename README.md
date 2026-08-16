@@ -8,7 +8,7 @@ Cloudflare DNS, 디스코드 봇과 연동합니다.
 - **호스팅 엔진**: Pterodactyl (Application API + Client API)
 - **결제**: [paysync.kr](https://paysync.kr) 무통장입금 자동확인 (계좌 비밀번호 불필요)
 - **서브도메인**: Cloudflare API로 서버 생성 시 `이름.krl.kr` A/SRV 레코드 자동 생성
-- **AI**: Anthropic API 기반 Tool-calling — 실제 서버를 읽고/쓰고/재시작
+- **AI**: [OpenRouter](https://openrouter.ai) 기반 Tool-calling — 저렴한 오픈소스 모델(Qwen3), 실제 서버를 읽고/쓰고/재시작
 - **디스코드 봇**: discord.js, `/서버목록` `/상태` `/시작` `/정지` `/재시작` `/link`
 
 ---
@@ -25,8 +25,9 @@ Cloudflare DNS, 디스코드 봇과 연동합니다.
 | 도메인 `krl.kr` + Cloudflare 연결 | Cloudflare | 서버 서브도메인 전용 존 |
 | Pterodactyl Panel + Wings | 자체 설치 | 아래 1번 참고 |
 | paysync.kr 계정 | https://paysync.kr | 무통장입금 자동확인 |
-| Discord Application | https://discord.com/developers | 봇 토큰 |
-| Anthropic API 키 | https://console.anthropic.com | AI 챗봇 |
+| Discord Application | https://discord.com/developers | 봇 토큰 + OAuth 로그인 |
+| Google/GitHub OAuth 앱 | 각 콘솔 | 소셜 로그인 |
+| OpenRouter API 키 | https://openrouter.ai/keys | AI 챗봇 (저렴한 오픈소스 모델) |
 
 ---
 
@@ -122,13 +123,56 @@ bash <(curl -s https://pterodactyl-installer.se)
 
 ---
 
-## 5. Anthropic API 키
+## 5. OpenRouter API 키 (AI 챗봇)
 
-https://console.anthropic.com → API Keys → Create Key → `ANTHROPIC_API_KEY`
+Anthropic/OpenAI 같은 비싼 상용 API 대신 OpenRouter로 저렴한 오픈소스 모델을 씁니다.
+
+1. https://openrouter.ai 가입 → Keys → Create Key → `OPENROUTER_API_KEY`
+2. 기본 모델은 `qwen/qwen3-235b-a22b-2507` (Qwen3, Apache-2.0 오픈소스, tool-calling 지원).
+   비용을 더 줄이고 싶으면 `.env`의 `OPENROUTER_MODEL`을 `qwen/qwen3-30b-a3b-instruct-2507` 등으로 바꾸면 됩니다.
+   https://openrouter.ai/models?supported_parameters=tools 에서 tool-calling 지원 모델과
+   실시간 가격을 확인할 수 있습니다.
 
 ---
 
-## 6. 서버 배포 (Ubuntu)
+## 6. 관리자 계정 & 소셜 로그인
+
+**관리자 패널(`/admin`)은 오직 `ADMIN_EMAIL`(기본값 `davideom0414@gmail.com`) 이메일 하나만
+들어갈 수 있습니다.** 이 이메일로 가입하거나 소셜 로그인하면 자동으로 관리자가 되고, 그 외
+계정은 DB에서 role을 직접 ADMIN으로 바꿔도 서버(proxy.ts)와 API(requireAdmin) 양쪽에서
+이메일이 다르면 무조건 막힙니다. 다른 사람을 관리자로 만들고 싶다면 `.env`의 `ADMIN_EMAIL`
+자체를 바꿔야 합니다 (여러 명을 관리자로 두는 기능은 없음 — 딱 한 명 전용).
+
+소셜 로그인(Google/GitHub/Discord)은 이메일이 같으면 기존 계정에 자동으로 연결됩니다.
+비밀번호 없이 소셜 로그인만으로 가입한 계정도 정상 동작합니다.
+
+1. **Google**: https://console.cloud.google.com → API 및 서비스 → OAuth 동의 화면 설정 →
+   사용자 인증 정보 → OAuth 클라이언트 ID 만들기 (웹 애플리케이션) →
+   승인된 리디렉션 URI에 `https://burnae.kr/api/auth/oauth/google/callback` 추가
+   → `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`
+2. **GitHub**: https://github.com/settings/developers → New OAuth App →
+   Authorization callback URL에 `https://burnae.kr/api/auth/oauth/github/callback` 입력
+   → `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`
+3. **Discord**: 위 4번에서 만든 Burnae Application을 그대로 재사용합니다.
+   OAuth2 탭 → Redirects에 `https://burnae.kr/api/auth/oauth/discord/callback` 추가,
+   Client Secret 발급 → `DISCORD_CLIENT_SECRET` (`DISCORD_CLIENT_ID`는 이미 있는 값 그대로 사용)
+
+---
+
+## 7. 서버 배포 (Ubuntu)
+
+### 자동 스크립트 (권장)
+
+아래 수동 단계를 대신 처리해주는 스크립트입니다. Node/PostgreSQL/Nginx 설치, DB 생성,
+`.env` 뼈대 생성(AUTH_SECRET 자동 생성), 빌드, systemd 서비스 등록, (선택)Nginx+HTTPS까지
+한 번에 진행하고, 끝나면 남은 수동 작업(나머지 `.env` 값, 관리자 지정 등)을 안내해줍니다.
+
+```bash
+git clone <이 저장소 URL> burnae && cd burnae
+sudo bash scripts/setup-ubuntu.sh
+```
+
+### 수동 단계
 
 ```bash
 # 1) 기본 패키지
@@ -145,7 +189,7 @@ sudo mkdir -p /opt/burnae && sudo chown $USER:$USER /opt/burnae
 git clone <이 저장소> /opt/burnae
 cd /opt/burnae
 cp .env.example .env
-nano .env   # 위 0~5번에서 발급받은 값들을 전부 채우기 (AUTH_SECRET은 `openssl rand -base64 32`)
+nano .env   # 위 0~6번에서 발급받은 값들을 전부 채우기 (AUTH_SECRET은 `openssl rand -base64 32`)
 
 # 4) 설치 & DB 마이그레이션
 npm install
@@ -154,8 +198,9 @@ npm run db:seed
 npm run build
 
 # 5) 첫 관리자 계정 만들기
-# → 먼저 https://burnae.kr/register 에서 회원가입 1회 진행한 뒤:
-npm run make-admin -- you@example.com
+# → ADMIN_EMAIL로 지정한 이메일로 https://burnae.kr/register 에서 가입(또는 소셜 로그인)하면
+#   자동으로 관리자가 됩니다. role이 꼬였을 때만 복구용으로:
+npm run make-admin
 
 # 6) 슬래시 명령어 등록 (디스코드)
 npm run bot:deploy-commands
@@ -183,7 +228,7 @@ sudo certbot --nginx -d burnae.kr -d www.burnae.kr
 
 ---
 
-## 7. 관리자 패널에서 첫 세팅
+## 8. 관리자 패널에서 첫 세팅
 
 1. `/admin/nodes` — 1번에서 만든 Pterodactyl Node ID + 공인 IP 입력해서 연결
 2. `/admin/templates` — Paper/Fabric/Vanilla 등 Nest ID/Egg ID 입력

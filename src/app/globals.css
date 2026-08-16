@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #0b0d12;
+  --surface: #14171f;
+  --surface-2: #1b1f2a;
+  --border: #262b38;
+  --text: #f2f3f5;
+  --text-dim: #9aa0ae;
+  --accent: #ff6a3d;
+  --accent-2: #ffb648;
+  --green: #34d399;
+  --red: #f87171;
+  --yellow: #fbbf24;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-text-dim: var(--text-dim);
+  --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
+  --color-green: var(--green);
+  --color-red: var(--red);
+  --color-yellow: var(--yellow);
+}
+
+* {
+  border-color: var(--border);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo", "Segoe UI", Roboto, sans-serif;
+}
+
+::selection {
+  background: var(--accent);
+  color: white;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: white;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  transition: opacity 0.15s;
+}
+.btn-primary:hover {
+  opacity: 0.9;
+}
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  transition: background 0.15s;
+}
+.btn-secondary:hover {
+  background: #232838;
+}
+
+.input {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  color: var(--text);
+  padding: 0.6rem 0.9rem;
+}
+.input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+}

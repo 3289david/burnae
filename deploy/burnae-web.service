@@ -1,0 +1,17 @@
+[Unit]
+Description=Burnae Web (Next.js)
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=burnae
+WorkingDirectory=/opt/burnae
+ExecStart=/usr/bin/npm run start
+Restart=always
+RestartSec=5
+EnvironmentFile=/opt/burnae/.env
+Environment=NODE_ENV=production
+Environment=PORT=3000
+
+[Install]
+WantedBy=multi-user.target

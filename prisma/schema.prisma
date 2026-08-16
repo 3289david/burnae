@@ -1,0 +1,487 @@
+// Burnae Hosting — 데이터 모델
+// 학습 참고: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ────────────────────────────────
+// 계정
+// ────────────────────────────────
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+model User {
+  id                     String     @id @default(cuid())
+  email                  String     @unique
+  passwordHash           String
+  name                   String
+  role                   UserRole   @default(USER)
+  status                 UserStatus @default(ACTIVE)
+  /// 인당 총 저장공간 한도(GB). null이면 HostingSettings.defaultUserStorageGb 적용
+  storageQuotaGbOverride Int?
+  aiCreditsRemaining     Int        @default(0)
+  createdAt              DateTime   @default(now())
+  updatedAt              DateTime   @updatedAt
+
+  servers           Server[]
+  orders            Order[]
+  aiConversations   AiConversation[]
+  aiActivityLogs    AiActivityLog[]
+  discordLink       DiscordLink?
+  auditLogs         AuditLog[]
+  teamMemberships   ServerMember[]
+  couponRedemptions CouponRedemption[]
+
+  @@index([email])
+}
+
+// ────────────────────────────────
+// 호스팅 인프라 (Pterodactyl 미러링)
+// ────────────────────────────────
+
+enum NodeStatus {
+  ONLINE
+  OFFLINE
+  MAINTENANCE
+}
+
+model HostNode {
+  id                String     @id @default(cuid())
+  name              String
+  location          String
+  pterodactylNodeId Int        @unique
+  fqdn              String
+  publicIp          String
+  totalRamMb        Int
+  totalDiskMb       Int
+  reservedRamMb     Int        @default(0)
+  reservedDiskMb    Int        @default(0)
+  cpuCores          Int
+  status            NodeStatus @default(ONLINE)
+  autoDeployEnabled Boolean    @default(true)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  servers Server[]
+
+  @@index([status])
+}
+
+/// Pterodactyl Egg(서버 종류) 미러링 — Paper/Fabric/Forge/NeoForge/Vanilla 등
+model ServerTemplate {
+  id                 String   @id @default(cuid())
+  key                String   @unique // "paper", "fabric", "forge", "neoforge", "vanilla", "purpur"
+  displayName        String
+  pterodactylNestId  Int
+  pterodactylEggId   Int
+  dockerImage        String
+  startupCommand     String
+  minecraftVersions  String[] // 선택 가능한 마인크래프트 버전 목록
+  defaultEnvironment Json // Pterodactyl egg 기본 environment 변수
+  active             Boolean  @default(true)
+  sortOrder          Int      @default(0)
+
+  servers  Server[]
+  products Product[]
+
+  @@index([active])
+}
+
+// ────────────────────────────────
+// 상품/가격 (관리자 설정)
+// ────────────────────────────────
+
+model HostingSettings {
+  id                     Int      @id @default(1)
+  ramPricePerGbKrw       Int      @default(5000)
+  minRamGb               Int      @default(1)
+  maxRamGb               Int      @default(32)
+  defaultDiskGb          Int      @default(20)
+  diskPricePerGbKrw      Int      @default(100)
+  defaultBackupSlots     Int      @default(3)
+  backupPricePerSlotKrw  Int      @default(500)
+  /// 유저 1인당 기본 저장공간 한도(GB). 관리자가 상향 가능, 유저별 override는 User.storageQuotaGbOverride
+  defaultUserStorageGb   Int      @default(10)
+  maxCpuPercentPerServer Int      @default(800)
+  siteName               String   @default("Burnae")
+  siteDomain             String   @default("burnae.kr")
+  subdomainZone          String   @default("krl.kr")
+  updatedAt              DateTime @updatedAt
+
+  @@map("hosting_settings")
+}
+
+model Product {
+  id                String   @id @default(cuid())
+  name              String
+  description       String?
+  ramMb             Int
+  cpuPercent        Int
+  diskMb            Int
+  backupSlots       Int      @default(3)
+  aiCreditsPerMonth Int      @default(0)
+  priceMonthlyKrw   Int
+  active            Boolean  @default(true)
+  sortOrder         Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  allowedTemplates ServerTemplate[]
+  orders           Order[]
+  servers          Server[]
+
+  @@index([active])
+}
+
+// ────────────────────────────────
+// 주문/결제 (PaySync 무통장입금 자동확인)
+// ────────────────────────────────
+
+enum OrderStatus {
+  PENDING
+  PAID
+  CANCELLED
+  EXPIRED
+  REFUNDED
+}
+
+enum OrderType {
+  NEW_SERVER
+  RENEWAL
+  UPGRADE
+}
+
+model Order {
+  id                        String      @id @default(cuid())
+  userId                    String
+  user                      User        @relation(fields: [userId], references: [id])
+  productId                 String
+  product                   Product     @relation(fields: [productId], references: [id])
+  type                      OrderType   @default(NEW_SERVER)
+  serverId                  String?
+  server                    Server?     @relation(fields: [serverId], references: [id])
+  status                    OrderStatus @default(PENDING)
+  amountKrw                 Int
+  /// 페이싱크 결제 매칭용 입금자명 (1~5자, 공백 불가)
+  depositorName             String
+  couponId                  String?
+  coupon                    Coupon?     @relation(fields: [couponId], references: [id])
+  discountKrw               Int         @default(0)
+  paysyncInvoiceId          String?     @unique
+  paidAt                    DateTime?
+  expiresAt                 DateTime?
+  serverNameRequested       String?
+  templateIdRequested       String?
+  minecraftVersionRequested String?
+  createdAt                 DateTime    @default(now())
+
+  @@index([userId])
+  @@index([status])
+  @@index([paysyncInvoiceId])
+}
+
+// ────────────────────────────────
+// 마인크래프트 서버
+// ────────────────────────────────
+
+enum ServerStatus {
+  PROVISIONING
+  RUNNING
+  STOPPED
+  STARTING
+  STOPPING
+  SUSPENDED
+  ERROR
+  DELETING
+}
+
+enum ServerMemberRole {
+  ADMIN
+  MODERATOR
+  DEVELOPER
+  VIEWER
+}
+
+model Server {
+  id         String         @id @default(cuid())
+  ownerId    String
+  owner      User           @relation(fields: [ownerId], references: [id])
+  productId  String
+  product    Product        @relation(fields: [productId], references: [id])
+  templateId String
+  template   ServerTemplate @relation(fields: [templateId], references: [id])
+  nodeId     String
+  node       HostNode       @relation(fields: [nodeId], references: [id])
+
+  name             String
+  minecraftVersion String
+  status           ServerStatus @default(PROVISIONING)
+
+  pterodactylServerId   Int?    @unique
+  pterodactylUuid       String? @unique
+  pterodactylIdentifier String?
+
+  ramMb       Int
+  cpuPercent  Int
+  diskMb      Int
+  backupSlots Int
+
+  allocationIp   String?
+  allocationPort Int?
+
+  /// 서버당 최대 2개까지 (기본 1개 자동 생성 + 소유자가 1개 추가 가능)
+  subdomains ServerSubdomain[]
+
+  whitelistEnabled Boolean   @default(false)
+  suspendedReason  String?
+  renewalDueAt     DateTime?
+  lastBackupAt     DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime?
+
+  orders          Order[]
+  backups         Backup[]
+  members         ServerMember[]
+  aiConversations AiConversation[]
+  aiActivityLogs  AiActivityLog[]
+
+  @@index([ownerId])
+  @@index([status])
+}
+
+model ServerMember {
+  id        String           @id @default(cuid())
+  serverId  String
+  server    Server           @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User             @relation(fields: [userId], references: [id])
+  role      ServerMemberRole @default(VIEWER)
+  invitedAt DateTime         @default(now())
+
+  @@unique([serverId, userId])
+}
+
+/// krl.kr 존의 서브도메인 하나 = A 레코드 + SRV(_minecraft._tcp) 레코드 한 쌍
+model ServerSubdomain {
+  id             String   @id @default(cuid())
+  serverId       String
+  server         Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  subdomain      String   @unique // 예: friends-smp -> friends-smp.krl.kr
+  dnsARecordId   String?
+  dnsSrvRecordId String?
+  isPrimary      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  @@index([serverId])
+}
+
+model Backup {
+  id                  String    @id @default(cuid())
+  serverId            String
+  server              Server    @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  pterodactylBackupId String?   @unique
+  name                String
+  sizeBytes           BigInt    @default(0)
+  isAutomatic         Boolean   @default(false)
+  status              String    @default("PENDING") // PENDING, COMPLETED, FAILED
+  createdAt           DateTime  @default(now())
+  completedAt         DateTime?
+
+  @@index([serverId])
+}
+
+// ────────────────────────────────
+// 이벤트 / 쿠폰 (관리자 프로모션)
+// ────────────────────────────────
+
+enum CouponDiscountType {
+  PERCENT
+  FIXED_KRW
+}
+
+model Coupon {
+  id            String             @id @default(cuid())
+  code          String             @unique
+  discountType  CouponDiscountType
+  discountValue Int
+  maxUses       Int?
+  usedCount     Int                @default(0)
+  minOrderKrw   Int                @default(0)
+  active        Boolean            @default(true)
+  startsAt      DateTime?
+  expiresAt     DateTime?
+  createdAt     DateTime           @default(now())
+
+  orders      Order[]
+  event       Event?
+  redemptions CouponRedemption[]
+}
+
+model CouponRedemption {
+  id        String   @id @default(cuid())
+  couponId  String
+  coupon    Coupon   @relation(fields: [couponId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([couponId, userId])
+}
+
+model Event {
+  id             String   @id @default(cuid())
+  title          String
+  description    String
+  bannerImageUrl String?
+  couponId       String?  @unique
+  coupon         Coupon?  @relation(fields: [couponId], references: [id])
+  startsAt       DateTime
+  endsAt         DateTime
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+// ────────────────────────────────
+// 결제 계좌 표시 정보 (관리자 설정)
+// ────────────────────────────────
+
+model BankAccountSetting {
+  id            String   @id @default(cuid())
+  bankName      String
+  accountNumber String
+  accountHolder String
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ────────────────────────────────
+// AI 챗봇
+// ────────────────────────────────
+
+enum AiMessageRole {
+  USER
+  ASSISTANT
+  TOOL
+}
+
+model AiConversation {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  serverId  String?
+  server    Server?  @relation(fields: [serverId], references: [id])
+  title     String   @default("새 대화")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages AiMessage[]
+
+  @@index([userId])
+  @@index([serverId])
+}
+
+model AiMessage {
+  id             String         @id @default(cuid())
+  conversationId String
+  conversation   AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           AiMessageRole
+  content        String
+  toolCalls      Json?
+  createdAt      DateTime       @default(now())
+
+  @@index([conversationId])
+}
+
+enum AiRiskLevel {
+  SAFE
+  CONFIRM
+  DANGEROUS
+}
+
+enum AiActionStatus {
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  EXECUTED
+  FAILED
+}
+
+model AiActivityLog {
+  id             String         @id @default(cuid())
+  userId         String
+  user           User           @relation(fields: [userId], references: [id])
+  serverId       String
+  server         Server         @relation(fields: [serverId], references: [id])
+  conversationId String?
+  /// 모델이 발급한 tool_use 블록 id — 승인 후 대화를 이어가기 위해 필요
+  toolUseId      String?
+  toolName       String
+  riskLevel      AiRiskLevel
+  status         AiActionStatus @default(PENDING_APPROVAL)
+  input          Json
+  result         Json?
+  /// 위험 작업 실행 전 자동 백업한 스냅샷 id (되돌리기용)
+  backupId       String?
+  createdAt      DateTime       @default(now())
+  resolvedAt     DateTime?
+
+  @@index([userId])
+  @@index([serverId])
+  @@index([conversationId])
+}
+
+// ────────────────────────────────
+// 디스코드 봇 연동
+// ────────────────────────────────
+
+model DiscordLink {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id])
+  discordUserId String   @unique
+  linkedAt      DateTime @default(now())
+}
+
+/// 웹 대시보드에서 발급하고 디스코드 봇에서 /link 로 입력하는 1회용 연동 코드
+model DiscordLinkCode {
+  id        String   @id @default(cuid())
+  userId    String
+  code      String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+// ────────────────────────────────
+// 감사 로그
+// ────────────────────────────────
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String?
+  actor       User?    @relation(fields: [actorUserId], references: [id])
+  action      String
+  targetType  String
+  targetId    String
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([actorUserId])
+  @@index([targetType, targetId])
+}

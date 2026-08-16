@@ -1,0 +1,223 @@
+import { applicationRequest } from "./shared";
+
+/**
+ * Pterodactyl Application API (관리자 전용) wrapper.
+ * 실제 패널 API를 직접 호출한다 — 시뮬레이션/가짜 데이터 없음.
+ * https://dashflo.net/docs/api/pterodactyl/v1/ 기준 표준 엔드포인트.
+ */
+
+export interface PteroUser {
+  id: number;
+  uuid: string;
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+}
+
+export interface PteroAllocation {
+  id: number;
+  ip: string;
+  ip_alias: string | null;
+  port: number;
+  notes: string | null;
+  assigned: boolean;
+}
+
+export interface PteroServer {
+  id: number;
+  uuid: string;
+  identifier: string;
+  name: string;
+  status: string | null;
+  node: number;
+  allocation: number;
+  limits: {
+    memory: number;
+    swap: number;
+    disk: number;
+    io: number;
+    cpu: number;
+  };
+  feature_limits: {
+    databases: number;
+    allocations: number;
+    backups: number;
+  };
+}
+
+interface PteroListResponse<T> {
+  object: string;
+  data: { object: string; attributes: T }[];
+  meta?: { pagination?: { total: number; count: number; current_page: number } };
+}
+
+interface PteroItemResponse<T> {
+  object: string;
+  attributes: T;
+}
+
+/** 이메일로 유저 조회, 없으면 새로 생성 (고객 최초 서버 구매 시 사용) */
+export async function findOrCreateUser(params: {
+  email: string;
+  username: string;
+  firstName: string;
+  lastName: string;
+}): Promise<PteroUser> {
+  const search = await applicationRequest<PteroListResponse<PteroUser>>(
+    `/api/application/users?filter[email]=${encodeURIComponent(params.email)}`,
+  );
+  const existing = search.data[0]?.attributes;
+  if (existing) return existing;
+
+  const created = await applicationRequest<PteroItemResponse<PteroUser>>(
+    "/api/application/users",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        email: params.email,
+        username: params.username,
+        first_name: params.firstName,
+        last_name: params.lastName,
+        password: crypto.randomUUID(), // 고객은 Burnae 자체 로그인만 사용, 패널 직접 로그인 불필요
+      }),
+    },
+  );
+  return created.attributes;
+}
+
+/** 노드의 미할당 allocation 중 하나를 가져온다 (없으면 새로 생성) */
+export async function getFreeAllocation(
+  pterodactylNodeId: number,
+): Promise<PteroAllocation> {
+  const res = await applicationRequest<PteroListResponse<PteroAllocation>>(
+    `/api/application/nodes/${pterodactylNodeId}/allocations?per_page=200`,
+  );
+  const free = res.data.find((a) => !a.attributes.assigned);
+  if (free) return free.attributes;
+  throw new Error(
+    `노드 #${pterodactylNodeId}에 사용 가능한 포트 할당(allocation)이 없습니다. Pterodactyl 패널에서 allocation을 추가하세요.`,
+  );
+}
+
+export async function createServer(params: {
+  name: string;
+  userId: number;
+  nodeId: number;
+  allocationId: number;
+  eggId: number;
+  nestId: number;
+  dockerImage: string;
+  startupCommand: string;
+  environment: Record<string, string | number | boolean>;
+  memoryMb: number;
+  diskMb: number;
+  cpuPercent: number;
+  backupSlots: number;
+  databases?: number;
+}): Promise<PteroServer> {
+  const created = await applicationRequest<PteroItemResponse<PteroServer>>(
+    "/api/application/servers",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        name: params.name,
+        user: params.userId,
+        egg: params.eggId,
+        nest: params.nestId,
+        docker_image: params.dockerImage,
+        startup: params.startupCommand,
+        environment: params.environment,
+        limits: {
+          memory: params.memoryMb,
+          swap: 0,
+          disk: params.diskMb,
+          io: 500,
+          cpu: params.cpuPercent,
+        },
+        feature_limits: {
+          databases: params.databases ?? 1,
+          allocations: 1,
+          backups: params.backupSlots,
+        },
+        allocation: { default: params.allocationId },
+        start_on_completion: true,
+      }),
+    },
+  );
+  return created.attributes;
+}
+
+export async function deleteServer(pterodactylServerId: number): Promise<void> {
+  await applicationRequest(`/api/application/servers/${pterodactylServerId}`, {
+    method: "DELETE",
+  });
+}
+
+export async function suspendServer(pterodactylServerId: number): Promise<void> {
+  await applicationRequest(
+    `/api/application/servers/${pterodactylServerId}/suspend`,
+    { method: "POST" },
+  );
+}
+
+export async function unsuspendServer(pterodactylServerId: number): Promise<void> {
+  await applicationRequest(
+    `/api/application/servers/${pterodactylServerId}/unsuspend`,
+    { method: "POST" },
+  );
+}
+
+export async function getServerDetails(
+  pterodactylServerId: number,
+): Promise<PteroServer> {
+  const res = await applicationRequest<PteroItemResponse<PteroServer>>(
+    `/api/application/servers/${pterodactylServerId}`,
+  );
+  return res.attributes;
+}
+
+/** 서버의 RAM/CPU/디스크 리소스 한도를 변경 (업그레이드/다운그레이드) */
+export async function updateServerBuild(
+  pterodactylServerId: number,
+  params: { memoryMb: number; diskMb: number; cpuPercent: number; backupSlots: number },
+): Promise<PteroServer> {
+  const res = await applicationRequest<PteroItemResponse<PteroServer>>(
+    `/api/application/servers/${pterodactylServerId}/build`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({
+        limits: {
+          memory: params.memoryMb,
+          swap: 0,
+          disk: params.diskMb,
+          io: 500,
+          cpu: params.cpuPercent,
+        },
+        feature_limits: {
+          databases: 1,
+          allocations: 1,
+          backups: params.backupSlots,
+        },
+      }),
+    },
+  );
+  return res.attributes;
+}
+
+export interface PteroNode {
+  id: number;
+  name: string;
+  fqdn: string;
+  memory: number;
+  memory_overallocate: number;
+  disk: number;
+  disk_overallocate: number;
+}
+
+export async function listNodes(): Promise<PteroNode[]> {
+  const res = await applicationRequest<PteroListResponse<PteroNode>>(
+    "/api/application/nodes?per_page=100",
+  );
+  return res.data.map((d) => d.attributes);
+}

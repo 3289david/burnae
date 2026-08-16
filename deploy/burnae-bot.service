@@ -1,0 +1,16 @@
+[Unit]
+Description=Burnae Discord Bot
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=burnae
+WorkingDirectory=/opt/burnae
+ExecStart=/usr/bin/npm run bot
+Restart=always
+RestartSec=5
+EnvironmentFile=/opt/burnae/.env
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

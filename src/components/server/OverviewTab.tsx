@@ -27,6 +27,9 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
   const [newName, setNewName] = useState("");
   const [subError, setSubError] = useState<string | null>(null);
   const [subLoading, setSubLoading] = useState(false);
+  const [renewing, setRenewing] = useState(false);
+  const [renewError, setRenewError] = useState<string | null>(null);
+  const [renewRequested, setRenewRequested] = useState(false);
 
   useEffect(() => {
     let stopped = false;
@@ -73,6 +76,21 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
     setSubdomains((prev) => prev.filter((s) => s.id !== id));
   }
 
+  async function renew() {
+    setRenewing(true);
+    setRenewError(null);
+    try {
+      const res = await fetch(`/api/servers/${server.id}/renew`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setRenewRequested(true);
+    } catch (err) {
+      setRenewError(err instanceof Error ? err.message : "갱신 요청 실패");
+    } finally {
+      setRenewing(false);
+    }
+  }
+
   async function power(signal: "start" | "stop" | "restart") {
     setActionLoading(true);
     try {
@@ -86,8 +104,33 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
     }
   }
 
+  const daysLeft = server.renewalDueAt
+    ? Math.ceil((new Date(server.renewalDueAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000))
+    : null;
+  const showRenewal = server.isOwner && (server.status === "SUSPENDED" || (daysLeft !== null && daysLeft <= 7));
+
   return (
     <div className="space-y-6">
+      {showRenewal && (
+        <div className="card p-4 border-yellow">
+          {renewRequested ? (
+            <p className="text-sm text-green">✅ 갱신 결제 안내를 만들었어요. 결제 내역 페이지에서 입금 정보를 확인하세요.</p>
+          ) : (
+            <>
+              <p className="text-sm">
+                {server.status === "SUSPENDED"
+                  ? "⛔ 결제 만료로 서버가 정지됐어요. 갱신하지 않으면 곧 삭제돼요."
+                  : `⏰ 다음 결제일이 ${daysLeft}일 남았어요.`}
+              </p>
+              <button onClick={renew} disabled={renewing} className="btn-primary px-4 py-1.5 text-sm mt-2">
+                {renewing ? "처리 중..." : "지금 갱신하기"}
+              </button>
+              {renewError && <p className="text-xs text-red mt-1">{renewError}</p>}
+            </>
+          )}
+        </div>
+      )}
+
       <div className="flex gap-2">
         <button disabled={actionLoading} onClick={() => power("start")} className="btn-secondary px-4 py-2 text-sm">시작</button>
         <button disabled={actionLoading} onClick={() => power("restart")} className="btn-secondary px-4 py-2 text-sm">재시작</button>

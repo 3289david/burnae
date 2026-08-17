@@ -89,6 +89,12 @@ async function handleInvoicePaid(event: PaySyncWebhookEvent) {
     if (server.status === "SUSPENDED" && server.pterodactylServerId) {
       await PteroApp.unsuspendServer(server.pterodactylServerId);
     }
+    if (order.product.aiCreditsPerMonth > 0) {
+      await prisma.user.update({
+        where: { id: order.userId },
+        data: { aiCreditsRemaining: { increment: order.product.aiCreditsPerMonth } },
+      });
+    }
   } else if (order.type === "UPGRADE" && order.serverId) {
     const server = await prisma.server.findUniqueOrThrow({ where: { id: order.serverId } });
     await PteroApp.updateServerBuild(server.pterodactylServerId!, {

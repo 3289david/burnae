@@ -199,9 +199,16 @@ export async function createServerForOrder(orderId: string) {
         backupSlots: order.product.backupSlots,
         allocationIp: node.publicIp,
         allocationPort: allocation.port,
+        renewalDueAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       },
     });
     await tx.order.update({ where: { id: order.id }, data: { serverId: created.id } });
+    if (order.product.aiCreditsPerMonth > 0) {
+      await tx.user.update({
+        where: { id: order.userId },
+        data: { aiCreditsRemaining: { increment: order.product.aiCreditsPerMonth } },
+      });
+    }
     await tx.auditLog.create({
       data: {
         actorUserId: order.userId,

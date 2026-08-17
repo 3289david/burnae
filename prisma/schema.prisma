@@ -271,9 +271,18 @@ model Server {
   suspendedReason  String?
   renewalDueAt     DateTime?
   lastBackupAt     DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  deletedAt        DateTime?
+
+  /// 예약 백업/재시작 — 관리 크론(scripts/maintenance-cron.ts)이 주기적으로 확인해서 실행
+  autoBackupEnabled       Boolean   @default(false)
+  autoBackupIntervalHours Int       @default(24)
+  autoRestartEnabled      Boolean   @default(false)
+  /// KST 기준 0~23시. null이면 비활성
+  autoRestartHour         Int?
+  lastAutoRestartAt       DateTime?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   orders          Order[]
   backups         Backup[]

@@ -9,6 +9,7 @@ interface User {
   role: string;
   status: string;
   storageQuotaGbOverride: number | null;
+  aiCreditsRemaining: number;
   _count: { servers: number };
 }
 
@@ -27,6 +28,15 @@ export default function AdminUsersPage() {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ storageQuotaGbOverride: num }),
+    });
+    await load();
+  }
+
+  async function updateCredits(id: string, value: string) {
+    await fetch(`/api/admin/users/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ aiCreditsRemaining: Number(value) || 0 }),
     });
     await load();
   }
@@ -60,6 +70,15 @@ export default function AdminUsersPage() {
                   placeholder="기본값"
                   defaultValue={u.storageQuotaGbOverride ?? ""}
                   onBlur={(e) => updateQuota(u.id, e.target.value)}
+                  className="input w-20 text-sm"
+                />
+              </label>
+              <label className="text-xs text-text-dim flex items-center gap-1">
+                AI 크레딧
+                <input
+                  type="number"
+                  defaultValue={u.aiCreditsRemaining}
+                  onBlur={(e) => updateCredits(u.id, e.target.value)}
                   className="input w-20 text-sm"
                 />
               </label>

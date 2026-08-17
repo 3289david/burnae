@@ -101,6 +101,22 @@ export async function writeFile(
   );
 }
 
+/** 플러그인/모드 .jar 같은 바이너리 파일을 서버에 업로드한다 */
+export async function writeBinaryFile(
+  identifier: string,
+  file: string,
+  content: ArrayBuffer,
+): Promise<void> {
+  await clientRequest(
+    `/api/client/servers/${identifier}/files/write?file=${encodeURIComponent(file)}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/octet-stream" },
+      body: content,
+    },
+  );
+}
+
 export async function deleteFiles(
   identifier: string,
   directory: string,
@@ -224,6 +240,53 @@ export async function captureRecentConsoleOutput(
 
     ws.on("close", () => {
       clearTimeout(timer);
+      resolve(lines.slice(-200));
+    });
+  });
+}
+
+/**
+ * 콘솔 명령을 실행하고, 그 직후 나오는 출력을 수집한다.
+ * "/list" 로 실제 접속 중인 플레이어를 확인하는 등 RCON 없이 명령 결과를 읽어야 할 때 사용.
+ */
+export async function runCommandAndCapture(
+  identifier: string,
+  command: string,
+  windowMs = 2500,
+): Promise<string[]> {
+  const { token, socket } = await getWebsocketCredentials(identifier);
+  const lines: string[] = [];
+
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(socket);
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    ws.on("open", () => {
+      ws.send(JSON.stringify({ event: "auth", args: [token] }));
+    });
+
+    ws.on("message", (raw) => {
+      try {
+        const msg = JSON.parse(raw.toString()) as { event: string; args?: string[] };
+        if (msg.event === "auth success") {
+          ws.send(JSON.stringify({ event: "send command", args: [command] }));
+          timer = setTimeout(() => ws.close(), windowMs);
+        }
+        if (msg.event === "console output" && msg.args?.[0]) {
+          lines.push(msg.args[0]);
+        }
+      } catch {
+        // 파싱 불가한 프레임은 무시
+      }
+    });
+
+    ws.on("error", (err) => {
+      if (timer) clearTimeout(timer);
+      reject(err);
+    });
+
+    ws.on("close", () => {
+      if (timer) clearTimeout(timer);
       resolve(lines.slice(-200));
     });
   });

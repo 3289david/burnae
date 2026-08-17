@@ -1,22 +1,25 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isAdminEmail } from "@/lib/auth";
 import LogoutButton from "@/components/LogoutButton";
 
 const NAV = [
   { href: "/admin", label: "대시보드" },
+  { href: "/admin/servers", label: "서버" },
   { href: "/admin/products", label: "상품" },
   { href: "/admin/templates", label: "서버 종류" },
   { href: "/admin/nodes", label: "노드" },
   { href: "/admin/users", label: "유저" },
   { href: "/admin/events", label: "이벤트/쿠폰" },
   { href: "/admin/bank-account", label: "결제 계좌" },
+  { href: "/admin/logs", label: "로그" },
+  { href: "/admin/statistics", label: "통계" },
   { href: "/admin/settings", label: "호스팅 설정" },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
-  if (!user || user.role !== "ADMIN") redirect("/login");
+  if (!user || user.role !== "ADMIN" || !isAdminEmail(user.email)) redirect("/login");
 
   return (
     <div className="min-h-screen flex flex-col">

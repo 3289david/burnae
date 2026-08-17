@@ -1,5 +1,14 @@
 import type OpenAI from "openai";
 import { PteroClient } from "@/lib/pterodactyl";
+import * as Players from "@/lib/players";
+import { prisma } from "@/lib/prisma";
+import {
+  searchProjects,
+  getVersions,
+  loaderForTemplateKey,
+  contentTypeForLoader,
+  downloadVersionFile,
+} from "@/lib/modrinth";
 import type { Server } from "@/generated/prisma/client";
 import type { AiRiskLevel } from "@/generated/prisma/enums";
 
@@ -40,6 +49,123 @@ export const AI_TOOLS: Record<string, ToolDef> = {
       if (!server.pterodactylIdentifier) return { lines: [] };
       const lines = await PteroClient.captureRecentConsoleOutput(server.pterodactylIdentifier);
       return { lines };
+    },
+  },
+
+  get_players: {
+    riskLevel: "SAFE",
+    name: "get_players",
+    description: "현재 접속 중인 플레이어, 화이트리스트, OP, 밴 목록을 조회한다.",
+    parameters: { type: "object", properties: {} },
+    run: async (server) => {
+      if (!server.pterodactylIdentifier) return { online: [], whitelist: [], ops: [], bans: [] };
+      const identifier = server.pterodactylIdentifier;
+      const [online, whitelist, ops, bans] = await Promise.all([
+        Players.getOnlinePlayers(identifier).catch(() => []),
+        Players.getWhitelist(identifier),
+        Players.getOps(identifier),
+        Players.getBans(identifier),
+      ]);
+      return { online, whitelist, ops, bans, whitelistEnabled: server.whitelistEnabled };
+    },
+  },
+
+  manage_whitelist: {
+    riskLevel: "CONFIRM",
+    name: "manage_whitelist",
+    description: "화이트리스트를 켜거나 끄고, 플레이어를 추가/제거한다.",
+    parameters: {
+      type: "object",
+      properties: {
+        action: { type: "string", enum: ["add", "remove", "enable", "disable"] },
+        name: { type: "string", description: "add/remove일 때 플레이어 이름" },
+      },
+      required: ["action"],
+    },
+    run: async (server, input) => {
+      if (!server.pterodactylIdentifier) throw new Error("서버가 아직 준비 중입니다.");
+      const identifier = server.pterodactylIdentifier;
+      const action = String(input.action);
+      if (action === "add") await Players.whitelistAdd(identifier, String(input.name));
+      else if (action === "remove") await Players.whitelistRemove(identifier, String(input.name));
+      else if (action === "enable") await Players.whitelistToggle(identifier, true);
+      else if (action === "disable") await Players.whitelistToggle(identifier, false);
+      else throw new Error("알 수 없는 action");
+      return { ok: true };
+    },
+  },
+
+  manage_player: {
+    riskLevel: "CONFIRM",
+    name: "manage_player",
+    description: "플레이어에게 OP를 주거나 뺏고, 킥/밴/밴 해제한다.",
+    parameters: {
+      type: "object",
+      properties: {
+        action: { type: "string", enum: ["op", "deop", "ban", "pardon", "kick"] },
+        name: { type: "string" },
+        reason: { type: "string" },
+      },
+      required: ["action", "name"],
+    },
+    run: async (server, input) => {
+      if (!server.pterodactylIdentifier) throw new Error("서버가 아직 준비 중입니다.");
+      const identifier = server.pterodactylIdentifier;
+      const name = String(input.name);
+      const reason = input.reason ? String(input.reason) : undefined;
+      const action = String(input.action);
+      if (action === "op") await Players.opPlayer(identifier, name);
+      else if (action === "deop") await Players.deopPlayer(identifier, name);
+      else if (action === "ban") await Players.banPlayer(identifier, name, reason);
+      else if (action === "pardon") await Players.pardonPlayer(identifier, name);
+      else if (action === "kick") await Players.kickPlayer(identifier, name, reason);
+      else throw new Error("알 수 없는 action");
+      return { ok: true };
+    },
+  },
+
+  search_plugins: {
+    riskLevel: "SAFE",
+    name: "search_plugins",
+    description: "Modrinth에서 이 서버 종류에 맞는 플러그인/모드를 검색한다. 설치하기 전에 먼저 이걸로 찾아본다.",
+    parameters: {
+      type: "object",
+      properties: { query: { type: "string" } },
+      required: ["query"],
+    },
+    run: async (server, input) => {
+      const template = await prisma.serverTemplate.findUniqueOrThrow({ where: { id: server.templateId } });
+      const loader = loaderForTemplateKey(template.key);
+      if (!loader) return { results: [], note: "이 서버 종류는 플러그인/모드를 지원하지 않습니다." };
+      const results = await searchProjects({ query: String(input.query), loader, limit: 8 });
+      return { results };
+    },
+  },
+
+  install_plugin: {
+    riskLevel: "CONFIRM",
+    name: "install_plugin",
+    description: "search_plugins로 찾은 projectId의 플러그인/모드를, 이 서버 버전에 맞는 최신 버전으로 설치한다.",
+    parameters: {
+      type: "object",
+      properties: { projectId: { type: "string" }, projectTitle: { type: "string" } },
+      required: ["projectId"],
+    },
+    run: async (server, input) => {
+      if (!server.pterodactylIdentifier) throw new Error("서버가 아직 준비 중입니다.");
+      const template = await prisma.serverTemplate.findUniqueOrThrow({ where: { id: server.templateId } });
+      const loader = loaderForTemplateKey(template.key);
+      if (!loader) throw new Error("이 서버 종류는 플러그인/모드를 지원하지 않습니다.");
+
+      const gameVersion = /^\d+\.\d+/.test(server.minecraftVersion) ? server.minecraftVersion : undefined;
+      const versions = await getVersions({ projectId: String(input.projectId), loader, gameVersion });
+      const best = versions.find((v) => v.primaryFile);
+      if (!best?.primaryFile) throw new Error("이 서버 버전에 맞는 파일을 찾지 못했습니다.");
+
+      const bytes = await downloadVersionFile(best.primaryFile);
+      const dir = contentTypeForLoader(loader) === "plugin" ? "/plugins" : "/mods";
+      await PteroClient.writeBinaryFile(server.pterodactylIdentifier, `${dir}/${best.primaryFile.filename}`, bytes);
+      return { ok: true, filename: best.primaryFile.filename, version: best.versionNumber };
     },
   },
 

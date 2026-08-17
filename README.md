@@ -8,8 +8,14 @@ Cloudflare DNS, 디스코드 봇과 연동합니다.
 - **호스팅 엔진**: Pterodactyl (Application API + Client API)
 - **결제**: [paysync.kr](https://paysync.kr) 무통장입금 자동확인 (계좌 비밀번호 불필요)
 - **서브도메인**: Cloudflare API로 서버 생성 시 `이름.krl.kr` A/SRV 레코드 자동 생성
-- **AI**: [OpenRouter](https://openrouter.ai) 기반 Tool-calling — 저렴한 오픈소스 모델(Qwen3), 실제 서버를 읽고/쓰고/재시작
-- **디스코드 봇**: discord.js, `/서버목록` `/상태` `/시작` `/정지` `/재시작` `/link`
+- **AI**: [OpenRouter](https://openrouter.ai) 기반 Tool-calling — 저렴한 오픈소스 모델(Qwen3), 실제 서버를 읽고/쓰고/재시작/플레이어관리/플러그인설치까지
+- **디스코드 봇**: discord.js, `/서버목록` `/상태` `/시작` `/정지` `/재시작` `/link` `/요금제` `/이벤트` `/문의`
+- **로그인**: 이메일/비밀번호 + Google/GitHub/Discord OAuth, 관리자는 `ADMIN_EMAIL` 한 명으로 고정
+- **플레이어 관리**: 화이트리스트/OP/밴/킥 (콘솔 명령 + 서버 파일 기반, RCON 불필요)
+- **플러그인/모드**: [Modrinth](https://modrinth.com) 검색·설치, AI도 같은 기능으로 직접 설치 가능
+- **팀**: 서버별 팀원 초대(Owner/Admin/Moderator/Developer/Viewer)
+- **플랜 변경/갱신/만료 자동화**: 업그레이드·갱신 결제, 결제 만료 D-3/D-1 알림 → 정지 → 7일 후 삭제
+- **관리자**: 전체 서버 강제조치, 로그, 통계(MRR·RAM 판매율 등), 노드 과부하 알림
 
 ---
 
@@ -211,11 +217,20 @@ npm run bot:deploy-commands
 ```bash
 sudo cp deploy/burnae-web.service /etc/systemd/system/
 sudo cp deploy/burnae-bot.service /etc/systemd/system/
-# 두 유닛 파일의 User=burnae 를 실제 배포 계정으로 바꿔주세요.
+sudo cp deploy/burnae-maintenance.service /etc/systemd/system/
+sudo cp deploy/burnae-maintenance.timer /etc/systemd/system/
+# 유닛 파일들의 User=burnae 를 실제 배포 계정으로 바꿔주세요.
 sudo systemctl daemon-reload
 sudo systemctl enable --now burnae-web burnae-bot
+sudo systemctl enable --now burnae-maintenance.timer
 sudo systemctl status burnae-web burnae-bot
+sudo systemctl list-timers burnae-maintenance.timer
 ```
+
+`burnae-maintenance.timer`는 30분마다 `scripts/maintenance-cron.ts`를 한 번 실행합니다.
+결제 만료 D-3/D-1 알림 → 연체 시 서버 정지 → 정지 7일 후 삭제, 서버별 예약 자동 백업/재시작,
+노드 RAM 판매율 90% 초과 시 관리자(디스코드 연동된 경우) 알림을 처리합니다. 수동 1회 실행:
+`npm run maintenance:cron`.
 
 ### Nginx + HTTPS
 
@@ -237,6 +252,9 @@ sudo certbot --nginx -d burnae.kr -d www.burnae.kr
 5. `/admin/settings` — RAM 단가, 유저 기본 저장공간(10GB), 서브도메인 존(krl.kr) 등 조정
 6. `/admin/events` — 프로모션/쿠폰 생성
 
+운영 중 자주 쓰는 화면: `/admin/servers`(전체 서버 강제 재시작/정지/삭제),
+`/admin/logs`(관리자·시스템 작업 로그), `/admin/statistics`(MRR·RAM 판매율 등).
+
 여기까지 끝나면 고객이 회원가입 → 서버 생성 → 입금 → 자동으로 Pterodactyl에 Docker 컨테이너가
 만들어지고 `이름.krl.kr` 서브도메인이 자동으로 연결됩니다.
 
@@ -255,14 +273,21 @@ npm run bot               # 디스코드 봇 (별도 터미널)
 
 ```
 src/
-  app/                 # Next.js 라우트 (고객 UI, 관리자 UI, API)
+  app/                   # Next.js 라우트 (고객 UI, 관리자 UI, API)
   lib/
-    pterodactyl/       # Pterodactyl Application/Client API wrapper
-    paysync.ts         # PaySync 결제 연동 + 웹훅 서명 검증
-    cloudflare.ts       # 서브도메인 A/SRV 레코드 자동화
+    pterodactyl/         # Pterodactyl Application/Client API wrapper
+    paysync.ts           # PaySync 결제 연동 + 웹훅 서명 검증
+    cloudflare.ts        # 서브도메인 A/SRV 레코드 자동화
     provisioning.ts      # 서버 생성/삭제 전체 오케스트레이션
-    ai/                  # AI 챗봇 (tool 정의 + 실행 엔진)
-  bot/                  # 디스코드 봇 (별도 프로세스)
-prisma/schema.prisma     # 전체 데이터 모델
-deploy/                  # systemd, nginx 설정 예시
+    players.ts           # 화이트리스트/OP/밴/킥 (콘솔 명령 + 파일 읽기)
+    modrinth.ts           # 플러그인/모드 검색·다운로드 (Modrinth API)
+    discordNotify.ts      # 게이트웨이 없이 REST로 디스코드 DM 발송 (크론용)
+    oauth.ts               # Google/GitHub/Discord OAuth2 직접 구현
+    ai/                    # AI 챗봇 (tool 정의 + 실행 엔진, OpenRouter)
+  bot/                    # 디스코드 봇 (공식 서버 전용, 별도 프로세스)
+scripts/
+  maintenance-cron.ts      # 결제만료/예약백업/예약재시작/노드알림 — systemd timer로 주기 실행
+  setup-ubuntu.sh           # 서버 초기 설정 자동화
+prisma/schema.prisma       # 전체 데이터 모델
+deploy/                    # systemd, nginx 설정 예시
 ```

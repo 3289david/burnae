@@ -31,6 +31,7 @@ export default function AiTab({ serverId }: { serverId: string }) {
   const [pending, setPending] = useState<PendingActivity | null>(null);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [chatError, setChatError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -63,13 +64,18 @@ export default function AiTab({ serverId }: { serverId: string }) {
     const text = input;
     setInput("");
     setBusy(true);
+    setChatError(null);
     setMessages((prev) => [...prev, { id: `tmp-${Date.now()}`, role: "USER", content: text, createdAt: new Date().toISOString() }]);
     try {
-      await fetch(`/api/ai/conversations/${conversationId}/messages`, {
+      const res = await fetch(`/api/ai/conversations/${conversationId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: text }),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setChatError(data.error ?? "메시지 전송에 실패했어요.");
+      }
       await refresh(conversationId);
     } finally {
       setBusy(false);
@@ -110,6 +116,8 @@ export default function AiTab({ serverId }: { serverId: string }) {
             </div>
           </div>
         ))}
+
+        {chatError && <p className="text-sm text-red text-center">{chatError}</p>}
 
         {pending && (
           <div className="card p-4 border-yellow">

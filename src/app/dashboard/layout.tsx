@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isAdminEmail } from "@/lib/auth";
 import LogoutButton from "@/components/LogoutButton";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -14,8 +14,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <Link href="/dashboard" className="text-xl font-bold">🔥 Burnae</Link>
           <nav className="flex items-center gap-4">
             <span className="text-sm text-text-dim">{user.name}님</span>
+            <Link href="/dashboard/billing" className="text-sm text-text-dim hover:text-text">결제 내역</Link>
             <Link href="/dashboard/account" className="text-sm text-text-dim hover:text-text">계정</Link>
-            {user.role === "ADMIN" && (
+            {user.role === "ADMIN" && isAdminEmail(user.email) && (
               <Link href="/admin" className="text-sm text-accent">
                 관리자
               </Link>

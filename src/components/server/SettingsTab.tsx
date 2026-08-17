@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import UpgradeCard from "./UpgradeCard";
+import AutomationCard from "./AutomationCard";
 
 const KNOWN_KEYS = [
   { key: "difficulty", label: "난이도", type: "select", options: ["peaceful", "easy", "normal", "hard"] },
@@ -46,7 +48,23 @@ function serializeProperties(original: string, values: Record<string, string>): 
   return result.join("\n");
 }
 
-export default function SettingsTab({ serverId, isOwner }: { serverId: string; isOwner: boolean }) {
+export default function SettingsTab({
+  serverId,
+  isOwner,
+  productId,
+  autoBackupEnabled,
+  autoBackupIntervalHours,
+  autoRestartEnabled,
+  autoRestartHour,
+}: {
+  serverId: string;
+  isOwner: boolean;
+  productId: string;
+  autoBackupEnabled: boolean;
+  autoBackupIntervalHours: number;
+  autoRestartEnabled: boolean;
+  autoRestartHour: number | null;
+}) {
   const router = useRouter();
   const [raw, setRaw] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -161,6 +179,18 @@ export default function SettingsTab({ serverId, isOwner }: { serverId: string; i
         {saved && <span className="text-sm text-green">저장됐어요. 적용하려면 재시작하세요.</span>}
       </div>
     </div>
+
+    {isOwner && (
+      <AutomationCard
+        serverId={serverId}
+        autoBackupEnabled={autoBackupEnabled}
+        autoBackupIntervalHours={autoBackupIntervalHours}
+        autoRestartEnabled={autoRestartEnabled}
+        autoRestartHour={autoRestartHour}
+      />
+    )}
+
+    {isOwner && <UpgradeCard serverId={serverId} currentProductId={productId} />}
 
     {isOwner && (
       <div className="card p-5 border-red">

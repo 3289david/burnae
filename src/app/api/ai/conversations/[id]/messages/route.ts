@@ -35,6 +35,18 @@ export async function POST(
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "메시지를 입력해주세요." }, { status: 422 });
 
+  // 메시지 1건당 크레딧 1개 소모. 상품 구매/갱신 시 aiCreditsPerMonth만큼 충전됨.
+  const decremented = await prisma.user.updateMany({
+    where: { id: user.id, aiCreditsRemaining: { gt: 0 } },
+    data: { aiCreditsRemaining: { decrement: 1 } },
+  });
+  if (decremented.count === 0) {
+    return NextResponse.json(
+      { error: "이번 달 AI 사용 크레딧을 모두 썼어요. 다음 결제 갱신 때 다시 충전돼요." },
+      { status: 402 },
+    );
+  }
+
   await prisma.aiMessage.create({
     data: { conversationId: id, role: "USER", content: parsed.data.message },
   });

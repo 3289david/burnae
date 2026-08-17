@@ -97,11 +97,13 @@ sudo -u "$APP_USER" npm run db:seed
 sudo -u "$APP_USER" npm run build
 
 log "7/8 systemd 서비스 등록"
-for svc in burnae-web burnae-bot; do
+for svc in burnae-web burnae-bot burnae-maintenance; do
   sed "s#User=burnae#User=${APP_USER}#; s#/opt/burnae#${APP_DIR}#g" "$APP_DIR/deploy/${svc}.service" > "/etc/systemd/system/${svc}.service"
 done
+cp "$APP_DIR/deploy/burnae-maintenance.timer" /etc/systemd/system/burnae-maintenance.timer
 systemctl daemon-reload
 systemctl enable burnae-web
+systemctl enable --now burnae-maintenance.timer
 
 log "8/8 Nginx 설정"
 read -rp "도메인을 입력하세요 (예: burnae.kr, 비워두면 건너뜀): " DOMAIN

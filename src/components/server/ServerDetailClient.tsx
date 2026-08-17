@@ -3,8 +3,11 @@
 import { useState } from "react";
 import OverviewTab from "./OverviewTab";
 import ConsoleTab from "./ConsoleTab";
+import PlayersTab from "./PlayersTab";
+import PluginsTab from "./PluginsTab";
 import FilesTab from "./FilesTab";
 import BackupsTab from "./BackupsTab";
+import TeamTab from "./TeamTab";
 import SettingsTab from "./SettingsTab";
 import AiTab from "./AiTab";
 
@@ -18,6 +21,12 @@ export interface ServerInfo {
   id: string;
   name: string;
   status: string;
+  productId: string;
+  renewalDueAt: string | null;
+  autoBackupEnabled: boolean;
+  autoBackupIntervalHours: number;
+  autoRestartEnabled: boolean;
+  autoRestartHour: number | null;
   subdomains: ServerSubdomainInfo[];
   subdomainZone: string;
   allocationIp: string | null;
@@ -34,8 +43,11 @@ export interface ServerInfo {
 const TABS = [
   { key: "overview", label: "개요" },
   { key: "console", label: "콘솔" },
+  { key: "players", label: "플레이어" },
+  { key: "plugins", label: "플러그인" },
   { key: "files", label: "파일" },
   { key: "backups", label: "백업" },
+  { key: "team", label: "팀" },
   { key: "settings", label: "설정" },
   { key: "ai", label: "🤖 AI" },
 ] as const;
@@ -74,9 +86,22 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
       <div className="mt-6">
         {tab === "overview" && <OverviewTab server={server} />}
         {tab === "console" && <ConsoleTab serverId={server.id} />}
+        {tab === "players" && <PlayersTab serverId={server.id} />}
+        {tab === "plugins" && <PluginsTab serverId={server.id} />}
         {tab === "files" && <FilesTab serverId={server.id} />}
         {tab === "backups" && <BackupsTab serverId={server.id} backupSlots={server.backupSlots} />}
-        {tab === "settings" && <SettingsTab serverId={server.id} isOwner={server.isOwner} />}
+        {tab === "team" && <TeamTab serverId={server.id} isOwner={server.isOwner} />}
+        {tab === "settings" && (
+          <SettingsTab
+            serverId={server.id}
+            isOwner={server.isOwner}
+            productId={server.productId}
+            autoBackupEnabled={server.autoBackupEnabled}
+            autoBackupIntervalHours={server.autoBackupIntervalHours}
+            autoRestartEnabled={server.autoRestartEnabled}
+            autoRestartHour={server.autoRestartHour}
+          />
+        )}
         {tab === "ai" && <AiTab serverId={server.id} />}
       </div>
     </div>

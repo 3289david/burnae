@@ -1,6 +1,5 @@
 import { cookies } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
-import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import type { UserRole } from "@/generated/prisma/enums";
 
@@ -39,17 +38,6 @@ export interface SessionPayload {
   sub: string;
   role: UserRole;
   email: string;
-}
-
-export async function hashPassword(password: string): Promise<string> {
-  return bcrypt.hash(password, 12);
-}
-
-export async function verifyPassword(
-  password: string,
-  hash: string,
-): Promise<boolean> {
-  return bcrypt.compare(password, hash);
 }
 
 export async function createSessionCookie(payload: SessionPayload) {

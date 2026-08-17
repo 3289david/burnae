@@ -53,15 +53,15 @@ export default function PlayersTab({ serverId }: { serverId: string }) {
       {error && <p className="text-sm text-red">{error}</p>}
 
       <div className="card p-5">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <input
-            className="input flex-1"
+            className="input flex-1 min-w-0"
             placeholder="플레이어 닉네임"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
           <input
-            className="input flex-1"
+            className="input flex-1 min-w-0"
             placeholder="사유 (밴/킥 시 선택)"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
@@ -140,9 +140,9 @@ function Section({ title, action, children }: { title: string; action?: React.Re
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between px-4 py-2 text-sm">
-      <span>{label}</span>
-      {children}
+    <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm">
+      <span className="min-w-0 break-words">{label}</span>
+      <span className="shrink-0">{children}</span>
     </div>
   );
 }

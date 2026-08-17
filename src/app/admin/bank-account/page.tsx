@@ -54,8 +54,8 @@ export default function AdminBankAccountPage() {
 
       <div className="mt-6 space-y-2">
         {accounts.map((a) => (
-          <div key={a.id} className="card p-4 flex items-center justify-between">
-            <div>
+          <div key={a.id} className="card p-4 flex flex-wrap items-center justify-between gap-2">
+            <div className="min-w-0">
               <p className="font-medium text-sm">{a.bankName} {a.accountNumber}</p>
               <p className="text-xs text-text-dim">{a.accountHolder}</p>
             </div>

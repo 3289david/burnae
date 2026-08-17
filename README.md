@@ -10,7 +10,7 @@ Cloudflare DNS, 디스코드 봇과 연동합니다.
 - **서브도메인**: Cloudflare API로 서버 생성 시 `이름.krl.kr` A/SRV 레코드 자동 생성
 - **AI**: [OpenRouter](https://openrouter.ai) 기반 Tool-calling — 저렴한 오픈소스 모델(Qwen3), 실제 서버를 읽고/쓰고/재시작/플레이어관리/플러그인설치까지
 - **디스코드 봇**: discord.js, `/서버목록` `/상태` `/시작` `/정지` `/재시작` `/link` `/요금제` `/이벤트` `/문의`
-- **로그인**: 이메일/비밀번호 + Google/GitHub/Discord OAuth, 관리자는 `ADMIN_EMAIL` 한 명으로 고정
+- **로그인**: Google/GitHub/Discord OAuth 전용 (비밀번호 없음). 관리자는 `ADMIN_EMAIL` 한 명으로 고정
 - **플레이어 관리**: 화이트리스트/OP/밴/킥 (콘솔 명령 + 서버 파일 기반, RCON 불필요)
 - **플러그인/모드**: [Modrinth](https://modrinth.com) 검색·설치, AI도 같은 기능으로 직접 설치 가능
 - **팀**: 서버별 팀원 초대(Owner/Admin/Moderator/Developer/Viewer)

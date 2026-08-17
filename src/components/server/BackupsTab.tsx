@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AlertTriangle } from "lucide-react";
 
 interface Backup {
   uuid: string;
@@ -67,15 +68,19 @@ export default function BackupsTab({ serverId, backupSlots }: { serverId: string
       {error && <p className="text-sm text-red mb-3">{error}</p>}
       <div className="space-y-2">
         {backups.map((b) => (
-          <div key={b.uuid} className="card p-4 flex items-center justify-between">
-            <div>
-              <p className="font-medium text-sm">{b.name}</p>
-              <p className="text-xs text-text-dim mt-0.5">
+          <div key={b.uuid} className="card p-4 flex flex-wrap items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className="font-medium text-sm truncate">{b.name}</p>
+              <p className="text-xs text-text-dim mt-0.5 flex items-center gap-1 flex-wrap">
                 {new Date(b.created_at).toLocaleString("ko-KR")} · {(b.bytes / 1024 / 1024).toFixed(0)}MB
-                {!b.is_successful && " · ⚠️ 실패"}
+                {!b.is_successful && (
+                  <span className="inline-flex items-center gap-1 text-red">
+                    · <AlertTriangle size={12} /> 실패
+                  </span>
+                )}
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 shrink-0">
               <button onClick={() => restore(b.uuid)} className="btn-secondary px-3 py-1.5 text-sm">복원</button>
               <button onClick={() => remove(b.uuid)} className="btn-secondary px-3 py-1.5 text-sm text-red">삭제</button>
             </div>

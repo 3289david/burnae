@@ -98,15 +98,15 @@ export default function AdminEventsPage() {
         <h1 className="text-2xl font-bold">이벤트</h1>
         <div className="mt-4 space-y-2">
           {events.map((ev) => (
-            <div key={ev.id} className="card p-4 flex items-center justify-between">
-              <div>
+            <div key={ev.id} className="card p-4 flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0">
                 <p className="font-medium text-sm">{ev.title} {!ev.active && <span className="text-text-dim text-xs">(종료됨)</span>}</p>
                 <p className="text-xs text-text-dim mt-0.5">
                   {new Date(ev.startsAt).toLocaleDateString("ko-KR")} ~ {new Date(ev.endsAt).toLocaleDateString("ko-KR")}
                   {ev.coupon && ` · 쿠폰 ${ev.coupon.code}`}
                 </p>
               </div>
-              {ev.active && <button onClick={() => endEvent(ev.id)} className="btn-secondary px-3 py-1.5 text-sm">종료</button>}
+              {ev.active && <button onClick={() => endEvent(ev.id)} className="btn-secondary px-3 py-1.5 text-sm shrink-0">종료</button>}
             </div>
           ))}
           {events.length === 0 && <p className="text-sm text-text-dim">등록된 이벤트가 없어요.</p>}

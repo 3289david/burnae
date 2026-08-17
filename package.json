@@ -19,7 +19,6 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
-    "bcryptjs": "^3.0.3",
     "discord.js": "^14.27.0",
     "jose": "^6.2.9",
     "lucide-react": "^1.31.0",
@@ -34,7 +33,6 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/pg": "^8.21.0",
     "@types/react": "^19",

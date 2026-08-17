@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import {
+  LayoutGrid, Terminal, Users, Puzzle, Folder, RefreshCw, UserPlus, Settings, Bot,
+} from "lucide-react";
 import OverviewTab from "./OverviewTab";
 import ConsoleTab from "./ConsoleTab";
 import PlayersTab from "./PlayersTab";
@@ -41,15 +44,15 @@ export interface ServerInfo {
 }
 
 const TABS = [
-  { key: "overview", label: "개요" },
-  { key: "console", label: "콘솔" },
-  { key: "players", label: "플레이어" },
-  { key: "plugins", label: "플러그인" },
-  { key: "files", label: "파일" },
-  { key: "backups", label: "백업" },
-  { key: "team", label: "팀" },
-  { key: "settings", label: "설정" },
-  { key: "ai", label: "🤖 AI" },
+  { key: "overview", label: "개요", icon: LayoutGrid },
+  { key: "console", label: "콘솔", icon: Terminal },
+  { key: "players", label: "플레이어", icon: Users },
+  { key: "plugins", label: "플러그인", icon: Puzzle },
+  { key: "files", label: "파일", icon: Folder },
+  { key: "backups", label: "백업", icon: RefreshCw },
+  { key: "team", label: "팀", icon: UserPlus },
+  { key: "settings", label: "설정", icon: Settings },
+  { key: "ai", label: "AI", icon: Bot },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -74,10 +77,11 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors ${
+            className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors ${
               tab === t.key ? "border-accent text-text" : "border-transparent text-text-dim hover:text-text"
             }`}
           >
+            <t.icon size={15} />
             {t.label}
           </button>
         ))}

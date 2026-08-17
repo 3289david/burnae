@@ -86,16 +86,16 @@ export default function TeamTab({ serverId, isOwner }: { serverId: string; isOwn
         </div>
         <div className="divide-y divide-border">
           {owner && (
-            <div className="flex items-center justify-between px-4 py-2.5 text-sm">
-              <span>{owner.name} ({owner.email})</span>
-              <span className="text-xs text-text-dim">소유자</span>
+            <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-sm">
+              <span className="min-w-0 truncate">{owner.name} ({owner.email})</span>
+              <span className="text-xs text-text-dim shrink-0">소유자</span>
             </div>
           )}
           {members.map((m) => (
-            <div key={m.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
-              <span>{m.user.name} ({m.user.email})</span>
+            <div key={m.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-sm">
+              <span className="min-w-0 truncate">{m.user.name} ({m.user.email})</span>
               {isOwner ? (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   <select
                     className="input text-xs py-1"
                     value={m.role}

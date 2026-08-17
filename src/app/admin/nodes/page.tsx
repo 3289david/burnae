@@ -76,12 +76,12 @@ export default function AdminNodesPage() {
       <div className="mt-6 space-y-2">
         {nodes.map((n) => (
           <div key={n.id} className="card p-4">
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0">
                 <p className="font-medium">{n.name} · {n.location}</p>
                 <p className="text-xs text-text-dim mt-0.5">{n.fqdn} ({n.publicIp})</p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <select value={n.status} onChange={(e) => toggle(n.id, "status", e.target.value)} className="input text-sm">
                   <option value="ONLINE">ONLINE</option>
                   <option value="MAINTENANCE">MAINTENANCE</option>

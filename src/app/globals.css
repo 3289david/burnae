@@ -1,17 +1,32 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #0b0d12;
-  --surface: #14171f;
-  --surface-2: #1b1f2a;
-  --border: #262b38;
-  --text: #f2f3f5;
-  --text-dim: #9aa0ae;
-  --accent: #ff6a3d;
-  --accent-2: #ffb648;
-  --green: #34d399;
-  --red: #f87171;
-  --yellow: #fbbf24;
+  --bg: #0a0a0e;
+  --surface: #15151d;
+  --surface-2: #1d1d28;
+  --border: #29293a;
+  --text: #f6f6f9;
+  --text-dim: #9797ab;
+
+  /* 브랜드 플레임 그라디언트 */
+  --flame-1: #ff3d3d;
+  --flame-2: #ff7a1a;
+  --flame-3: #ffc93d;
+  --accent: #ff6a1a;
+  --accent-2: #ffb23d;
+
+  /* 카드/기능 타일용 포인트 컬러 */
+  --purple: #8b5cf6;
+  --pink: #fb3d8a;
+  --cyan: #22d3ee;
+  --lime: #a8e635;
+  --blue: #4d8dff;
+
+  --green: #2fd66b;
+  --red: #ff4d5e;
+  --yellow: #ffc93d;
+
+  --radius: 1.5rem;
 }
 
 @theme inline {
@@ -23,19 +38,39 @@
   --color-text-dim: var(--text-dim);
   --color-accent: var(--accent);
   --color-accent-2: var(--accent-2);
+  --color-flame-1: var(--flame-1);
+  --color-flame-2: var(--flame-2);
+  --color-flame-3: var(--flame-3);
+  --color-purple: var(--purple);
+  --color-pink: var(--pink);
+  --color-cyan: var(--cyan);
+  --color-lime: var(--lime);
+  --color-blue: var(--blue);
   --color-green: var(--green);
   --color-red: var(--red);
   --color-yellow: var(--yellow);
+  --font-display: var(--font-display), -apple-system, sans-serif;
 }
 
 * {
   border-color: var(--border);
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   background: var(--bg);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo", "Segoe UI", Roboto, sans-serif;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4,
+.font-display {
+  font-family: var(--font-display), -apple-system, sans-serif;
+  letter-spacing: -0.02em;
 }
 
 ::selection {
@@ -43,46 +78,107 @@ body {
   color: white;
 }
 
+/* ── 카드 ───────────────────────────────────────────── */
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 1rem;
+  border-radius: var(--radius);
 }
 
+.card-glow {
+  background: linear-gradient(180deg, var(--surface-2), var(--surface));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 30px -12px rgba(255, 106, 26, 0.15);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.card-glow:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 40px -14px rgba(255, 106, 26, 0.35);
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+}
+
+/* ── 버튼 ───────────────────────────────────────────── */
 .btn-primary {
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--flame-1), var(--flame-2) 55%, var(--flame-3));
   color: white;
-  border-radius: 0.75rem;
-  font-weight: 600;
-  transition: opacity 0.15s;
+  border-radius: 999px;
+  font-weight: 700;
+  box-shadow: 0 6px 20px -6px rgba(255, 106, 26, 0.55);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
 }
 .btn-primary:hover {
-  opacity: 0.9;
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 10px 28px -6px rgba(255, 106, 26, 0.7);
+}
+.btn-primary:active {
+  transform: translateY(0) scale(0.99);
 }
 .btn-primary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .btn-secondary {
   background: var(--surface-2);
   color: var(--text);
   border: 1px solid var(--border);
-  border-radius: 0.75rem;
-  transition: background 0.15s;
+  border-radius: 999px;
+  font-weight: 600;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
 }
 .btn-secondary:hover {
-  background: #232838;
+  background: #262635;
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+  transform: translateY(-1px);
 }
 
+/* ── 입력 ───────────────────────────────────────────── */
 .input {
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 0.6rem;
+  border-radius: 0.9rem;
   color: var(--text);
-  padding: 0.6rem 0.9rem;
+  padding: 0.65rem 1rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .input:focus {
-  outline: 2px solid var(--accent);
-  outline-offset: 0;
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+/* ── 텍스트 그라디언트 ──────────────────────────────── */
+.text-gradient {
+  background: linear-gradient(100deg, var(--flame-1), var(--flame-2) 45%, var(--flame-3));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ── 배경 블롭 (히어로용) ───────────────────────────── */
+.blob {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(80px);
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) translateX(0); }
+  50% { transform: translateY(-18px) translateX(10px); }
+}
+.animate-float {
+  animation: float 7s ease-in-out infinite;
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up {
+  animation: fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }

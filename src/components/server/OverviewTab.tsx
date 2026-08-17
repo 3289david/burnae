@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { CheckCircle2, Ban, Clock } from "lucide-react";
 import type { ServerInfo } from "./ServerDetailClient";
+import StatusDot from "@/components/StatusDot";
 
 interface Resources {
   current_state: string;
@@ -13,11 +15,11 @@ interface Resources {
   };
 }
 
-const stateLabel: Record<string, string> = {
-  running: "🟢 온라인",
-  starting: "🟡 시작 중",
-  stopping: "🟡 정지 중",
-  offline: "🔴 오프라인",
+const stateLabel: Record<string, { text: string; dot: "green" | "yellow" | "red" }> = {
+  running: { text: "온라인", dot: "green" },
+  starting: { text: "시작 중", dot: "yellow" },
+  stopping: { text: "정지 중", dot: "yellow" },
+  offline: { text: "오프라인", dot: "red" },
 };
 
 export default function OverviewTab({ server }: { server: ServerInfo }) {
@@ -114,13 +116,17 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
       {showRenewal && (
         <div className="card p-4 border-yellow">
           {renewRequested ? (
-            <p className="text-sm text-green">✅ 갱신 결제 안내를 만들었어요. 결제 내역 페이지에서 입금 정보를 확인하세요.</p>
+            <p className="text-sm text-green flex items-center gap-1.5">
+              <CheckCircle2 size={16} /> 갱신 결제 안내를 만들었어요. 결제 내역 페이지에서 입금 정보를 확인하세요.
+            </p>
           ) : (
             <>
-              <p className="text-sm">
-                {server.status === "SUSPENDED"
-                  ? "⛔ 결제 만료로 서버가 정지됐어요. 갱신하지 않으면 곧 삭제돼요."
-                  : `⏰ 다음 결제일이 ${daysLeft}일 남았어요.`}
+              <p className="text-sm flex items-center gap-1.5">
+                {server.status === "SUSPENDED" ? (
+                  <><Ban size={16} className="text-red shrink-0" /> 결제 만료로 서버가 정지됐어요. 갱신하지 않으면 곧 삭제돼요.</>
+                ) : (
+                  <><Clock size={16} className="text-yellow shrink-0" /> 다음 결제일이 {daysLeft}일 남았어요.</>
+                )}
               </p>
               <button onClick={renew} disabled={renewing} className="btn-primary px-4 py-1.5 text-sm mt-2">
                 {renewing ? "처리 중..." : "지금 갱신하기"}
@@ -138,7 +144,19 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Stat label="상태" value={resources ? stateLabel[resources.current_state] ?? resources.current_state : "확인 중..."} />
+        <Stat
+          label="상태"
+          value={
+            resources ? (
+              <span className="inline-flex items-center gap-1.5">
+                <StatusDot color={stateLabel[resources.current_state]?.dot ?? "gray"} />
+                {stateLabel[resources.current_state]?.text ?? resources.current_state}
+              </span>
+            ) : (
+              "확인 중..."
+            )
+          }
+        />
         <Stat label="RAM" value={resources ? `${(resources.resources.memory_bytes / 1024 / 1024).toFixed(0)}MB / ${(server.ramMb / 1024).toFixed(0)}GB` : "-"} />
         <Stat label="CPU" value={resources ? `${resources.resources.cpu_absolute.toFixed(0)}%` : "-"} />
         <Stat label="가동시간" value={resources ? formatUptime(resources.resources.uptime) : "-"} />
@@ -163,12 +181,12 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
         </div>
         <div className="space-y-2">
           {subdomains.map((s) => (
-            <div key={s.id} className="flex items-center justify-between text-sm">
-              <span className="font-mono">
+            <div key={s.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+              <span className="font-mono min-w-0 break-all">
                 {s.subdomain}.{server.subdomainZone} {s.isPrimary && <span className="text-text-dim text-xs">(기본)</span>}
               </span>
               {server.isOwner && (
-                <button onClick={() => removeSubdomain(s.id)} className="text-red text-xs">삭제</button>
+                <button onClick={() => removeSubdomain(s.id)} className="text-red text-xs shrink-0">삭제</button>
               )}
             </div>
           ))}
@@ -194,7 +212,7 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="card p-4">
       <div className="text-xs text-text-dim">{label}</div>

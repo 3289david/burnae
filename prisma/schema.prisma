@@ -27,8 +27,6 @@ enum UserStatus {
 model User {
   id                     String     @id @default(cuid())
   email                  String     @unique
-  /// OAuth(구글/깃허브/디스코드)로만 가입한 유저는 비밀번호가 없음
-  passwordHash           String?
   name                   String
   role                   UserRole   @default(USER)
   status                 UserStatus @default(ACTIVE)

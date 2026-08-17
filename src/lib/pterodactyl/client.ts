@@ -117,6 +117,48 @@ export async function writeBinaryFile(
   );
 }
 
+/**
+ * 1회용 업로드 URL을 발급한다. 브라우저가 우리 서버를 거치지 않고
+ * 이 URL로 직접 multipart/form-data POST 해서 파일을 올린다(대용량 스트리밍 회피).
+ */
+export async function getUploadUrl(identifier: string, directory: string): Promise<string> {
+  const res = await clientRequest<{ object: string; attributes: { url: string } }>(
+    `/api/client/servers/${identifier}/files/upload?directory=${encodeURIComponent(directory)}`,
+  );
+  return res.attributes.url;
+}
+
+/** 1회용 다운로드 URL을 발급한다. 브라우저가 이 URL로 직접 접속해서 받는다. */
+export async function getDownloadUrl(identifier: string, file: string): Promise<string> {
+  const res = await clientRequest<{ object: string; attributes: { url: string } }>(
+    `/api/client/servers/${identifier}/files/download?file=${encodeURIComponent(file)}`,
+  );
+  return res.attributes.url;
+}
+
+export async function compressFiles(
+  identifier: string,
+  directory: string,
+  files: string[],
+): Promise<FileObject> {
+  const res = await clientRequest<{ object: string; attributes: FileObject }>(
+    `/api/client/servers/${identifier}/files/compress`,
+    { method: "POST", body: JSON.stringify({ root: directory, files }) },
+  );
+  return res.attributes;
+}
+
+export async function decompressFile(
+  identifier: string,
+  directory: string,
+  file: string,
+): Promise<void> {
+  await clientRequest(`/api/client/servers/${identifier}/files/decompress`, {
+    method: "POST",
+    body: JSON.stringify({ root: directory, file }),
+  });
+}
+
 export async function deleteFiles(
   identifier: string,
   directory: string,

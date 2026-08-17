@@ -35,8 +35,8 @@ export default function AutomationCard({ serverId, ...initial }: Props) {
         <h3 className="font-semibold text-sm">자동화 {saving && <span className="text-xs text-text-dim">저장 중...</span>}</h3>
       </div>
 
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="min-w-0">
           <p className="text-sm">자동 백업</p>
           <p className="text-xs text-text-dim">백업 슬롯이 가득 차면 건너뛰어요.</p>
         </div>
@@ -61,8 +61,8 @@ export default function AutomationCard({ serverId, ...initial }: Props) {
         </div>
       </div>
 
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="min-w-0">
           <p className="text-sm">예약 재시작</p>
           <p className="text-xs text-text-dim">매일 지정한 시각(한국 시간)에 자동으로 재시작해요.</p>
         </div>

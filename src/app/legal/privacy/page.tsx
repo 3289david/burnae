@@ -1,0 +1,78 @@
+import Link from "next/link";
+import BrandMark from "@/components/BrandMark";
+
+export const metadata = { title: "개인정보처리방침 — Burnae" };
+
+export default function PrivacyPage() {
+  return (
+    <div className="min-h-screen">
+      <header className="border-b border-border">
+        <div className="max-w-3xl mx-auto px-6 py-4">
+          <Link href="/" className="inline-flex items-center gap-2 text-lg font-bold font-display">
+            <BrandMark size={22} /> Burnae
+          </Link>
+        </div>
+      </header>
+
+      <main className="max-w-3xl mx-auto px-6 py-12">
+        <h1 className="text-3xl font-bold font-display">개인정보처리방침</h1>
+        <p className="text-sm text-text-dim mt-2">시행일: 2026년 8월 17일</p>
+
+        <Section title="1. 수집하는 개인정보 항목">
+          <ul className="list-disc pl-5 space-y-1">
+            <li>소셜 로그인(Google/GitHub/Discord)을 통해 제공받는 이메일, 이름, 프로필 식별자</li>
+            <li>결제 시 입금자명 (계좌 비밀번호 등 금융 인증정보는 일체 수집하지 않습니다)</li>
+            <li>서비스 이용 기록: 서버 생성/삭제 이력, 콘솔 명령 실행 로그, AI 대화 내역, 접속 로그</li>
+            <li>디스코드 연동 시 디스코드 사용자 ID</li>
+          </ul>
+        </Section>
+
+        <Section title="2. 개인정보의 수집 및 이용 목적">
+          회원 식별 및 로그인 유지, 서버 생성·과금·환불 처리, 결제 자동 확인(입금자명 매칭), 고객 문의 대응,
+          부정 이용 방지, AI 챗봇 대화 맥락 유지 및 서비스 품질 개선.
+        </Section>
+
+        <Section title="3. 개인정보의 보유 및 이용 기간">
+          회원 탈퇴 시 지체 없이 파기하되, 전자상거래법 등 관계 법령에 따라 보존이 필요한 거래 기록은
+          해당 법령에서 정한 기간 동안 보관합니다. 서버 삭제 시 생성된 백업은 보관정책(기본 7일)에 따라
+          자동 삭제됩니다.
+        </Section>
+
+        <Section title="4. 개인정보의 제3자 제공 및 처리위탁">
+          회사는 서비스 제공을 위해 아래 외부 서비스에 최소한의 정보를 전달합니다. 각 서비스는 자체
+          개인정보처리방침을 따릅니다.
+          <ul className="list-disc pl-5 space-y-1 mt-2">
+            <li><strong>Pterodactyl(자체 인프라)</strong> — 서버 생성/운영을 위한 이메일, 이름</li>
+            <li><strong>paysync.kr</strong> — 결제 확인을 위한 입금자명, 결제 금액 (계좌 비밀번호 등은 전달하지 않음)</li>
+            <li><strong>OpenRouter</strong> — AI 챗봇 대화 내용(서버 관련 요청 텍스트)</li>
+            <li><strong>Cloudflare</strong> — 서브도메인 연결을 위한 서버 접속 정보(IP, 포트)</li>
+            <li><strong>Google / GitHub / Discord</strong> — 소셜 로그인 인증 (OAuth)</li>
+          </ul>
+        </Section>
+
+        <Section title="5. 이용자의 권리">
+          이용자는 언제든 자신의 개인정보 열람, 정정, 삭제, 처리정지를 요청할 수 있으며, 계정 삭제(탈퇴)를
+          통해 수집된 정보의 파기를 요청할 수 있습니다.
+        </Section>
+
+        <Section title="6. 개인정보 보호책임자">
+          개인정보 관련 문의는 디스코드 공식 서버의 /문의 명령어 또는 별도 안내되는 이메일로 접수할 수
+          있습니다.
+        </Section>
+
+        <Section title="7. 방침의 변경">
+          이 방침이 변경되는 경우 서비스 내 공지사항을 통해 사전 고지합니다.
+        </Section>
+      </main>
+    </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="mt-8">
+      <h2 className="text-lg font-semibold font-display">{title}</h2>
+      <div className="mt-2 text-sm text-text-dim leading-relaxed">{children}</div>
+    </section>
+  );
+}

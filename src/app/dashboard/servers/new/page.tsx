@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { CheckCircle2 } from "lucide-react";
 
 interface Template {
   id: string;
@@ -125,7 +126,7 @@ export default function NewServerPage() {
         <h1 className="text-2xl font-bold">입금 안내</h1>
         {paid ? (
           <div className="card mt-6 p-6 text-center">
-            <div className="text-3xl">✅</div>
+            <CheckCircle2 size={36} className="mx-auto text-green" />
             <p className="mt-2 font-semibold">입금이 확인됐어요!</p>
             <p className="text-sm text-text-dim mt-1">서버를 만들고 있어요. 잠시만 기다려주세요...</p>
           </div>
@@ -176,11 +177,11 @@ export default function NewServerPage() {
             {products.map((p) => (
               <label
                 key={p.id}
-                className={`card p-4 flex items-center justify-between cursor-pointer ${
+                className={`card p-4 flex flex-wrap items-center justify-between gap-2 cursor-pointer ${
                   productId === p.id ? "border-accent" : ""
                 }`}
               >
-                <div>
+                <div className="min-w-0">
                   <input
                     type="radio"
                     name="product"
@@ -193,7 +194,7 @@ export default function NewServerPage() {
                     RAM {(p.ramMb / 1024).toFixed(0)}GB · 디스크 {(p.diskMb / 1024).toFixed(0)}GB
                   </span>
                 </div>
-                <span className="font-semibold">{p.priceMonthlyKrw.toLocaleString()}원/월</span>
+                <span className="font-semibold shrink-0">{p.priceMonthlyKrw.toLocaleString()}원/월</span>
               </label>
             ))}
           </div>

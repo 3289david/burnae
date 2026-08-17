@@ -41,7 +41,6 @@ CREATE TYPE "AiActionStatus" AS ENUM ('PENDING_APPROVAL', 'APPROVED', 'REJECTED'
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
-    "passwordHash" TEXT,
     "name" TEXT NOT NULL,
     "role" "UserRole" NOT NULL DEFAULT 'USER',
     "status" "UserStatus" NOT NULL DEFAULT 'ACTIVE',

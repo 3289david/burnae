@@ -2,16 +2,17 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import EventsBanner from "@/components/EventsBanner";
+import StatusDot from "@/components/StatusDot";
 
-const statusLabel: Record<string, { text: string; dot: string }> = {
-  RUNNING: { text: "온라인", dot: "🟢" },
-  PROVISIONING: { text: "생성 중", dot: "🟡" },
-  STARTING: { text: "시작 중", dot: "🟡" },
-  STOPPING: { text: "정지 중", dot: "🟡" },
-  STOPPED: { text: "오프라인", dot: "🔴" },
-  SUSPENDED: { text: "정지됨(결제 필요)", dot: "⛔" },
-  ERROR: { text: "오류", dot: "🔴" },
-  DELETING: { text: "삭제 중", dot: "🔴" },
+const statusLabel: Record<string, { text: string; dot: "green" | "yellow" | "red" | "gray" }> = {
+  RUNNING: { text: "온라인", dot: "green" },
+  PROVISIONING: { text: "생성 중", dot: "yellow" },
+  STARTING: { text: "시작 중", dot: "yellow" },
+  STOPPING: { text: "정지 중", dot: "yellow" },
+  STOPPED: { text: "오프라인", dot: "red" },
+  SUSPENDED: { text: "정지됨(결제 필요)", dot: "red" },
+  ERROR: { text: "오류", dot: "red" },
+  DELETING: { text: "삭제 중", dot: "red" },
 };
 
 export default async function DashboardPage() {
@@ -57,16 +58,18 @@ export default async function DashboardPage() {
       ) : (
         <div className="mt-6 grid sm:grid-cols-2 gap-4">
           {servers.map((s) => {
-            const label = statusLabel[s.status] ?? { text: s.status, dot: "⚪" };
+            const label = statusLabel[s.status] ?? { text: s.status, dot: "gray" as const };
             return (
               <Link
                 key={s.id}
                 href={`/dashboard/servers/${s.id}`}
-                className="card p-5 block hover:border-accent transition-colors"
+                className="card-glow p-5 block"
               >
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold">{s.name}</span>
-                  <span className="text-sm">{label.dot} {label.text}</span>
+                <div className="flex flex-wrap items-center justify-between gap-x-2">
+                  <span className="font-semibold truncate min-w-0">{s.name}</span>
+                  <span className="text-sm shrink-0 inline-flex items-center gap-1.5">
+                    <StatusDot color={label.dot} /> {label.text}
+                  </span>
                 </div>
                 <p className="mt-1 text-sm text-text-dim">
                   {s.subdomains[0] ? `${s.subdomains[0].subdomain}.${settings.subdomainZone}` : "주소 준비 중"}

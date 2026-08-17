@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isAdminEmail } from "@/lib/auth";
 import LogoutButton from "@/components/LogoutButton";
+import BrandMark from "@/components/BrandMark";
 
 const NAV = [
   { href: "/admin", label: "대시보드" },
@@ -24,16 +25,33 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <div className="min-h-screen flex flex-col">
       <header className="border-b border-border">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/admin" className="text-xl font-bold">🔥 Burnae Admin</Link>
-          <div className="flex items-center gap-4">
-            <Link href="/dashboard" className="text-sm text-text-dim hover:text-text">고객 화면으로</Link>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-2 flex-wrap">
+          <Link href="/admin" className="inline-flex items-center gap-2 text-lg sm:text-xl font-bold font-display shrink-0">
+            <BrandMark size={22} /> Burnae Admin
+          </Link>
+          <div className="flex items-center gap-3 sm:gap-4 text-sm">
+            <Link href="/dashboard" className="text-text-dim hover:text-text whitespace-nowrap">고객 화면으로</Link>
             <LogoutButton />
           </div>
         </div>
       </header>
-      <div className="flex-1 max-w-6xl w-full mx-auto flex gap-8 px-6 py-8">
-        <nav className="w-44 shrink-0 space-y-1">
+
+      {/* 모바일: 가로 스크롤 탭 메뉴 */}
+      <nav className="md:hidden border-b border-border overflow-x-auto whitespace-nowrap px-4 py-2 flex gap-1">
+        {NAV.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className="shrink-0 px-3 py-1.5 rounded-full text-xs text-text-dim bg-surface-2 hover:text-text"
+          >
+            {item.label}
+          </Link>
+        ))}
+      </nav>
+
+      <div className="flex-1 max-w-6xl w-full mx-auto flex gap-8 px-4 sm:px-6 py-6 sm:py-8">
+        {/* 데스크톱: 세로 사이드바 */}
+        <nav className="hidden md:block w-44 shrink-0 space-y-1">
           {NAV.map((item) => (
             <Link key={item.href} href={item.href} className="block px-3 py-2 rounded-lg text-sm text-text-dim hover:text-text hover:bg-surface-2">
               {item.label}

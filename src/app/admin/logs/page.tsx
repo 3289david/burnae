@@ -16,9 +16,9 @@ export default async function AdminLogsPage() {
         <div className="divide-y divide-border">
           {logs.map((log) => (
             <div key={log.id} className="px-4 py-3 text-sm">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-x-2">
                 <span className="font-medium">{log.action}</span>
-                <span className="text-xs text-text-dim">{log.createdAt.toLocaleString("ko-KR")}</span>
+                <span className="text-xs text-text-dim shrink-0">{log.createdAt.toLocaleString("ko-KR")}</span>
               </div>
               <p className="text-xs text-text-dim mt-0.5">
                 {log.actor ? `${log.actor.name} (${log.actor.email})` : "시스템"} · {log.targetType} #{log.targetId.slice(-8)}

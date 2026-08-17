@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { CheckCircle2 } from "lucide-react";
 
 interface Product {
   id: string;
@@ -80,7 +81,9 @@ export default function UpgradeCard({ serverId, currentProductId }: { serverId: 
   if (applied) {
     return (
       <div className="card p-5">
-        <p className="text-sm text-green">✅ 플랜이 변경됐어요. 적용을 위해 서버가 재시작될 수 있어요.</p>
+        <p className="text-sm text-green flex items-center gap-1.5">
+          <CheckCircle2 size={16} /> 플랜이 변경됐어요. 적용을 위해 서버가 재시작될 수 있어요.
+        </p>
       </div>
     );
   }
@@ -103,7 +106,7 @@ export default function UpgradeCard({ serverId, currentProductId }: { serverId: 
     <form onSubmit={submit} className="card p-5 space-y-3">
       <h3 className="font-semibold text-sm">플랜 변경</h3>
       <div className="flex gap-2">
-        <select className="input flex-1" value={selected} onChange={(e) => setSelected(e.target.value)}>
+        <select className="input flex-1 min-w-0" value={selected} onChange={(e) => setSelected(e.target.value)}>
           <option value="">플랜 선택</option>
           {products.map((p) => (
             <option key={p.id} value={p.id}>

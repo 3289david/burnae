@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { createInvoice, buildDepositorName } from "@/lib/paysync";
+import { createInvoice, resolveDepositorName, isValidDepositorName } from "@/lib/paysync";
 
 const schema = z.object({
   productId: z.string(),
@@ -10,6 +10,7 @@ const schema = z.object({
   minecraftVersion: z.string(),
   serverName: z.string().min(2).max(24),
   couponCode: z.string().optional(),
+  depositorName: z.string().optional(),
 });
 
 export async function GET() {
@@ -87,8 +88,25 @@ export async function POST(request: Request) {
     discountKrw = Math.min(discountKrw, product.priceMonthlyKrw - 100);
   }
 
+  if (input.depositorName && !isValidDepositorName(input.depositorName)) {
+    return NextResponse.json(
+      { error: "입금자명은 공백 없이 1~5자여야 해요." },
+      { status: 422 },
+    );
+  }
+
   const amountKrw = product.priceMonthlyKrw - discountKrw;
-  const depositorName = buildDepositorName(user.name, user.id);
+  const depositorName = input.depositorName ?? resolveDepositorName(user);
+
+  const collidingPending = await prisma.order.findFirst({
+    where: { depositorName, amountKrw, status: "PENDING" },
+  });
+  if (collidingPending) {
+    return NextResponse.json(
+      { error: "같은 입금자명+금액의 대기 중인 주문이 이미 있어요. 다른 입금자명을 사용해주세요." },
+      { status: 409 },
+    );
+  }
 
   const order = await prisma.order.create({
     data: {

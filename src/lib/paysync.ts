@@ -148,3 +148,16 @@ export function buildDepositorName(userName: string, userId: string): string {
   // 이름이 규칙에 안 맞으면 유저 식별용 코드로 대체 (예: BN3F2)
   return `B${userId.slice(-4).toUpperCase()}`;
 }
+
+/** customer.name 규칙(1~5자, 공백 불가)을 만족하는지 검사 */
+export function isValidDepositorName(value: string): boolean {
+  return /^\S{1,5}$/.test(value);
+}
+
+/** 유저가 직접 설정한 입금자명이 있으면 그걸, 없으면 이름 기반 자동 생성값을 사용 */
+export function resolveDepositorName(user: { name: string; id: string; preferredDepositorName?: string | null }): string {
+  if (user.preferredDepositorName && isValidDepositorName(user.preferredDepositorName)) {
+    return user.preferredDepositorName;
+  }
+  return buildDepositorName(user.name, user.id);
+}

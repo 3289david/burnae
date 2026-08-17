@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import DiscordLinkCard from "@/components/DiscordLinkCard";
+import DepositorNameCard from "@/components/DepositorNameCard";
 
 export default async function AccountPage() {
   const user = await getCurrentUser();
@@ -13,6 +14,10 @@ export default async function AccountPage() {
       <div className="card p-5 mt-6 space-y-2 text-sm">
         <div className="flex justify-between"><span className="text-text-dim">이름</span><span>{user!.name}</span></div>
         <div className="flex justify-between"><span className="text-text-dim">이메일</span><span>{user!.email}</span></div>
+      </div>
+
+      <div className="mt-4">
+        <DepositorNameCard initial={user!.preferredDepositorName} />
       </div>
 
       <div className="mt-4">

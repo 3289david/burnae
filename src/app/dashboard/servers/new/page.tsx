@@ -34,6 +34,7 @@ export default function NewServerPage() {
   const [version, setVersion] = useState("");
   const [serverName, setServerName] = useState("");
   const [couponCode, setCouponCode] = useState("");
+  const [depositorName, setDepositorName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -85,6 +86,7 @@ export default function NewServerPage() {
           minecraftVersion: version,
           serverName,
           couponCode: couponCode || undefined,
+          depositorName: depositorName || undefined,
         }),
       });
       const data = await res.json();
@@ -238,6 +240,18 @@ export default function NewServerPage() {
             value={couponCode}
             onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
           />
+        </div>
+
+        <div>
+          <label className="text-sm text-text-dim">입금자명 (선택)</label>
+          <input
+            className="input w-full mt-1"
+            placeholder="비워두면 계정 설정값 또는 자동 생성"
+            maxLength={5}
+            value={depositorName}
+            onChange={(e) => setDepositorName(e.target.value.replace(/\s+/g, ""))}
+          />
+          <p className="text-xs text-text-dim mt-1">공백 없이 1~5자. 입금 시 이 이름으로 보내야 자동 확인돼요.</p>
         </div>
 
         {error && <p className="text-sm text-red">{error}</p>}

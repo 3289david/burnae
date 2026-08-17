@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { CheckCircle2, Ban, Clock } from "lucide-react";
 import type { ServerInfo } from "./ServerDetailClient";
 import StatusDot from "@/components/StatusDot";
+import AddressActions from "./AddressActions";
+import CustomDomainCard from "./CustomDomainCard";
 
 interface Resources {
   current_state: string;
@@ -181,13 +183,16 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
         </div>
         <div className="space-y-2">
           {subdomains.map((s) => (
-            <div key={s.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+            <div key={s.id} className="relative flex flex-wrap items-center justify-between gap-2 text-sm">
               <span className="font-mono min-w-0 break-all">
                 {s.subdomain}.{server.subdomainZone} {s.isPrimary && <span className="text-text-dim text-xs">(기본)</span>}
               </span>
-              {server.isOwner && (
-                <button onClick={() => removeSubdomain(s.id)} className="text-red text-xs shrink-0">삭제</button>
-              )}
+              <div className="flex items-center gap-3 shrink-0">
+                <AddressActions address={`${s.subdomain}.${server.subdomainZone}`} />
+                {server.isOwner && (
+                  <button onClick={() => removeSubdomain(s.id)} className="text-red text-xs">삭제</button>
+                )}
+              </div>
             </div>
           ))}
           {subdomains.length === 0 && <p className="text-sm text-text-dim">주소 준비 중이에요.</p>}
@@ -208,6 +213,8 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
         )}
         {subError && <p className="text-xs text-red mt-2">{subError}</p>}
       </div>
+
+      <CustomDomainCard serverId={server.id} isOwner={server.isOwner} initial={server.customDomains} />
     </div>
   );
 }

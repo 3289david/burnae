@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { authorizeServerAccess } from "@/lib/serverAccess";
-import { createInvoice, buildDepositorName } from "@/lib/paysync";
+import { createInvoice, resolveDepositorName } from "@/lib/paysync";
 
 /** 다음 결제일을 미리 연장하고 싶을 때(만료 전이라도) 스스로 결제할 수 있는 갱신 주문 */
 export async function POST(
@@ -28,7 +28,17 @@ export async function POST(
     return NextResponse.json({ requiresPayment: true, order: existingPending });
   }
 
-  const depositorName = buildDepositorName(user.name, user.id);
+  const depositorName = resolveDepositorName(user);
+  const collidingPending = await prisma.order.findFirst({
+    where: { depositorName, amountKrw: server.product.priceMonthlyKrw, status: "PENDING" },
+  });
+  if (collidingPending) {
+    return NextResponse.json(
+      { error: "같은 입금자명+금액의 대기 중인 주문이 이미 있어요. 계정 설정에서 입금자명을 바꿔주세요." },
+      { status: 409 },
+    );
+  }
+
   const order = await prisma.order.create({
     data: {
       userId: user.id,

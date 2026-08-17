@@ -18,7 +18,12 @@ export default async function ServerDetailPage({
 
   const server = await prisma.server.findUniqueOrThrow({
     where: { id },
-    include: { template: true, product: true, subdomains: { orderBy: { isPrimary: "desc" } } },
+    include: {
+      template: true,
+      product: true,
+      subdomains: { orderBy: { isPrimary: "desc" } },
+      customDomains: { orderBy: { createdAt: "asc" } },
+    },
   });
   const settings = await prisma.hostingSettings.upsert({
     where: { id: 1 },
@@ -40,6 +45,11 @@ export default async function ServerDetailPage({
         autoRestartHour: server.autoRestartHour,
         subdomains: server.subdomains.map((s) => ({ id: s.id, subdomain: s.subdomain, isPrimary: s.isPrimary })),
         subdomainZone: settings.subdomainZone,
+        customDomains: server.customDomains.map((d) => ({
+          id: d.id,
+          hostname: d.hostname,
+          verified: d.verified,
+        })),
         allocationIp: server.allocationIp,
         allocationPort: server.allocationPort,
         ramMb: server.ramMb,

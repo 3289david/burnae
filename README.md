@@ -7,7 +7,9 @@ Cloudflare DNS, 디스코드 봇과 연동합니다.
 - **웹**: Next.js 16 (App Router) + PostgreSQL + Prisma 7
 - **호스팅 엔진**: Pterodactyl (Application API + Client API)
 - **결제**: [paysync.kr](https://paysync.kr) 무통장입금 자동확인 (계좌 비밀번호 불필요)
-- **서브도메인**: Cloudflare API로 서버 생성 시 `이름.krl.kr` A/SRV 레코드 자동 생성
+- **서브도메인**: Cloudflare API로 서버 생성 시 `이름.krl.kr` A/SRV 레코드 자동 생성, 유저가 이름 직접 지정(서버당 2개)
+- **커스텀 도메인**: 유저가 소유한 외부 도메인을 서버에 연결 — A/SRV 레코드 안내 후 DNS 조회로 자동 확인
+- **입금자명**: 계정에서 직접 지정 가능(공백 없이 1~5자), 미설정 시 이름 기반 자동 생성
 - **AI**: [OpenRouter](https://openrouter.ai) 기반 Tool-calling — 저렴한 오픈소스 모델(Qwen3), 실제 서버를 읽고/쓰고/재시작/플레이어관리/플러그인설치까지
 - **디스코드 봇**: discord.js, `/서버목록` `/상태` `/시작` `/정지` `/재시작` `/link` `/요금제` `/이벤트` `/문의`
 - **로그인**: Google/GitHub/Discord OAuth 전용 (비밀번호 없음). 관리자는 `ADMIN_EMAIL` 한 명으로 고정

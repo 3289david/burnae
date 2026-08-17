@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { authorizeServerAccess } from "@/lib/serverAccess";
-import { createInvoice, buildDepositorName } from "@/lib/paysync";
+import { createInvoice, resolveDepositorName } from "@/lib/paysync";
 import { PteroApp, PteroClient } from "@/lib/pterodactyl";
 
 const schema = z.object({ productId: z.string() });
@@ -49,7 +49,16 @@ export async function POST(
   const priceDiff = targetProduct.priceMonthlyKrw - server.product.priceMonthlyKrw;
 
   if (priceDiff > 0) {
-    const depositorName = buildDepositorName(user.name, user.id);
+    const depositorName = resolveDepositorName(user);
+    const collidingPending = await prisma.order.findFirst({
+      where: { depositorName, amountKrw: priceDiff, status: "PENDING" },
+    });
+    if (collidingPending) {
+      return NextResponse.json(
+        { error: "같은 입금자명+금액의 대기 중인 주문이 이미 있어요. 계정 설정에서 입금자명을 바꿔주세요." },
+        { status: 409 },
+      );
+    }
     const order = await prisma.order.create({
       data: {
         userId: user.id,

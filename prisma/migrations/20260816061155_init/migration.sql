@@ -1,3 +1,5 @@
+Loaded Prisma config from prisma.config.ts.
+
 -- CreateSchema
 CREATE SCHEMA IF NOT EXISTS "public";
 
@@ -46,6 +48,7 @@ CREATE TABLE "User" (
     "status" "UserStatus" NOT NULL DEFAULT 'ACTIVE',
     "storageQuotaGbOverride" INTEGER,
     "aiCreditsRemaining" INTEGER NOT NULL DEFAULT 0,
+    "preferredDepositorName" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -220,6 +223,18 @@ CREATE TABLE "ServerSubdomain" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "ServerSubdomain_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ServerCustomDomain" (
+    "id" TEXT NOT NULL,
+    "serverId" TEXT NOT NULL,
+    "hostname" TEXT NOT NULL,
+    "verified" BOOLEAN NOT NULL DEFAULT false,
+    "lastCheckedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ServerCustomDomain_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -439,6 +454,12 @@ CREATE UNIQUE INDEX "ServerSubdomain_subdomain_key" ON "ServerSubdomain"("subdom
 CREATE INDEX "ServerSubdomain_serverId_idx" ON "ServerSubdomain"("serverId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "ServerCustomDomain_hostname_key" ON "ServerCustomDomain"("hostname");
+
+-- CreateIndex
+CREATE INDEX "ServerCustomDomain_serverId_idx" ON "ServerCustomDomain"("serverId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Backup_pterodactylBackupId_key" ON "Backup"("pterodactylBackupId");
 
 -- CreateIndex
@@ -524,6 +545,9 @@ ALTER TABLE "ServerMember" ADD CONSTRAINT "ServerMember_userId_fkey" FOREIGN KEY
 
 -- AddForeignKey
 ALTER TABLE "ServerSubdomain" ADD CONSTRAINT "ServerSubdomain_serverId_fkey" FOREIGN KEY ("serverId") REFERENCES "Server"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ServerCustomDomain" ADD CONSTRAINT "ServerCustomDomain_serverId_fkey" FOREIGN KEY ("serverId") REFERENCES "Server"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Backup" ADD CONSTRAINT "Backup_serverId_fkey" FOREIGN KEY ("serverId") REFERENCES "Server"("id") ON DELETE CASCADE ON UPDATE CASCADE;

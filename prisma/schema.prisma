@@ -33,6 +33,8 @@ model User {
   /// 인당 총 저장공간 한도(GB). null이면 HostingSettings.defaultUserStorageGb 적용
   storageQuotaGbOverride Int?
   aiCreditsRemaining     Int        @default(0)
+  /// 결제 안내에 쓸 입금자명 직접 설정(1~5자, 공백 불가). null이면 이름 기반 자동 생성
+  preferredDepositorName String?
   createdAt              DateTime   @default(now())
   updatedAt              DateTime   @updatedAt
 
@@ -264,6 +266,7 @@ model Server {
 
   /// 서버당 최대 2개까지 (기본 1개 자동 생성 + 소유자가 1개 추가 가능)
   subdomains ServerSubdomain[]
+  customDomains ServerCustomDomain[]
 
   whitelistEnabled Boolean   @default(false)
   suspendedReason  String?
@@ -314,6 +317,19 @@ model ServerSubdomain {
   dnsSrvRecordId String?
   isPrimary      Boolean  @default(false)
   createdAt      DateTime @default(now())
+
+  @@index([serverId])
+}
+
+/// 고객이 자신의 외부 도메인을 서버에 연결(SRV/A 레코드는 고객이 직접 자기 DNS에 등록, 우리는 확인만)
+model ServerCustomDomain {
+  id         String    @id @default(cuid())
+  serverId   String
+  server     Server    @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  hostname   String    @unique
+  verified   Boolean   @default(false)
+  lastCheckedAt DateTime?
+  createdAt  DateTime  @default(now())
 
   @@index([serverId])
 }

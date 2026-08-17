@@ -20,6 +20,12 @@ export interface ServerSubdomainInfo {
   isPrimary: boolean;
 }
 
+export interface ServerCustomDomainInfo {
+  id: string;
+  hostname: string;
+  verified: boolean;
+}
+
 export interface ServerInfo {
   id: string;
   name: string;
@@ -32,6 +38,7 @@ export interface ServerInfo {
   autoRestartHour: number | null;
   subdomains: ServerSubdomainInfo[];
   subdomainZone: string;
+  customDomains: ServerCustomDomainInfo[];
   allocationIp: string | null;
   allocationPort: number | null;
   ramMb: number;

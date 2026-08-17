@@ -12,11 +12,15 @@ export class ProvisioningError extends Error {}
 
 export const MAX_SUBDOMAINS_PER_SERVER = 2;
 
+/** Pterodactyl 관례상 CPU 퍼센트 100 = 코어 1개 */
+export const CPU_PERCENT_PER_CORE = 100;
+
 /**
  * 리소스 여유가 가장 많은 노드를 선택한다.
- * 현재 노드에 배치된(삭제되지 않은) 서버들의 RAM/디스크 합계를 빼서 실사용 가능량을 계산.
+ * 여러 노드가 등록돼 있으면 RAM/디스크/CPU 여유를 모두 감안해 배치 가능한 노드 중
+ * RAM 여유가 가장 큰 곳을 고른다 — 노드 하나가 꽉 차면 자동으로 다음 노드로 넘어간다.
  */
-async function selectNode(ramMb: number, diskMb: number) {
+async function selectNode(ramMb: number, diskMb: number, cpuPercent: number) {
   const nodes = await prisma.hostNode.findMany({
     where: { status: "ONLINE", autoDeployEnabled: true },
   });
@@ -24,20 +28,24 @@ async function selectNode(ramMb: number, diskMb: number) {
   const usage = await prisma.server.groupBy({
     by: ["nodeId"],
     where: { deletedAt: null },
-    _sum: { ramMb: true, diskMb: true },
+    _sum: { ramMb: true, diskMb: true, cpuPercent: true },
   });
   const usageMap = new Map(
-    usage.map((u) => [u.nodeId, { ram: u._sum.ramMb ?? 0, disk: u._sum.diskMb ?? 0 }]),
+    usage.map((u) => [
+      u.nodeId,
+      { ram: u._sum.ramMb ?? 0, disk: u._sum.diskMb ?? 0, cpu: u._sum.cpuPercent ?? 0 },
+    ]),
   );
 
   const candidates = nodes
     .map((node) => {
-      const used = usageMap.get(node.id) ?? { ram: 0, disk: 0 };
+      const used = usageMap.get(node.id) ?? { ram: 0, disk: 0, cpu: 0 };
       const freeRam = node.totalRamMb - node.reservedRamMb - used.ram;
       const freeDisk = node.totalDiskMb - node.reservedDiskMb - used.disk;
-      return { node, freeRam, freeDisk };
+      const freeCpu = node.cpuCores * CPU_PERCENT_PER_CORE - used.cpu;
+      return { node, freeRam, freeDisk, freeCpu };
     })
-    .filter((c) => c.freeRam >= ramMb && c.freeDisk >= diskMb)
+    .filter((c) => c.freeRam >= ramMb && c.freeDisk >= diskMb && c.freeCpu >= cpuPercent)
     .sort((a, b) => b.freeRam - a.freeRam);
 
   if (candidates.length === 0) {
@@ -46,6 +54,27 @@ async function selectNode(ramMb: number, diskMb: number) {
     );
   }
   return candidates[0].node;
+}
+
+/**
+ * 특정 노드의 여유 자원을 계산한다. excludeServerId를 주면 그 서버 자신의 사용량은 빼고 계산 —
+ * "이 서버를 업그레이드해도 지금 있는 노드에 자리가 남는가"를 확인할 때 쓴다.
+ */
+export async function getNodeFreeCapacity(nodeId: string, excludeServerId?: string) {
+  const node = await prisma.hostNode.findUniqueOrThrow({ where: { id: nodeId } });
+  const usage = await prisma.server.aggregate({
+    where: {
+      nodeId,
+      deletedAt: null,
+      ...(excludeServerId ? { id: { not: excludeServerId } } : {}),
+    },
+    _sum: { ramMb: true, diskMb: true, cpuPercent: true },
+  });
+  return {
+    freeRam: node.totalRamMb - node.reservedRamMb - (usage._sum.ramMb ?? 0),
+    freeDisk: node.totalDiskMb - node.reservedDiskMb - (usage._sum.diskMb ?? 0),
+    freeCpu: node.cpuCores * CPU_PERCENT_PER_CORE - (usage._sum.cpuPercent ?? 0),
+  };
 }
 
 async function uniqueSubdomain(desired: string, fallbackSeed: string) {
@@ -148,7 +177,7 @@ export async function createServerForOrder(orderId: string) {
     );
   }
 
-  const node = await selectNode(order.product.ramMb, order.product.diskMb);
+  const node = await selectNode(order.product.ramMb, order.product.diskMb, order.product.cpuPercent);
 
   const [firstName, ...rest] = order.user.name.split(" ");
   const pteroUser = await PteroApp.findOrCreateUser({

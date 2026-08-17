@@ -175,29 +175,39 @@ async function handleNodeAlerts() {
   const usage = await prisma.server.groupBy({
     by: ["nodeId"],
     where: { deletedAt: null },
-    _sum: { ramMb: true },
+    _sum: { ramMb: true, cpuPercent: true },
   });
-  const usageMap = new Map(usage.map((u) => [u.nodeId, u._sum.ramMb ?? 0]));
+  const usageMap = new Map(usage.map((u) => [u.nodeId, u._sum]));
 
   const admin = await prisma.user.findFirst({ where: { role: "ADMIN" } });
   if (!admin) return;
 
   for (const node of nodes) {
-    const sellable = node.totalRamMb - node.reservedRamMb;
-    const used = usageMap.get(node.id) ?? 0;
-    if (sellable <= 0) continue;
-    const rate = used / sellable;
-    if (rate < NODE_ALERT_THRESHOLD) continue;
+    const used = usageMap.get(node.id) ?? { ramMb: 0, cpuPercent: 0 };
+    const sellableRam = node.totalRamMb - node.reservedRamMb;
+    const sellableCpu = node.cpuCores * 100;
+    const ramRate = sellableRam > 0 ? (used.ramMb ?? 0) / sellableRam : 0;
+    const cpuRate = sellableCpu > 0 ? (used.cpuPercent ?? 0) / sellableCpu : 0;
 
-    const action = "NODE_RAM_OVERLOAD_ALERT";
+    const overloaded: string[] = [];
+    if (ramRate >= NODE_ALERT_THRESHOLD) overloaded.push(`RAM ${(ramRate * 100).toFixed(0)}%`);
+    if (cpuRate >= NODE_ALERT_THRESHOLD) overloaded.push(`CPU ${(cpuRate * 100).toFixed(0)}%`);
+    if (overloaded.length === 0) continue;
+
+    const action = "NODE_OVERLOAD_ALERT";
     if (await recentlyLogged(action, node.id, NODE_ALERT_COOLDOWN_HOURS)) continue;
 
     const sent = await notifyOwner(
       admin.id,
-      `🚨 노드 **${node.name}**(${node.location}) RAM 판매율이 ${(rate * 100).toFixed(0)}%예요. 새 노드 추가를 검토해주세요.`,
+      `🚨 노드 **${node.name}**(${node.location}) 판매율이 높아요: ${overloaded.join(", ")}. 새 노드 추가를 검토해주세요.`,
     );
     await prisma.auditLog.create({
-      data: { action, targetType: "HostNode", targetId: node.id, metadata: { rate, discordNotified: sent } },
+      data: {
+        action,
+        targetType: "HostNode",
+        targetId: node.id,
+        metadata: { ramRate, cpuRate, discordNotified: sent },
+      },
     });
     console.log(`[cron] 노드 ${node.name} — 과부하 알림 ${sent ? "발송" : "스킵(관리자 디스코드 미연동)"}`);
   }

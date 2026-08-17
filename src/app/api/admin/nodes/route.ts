@@ -16,7 +16,7 @@ export async function GET() {
   const usage = await prisma.server.groupBy({
     by: ["nodeId"],
     where: { deletedAt: null },
-    _sum: { ramMb: true, diskMb: true },
+    _sum: { ramMb: true, diskMb: true, cpuPercent: true },
   });
   const usageMap = new Map(usage.map((u) => [u.nodeId, u._sum]));
 
@@ -25,6 +25,8 @@ export async function GET() {
       ...n,
       usedRamMb: usageMap.get(n.id)?.ramMb ?? 0,
       usedDiskMb: usageMap.get(n.id)?.diskMb ?? 0,
+      usedCpuPercent: usageMap.get(n.id)?.cpuPercent ?? 0,
+      totalCpuPercent: n.cpuCores * 100,
     })),
   );
 }

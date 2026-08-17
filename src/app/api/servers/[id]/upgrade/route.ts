@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { authorizeServerAccess } from "@/lib/serverAccess";
 import { createInvoice, resolveDepositorName } from "@/lib/paysync";
 import { PteroApp, PteroClient } from "@/lib/pterodactyl";
+import { getNodeFreeCapacity } from "@/lib/provisioning";
 
 const schema = z.object({ productId: z.string() });
 
@@ -44,6 +45,18 @@ export async function POST(
   }
   if (targetProduct.id === server.productId) {
     return NextResponse.json({ error: "이미 사용 중인 플랜이에요." }, { status: 409 });
+  }
+
+  const capacity = await getNodeFreeCapacity(server.nodeId, server.id);
+  if (
+    targetProduct.ramMb > capacity.freeRam ||
+    targetProduct.diskMb > capacity.freeDisk ||
+    targetProduct.cpuPercent > capacity.freeCpu
+  ) {
+    return NextResponse.json(
+      { error: "이 서버가 배치된 노드에 여유 공간이 부족해 지금은 이 플랜으로 변경할 수 없어요." },
+      { status: 409 },
+    );
   }
 
   const priceDiff = targetProduct.priceMonthlyKrw - server.product.priceMonthlyKrw;

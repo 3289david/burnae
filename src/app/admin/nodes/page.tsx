@@ -12,6 +12,8 @@ interface Node {
   totalDiskMb: number;
   reservedRamMb: number;
   usedRamMb: number;
+  totalCpuPercent: number;
+  usedCpuPercent: number;
   status: string;
   autoDeployEnabled: boolean;
 }
@@ -97,7 +99,13 @@ export default function AdminNodesPage() {
               <div className="h-full bg-accent" style={{ width: `${Math.min(100, Math.round((n.usedRamMb / Math.max(1, n.totalRamMb - n.reservedRamMb)) * 100))}%` }} />
             </div>
             <p className="text-xs text-text-dim mt-1">
-              {(n.usedRamMb / 1024).toFixed(0)}GB / {((n.totalRamMb - n.reservedRamMb) / 1024).toFixed(0)}GB 판매 가능
+              RAM {(n.usedRamMb / 1024).toFixed(0)}GB / {((n.totalRamMb - n.reservedRamMb) / 1024).toFixed(0)}GB 판매 가능
+            </p>
+            <div className="mt-2 h-2 rounded-full bg-surface-2 overflow-hidden">
+              <div className="h-full bg-purple" style={{ width: `${Math.min(100, Math.round((n.usedCpuPercent / Math.max(1, n.totalCpuPercent)) * 100))}%` }} />
+            </div>
+            <p className="text-xs text-text-dim mt-1">
+              CPU {n.usedCpuPercent}% / {n.totalCpuPercent}% 판매 가능
             </p>
           </div>
         ))}

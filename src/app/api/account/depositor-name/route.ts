@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { isValidDepositorName } from "@/lib/paysync";
+import { isValidDepositorName } from "@/lib/hanabank";
 
 const schema = z.object({ depositorName: z.string().min(1).max(5).nullable() });
 

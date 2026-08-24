@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { authorizeServerAccess } from "@/lib/serverAccess";
-import { createInvoice, resolveDepositorName } from "@/lib/paysync";
+import { resolveDepositorName } from "@/lib/hanabank";
 
 /** 다음 결제일을 미리 연장하고 싶을 때(만료 전이라도) 스스로 결제할 수 있는 갱신 주문 */
 export async function POST(
@@ -51,17 +51,5 @@ export async function POST(
     },
   });
 
-  try {
-    const invoice = await createInvoice({
-      depositorName,
-      amountKrw: order.amountKrw,
-      orderId: order.id,
-      expireAfter: "1d",
-    });
-    await prisma.order.update({ where: { id: order.id }, data: { paysyncInvoiceId: invoice.id } });
-    return NextResponse.json({ requiresPayment: true, order: { ...order, paysyncInvoiceId: invoice.id } });
-  } catch (err) {
-    console.error("[renew] 페이싱크 인보이스 생성 실패:", err);
-    return NextResponse.json({ error: "결제 준비 중 오류가 발생했습니다." }, { status: 502 });
-  }
+  return NextResponse.json({ requiresPayment: true, order });
 }

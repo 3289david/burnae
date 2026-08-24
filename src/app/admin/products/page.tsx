@@ -12,6 +12,8 @@ interface Product {
   backupSlots: number;
   priceMonthlyKrw: number;
   active: boolean;
+  pointsRedeemable: boolean;
+  pointsCost: number | null;
   allowedTemplates: Template[];
 }
 
@@ -23,6 +25,8 @@ const empty = {
   backupSlots: 3,
   priceMonthlyKrw: 20000,
   allowedTemplateIds: [] as string[],
+  pointsRedeemable: false,
+  pointsCost: 1000,
 };
 
 export default function AdminProductsPage() {
@@ -58,6 +62,8 @@ export default function AdminProductsPage() {
           backupSlots: form.backupSlots,
           priceMonthlyKrw: form.priceMonthlyKrw,
           allowedTemplateIds: form.allowedTemplateIds,
+          pointsRedeemable: form.pointsRedeemable,
+          pointsCost: form.pointsRedeemable ? form.pointsCost : undefined,
         }),
       });
       const data = await res.json();
@@ -88,9 +94,12 @@ export default function AdminProductsPage() {
         {products.map((p) => (
           <div key={p.id} className="card p-4 flex items-center justify-between">
             <div>
-              <p className="font-medium">{p.name} {!p.active && <span className="text-text-dim text-xs">(비활성)</span>}</p>
+              <p className="font-medium">
+                {p.name} {!p.active && <span className="text-text-dim text-xs">(비활성)</span>}
+                {p.pointsRedeemable && <span className="text-accent text-xs ml-1">(포인트 {p.pointsCost?.toLocaleString()}P 교환)</span>}
+              </p>
               <p className="text-xs text-text-dim mt-0.5">
-                RAM {(p.ramMb / 1024).toFixed(0)}GB · CPU {p.cpuPercent}% · 디스크 {(p.diskMb / 1024).toFixed(0)}GB ·
+                RAM {(p.ramMb / 1024).toFixed(1)}GB · CPU {p.cpuPercent}% · 디스크 {(p.diskMb / 1024).toFixed(1)}GB ·
                 백업 {p.backupSlots}개 · {p.priceMonthlyKrw.toLocaleString()}원/월 · {p.allowedTemplates.map((t) => t.displayName).join(", ")}
               </p>
             </div>
@@ -139,6 +148,17 @@ export default function AdminProductsPage() {
             })}
           </div>
         </div>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={form.pointsRedeemable}
+            onChange={(e) => setForm({ ...form, pointsRedeemable: e.target.checked })}
+          />
+          홍보 포인트로 교환 가능 (예: 무료 체험 서버)
+        </label>
+        {form.pointsRedeemable && (
+          <NumField label="필요 포인트" value={form.pointsCost} onChange={(v) => setForm({ ...form, pointsCost: v })} />
+        )}
         {error && <p className="text-sm text-red">{error}</p>}
         <button type="submit" disabled={loading || form.allowedTemplateIds.length === 0} className="btn-primary px-5 py-2.5">
           추가

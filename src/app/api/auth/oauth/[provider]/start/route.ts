@@ -23,6 +23,18 @@ export async function GET(
     maxAge: 600,
   });
 
+  // 추천 링크(?ref=코드)로 들어왔으면 콜백에서 신규 가입 시 사용할 수 있게 잠깐 저장해둔다
+  const ref = new URL(request.url).searchParams.get("ref");
+  if (ref) {
+    store.set("referral_code", ref.slice(0, 40), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 600,
+    });
+  }
+
   try {
     const url = buildAuthorizeUrl(provider as OAuthProviderKey, state);
     return NextResponse.redirect(url);

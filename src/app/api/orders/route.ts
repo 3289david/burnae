@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { createInvoice, resolveDepositorName, isValidDepositorName } from "@/lib/paysync";
+import { resolveDepositorName, isValidDepositorName } from "@/lib/hanabank";
 
 const schema = z.object({
   productId: z.string(),
@@ -128,23 +128,5 @@ export async function POST(request: Request) {
     await prisma.couponRedemption.create({ data: { couponId, userId: user.id } });
   }
 
-  try {
-    const invoice = await createInvoice({
-      depositorName,
-      amountKrw,
-      orderId: order.id,
-      expireAfter: "1d",
-    });
-    await prisma.order.update({
-      where: { id: order.id },
-      data: { paysyncInvoiceId: invoice.id },
-    });
-    return NextResponse.json({ ...order, paysyncInvoiceId: invoice.id });
-  } catch (err) {
-    console.error("[orders] 페이싱크 인보이스 생성 실패:", err);
-    return NextResponse.json(
-      { error: "결제 준비 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요." },
-      { status: 502 },
-    );
-  }
+  return NextResponse.json(order);
 }

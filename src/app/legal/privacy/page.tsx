@@ -43,7 +43,7 @@ export default function PrivacyPage() {
           개인정보처리방침을 따릅니다.
           <ul className="list-disc pl-5 space-y-1 mt-2">
             <li><strong>Pterodactyl(자체 인프라)</strong> — 서버 생성/운영을 위한 이메일, 이름</li>
-            <li><strong>paysync.kr</strong> — 결제 확인을 위한 입금자명, 결제 금액 (계좌 비밀번호 등은 전달하지 않음)</li>
+            <li><strong>하나은행 Open API</strong> — 결제 확인을 위한 결제 계좌의 입금 거래내역(입금자명, 금액) 조회 (계좌 비밀번호 등은 전달하지 않음)</li>
             <li><strong>OpenRouter</strong> — AI 챗봇 대화 내용(서버 관련 요청 텍스트)</li>
             <li><strong>Cloudflare</strong> — 서브도메인 연결을 위한 서버 접속 정보(IP, 포트)</li>
             <li><strong>Google / GitHub / Discord</strong> — 소셜 로그인 인증 (OAuth)</li>

@@ -4,15 +4,20 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PteroApp, PteroClient } from "../src/lib/pterodactyl";
 import { sendDiscordDM } from "../src/lib/discordNotify";
 import { deleteServerFully } from "../src/lib/provisioning";
+import { getRecentDeposits, isValidDepositorName } from "../src/lib/hanabank";
+import { markOrderPaidAndFulfill, retryPreorderFulfillment } from "../src/lib/orderFulfillment";
+import { ProvisioningError } from "../src/lib/provisioning";
 
 /**
- * 주기적으로(예: 30분~1시간마다) 실행하는 운영 크론.
+ * 주기적으로(예: 5~10분마다) 실행하는 운영 크론.
  * systemd timer(deploy/burnae-maintenance.timer)로 등록해서 돌린다. 1회 실행하고 종료.
  *
  * 하는 일:
  *   1. 결제 만료 임박(D-3/D-1) 알림 → 연체 시 정지 → 정지 후 보관기간 지나면 삭제
  *   2. 예약 자동 백업 / 예약 자동 재시작
- *   3. 노드 RAM 판매율 과부하 시 관리자에게 알림
+ *   3. 노드 RAM/CPU 판매율 과부하 시 관리자에게 알림
+ *   4. 하나은행 거래내역 폴링으로 입금 자동 매칭 (실시간 웹훅이 없어서 주기적으로 조회해야 함)
+ *   5. 선주문(결제는 됐지만 노드 자리가 없었던 주문) 재배치 시도
  */
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
@@ -213,12 +218,78 @@ async function handleNodeAlerts() {
   }
 }
 
+/**
+ * 하나은행 API는 payaction/paysync 같은 SMS 대행 서비스와 달리 입금 발생 시 실시간으로
+ * 알려주는 웹훅이 없다. 그래서 마지막으로 확인한 시각(lastCheckedAt) 이후의 거래내역을
+ * 주기적으로 조회해서 "입금자명(적요) + 금액"이 정확히 일치하는 PENDING 주문을 찾아 매칭한다.
+ */
+async function handleHanaBankMatching() {
+  const sync = await prisma.hanaBankSync.upsert({
+    where: { id: 1 },
+    update: {},
+    create: { id: 1 },
+  });
+
+  let deposits;
+  try {
+    deposits = await getRecentDeposits({ fromDate: sync.lastCheckedAt, toDate: new Date() });
+  } catch (err) {
+    console.error("[cron] 하나은행 거래내역 조회 실패:", err);
+    return;
+  }
+
+  if (deposits.length > 0) {
+    const pendingOrders = await prisma.order.findMany({ where: { status: "PENDING" } });
+
+    for (const deposit of deposits) {
+      const depositorName = deposit.printContent.trim();
+      if (!isValidDepositorName(depositorName)) continue;
+
+      const match = pendingOrders.find(
+        (o) => o.depositorName === depositorName && o.amountKrw === deposit.amount,
+      );
+      if (!match) continue;
+
+      try {
+        await markOrderPaidAndFulfill(match.id);
+        console.log(`[cron] 하나은행 입금 매칭 — 주문 ${match.id} (${depositorName}, ${deposit.amount}원)`);
+      } catch (err) {
+        console.error(`[cron] 주문 ${match.id} 처리 실패:`, err);
+      }
+    }
+  }
+
+  await prisma.hanaBankSync.update({ where: { id: 1 }, data: { lastCheckedAt: new Date() } });
+}
+
+/**
+ * 결제(또는 포인트 교환)는 끝났지만 그 순간 노드에 여유가 없어서 "선주문" 상태로 대기 중인
+ * 주문을 다시 배치해본다. 노드가 증설되거나 다른 서버가 삭제돼 자리가 나면 자동으로 풀린다.
+ */
+async function handlePreorderRetries() {
+  const waiting = await prisma.order.findMany({
+    where: { preorderWaiting: true, status: "PAID", serverId: null },
+  });
+
+  for (const order of waiting) {
+    try {
+      await retryPreorderFulfillment(order.id);
+      console.log(`[cron] 선주문 ${order.id} — 노드 자리 확보돼 서버 생성 완료`);
+    } catch (err) {
+      if (err instanceof ProvisioningError) continue; // 아직도 자리 없음 — 다음 주기에 재시도
+      console.error(`[cron] 선주문 ${order.id} 재배치 실패:`, err);
+    }
+  }
+}
+
 async function main() {
   console.log(`[cron] 시작 ${new Date().toISOString()}`);
   await handleRenewals();
   await handleScheduledBackups();
   await handleScheduledRestarts();
   await handleNodeAlerts();
+  await handleHanaBankMatching();
+  await handlePreorderRetries();
   console.log(`[cron] 종료 ${new Date().toISOString()}`);
 }
 

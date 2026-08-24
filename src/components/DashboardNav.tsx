@@ -11,6 +11,7 @@ interface Props {
 }
 
 const LINKS = [
+  { href: "/dashboard/promotions", label: "홍보 포인트" },
   { href: "/dashboard/billing", label: "결제 내역" },
   { href: "/dashboard/account", label: "계정" },
 ];

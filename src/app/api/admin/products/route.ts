@@ -19,12 +19,14 @@ const schema = z.object({
   description: z.string().optional(),
   ramMb: z.number().int().min(512),
   cpuPercent: z.number().int().min(25),
-  diskMb: z.number().int().min(1024),
+  diskMb: z.number().int().min(256),
   backupSlots: z.number().int().min(0).default(3),
   aiCreditsPerMonth: z.number().int().min(0).default(0),
   priceMonthlyKrw: z.number().int().min(0),
   allowedTemplateIds: z.array(z.string()).min(1),
   sortOrder: z.number().int().default(0),
+  pointsRedeemable: z.boolean().default(false),
+  pointsCost: z.number().int().min(0).optional(),
 });
 
 export async function POST(request: Request) {

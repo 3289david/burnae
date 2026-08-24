@@ -8,13 +8,15 @@ const schema = z.object({
   description: z.string().optional(),
   ramMb: z.number().int().min(512).optional(),
   cpuPercent: z.number().int().min(25).optional(),
-  diskMb: z.number().int().min(1024).optional(),
+  diskMb: z.number().int().min(256).optional(),
   backupSlots: z.number().int().min(0).optional(),
   aiCreditsPerMonth: z.number().int().min(0).optional(),
   priceMonthlyKrw: z.number().int().min(0).optional(),
   active: z.boolean().optional(),
   sortOrder: z.number().int().optional(),
   allowedTemplateIds: z.array(z.string()).optional(),
+  pointsRedeemable: z.boolean().optional(),
+  pointsCost: z.number().int().min(0).optional(),
 });
 
 export async function PUT(

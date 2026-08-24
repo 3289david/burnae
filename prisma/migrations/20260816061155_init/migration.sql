@@ -31,6 +31,12 @@ CREATE TYPE "ServerMemberRole" AS ENUM ('ADMIN', 'MODERATOR', 'DEVELOPER', 'VIEW
 CREATE TYPE "CouponDiscountType" AS ENUM ('PERCENT', 'FIXED_KRW');
 
 -- CreateEnum
+CREATE TYPE "PromotionVerifyMethod" AS ENUM ('URL_CONTAINS_LINK', 'SERVER_MOTD_BRANDED', 'DISCORD_MEMBER', 'REFERRAL_SIGNUP', 'REFERRAL_FIRST_PAYMENT', 'MANUAL_REVIEW');
+
+-- CreateEnum
+CREATE TYPE "PromotionCompletionStatus" AS ENUM ('APPROVED', 'PENDING_REVIEW', 'REJECTED');
+
+-- CreateEnum
 CREATE TYPE "AiMessageRole" AS ENUM ('USER', 'ASSISTANT', 'TOOL');
 
 -- CreateEnum
@@ -49,6 +55,9 @@ CREATE TABLE "User" (
     "storageQuotaGbOverride" INTEGER,
     "aiCreditsRemaining" INTEGER NOT NULL DEFAULT 0,
     "preferredDepositorName" TEXT,
+    "promotionPoints" INTEGER NOT NULL DEFAULT 0,
+    "referralCode" TEXT NOT NULL,
+    "referredByUserId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -137,6 +146,8 @@ CREATE TABLE "Product" (
     "priceMonthlyKrw" INTEGER NOT NULL,
     "active" BOOLEAN NOT NULL DEFAULT true,
     "sortOrder" INTEGER NOT NULL DEFAULT 0,
+    "pointsRedeemable" BOOLEAN NOT NULL DEFAULT false,
+    "pointsCost" INTEGER,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -155,12 +166,12 @@ CREATE TABLE "Order" (
     "depositorName" TEXT NOT NULL,
     "couponId" TEXT,
     "discountKrw" INTEGER NOT NULL DEFAULT 0,
-    "paysyncInvoiceId" TEXT,
     "paidAt" TIMESTAMP(3),
     "expiresAt" TIMESTAMP(3),
     "serverNameRequested" TEXT,
     "templateIdRequested" TEXT,
     "minecraftVersionRequested" TEXT,
+    "preorderWaiting" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Order_pkey" PRIMARY KEY ("id")
@@ -296,6 +307,38 @@ CREATE TABLE "Event" (
 );
 
 -- CreateTable
+CREATE TABLE "PromotionTask" (
+    "id" TEXT NOT NULL,
+    "key" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "description" TEXT NOT NULL,
+    "pointsAwarded" INTEGER NOT NULL,
+    "verifyMethod" "PromotionVerifyMethod" NOT NULL,
+    "requiredText" TEXT DEFAULT 'burnae.kr',
+    "repeatable" BOOLEAN NOT NULL DEFAULT false,
+    "active" BOOLEAN NOT NULL DEFAULT true,
+    "sortOrder" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "PromotionTask_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "PromotionCompletion" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "taskId" TEXT NOT NULL,
+    "relatedUserId" TEXT,
+    "proofUrl" TEXT,
+    "pointsAwarded" INTEGER NOT NULL,
+    "status" "PromotionCompletionStatus" NOT NULL DEFAULT 'APPROVED',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PromotionCompletion_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "BankAccountSetting" (
     "id" TEXT NOT NULL,
     "bankName" TEXT NOT NULL,
@@ -306,6 +349,15 @@ CREATE TABLE "BankAccountSetting" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "BankAccountSetting_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "HanaBankSync" (
+    "id" INTEGER NOT NULL DEFAULT 1,
+    "lastCheckedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "HanaBankSync_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -397,7 +449,13 @@ CREATE TABLE "_ProductToServerTemplate" (
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "User_referralCode_key" ON "User"("referralCode");
+
+-- CreateIndex
 CREATE INDEX "User_email_idx" ON "User"("email");
+
+-- CreateIndex
+CREATE INDEX "User_referralCode_idx" ON "User"("referralCode");
 
 -- CreateIndex
 CREATE INDEX "OAuthAccount_userId_idx" ON "OAuthAccount"("userId");
@@ -421,16 +479,10 @@ CREATE INDEX "ServerTemplate_active_idx" ON "ServerTemplate"("active");
 CREATE INDEX "Product_active_idx" ON "Product"("active");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Order_paysyncInvoiceId_key" ON "Order"("paysyncInvoiceId");
-
--- CreateIndex
 CREATE INDEX "Order_userId_idx" ON "Order"("userId");
 
 -- CreateIndex
 CREATE INDEX "Order_status_idx" ON "Order"("status");
-
--- CreateIndex
-CREATE INDEX "Order_paysyncInvoiceId_idx" ON "Order"("paysyncInvoiceId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Server_pterodactylServerId_key" ON "Server"("pterodactylServerId");
@@ -475,6 +527,21 @@ CREATE UNIQUE INDEX "CouponRedemption_couponId_userId_key" ON "CouponRedemption"
 CREATE UNIQUE INDEX "Event_couponId_key" ON "Event"("couponId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "PromotionTask_key_key" ON "PromotionTask"("key");
+
+-- CreateIndex
+CREATE INDEX "PromotionTask_active_idx" ON "PromotionTask"("active");
+
+-- CreateIndex
+CREATE INDEX "PromotionCompletion_userId_idx" ON "PromotionCompletion"("userId");
+
+-- CreateIndex
+CREATE INDEX "PromotionCompletion_status_idx" ON "PromotionCompletion"("status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PromotionCompletion_taskId_userId_relatedUserId_key" ON "PromotionCompletion"("taskId", "userId", "relatedUserId");
+
+-- CreateIndex
 CREATE INDEX "AiConversation_userId_idx" ON "AiConversation"("userId");
 
 -- CreateIndex
@@ -509,6 +576,9 @@ CREATE INDEX "AuditLog_targetType_targetId_idx" ON "AuditLog"("targetType", "tar
 
 -- CreateIndex
 CREATE INDEX "_ProductToServerTemplate_B_index" ON "_ProductToServerTemplate"("B");
+
+-- AddForeignKey
+ALTER TABLE "User" ADD CONSTRAINT "User_referredByUserId_fkey" FOREIGN KEY ("referredByUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "OAuthAccount" ADD CONSTRAINT "OAuthAccount_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -560,6 +630,12 @@ ALTER TABLE "CouponRedemption" ADD CONSTRAINT "CouponRedemption_userId_fkey" FOR
 
 -- AddForeignKey
 ALTER TABLE "Event" ADD CONSTRAINT "Event_couponId_fkey" FOREIGN KEY ("couponId") REFERENCES "Coupon"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PromotionCompletion" ADD CONSTRAINT "PromotionCompletion_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PromotionCompletion" ADD CONSTRAINT "PromotionCompletion_taskId_fkey" FOREIGN KEY ("taskId") REFERENCES "PromotionTask"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "AiConversation" ADD CONSTRAINT "AiConversation_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

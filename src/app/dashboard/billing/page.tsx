@@ -42,7 +42,7 @@ export default async function BillingPage() {
             <div className="text-right">
               <p className="font-semibold text-sm">{o.amountKrw.toLocaleString()}원</p>
               <p className={`text-xs ${o.status === "PAID" ? "text-green" : o.status === "PENDING" ? "text-yellow" : "text-text-dim"}`}>
-                {STATUS_LABEL[o.status]}
+                {o.preorderWaiting ? "선주문 대기중 (자리 나는 대로 자동 생성)" : STATUS_LABEL[o.status]}
               </p>
             </div>
           </div>

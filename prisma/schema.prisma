@@ -35,20 +35,29 @@ model User {
   aiCreditsRemaining     Int        @default(0)
   /// 결제 안내에 쓸 입금자명 직접 설정(1~5자, 공백 불가). null이면 이름 기반 자동 생성
   preferredDepositorName String?
+  /// 서버 홍보 활동으로 모은 포인트 — 무료 서버 교환 등에 사용
+  promotionPoints        Int        @default(0)
+  /// 친구 추천용 코드. 가입 링크에 ?ref=코드 로 붙여서 공유
+  referralCode            String     @unique @default(cuid())
+  referredByUserId        String?
+  referredBy              User?      @relation("Referrals", fields: [referredByUserId], references: [id])
+  referredUsers           User[]     @relation("Referrals")
   createdAt              DateTime   @default(now())
   updatedAt              DateTime   @updatedAt
 
-  servers           Server[]
-  orders            Order[]
-  aiConversations   AiConversation[]
-  aiActivityLogs    AiActivityLog[]
-  discordLink       DiscordLink?
-  auditLogs         AuditLog[]
-  teamMemberships   ServerMember[]
-  couponRedemptions CouponRedemption[]
-  oauthAccounts     OAuthAccount[]
+  servers              Server[]
+  orders               Order[]
+  aiConversations      AiConversation[]
+  aiActivityLogs       AiActivityLog[]
+  discordLink          DiscordLink?
+  auditLogs            AuditLog[]
+  teamMemberships      ServerMember[]
+  couponRedemptions    CouponRedemption[]
+  oauthAccounts        OAuthAccount[]
+  promotionCompletions PromotionCompletion[]
 
   @@index([email])
+  @@index([referralCode])
 }
 
 enum OAuthProvider {
@@ -158,6 +167,10 @@ model Product {
   priceMonthlyKrw   Int
   active            Boolean  @default(true)
   sortOrder         Int      @default(0)
+  /// 홍보 포인트로 교환 가능한 상품인지 (예: 무료 체험 서버)
+  pointsRedeemable  Boolean  @default(false)
+  /// pointsRedeemable이 true일 때 필요한 포인트
+  pointsCost        Int?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -169,7 +182,7 @@ model Product {
 }
 
 // ────────────────────────────────
-// 주문/결제 (PaySync 무통장입금 자동확인)
+// 주문/결제 (하나은행 Open API 무통장입금 자동확인)
 // ────────────────────────────────
 
 enum OrderStatus {
@@ -197,22 +210,22 @@ model Order {
   server                    Server?     @relation(fields: [serverId], references: [id])
   status                    OrderStatus @default(PENDING)
   amountKrw                 Int
-  /// 페이싱크 결제 매칭용 입금자명 (1~5자, 공백 불가)
+  /// 결제 자동 매칭용 입금자명 (1~5자, 공백 불가). 포인트로 교환한 무료 주문은 사용 안 함
   depositorName             String
   couponId                  String?
   coupon                    Coupon?     @relation(fields: [couponId], references: [id])
   discountKrw               Int         @default(0)
-  paysyncInvoiceId          String?     @unique
   paidAt                    DateTime?
   expiresAt                 DateTime?
   serverNameRequested       String?
   templateIdRequested       String?
   minecraftVersionRequested String?
+  /// 결제(또는 포인트 교환)는 끝났지만 노드 여유 공간이 없어서 서버 생성을 대기 중인 "선주문" 상태
+  preorderWaiting           Boolean     @default(false)
   createdAt                 DateTime    @default(now())
 
   @@index([userId])
   @@index([status])
-  @@index([paysyncInvoiceId])
 }
 
 // ────────────────────────────────
@@ -402,6 +415,73 @@ model Event {
 }
 
 // ────────────────────────────────
+// 서버 홍보 → 포인트 → 무료 서버 교환
+// ────────────────────────────────
+
+enum PromotionVerifyMethod {
+  /// 유저가 제출한 URL을 서버가 직접 열어서 requiredText 포함 여부를 확인 (블로그/영상 설명란/게시글 등)
+  URL_CONTAINS_LINK
+  /// 유저 소유 서버의 server.properties motd에 문구가 포함돼 있는지 Pterodactyl로 직접 확인
+  SERVER_MOTD_BRANDED
+  /// 공식 디스코드 서버 가입 여부를 봇으로 확인
+  DISCORD_MEMBER
+  /// 내 추천 코드로 신규 가입 — 가입 완료 시 자동 지급
+  REFERRAL_SIGNUP
+  /// 추천으로 가입한 친구가 첫 유료 서버를 만들었을 때 자동 지급
+  REFERRAL_FIRST_PAYMENT
+  /// 자동 확인이 불가능해 관리자가 직접 승인해야 하는 방식
+  MANUAL_REVIEW
+}
+
+/// 관리자가 관리하는 홍보 방법 카탈로그. 완료 시 promotionPoints 지급
+model PromotionTask {
+  id            String                @id @default(cuid())
+  key           String                @unique
+  title         String
+  description   String
+  pointsAwarded Int
+  verifyMethod  PromotionVerifyMethod
+  /// URL_CONTAINS_LINK 검증 시 페이지 내용에 포함돼야 하는 문구
+  requiredText  String?               @default("burnae.kr")
+  /// 여러 번 완료해서 포인트를 반복 적립할 수 있는지 (예: 추천 가입은 반복 가능)
+  repeatable    Boolean               @default(false)
+  active        Boolean               @default(true)
+  sortOrder     Int                   @default(0)
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  completions PromotionCompletion[]
+
+  @@index([active])
+}
+
+/// APPROVED: 포인트 즉시 지급됨. PENDING_REVIEW: MANUAL_REVIEW 방식 제출 후 관리자 승인 대기(포인트 미지급).
+/// REJECTED: 관리자가 반려(포인트 미지급).
+enum PromotionCompletionStatus {
+  APPROVED
+  PENDING_REVIEW
+  REJECTED
+}
+
+model PromotionCompletion {
+  id            String                     @id @default(cuid())
+  userId        String
+  user          User                       @relation(fields: [userId], references: [id])
+  taskId        String
+  task          PromotionTask              @relation(fields: [taskId], references: [id])
+  /// 추천 관련 완료 건에서 "대상이 된 다른 유저"(추천받은 친구) — 같은 친구로 중복 지급되는 것을 막는 용도
+  relatedUserId String?
+  proofUrl      String?
+  pointsAwarded Int
+  status        PromotionCompletionStatus  @default(APPROVED)
+  createdAt     DateTime                   @default(now())
+
+  @@unique([taskId, userId, relatedUserId])
+  @@index([userId])
+  @@index([status])
+}
+
+// ────────────────────────────────
 // 결제 계좌 표시 정보 (관리자 설정)
 // ────────────────────────────────
 
@@ -412,6 +492,14 @@ model BankAccountSetting {
   accountHolder String
   active        Boolean  @default(true)
   createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+/// 하나은행 거래내역조회 폴링 커서 (싱글턴). client_credentials 방식이라 별도 토큰 저장은
+/// 필요 없고, 크론이 "마지막으로 어디까지 확인했는지"만 여기 기록해둔다.
+model HanaBankSync {
+  id            Int      @id @default(1)
+  lastCheckedAt DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
 

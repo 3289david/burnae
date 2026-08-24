@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { authorizeServerAccess } from "@/lib/serverAccess";
-import { createInvoice, resolveDepositorName } from "@/lib/paysync";
+import { resolveDepositorName } from "@/lib/hanabank";
 import { PteroApp, PteroClient } from "@/lib/pterodactyl";
 import { getNodeFreeCapacity } from "@/lib/provisioning";
 
@@ -84,19 +84,7 @@ export async function POST(
       },
     });
 
-    try {
-      const invoice = await createInvoice({
-        depositorName,
-        amountKrw: priceDiff,
-        orderId: order.id,
-        expireAfter: "1d",
-      });
-      await prisma.order.update({ where: { id: order.id }, data: { paysyncInvoiceId: invoice.id } });
-      return NextResponse.json({ requiresPayment: true, order: { ...order, paysyncInvoiceId: invoice.id } });
-    } catch (err) {
-      console.error("[upgrade] 페이싱크 인보이스 생성 실패:", err);
-      return NextResponse.json({ error: "결제 준비 중 오류가 발생했습니다." }, { status: 502 });
-    }
+    return NextResponse.json({ requiresPayment: true, order });
   }
 
   // 다운그레이드 또는 동일 가격 — 환불 없이 즉시 적용

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { createSessionCookie, resolveInitialRole, isAdminEmail } from "@/lib/auth";
 import { completeOAuthLogin, type OAuthProviderKey } from "@/lib/oauth";
+import { rewardReferralSignup } from "@/lib/promotions";
 
 const VALID_PROVIDERS: OAuthProviderKey[] = ["google", "github", "discord"];
 const PROVIDER_ENUM: Record<OAuthProviderKey, "GOOGLE" | "GITHUB" | "DISCORD"> = {
@@ -67,16 +68,29 @@ export async function GET(
 
     // 3) 그래도 없으면 신규 가입 (회원가입/로그인이 이 한 흐름으로 통합됨)
     if (!user) {
+      const referralCode = store.get("referral_code")?.value;
+      store.delete("referral_code");
+      const referrer = referralCode
+        ? await prisma.user.findUnique({ where: { referralCode } })
+        : null;
+
       user = await prisma.user.create({
         data: {
           email: profile.email,
           name: profile.name.slice(0, 20),
           role: resolveInitialRole(profile.email),
+          referredByUserId: referrer?.id,
           oauthAccounts: {
             create: { provider: providerEnum, providerAccountId: profile.providerAccountId },
           },
         },
       });
+
+      if (referrer) {
+        await rewardReferralSignup(referrer.id, user.id).catch((err) => {
+          console.error("[oauth] 추천 가입 포인트 지급 실패:", err);
+        });
+      }
     }
 
     if (user.status !== "ACTIVE") {

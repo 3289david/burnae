@@ -11,7 +11,7 @@
 #   - (선택) Nginx reverse proxy + certbot HTTPS
 #
 # 이 스크립트가 대신 못 해주는 것 (README.md 참고해서 직접 진행):
-#   - Pterodactyl Panel/Wings 설치, Cloudflare/paysync.kr/디스코드/OAuth/OpenRouter 키 발급
+#   - Pterodactyl Panel/Wings 설치, Cloudflare/하나은행 Open API/디스코드/OAuth/OpenRouter 키 발급
 #   - .env의 나머지 값 채우기, 관리자 계정 지정(npm run make-admin)
 #
 # 사용법:
@@ -121,7 +121,7 @@ cat <<EOF
 
 ✅ 기본 설치가 끝났습니다. 아직 남은 작업:
 
-  1. ${APP_DIR}/.env 나머지 값 채우기 (Pterodactyl, Cloudflare, paysync.kr, OpenRouter,
+  1. ${APP_DIR}/.env 나머지 값 채우기 (Pterodactyl, Cloudflare, 하나은행 Open API, OpenRouter,
      OAuth, 디스코드 봇 — README.md 0~6번 참고)
   2. 채운 뒤 서비스 시작:
        systemctl restart burnae-web

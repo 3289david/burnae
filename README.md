@@ -1,12 +1,12 @@
 # 🔥 Burnae Hosting
 
 Pterodactyl을 백엔드 엔진으로 쓰고, 고객에게는 완전히 다른 심플한 자체 UI + AI 서버 관리 챗봇을 제공하는
-마인크래프트 호스팅 플랫폼입니다. 가짜 데이터/시뮬레이션 없이 실제 Pterodactyl API, PaySync 결제,
+마인크래프트 호스팅 플랫폼입니다. 가짜 데이터/시뮬레이션 없이 실제 Pterodactyl API, 하나은행 Open API 결제,
 Cloudflare DNS, 디스코드 봇과 연동합니다.
 
 - **웹**: Next.js 16 (App Router) + PostgreSQL + Prisma 7
 - **호스팅 엔진**: Pterodactyl (Application API + Client API)
-- **결제**: [paysync.kr](https://paysync.kr) 무통장입금 자동확인 (계좌 비밀번호 불필요)
+- **결제**: [하나은행 Open API](https://apiportal.hanabank.com) 직접 연동 (계좌 비밀번호 불필요, 사업자번호 연결 계좌 전용)
 - **서브도메인**: Cloudflare API로 서버 생성 시 `이름.krl.kr` A/SRV 레코드 자동 생성, 유저가 이름 직접 지정(서버당 2개)
 - **커스텀 도메인**: 유저가 소유한 외부 도메인을 서버에 연결 — A/SRV 레코드 안내 후 DNS 조회로 자동 확인
 - **입금자명**: 계정에서 직접 지정 가능(공백 없이 1~5자), 미설정 시 이름 기반 자동 생성
@@ -18,6 +18,10 @@ Cloudflare DNS, 디스코드 봇과 연동합니다.
 - **팀**: 서버별 팀원 초대(Owner/Admin/Moderator/Developer/Viewer)
 - **플랜 변경/갱신/만료 자동화**: 업그레이드·갱신 결제, 결제 만료 D-3/D-1 알림 → 정지 → 7일 후 삭제
 - **관리자**: 전체 서버 강제조치, 로그, 통계(MRR·RAM 판매율 등), 노드 과부하 알림
+- **선주문**: 결제(또는 포인트 교환)는 끝났는데 그 순간 노드에 자리가 없으면 "선주문"으로 대기시켰다가
+  자리가 나는 대로 크론이 자동으로 서버를 생성
+- **홍보 포인트**: 친구 추천, 디스코드 가입, 블로그/영상/커뮤니티에 링크 공유 등 20여 가지 방법으로
+  포인트 적립 → 관리자가 지정한 상품(예: RAM 1GB · CPU 50% · 디스크 500MB 무료 체험 서버)으로 교환
 
 ---
 
@@ -32,7 +36,7 @@ Cloudflare DNS, 디스코드 봇과 연동합니다.
 | 도메인 `burnae.kr` | 가비아 등 | 사이트 주소 |
 | 도메인 `krl.kr` + Cloudflare 연결 | Cloudflare | 서버 서브도메인 전용 존 |
 | Pterodactyl Panel + Wings | 자체 설치 | 아래 1번 참고 |
-| paysync.kr 계정 | https://paysync.kr | 무통장입금 자동확인 |
+| 하나은행 오픈API 포털 앱키 | https://apiportal.hanabank.com | 무통장입금 자동확인 (사업자번호 연결 계좌 필요) |
 | Discord Application | https://discord.com/developers | 봇 토큰 + OAuth 로그인 |
 | Google/GitHub OAuth 앱 | 각 콘솔 | 소셜 로그인 |
 | OpenRouter API 키 | https://openrouter.ai/keys | AI 챗봇 (저렴한 오픈소스 모델) |
@@ -80,20 +84,30 @@ bash <(curl -s https://pterodactyl-installer.se)
 
 ---
 
-## 3. PaySync (무통장입금 자동확인)
+## 3. 하나은행 Open API (무통장입금 자동확인)
 
-⚠️ 계좌 비밀번호나 주민번호를 요구하는 서비스는 절대 쓰지 마세요. PaySync는 은행 입출금 SMS를
-파싱하는 방식이라 비밀번호가 필요 없습니다.
+⚠️ 계좌 비밀번호나 주민번호를 요구하는 서비스는 절대 쓰지 마세요. 하나은행 Open API는 발급받은
+앱키/시크릿으로 서버 간(client_credentials) 인증하는 방식이라 비밀번호가 필요 없습니다.
 
-1. https://paysync.kr 가입 (구글/카카오/디스코드 가능)
-2. 대시보드 → 계좌 추가 → 은행 앱에서 입출금 알림 SMS 수신 번호를 안내된 번호로 변경
-3. 1원 인증 (안내된 5자리 코드를 입금자명으로 1원 이체)
-4. API 관리 → 새 키 발급 → `PAYSYNC_API_KEY`
-5. 웹훅 관리 → 새 웹훅 추가
-   - 엔드포인트 URL: `https://burnae.kr/api/webhooks/paysync`
-   - 생성 시 발급되는 서명 시크릿(`whsec_...`) → `PAYSYNC_WEBHOOK_SECRET`
-6. Burnae 관리자 패널 `/admin/bank-account` 에 **PaySync에 등록한 것과 동일한 계좌**를 입력하세요.
-   (여기서 보여주는 계좌 정보 = 고객이 실제로 입금할 계좌. PaySync가 그 계좌의 SMS를 감시합니다.)
+⚠️ **거래내역조회 API는 사업자번호(RSBZ_REG_NO)가 필수 파라미터입니다** — 결제를 받을 계좌는
+반드시 하나은행 + 사업자등록번호가 연결된 계좌(개인사업자 또는 법인)여야 합니다. 사업자 등록이
+안 된 순수 개인계좌는 이 API를 쓸 수 없습니다.
+
+⚠️ paysync.kr/payaction.app 같은 SMS 파싱 대행 서비스와 달리, 이 API는 입금이 발생해도 실시간
+웹훅을 주지 않습니다. `scripts/maintenance-cron.ts`가 10분마다 거래내역조회 API를 폴링해서
+"입금자명(적요) + 금액"이 일치하는 대기 중인 주문을 찾아 직접 매칭 처리합니다.
+
+1. https://apiportal.hanabank.com 회원가입 후 마이페이지에서 서비스(앱) 등록 → `거래내역조회`
+   API 이용 신청. client_credential용 앱키/시크릿을 발급받습니다.
+2. 발급받은 값을 `.env`의 `HANABANK_CLIENT_ID` / `HANABANK_CLIENT_SECRET`에 채웁니다.
+3. 결제 받을 계좌번호와 그 계좌에 연결된 사업자등록번호를 각각 `HANABANK_ACCOUNT_NUMBER` /
+   `HANABANK_BUSINESS_REG_NO`에 채웁니다.
+4. 서버의 아웃바운드 공인 IP를 포털의 API 화이트리스트에 등록합니다 (등록 안 하면 API가
+   `Not allowed IP Address` 에러를 반환합니다).
+5. Burnae 관리자 패널 `/admin/bank-account`에 위와 동일한 계좌 정보를 등록하고, **"연동 테스트"**
+   버튼으로 앱키가 정상 동작하는지 확인하세요.
+6. (선택) 운영 전에 먼저 테스트하고 싶다면 `.env`에 `HANABANK_ENV="dev"` 또는 `"test"`를 설정해서
+   하나은행 개발계/품질계 서버로 연동을 확인할 수 있습니다.
 
 ---
 
@@ -229,10 +243,10 @@ sudo systemctl status burnae-web burnae-bot
 sudo systemctl list-timers burnae-maintenance.timer
 ```
 
-`burnae-maintenance.timer`는 30분마다 `scripts/maintenance-cron.ts`를 한 번 실행합니다.
+`burnae-maintenance.timer`는 10분마다 `scripts/maintenance-cron.ts`를 한 번 실행합니다.
 결제 만료 D-3/D-1 알림 → 연체 시 서버 정지 → 정지 7일 후 삭제, 서버별 예약 자동 백업/재시작,
-노드 RAM 판매율 90% 초과 시 관리자(디스코드 연동된 경우) 알림을 처리합니다. 수동 1회 실행:
-`npm run maintenance:cron`.
+노드 RAM/CPU 판매율 90% 초과 시 관리자(디스코드 연동된 경우) 알림, 하나은행 거래내역 폴링을 통한
+입금 자동 매칭(웹훅이 없어서 주기적으로 조회)을 처리합니다. 수동 1회 실행: `npm run maintenance:cron`.
 
 ### Nginx + HTTPS
 
@@ -250,7 +264,7 @@ sudo certbot --nginx -d burnae.kr -d www.burnae.kr
 1. `/admin/nodes` — 1번에서 만든 Pterodactyl Node ID + 공인 IP 입력해서 연결
 2. `/admin/templates` — Paper/Fabric/Vanilla 등 Nest ID/Egg ID 입력
 3. `/admin/products` — 판매할 RAM/CPU/디스크 플랜 생성 (위 템플릿 연결)
-4. `/admin/bank-account` — PaySync에 등록한 계좌와 동일하게 입력
+4. `/admin/bank-account` — 계좌 정보를 등록하고 "연동 테스트"로 하나은행 API 앱키 동작 확인
 5. `/admin/settings` — RAM 단가, 유저 기본 저장공간(10GB), 서브도메인 존(krl.kr) 등 조정
 6. `/admin/events` — 프로모션/쿠폰 생성
 
@@ -278,7 +292,8 @@ src/
   app/                   # Next.js 라우트 (고객 UI, 관리자 UI, API)
   lib/
     pterodactyl/         # Pterodactyl Application/Client API wrapper
-    paysync.ts           # PaySync 결제 연동 + 웹훅 서명 검증
+    hanabank.ts          # 하나은행 Open API 연동 (토큰 발급 + 거래내역조회)
+    orderFulfillment.ts  # 입금 확인된 주문 처리(신규생성/갱신/업그레이드) 공용 로직
     cloudflare.ts        # 서브도메인 A/SRV 레코드 자동화
     provisioning.ts      # 서버 생성/삭제 전체 오케스트레이션
     players.ts           # 화이트리스트/OP/밴/킥 (콘솔 명령 + 파일 읽기)

@@ -66,7 +66,7 @@ bash <(curl -s https://pterodactyl-installer.se)
 1. **Node 등록**: Admin → Nodes → Create New. 여기서 만든 Node ID를 나중에 Burnae 관리자 패널
    `/admin/nodes`에 입력합니다. Allocation(IP:포트)도 넉넉히 추가해두세요 — Burnae가 서버 생성마다
    하나씩 자동으로 씁니다.
-2. **Nest/Egg 확인**: Admin → Nests. Paper/Fabric/Forge/NeoActive/Vanilla 등 원하는 Egg를 Import 하거나
+2. **Nest/Egg 확인**: Admin → Nests. Paper/Fabric/Forge/NeoForge/Vanilla 등 원하는 Egg를 Import 하거나
    기본 제공 Egg를 사용하고, 각 Egg의 **Nest ID / Egg ID**를 적어두세요 (Burnae 관리자 `/admin/templates`에서 필요).
 3. **관리자 계정 전체 서버 접근 허용**: Admin → Settings → Advanced 에서 "Allow admins to view/manage
    all servers via the Client API" 옵션을 켭니다. Burnae는 이 계정의 **Client API 키**로 모든 고객
@@ -298,23 +298,23 @@ npm run bot               # 디스코드 봇 (별도 터미널)
 
 ```
 src/
-  app/                   # Next.js 라우트 (고객 UI, 관리자 UI, API)
+  app/                     # Next.js 라우트 (고객 UI, 관리자 UI, API)
   lib/
-    pterodactyl/         # Pterodactyl Application/Client API wrapper
-    hanabank.ts          # 하나은행 Open API 연동 (토큰 발급 + 거래내역조회)
-    orderFulfillment.ts  # 입금(또는 포인트/관리자 지급) 확인된 주문 처리 공용 로직, "선주문" 재시도
-    promotions.ts        # 홍보 포인트 적립/검증 (URL 스캔, 디스코드 멤버십, 서버 MOTD 등)
-    cloudflare.ts        # 서브도메인 A/SRV 레코드 자동화
-    provisioning.ts      # 서버 생성/삭제 전체 오케스트레이션
-    players.ts           # 화이트리스트/OP/밴/킥 (콘솔 명령 + 파일 읽기)
-    modrinth.ts           # 플러그인/모드 검색·다운로드 (Modrinth API)
-    discordNotify.ts      # 게이트웨이 없이 REST로 디스코드 DM 발송 (크론용)
+    pterodactyl/           # Pterodactyl Application/Client API wrapper
+    hanabank.ts            # 하나은행 Open API 연동 (토큰 발급 + 거래내역조회)
+    orderFulfillment.ts    # 입금(또는 포인트/관리자 지급) 확인된 주문 처리 공용 로직, "선주문" 재시도
+    promotions.ts          # 홍보 포인트 적립/검증 (URL 스캔, 디스코드 멤버십, 서버 MOTD 등)
+    cloudflare.ts          # 서브도메인 A/SRV 레코드 자동화
+    provisioning.ts        # 서버 생성/삭제 전체 오케스트레이션
+    players.ts             # 화이트리스트/OP/밴/킥 (콘솔 명령 + 파일 읽기)
+    modrinth.ts            # 플러그인/모드 검색·다운로드 (Modrinth API)
+    discordNotify.ts       # 게이트웨이 없이 REST로 디스코드 DM 발송 (크론용)
     oauth.ts               # Google/GitHub/Discord OAuth2 직접 구현
     ai/                    # AI 챗봇 (tool 정의 + 실행 엔진, OpenRouter)
-  bot/                    # 디스코드 봇 (공식 서버 전용, 별도 프로세스)
+  bot/                     # 디스코드 봇 (공식 서버 전용, 별도 프로세스)
 scripts/
-  maintenance-cron.ts      # 결제만료/예약백업/예약재시작/노드알림 — systemd timer로 주기 실행
-  setup-ubuntu.sh           # 서버 초기 설정 자동화
+  maintenance-cron.ts      # 결제만료/예약백업/예약재시작/노드알림/입금매칭/선주문재시도 — systemd timer로 주기 실행
+  setup-ubuntu.sh          # 서버 초기 설정 자동화
 prisma/schema.prisma       # 전체 데이터 모델
 deploy/                    # systemd, nginx 설정 예시
 ```

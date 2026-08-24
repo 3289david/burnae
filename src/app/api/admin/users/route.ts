@@ -16,6 +16,7 @@ export async function GET() {
       status: true,
       storageQuotaGbOverride: true,
       aiCreditsRemaining: true,
+      promotionPoints: true,
       createdAt: true,
       _count: { select: { servers: { where: { deletedAt: null } } } },
     },

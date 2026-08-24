@@ -18,10 +18,14 @@ Cloudflare DNS, 디스코드 봇과 연동합니다.
 - **팀**: 서버별 팀원 초대(Owner/Admin/Moderator/Developer/Viewer)
 - **플랜 변경/갱신/만료 자동화**: 업그레이드·갱신 결제, 결제 만료 D-3/D-1 알림 → 정지 → 7일 후 삭제
 - **관리자**: 전체 서버 강제조치, 로그, 통계(MRR·RAM 판매율 등), 노드 과부하 알림
-- **선주문**: 결제(또는 포인트 교환)는 끝났는데 그 순간 노드에 자리가 없으면 "선주문"으로 대기시켰다가
-  자리가 나는 대로 크론이 자동으로 서버를 생성
-- **홍보 포인트**: 친구 추천, 디스코드 가입, 블로그/영상/커뮤니티에 링크 공유 등 20여 가지 방법으로
-  포인트 적립 → 관리자가 지정한 상품(예: RAM 1GB · CPU 50% · 디스크 500MB 무료 체험 서버)으로 교환
+- **선주문**: 결제(또는 포인트 교환, 관리자 지급)는 끝났는데 그 순간 노드에 자리가 없으면 "선주문"으로
+  대기시켰다가 자리가 나는 대로 크론이 자동으로 서버를 생성
+- **홍보 포인트**: 친구 추천(`/register?ref=내추천코드`), 디스코드 가입, 블로그/영상/커뮤니티에 링크
+  공유 등 22가지 방법으로 포인트 적립 → 관리자가 지정한 상품(예: RAM 1GB · CPU 50% · 디스크 500MB
+  무료 체험 서버)으로 교환
+- **관리자 수동 지급**: `/admin/users`에서 특정 유저에게 포인트나 서버를 결제/포인트 차감 없이
+  바로 지급 가능. 서버는 기존 상품에서 골라도 되고, RAM/CPU/디스크/백업 슬롯을 그때그때 직접 정해서
+  지급할 수도 있음 (이벤트 경품, 문의 보상, 테스트 서버 등)
 
 ---
 
@@ -246,7 +250,8 @@ sudo systemctl list-timers burnae-maintenance.timer
 `burnae-maintenance.timer`는 10분마다 `scripts/maintenance-cron.ts`를 한 번 실행합니다.
 결제 만료 D-3/D-1 알림 → 연체 시 서버 정지 → 정지 7일 후 삭제, 서버별 예약 자동 백업/재시작,
 노드 RAM/CPU 판매율 90% 초과 시 관리자(디스코드 연동된 경우) 알림, 하나은행 거래내역 폴링을 통한
-입금 자동 매칭(웹훅이 없어서 주기적으로 조회)을 처리합니다. 수동 1회 실행: `npm run maintenance:cron`.
+입금 자동 매칭(웹훅이 없어서 주기적으로 조회), "선주문" 상태 주문의 노드 재배치 재시도를
+처리합니다. 수동 1회 실행: `npm run maintenance:cron`.
 
 ### Nginx + HTTPS
 
@@ -267,9 +272,13 @@ sudo certbot --nginx -d burnae.kr -d www.burnae.kr
 4. `/admin/bank-account` — 계좌 정보를 등록하고 "연동 테스트"로 하나은행 API 앱키 동작 확인
 5. `/admin/settings` — RAM 단가, 유저 기본 저장공간(10GB), 서브도메인 존(krl.kr) 등 조정
 6. `/admin/events` — 프로모션/쿠폰 생성
+7. `/admin/promotions` — 홍보 포인트 항목 활성화/포인트 조정, 수동심사(MANUAL_REVIEW) 제출 승인/반려.
+   포인트로 교환 가능한 무료 서버를 만들려면 `/admin/products`에서 상품 생성 시
+   "홍보 포인트로 교환 가능"을 체크하세요 (예: RAM 1GB · CPU 50% · 디스크 500MB · 0원, 필요 포인트 지정).
 
 운영 중 자주 쓰는 화면: `/admin/servers`(전체 서버 강제 재시작/정지/삭제),
-`/admin/logs`(관리자·시스템 작업 로그), `/admin/statistics`(MRR·RAM 판매율 등).
+`/admin/logs`(관리자·시스템 작업 로그), `/admin/statistics`(MRR·RAM 판매율 등),
+`/admin/users`(저장공간/AI크레딧 조정 + 포인트·서버 수동 지급).
 
 여기까지 끝나면 고객이 회원가입 → 서버 생성 → 입금 → 자동으로 Pterodactyl에 Docker 컨테이너가
 만들어지고 `이름.krl.kr` 서브도메인이 자동으로 연결됩니다.
@@ -293,7 +302,8 @@ src/
   lib/
     pterodactyl/         # Pterodactyl Application/Client API wrapper
     hanabank.ts          # 하나은행 Open API 연동 (토큰 발급 + 거래내역조회)
-    orderFulfillment.ts  # 입금 확인된 주문 처리(신규생성/갱신/업그레이드) 공용 로직
+    orderFulfillment.ts  # 입금(또는 포인트/관리자 지급) 확인된 주문 처리 공용 로직, "선주문" 재시도
+    promotions.ts        # 홍보 포인트 적립/검증 (URL 스캔, 디스코드 멤버십, 서버 MOTD 등)
     cloudflare.ts        # 서브도메인 A/SRV 레코드 자동화
     provisioning.ts      # 서버 생성/삭제 전체 오케스트레이션
     players.ts           # 화이트리스트/OP/밴/킥 (콘솔 명령 + 파일 읽기)

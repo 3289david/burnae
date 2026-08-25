@@ -31,6 +31,9 @@ CREATE TYPE "ServerMemberRole" AS ENUM ('ADMIN', 'MODERATOR', 'DEVELOPER', 'VIEW
 CREATE TYPE "CouponDiscountType" AS ENUM ('PERCENT', 'FIXED_KRW');
 
 -- CreateEnum
+CREATE TYPE "AnnouncementLevel" AS ENUM ('INFO', 'WARNING', 'CRITICAL');
+
+-- CreateEnum
 CREATE TYPE "PromotionVerifyMethod" AS ENUM ('URL_CONTAINS_LINK', 'SERVER_MOTD_BRANDED', 'DISCORD_MEMBER', 'REFERRAL_SIGNUP', 'REFERRAL_FIRST_PAYMENT', 'MANUAL_REVIEW');
 
 -- CreateEnum
@@ -307,6 +310,21 @@ CREATE TABLE "Event" (
 );
 
 -- CreateTable
+CREATE TABLE "Announcement" (
+    "id" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "body" TEXT NOT NULL,
+    "level" "AnnouncementLevel" NOT NULL DEFAULT 'INFO',
+    "active" BOOLEAN NOT NULL DEFAULT true,
+    "startsAt" TIMESTAMP(3),
+    "endsAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Announcement_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "PromotionTask" (
     "id" TEXT NOT NULL,
     "key" TEXT NOT NULL,
@@ -527,6 +545,9 @@ CREATE UNIQUE INDEX "CouponRedemption_couponId_userId_key" ON "CouponRedemption"
 CREATE UNIQUE INDEX "Event_couponId_key" ON "Event"("couponId");
 
 -- CreateIndex
+CREATE INDEX "Announcement_active_idx" ON "Announcement"("active");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "PromotionTask_key_key" ON "PromotionTask"("key");
 
 -- CreateIndex
@@ -663,4 +684,14 @@ ALTER TABLE "_ProductToServerTemplate" ADD CONSTRAINT "_ProductToServerTemplate_
 
 -- AddForeignKey
 ALTER TABLE "_ProductToServerTemplate" ADD CONSTRAINT "_ProductToServerTemplate_B_fkey" FOREIGN KEY ("B") REFERENCES "ServerTemplate"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+┌─────────────────────────────────────────────────────────┐
+│  Update available 7.9.1 -> 8.0.0-rc.10                  │
+│                                                         │
+│  This is a major update - please follow the guide at    │
+│  https://pris.ly/d/major-version-upgrade                │
+│                                                         │
+│  Run the following to update                            │
+│    npm i --save-dev prisma@latest                       │
+│    npm i @prisma/client@latest                          │
+└─────────────────────────────────────────────────────────┘
 

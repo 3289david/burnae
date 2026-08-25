@@ -7,6 +7,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import BrandMark from "@/components/BrandMark";
 import Footer from "@/components/Footer";
+import AnnouncementBanner from "@/components/AnnouncementBanner";
 
 const FEATURES = [
   { icon: Zap, color: "var(--accent)", title: "1분 서버 생성", desc: "결제 즉시 자동으로 Docker 컨테이너가 만들어지고 접속 주소까지 연결돼요." },
@@ -81,6 +82,8 @@ export default async function HomePage() {
           </nav>
         </div>
       </header>
+
+      <AnnouncementBanner maxWidthClass="max-w-6xl" />
 
       <main>
         {/* ── 히어로 ─────────────────────────────────── */}

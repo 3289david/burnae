@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser, isAdminEmail } from "@/lib/auth";
 import DashboardNav from "@/components/DashboardNav";
 import BrandMark from "@/components/BrandMark";
+import AnnouncementBanner from "@/components/AnnouncementBanner";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
@@ -18,6 +19,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <DashboardNav userName={user.name} showAdminLink={user.role === "ADMIN" && isAdminEmail(user.email)} />
         </div>
       </header>
+      <AnnouncementBanner />
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-8">{children}</main>
     </div>
   );

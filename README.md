@@ -26,6 +26,11 @@ Cloudflare DNS, 디스코드 봇과 연동합니다.
 - **관리자 수동 지급**: `/admin/users`에서 특정 유저에게 포인트나 서버를 결제/포인트 차감 없이
   바로 지급 가능. 서버는 기존 상품에서 골라도 되고, RAM/CPU/디스크/백업 슬롯을 그때그때 직접 정해서
   지급할 수도 있음 (이벤트 경품, 문의 보상, 테스트 서버 등)
+- **공지사항**: `/admin/announcements`에서 등록하면 랜딩페이지·대시보드 상단에 배너로 노출 (안내/경고/긴급,
+  노출 기간 설정 가능, 고객이 닫으면 다시 안 뜸)
+- **멀티 서버 확장**: 메인 관리서버(Panel+웹앱+DB) 1대 + Wings 전용 노드("서버1", "서버2", ...)를
+  원하는 만큼 추가하는 구조. `scripts/setup-worker-node.sh`로 노드 추가, 이후 배치는 여유 자원
+  기준으로 전부 자동 (자세한 건 9번 참고)
 
 ---
 
@@ -275,6 +280,8 @@ sudo certbot --nginx -d burnae.kr -d www.burnae.kr
 7. `/admin/promotions` — 홍보 포인트 항목 활성화/포인트 조정, 수동심사(MANUAL_REVIEW) 제출 승인/반려.
    포인트로 교환 가능한 무료 서버를 만들려면 `/admin/products`에서 상품 생성 시
    "홍보 포인트로 교환 가능"을 체크하세요 (예: RAM 1GB · CPU 50% · 디스크 500MB · 0원, 필요 포인트 지정).
+8. `/admin/announcements` — 점검/장애 공지를 등록하면 랜딩페이지와 대시보드 상단에 배너로 노출됩니다.
+   중요도(안내/경고/긴급)와 노출 기간을 정할 수 있고, 고객이 닫으면 그 브라우저에서는 다시 안 뜹니다.
 
 운영 중 자주 쓰는 화면: `/admin/servers`(전체 서버 강제 재시작/정지/삭제),
 `/admin/logs`(관리자·시스템 작업 로그), `/admin/statistics`(MRR·RAM 판매율 등),
@@ -282,6 +289,38 @@ sudo certbot --nginx -d burnae.kr -d www.burnae.kr
 
 여기까지 끝나면 고객이 회원가입 → 서버 생성 → 입금 → 자동으로 Pterodactyl에 Docker 컨테이너가
 만들어지고 `이름.krl.kr` 서브도메인이 자동으로 연결됩니다.
+
+---
+
+## 9. 여러 대의 서버로 확장하기 (메인 관리서버 + 서버1 + 서버2 + ...)
+
+Burnae는 처음부터 **단일 서버로 시작해서 필요할 때마다 게임호스팅 서버를 추가**하는 구조로 설계돼
+있습니다. 역할은 두 가지뿐입니다.
+
+- **메인 관리서버** (1대, 고정): Pterodactyl **Panel** + Burnae **웹앱**(`burnae-web`) + **PostgreSQL** +
+  디스코드 봇 + 크론이 여기서 돕니다. 처음엔 이 서버가 Wings도 같이 겸해서 게임 서버를 직접 호스팅해도
+  됩니다.
+- **서버1, 서버2, ...** (원하는 만큼 추가): **Pterodactyl Wings만** 설치된 순수 게임호스팅 노드입니다.
+  Burnae 앱이나 DB는 여기 설치하지 않습니다.
+
+새 노드를 추가하는 절차:
+
+1. 새 서버에서 아래 스크립트를 실행해서 Docker + Wings를 설치합니다.
+   ```bash
+   git clone <이 저장소 URL> burnae && cd burnae
+   sudo bash scripts/setup-worker-node.sh
+   ```
+2. 스크립트가 끝나면 안내하는 대로 메인 관리서버의 Panel(`Admin → Nodes → Create New`)에서 이 노드를
+   등록하고, 발급된 `config.yml`을 새 서버의 `/etc/pterodactyl/config.yml`에 넣은 뒤
+   `systemctl enable --now wings`로 시작합니다.
+3. Burnae 관리자 패널 `/admin/nodes`에서 "노드 연결"로 같은 노드를 추가합니다 (Node ID, 이름, 위치,
+   공인 IP, 예약 RAM/디스크).
+
+등록만 해두면 나머지는 전부 자동입니다 — 새 서버 주문이 들어올 때마다 Burnae가 등록된 노드 중
+**RAM/디스크/CPU 여유가 가장 많은 곳**을 자동으로 골라 배치합니다(`src/lib/provisioning.ts`의
+`selectNode`). 한 노드가 꽉 차면 자동으로 다음 노드로 넘어가고, 어느 노드에도 자리가 없으면 결제된
+주문은 실패하지 않고 "선주문" 상태로 대기했다가 자리가 나는 대로 자동 생성됩니다. 노드별 판매율이
+90%를 넘으면 관리자에게 디스코드 알림도 갑니다(`/admin/nodes`에서 RAM/CPU 판매율 확인 가능).
 
 ---
 
@@ -314,7 +353,8 @@ src/
   bot/                     # 디스코드 봇 (공식 서버 전용, 별도 프로세스)
 scripts/
   maintenance-cron.ts      # 결제만료/예약백업/예약재시작/노드알림/입금매칭/선주문재시도 — systemd timer로 주기 실행
-  setup-ubuntu.sh          # 서버 초기 설정 자동화
+  setup-ubuntu.sh          # 메인 관리서버 초기 설정 자동화 (Panel 제외, 웹앱+DB+시스템 서비스)
+  setup-worker-node.sh     # 추가 게임호스팅 노드("서버1"/"서버2") 초기 설정 — Docker+Wings만 설치
 prisma/schema.prisma       # 전체 데이터 모델
 deploy/                    # systemd, nginx 설정 예시
 ```

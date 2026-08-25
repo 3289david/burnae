@@ -414,6 +414,28 @@ model Event {
   updatedAt      DateTime @updatedAt
 }
 
+enum AnnouncementLevel {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+/// 관리자가 사이트 전체(랜딩+대시보드)에 띄우는 공지 배너 — 점검 안내, 장애 안내 등
+model Announcement {
+  id        String            @id @default(cuid())
+  title     String
+  body      String
+  level     AnnouncementLevel @default(INFO)
+  active    Boolean           @default(true)
+  /// 설정 시 이 기간 안에만 노출. 둘 다 비우면 active인 동안 계속 노출
+  startsAt  DateTime?
+  endsAt    DateTime?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@index([active])
+}
+
 // ────────────────────────────────
 // 서버 홍보 → 포인트 → 무료 서버 교환
 // ────────────────────────────────

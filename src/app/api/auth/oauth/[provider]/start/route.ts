@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { buildAuthorizeUrl, type OAuthProviderKey } from "@/lib/oauth";
+import { buildAuthorizeUrl, siteUrl, type OAuthProviderKey } from "@/lib/oauth";
 
 const VALID_PROVIDERS: OAuthProviderKey[] = ["google", "github", "discord"];
 
@@ -41,7 +41,7 @@ export async function GET(
   } catch (err) {
     const message = err instanceof Error ? err.message : "설정 오류";
     return NextResponse.redirect(
-      new URL(`/login?error=${encodeURIComponent(message)}`, request.url),
+      new URL(`/login?error=${encodeURIComponent(message)}`, siteUrl()),
     );
   }
 }

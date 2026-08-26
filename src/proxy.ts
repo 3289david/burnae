@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
+import { siteUrl } from "@/lib/oauth";
 
 const COOKIE_NAME = "burnae_session";
 
@@ -31,7 +32,7 @@ export async function proxy(request: NextRequest) {
 
   if (pathname.startsWith("/admin")) {
     if (!session || session.role !== "ADMIN" || !isAdminEmail(session.email)) {
-      const loginUrl = new URL("/login", request.url);
+      const loginUrl = new URL("/login", siteUrl());
       loginUrl.searchParams.set("next", pathname);
       return NextResponse.redirect(loginUrl);
     }
@@ -39,7 +40,7 @@ export async function proxy(request: NextRequest) {
 
   if (pathname.startsWith("/dashboard")) {
     if (!session) {
-      const loginUrl = new URL("/login", request.url);
+      const loginUrl = new URL("/login", siteUrl());
       loginUrl.searchParams.set("next", pathname);
       return NextResponse.redirect(loginUrl);
     }

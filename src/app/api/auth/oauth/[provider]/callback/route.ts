@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { createSessionCookie, resolveInitialRole, isAdminEmail } from "@/lib/auth";
-import { completeOAuthLogin, type OAuthProviderKey } from "@/lib/oauth";
+import { completeOAuthLogin, siteUrl, type OAuthProviderKey } from "@/lib/oauth";
 import { rewardReferralSignup } from "@/lib/promotions";
 
 const VALID_PROVIDERS: OAuthProviderKey[] = ["google", "github", "discord"];
@@ -19,7 +19,7 @@ export async function GET(
   const { provider: providerParam } = await params;
   const url = new URL(request.url);
   const loginError = (message: string) =>
-    NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(message)}`, request.url));
+    NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(message)}`, siteUrl()));
 
   if (!VALID_PROVIDERS.includes(providerParam as OAuthProviderKey)) {
     return loginError("지원하지 않는 로그인 방식입니다.");
@@ -113,7 +113,7 @@ export async function GET(
     await createSessionCookie({ sub: user.id, role: user.role, email: user.email });
 
     const redirectTo = isAdminEmail(user.email) ? "/admin" : "/dashboard";
-    return NextResponse.redirect(new URL(redirectTo, request.url));
+    return NextResponse.redirect(new URL(redirectTo, siteUrl()));
   } catch (err) {
     console.error(`[oauth:${provider}] 계정 처리 실패:`, err);
     return loginError("서버에 일시적인 문제가 있어요. 잠시 후 다시 시도해주세요.");

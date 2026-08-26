@@ -1,5 +1,3 @@
-Loaded Prisma config from prisma.config.ts.
-
 -- CreateSchema
 CREATE SCHEMA IF NOT EXISTS "public";
 
@@ -745,14 +743,4 @@ ALTER TABLE "_ProductToServerTemplate" ADD CONSTRAINT "_ProductToServerTemplate_
 
 -- AddForeignKey
 ALTER TABLE "_ProductToServerTemplate" ADD CONSTRAINT "_ProductToServerTemplate_B_fkey" FOREIGN KEY ("B") REFERENCES "ServerTemplate"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-┌─────────────────────────────────────────────────────────┐
-│  Update available 7.9.1 -> 8.0.0-rc.10                  │
-│                                                         │
-│  This is a major update - please follow the guide at    │
-│  https://pris.ly/d/major-version-upgrade                │
-│                                                         │
-│  Run the following to update                            │
-│    npm i --save-dev prisma@latest                       │
-│    npm i @prisma/client@latest                          │
-└─────────────────────────────────────────────────────────┘
 

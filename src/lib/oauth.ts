@@ -19,7 +19,7 @@ interface ProviderConfig {
   clientSecret: string | undefined;
 }
 
-function siteUrl() {
+export function siteUrl() {
   return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 }
 

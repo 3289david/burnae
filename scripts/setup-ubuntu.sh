@@ -93,6 +93,7 @@ fi
 log "6/8 의존성 설치 + 빌드"
 cd "$APP_DIR"
 sudo -u "$APP_USER" npm install
+sudo -u "$APP_USER" npm run db:generate
 sudo -u "$APP_USER" npm run db:migrate:deploy
 sudo -u "$APP_USER" npm run db:seed
 sudo -u "$APP_USER" npm run build

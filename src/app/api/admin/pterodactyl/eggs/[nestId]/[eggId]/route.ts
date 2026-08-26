@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { PteroApp } from "@/lib/pterodactyl";
-import { matchEggPreset } from "@/lib/minecraftEggPresets";
+import { findLoaderInfo } from "@/lib/minecraftLoaders";
 
 /**
  * 관리자가 서버 종류를 등록할 때 도커 이미지(=자바 버전)/시작 명령어/환경변수 기본값을
@@ -23,7 +23,7 @@ export async function GET(
       defaultEnvironment[v.attributes.env_variable] = v.attributes.default_value;
     }
 
-    const preset = matchEggPreset(egg.name);
+    const preset = findLoaderInfo(egg.name);
 
     return NextResponse.json({
       name: egg.name,

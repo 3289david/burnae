@@ -1,18 +1,22 @@
 import OpenAI from "openai";
 import { reviewJavaSourceSafety } from "@/lib/ai/javaSafety";
+import { hasBukkitApi } from "@/lib/minecraftLoaders";
 
 /**
  * "AI 플러그인/모드 메이커".
  *
  * 세 가지 방식을 지원한다:
- *   - "java_plugin": 실제 컴파일되는 Bukkit/Paper 플러그인(.jar). Paper API를 링크해서 javac로
- *     직접 컴파일한다(빌드 도구 없이). 컴파일된 코드는 Modrinth에서 받은 서드파티 플러그인과
- *     동일하게 고객의 이미 격리된 Pterodactyl 컨테이너 안에서만 실행되므로, 적용 전 반드시
- *     AI 안전성 검토를 통과해야 한다 (src/lib/ai/javaSafety.ts).
+ *   - "java_plugin": 실제 컴파일되는 Bukkit 플러그인(.jar). Paper API를 링크해서 javac로 직접
+ *     컴파일한다(빌드 도구 없이). 컴파일된 코드는 Modrinth에서 받은 서드파티 플러그인과 동일하게
+ *     고객의 이미 격리된 Pterodactyl 컨테이너 안에서만 실행되므로, 적용 전 반드시 AI 안전성
+ *     검토를 통과해야 한다 (src/lib/ai/javaSafety.ts).
  *   - "skript": Skript 플러그인용 스크립트(.sk). 컴파일 불필요, 즉시 리로드.
  *   - "datapack": 순정 서버에서도 동작하는 바닐라 데이터팩.
- * java_plugin/skript는 Bukkit 계열(Paper/Purpur/Spigot) 서버에서만 의미가 있고,
- * Forge/Fabric/NeoForge/Vanilla 서버에는 datapack만 적용 가능하다.
+ * java_plugin/skript는 Bukkit API를 제공하는 서버에서만 의미가 있다 — 순정 Paper/Purpur/Spigot뿐
+ * 아니라 Forge/NeoForge/Fabric 위에서 Bukkit API를 얹어주는 하이브리드 로더(Arclight/Mohist/
+ * CatServer/Ketting/Cardboard 등, src/lib/minecraftLoaders.ts 참고)도 포함된다. 순정 Forge/Fabric/
+ * NeoForge/Vanilla는 바이트코드 리매핑 전용 빌드체계(ForgeGradle/Loom/NeoGradle)가 있어야만 진짜
+ * 모드를 컴파일할 수 있어 지원 범위 밖 — datapack만 적용 가능하다.
  */
 
 let _client: OpenAI | null = null;
@@ -31,9 +35,8 @@ function getClient(): OpenAI {
 }
 const MODEL = process.env.OPENROUTER_MODEL ?? "qwen/qwen3-235b-a22b-2507";
 
-const BUKKIT_FAMILY_KEYS = new Set(["paper", "purpur", "spigot", "bukkit"]);
 export function isBukkitFamilyTemplate(templateKey: string): boolean {
-  return BUKKIT_FAMILY_KEYS.has(templateKey.toLowerCase());
+  return hasBukkitApi(templateKey);
 }
 
 export interface PluginMakerResult {
@@ -62,11 +65,12 @@ function buildSystemPrompt(allowJavaFamily: boolean): string {
    상속해야 하고, onEnable/onDisable을 구현해. 이벤트 처리, 커맨드, 아이템/인벤토리 조작처럼 정교한 로직에 적합.
 2) "skript": Skript 플러그인용 스크립트(.sk 문법). 간단한 커맨드/이벤트 반응에 적합, 컴파일 불필요.
 3) "datapack": 순정 서버에서도 동작하는 바닐라 데이터팩. 플러그인 설치가 필요 없음.`
-    : `이 서버는 Forge/Fabric/NeoForge/Vanilla 계열이라 Bukkit 플러그인이나 Skript를 쓸 수 없어.
-반드시 "datapack"(바닐라 데이터팩)으로만 만들어.`;
+    : `이 서버는 Bukkit API가 없는 순정 Forge/Fabric/NeoForge/Vanilla 계열이라 Bukkit 플러그인이나
+Skript를 쓸 수 없어. 반드시 "datapack"(바닐라 데이터팩)으로만 만들어.`;
 
-  return `너는 마인크래프트 서버용 커스텀 콘텐츠를 만드는 생성기야. 진짜 컴파일 모드(Forge/Fabric mod)는
-ForgeGradle/Fabric Loom 같은 전용 빌드 체계가 필요해서 지원하지 않아 — 대신 아래 방식 중에서만 만들어:
+  return `너는 마인크래프트 서버용 커스텀 콘텐츠를 만드는 생성기야. 순정 Forge/Fabric/NeoForge용 진짜
+컴파일 모드는 ForgeGradle/Fabric Loom/NeoGradle 같은 전용 빌드 체계가 필요해서 지원하지 않아 — 대신
+아래 방식 중에서만 만들어:
 
 ${options}
 

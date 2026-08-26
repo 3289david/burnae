@@ -91,10 +91,11 @@ export default function PluginMakerTab({ serverId }: { serverId: string }) {
       <div className="card p-5">
         <h3 className="font-semibold flex items-center gap-1.5"><Sparkles size={16} className="text-accent" /> 플러그인/모드 메이커</h3>
         <p className="text-sm text-text-dim mt-1">
-          원하는 걸 말로 설명하면 AI가 서버 버전에 맞춰 즉시 적용 가능한 형태로 만들어줘요. Paper/Purpur
-          서버는 <strong>실제 컴파일된 자바 플러그인</strong>까지 만들 수 있고(자동으로 안전성 검사를 거쳐요),
-          그 외 서버는 <strong>바닐라 데이터팩</strong>으로 만들어요. Forge/Fabric처럼 컴파일이 필요한
-          모드는 지원하지 않아요(별도 빌드 체계가 필요해서요).
+          원하는 걸 말로 설명하면 AI가 서버 버전에 맞춰 즉시 적용 가능한 형태로 만들어줘요. Bukkit API를
+          제공하는 서버(Paper/Purpur/Spigot은 물론, Arclight/Mohist/CatServer/Ketting/Cardboard 같은
+          Forge·Fabric 하이브리드 로더도 포함)는 <strong>실제 컴파일된 자바 플러그인</strong>까지 만들 수
+          있고(자동으로 안전성 검사를 거쳐요), 그 외 순정 Forge/Fabric/NeoForge/Vanilla 서버는{" "}
+          <strong>바닐라 데이터팩</strong>으로 만들어요(순정 모드는 전용 빌드 체계가 필요해서 지원하지 않아요).
         </p>
         <div className="mt-3">
           <textarea

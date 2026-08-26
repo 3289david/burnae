@@ -49,6 +49,7 @@ export interface ServerInfo {
   templateName: string;
   minecraftVersion: string;
   isOwner: boolean;
+  isFreeServer: boolean;
 }
 
 const TABS = [

@@ -446,6 +446,55 @@ CREATE TABLE "DiscordLinkCode" (
 );
 
 -- CreateTable
+CREATE TABLE "bot_settings" (
+    "id" INTEGER NOT NULL DEFAULT 1,
+    "verifiedRoleId" TEXT,
+    "purchaserRoleId" TEXT,
+    "subscriberRoleId" TEXT,
+    "rulesTitle" TEXT NOT NULL DEFAULT '📜 서버 규칙',
+    "rulesContent" TEXT NOT NULL DEFAULT '',
+    "rulesChannelId" TEXT,
+    "rulesMessageId" TEXT,
+    "linktreeTitle" TEXT NOT NULL DEFAULT '🔗 Burnae 링크',
+    "linktreeChannelId" TEXT,
+    "linktreeMessageId" TEXT,
+    "statusBoardChannelId" TEXT,
+    "statusBoardMessageId" TEXT,
+    "announcementChannelId" TEXT,
+    "logChannelId" TEXT,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "bot_settings_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "LinktreeLink" (
+    "id" TEXT NOT NULL,
+    "label" TEXT NOT NULL,
+    "url" TEXT NOT NULL,
+    "emoji" TEXT,
+    "sortOrder" INTEGER NOT NULL DEFAULT 0,
+    "active" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "LinktreeLink_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "SurveyResponse" (
+    "id" TEXT NOT NULL,
+    "discordUserId" TEXT,
+    "discordTag" TEXT,
+    "userId" TEXT,
+    "content" TEXT NOT NULL,
+    "reviewed" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "SurveyResponse_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "AuditLog" (
     "id" TEXT NOT NULL,
     "actorUserId" TEXT,
@@ -593,6 +642,12 @@ CREATE UNIQUE INDEX "DiscordLink_discordUserId_key" ON "DiscordLink"("discordUse
 CREATE UNIQUE INDEX "DiscordLinkCode_code_key" ON "DiscordLinkCode"("code");
 
 -- CreateIndex
+CREATE INDEX "LinktreeLink_active_idx" ON "LinktreeLink"("active");
+
+-- CreateIndex
+CREATE INDEX "SurveyResponse_reviewed_idx" ON "SurveyResponse"("reviewed");
+
+-- CreateIndex
 CREATE INDEX "AuditLog_actorUserId_idx" ON "AuditLog"("actorUserId");
 
 -- CreateIndex
@@ -606,6 +661,9 @@ ALTER TABLE "User" ADD CONSTRAINT "User_referredByUserId_fkey" FOREIGN KEY ("ref
 
 -- AddForeignKey
 ALTER TABLE "OAuthAccount" ADD CONSTRAINT "OAuthAccount_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SurveyResponse" ADD CONSTRAINT "SurveyResponse_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Order" ADD CONSTRAINT "Order_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

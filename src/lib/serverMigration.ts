@@ -7,6 +7,8 @@ import { Readable } from "node:stream";
 import { prisma } from "@/lib/prisma";
 import { PteroApp, PteroClient } from "@/lib/pterodactyl";
 import { updateServerDnsRecords } from "@/lib/cloudflare";
+import { getBotSettings } from "@/lib/botSettings";
+import { sendDiscordChannelMessage } from "@/lib/discordNotify";
 import type { Server, ServerStatus } from "@/generated/prisma/client";
 
 export class ServerMigrationError extends Error {}
@@ -76,7 +78,7 @@ export async function migrateServerToNode(
 ): Promise<{ server: Server; oldPterodactylServerId: number | null }> {
   const server = await prisma.server.findUniqueOrThrow({
     where: { id: serverId },
-    include: { template: true, subdomains: true, owner: true },
+    include: { template: true, subdomains: true, owner: true, node: true },
   });
   if (!server.pterodactylIdentifier || !server.pterodactylServerId) {
     throw new ServerMigrationError("아직 준비되지 않은 서버는 이전할 수 없습니다.");
@@ -205,6 +207,21 @@ export async function migrateServerToNode(
     await PteroApp.suspendServer(oldPterodactylServerId).catch((err) =>
       console.error("[serverMigration] 원본 서버 정지(suspend) 실패 — 관리자가 직접 정리해야 함:", err),
     );
+
+    getBotSettings()
+      .then((settings) => {
+        if (!settings?.logChannelId) return;
+        return sendDiscordChannelMessage(settings.logChannelId, {
+          embeds: [
+            {
+              title: "🚚 서버 이전",
+              description: `**${server.name}** — ${server.node.name} → ${targetNode.name}`,
+              color: 0x3b82f6,
+            },
+          ],
+        });
+      })
+      .catch((err) => console.error("[serverMigration] 이전 로그 알림 실패:", err));
 
     return { server: updated, oldPterodactylServerId };
   } catch (err) {

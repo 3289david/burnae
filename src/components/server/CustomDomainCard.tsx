@@ -83,7 +83,13 @@ export default function CustomDomainCard({
   return (
     <div className="card p-5">
       <h3 className="font-semibold">커스텀 도메인</h3>
-      <p className="text-sm text-text-dim mt-1">직접 소유한 도메인을 서버에 연결할 수 있어요.</p>
+      <p className="text-sm text-text-dim mt-1">
+        직접 소유한 도메인을 서버에 연결할 수 있어요. 아직 도메인이 없다면{" "}
+        <a href="https://krl.kr/domains" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">
+          여기서 구매하기
+        </a>
+        .
+      </p>
 
       <div className="space-y-3 mt-3">
         {domains.map((d) => (

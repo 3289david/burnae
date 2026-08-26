@@ -2,11 +2,16 @@ import {
   SlashCommandBuilder,
   ChatInputCommandInteraction,
   AutocompleteInteraction,
+  ButtonInteraction,
   EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
   ChannelType,
 } from "discord.js";
 import { prisma } from "./prismaClient";
 import { PteroClient } from "../lib/pterodactyl";
+import { renewFreeServer, ServerRenewalError } from "../lib/serverRenewal";
 
 /**
  * 이 봇은 Burnae 공식 디스코드 서버 단 하나에서만 동작한다 (index.ts의 길드 검증 참고).
@@ -62,6 +67,30 @@ export const commandDefinitions = [
     .addStringOption((opt) =>
       opt.setName("서버").setDescription("서버 이름").setRequired(true).setAutocomplete(true),
     ),
+  new SlashCommandBuilder()
+    .setName("갱신")
+    .setDescription("무료 서버를 7일 연장합니다.")
+    .addStringOption((opt) =>
+      opt.setName("서버").setDescription("서버 이름").setRequired(true).setAutocomplete(true),
+    ),
+  new SlashCommandBuilder()
+    .setName("링크트리")
+    .setDescription("Burnae 관련 링크 모음을 봅니다."),
+  new SlashCommandBuilder()
+    .setName("규칙")
+    .setDescription("서버 규칙을 봅니다."),
+  new SlashCommandBuilder()
+    .setName("포인트순위")
+    .setDescription("홍보 포인트 랭킹을 봅니다."),
+  new SlashCommandBuilder()
+    .setName("설문")
+    .setDescription("운영진에게 자유롭게 의견/제안을 보냅니다.")
+    .addStringOption((opt) =>
+      opt.setName("내용").setDescription("의견이나 제안을 적어주세요").setRequired(true),
+    ),
+  new SlashCommandBuilder()
+    .setName("알림설정")
+    .setDescription("공지 알림 받기를 켜거나 끕니다."),
 ].map((c) => c.toJSON());
 
 async function findLinkedUser(discordUserId: string) {
@@ -115,6 +144,18 @@ export async function handleCommand(interaction: ChatInputCommandInteraction) {
       return handlePower(interaction, "stop", "정지");
     case "재시작":
       return handlePower(interaction, "restart", "재시작");
+    case "갱신":
+      return handleRenewFree(interaction);
+    case "링크트리":
+      return handleLinktree(interaction);
+    case "규칙":
+      return handleRules(interaction);
+    case "포인트순위":
+      return handlePointsLeaderboard(interaction);
+    case "설문":
+      return handleSurvey(interaction);
+    case "알림설정":
+      return handleNotificationSettings(interaction);
   }
 }
 
@@ -338,4 +379,163 @@ async function handlePower(
 
   await PteroClient.sendPowerAction(server.pterodactylIdentifier, signal);
   await interaction.reply({ content: `⚙️ **${server.name}** 서버를 ${label} 요청했어요.`, ephemeral: true });
+}
+
+async function handleRenewFree(interaction: ChatInputCommandInteraction) {
+  const user = await findLinkedUser(interaction.user.id);
+  if (!user) {
+    await interaction.reply({ content: "먼저 `/link` 명령어로 계정을 연동해주세요.", ephemeral: true });
+    return;
+  }
+  const serverId = interaction.options.getString("서버", true);
+
+  try {
+    const server = await renewFreeServer(prisma, serverId, user.id);
+    await interaction.reply({ content: `✅ **${server.name}** 서버를 7일 연장했어요.`, ephemeral: true });
+  } catch (err) {
+    const message = err instanceof ServerRenewalError ? err.message : "갱신에 실패했어요.";
+    await interaction.reply({ content: message, ephemeral: true });
+  }
+}
+
+async function handleLinktree(interaction: ChatInputCommandInteraction) {
+  const settings = await prisma.botSettings.findUnique({ where: { id: 1 } });
+  const links = await prisma.linktreeLink.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } });
+
+  if (links.length === 0) {
+    await interaction.reply({ content: "아직 등록된 링크가 없어요.", ephemeral: true });
+    return;
+  }
+
+  const embed = new EmbedBuilder().setTitle(settings?.linktreeTitle ?? "🔗 Burnae 링크").setColor(0xff6b35);
+  const rows: ActionRowBuilder<ButtonBuilder>[] = [];
+  for (let i = 0; i < links.length; i += 5) {
+    const row = new ActionRowBuilder<ButtonBuilder>();
+    for (const link of links.slice(i, i + 5)) {
+      const button = new ButtonBuilder().setLabel(link.label.slice(0, 80)).setStyle(ButtonStyle.Link).setURL(link.url);
+      if (link.emoji) button.setEmoji(link.emoji);
+      row.addComponents(button);
+    }
+    rows.push(row);
+  }
+  await interaction.reply({ embeds: [embed], components: rows.slice(0, 5) });
+}
+
+async function handleRules(interaction: ChatInputCommandInteraction) {
+  const settings = await prisma.botSettings.findUnique({ where: { id: 1 } });
+  if (!settings?.rulesContent) {
+    await interaction.reply({ content: "아직 규칙이 등록되지 않았어요.", ephemeral: true });
+    return;
+  }
+  const embed = new EmbedBuilder()
+    .setTitle(settings.rulesTitle)
+    .setDescription(settings.rulesContent)
+    .setColor(0xff6b35);
+  await interaction.reply({ embeds: [embed], ephemeral: true });
+}
+
+async function handlePointsLeaderboard(interaction: ChatInputCommandInteraction) {
+  const top = await prisma.user.findMany({
+    where: { promotionPoints: { gt: 0 } },
+    orderBy: { promotionPoints: "desc" },
+    take: 10,
+    include: { discordLink: true },
+  });
+
+  if (top.length === 0) {
+    await interaction.reply({ content: "아직 포인트를 모은 사람이 없어요.", ephemeral: true });
+    return;
+  }
+
+  const medal = ["🥇", "🥈", "🥉"];
+  const embed = new EmbedBuilder()
+    .setTitle("🏆 홍보 포인트 랭킹")
+    .setColor(0xff6b35)
+    .setDescription(
+      top
+        .map((u, i) => {
+          const name = u.discordLink ? `<@${u.discordLink.discordUserId}>` : u.name;
+          return `${medal[i] ?? `${i + 1}.`} ${name} — ${u.promotionPoints.toLocaleString()}점`;
+        })
+        .join("\n"),
+    );
+  await interaction.reply({ embeds: [embed] });
+}
+
+async function handleSurvey(interaction: ChatInputCommandInteraction) {
+  const content = interaction.options.getString("내용", true);
+  const user = await findLinkedUser(interaction.user.id);
+
+  await prisma.surveyResponse.create({
+    data: {
+      discordUserId: interaction.user.id,
+      discordTag: interaction.user.tag,
+      userId: user?.id,
+      content,
+    },
+  });
+
+  await interaction.reply({ content: "✅ 소중한 의견 감사해요! 운영진이 확인할게요.", ephemeral: true });
+}
+
+async function handleNotificationSettings(interaction: ChatInputCommandInteraction) {
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder().setCustomId("toggle_subscriber").setLabel("🔔 공지 알림 켜기/끄기").setStyle(ButtonStyle.Secondary),
+  );
+  await interaction.reply({
+    content: "아래 버튼으로 공지 알림 역할을 켜거나 끌 수 있어요.",
+    components: [row],
+    ephemeral: true,
+  });
+}
+
+/** 규칙 인증 버튼 / 알림 구독 토글 버튼 — index.ts의 InteractionCreate에서 호출한다 */
+export async function handleButton(interaction: ButtonInteraction) {
+  if (interaction.customId === "verify_rules") return handleVerifyButton(interaction);
+  if (interaction.customId === "toggle_subscriber") return handleSubscriberToggle(interaction);
+}
+
+async function handleVerifyButton(interaction: ButtonInteraction) {
+  const settings = await prisma.botSettings.findUnique({ where: { id: 1 } });
+  if (!settings?.verifiedRoleId) {
+    await interaction.reply({ content: "아직 인증 역할이 설정되지 않았어요. 관리자에게 문의해주세요.", ephemeral: true });
+    return;
+  }
+  if (!interaction.inGuild()) return;
+
+  try {
+    const member = await interaction.guild!.members.fetch(interaction.user.id);
+    if (member.roles.cache.has(settings.verifiedRoleId)) {
+      await interaction.reply({ content: "이미 인증되어 있어요!", ephemeral: true });
+      return;
+    }
+    await member.roles.add(settings.verifiedRoleId);
+    await interaction.reply({ content: "✅ 인증이 완료됐어요. 환영합니다!", ephemeral: true });
+  } catch (err) {
+    console.error("[bot] 인증 역할 부여 실패:", err);
+    await interaction.reply({ content: "역할 부여에 실패했어요. 관리자에게 문의해주세요.", ephemeral: true });
+  }
+}
+
+async function handleSubscriberToggle(interaction: ButtonInteraction) {
+  const settings = await prisma.botSettings.findUnique({ where: { id: 1 } });
+  if (!settings?.subscriberRoleId) {
+    await interaction.reply({ content: "아직 알림 역할이 설정되지 않았어요.", ephemeral: true });
+    return;
+  }
+  if (!interaction.inGuild()) return;
+
+  try {
+    const member = await interaction.guild!.members.fetch(interaction.user.id);
+    if (member.roles.cache.has(settings.subscriberRoleId)) {
+      await member.roles.remove(settings.subscriberRoleId);
+      await interaction.reply({ content: "🔕 공지 알림을 껐어요.", ephemeral: true });
+    } else {
+      await member.roles.add(settings.subscriberRoleId);
+      await interaction.reply({ content: "🔔 공지 알림을 켰어요.", ephemeral: true });
+    }
+  } catch (err) {
+    console.error("[bot] 알림 역할 토글 실패:", err);
+    await interaction.reply({ content: "처리에 실패했어요. 관리자에게 문의해주세요.", ephemeral: true });
+  }
 }

@@ -1,7 +1,9 @@
 import "dotenv/config";
 import { ActivityType, Client, GatewayIntentBits, Events } from "discord.js";
-import { handleCommand, handleAutocomplete } from "./commands";
+import { handleCommand, handleAutocomplete, handleButton } from "./commands";
 import { startCrashWatcher } from "./watcher";
+import { startStatusBoard } from "./statusBoard";
+import { prisma } from "./prismaClient";
 
 /**
  * 이 봇은 Burnae 공식 디스코드 서버(burnae.kr 커뮤니티) 딱 하나에서만 동작한다.
@@ -29,13 +31,18 @@ client.once(Events.ClientReady, (c) => {
   console.log(`[bot] 로그인됨: ${c.user.tag} — 공식 서버: ${officialGuildId}`);
   c.user.setActivity("/도움말", { type: ActivityType.Listening });
   startCrashWatcher(client);
+  startStatusBoard(client);
 });
 
 client.on(Events.GuildMemberAdd, async (member) => {
   if (member.guild.id !== officialGuildId) return;
+
+  const settings = await prisma.botSettings.findUnique({ where: { id: 1 } }).catch(() => null);
+  const rulesHint = settings?.rulesChannelId ? ` <#${settings.rulesChannelId}> 에서 규칙 확인 후 인증도 해주세요.` : "";
+
   await member
     .send(
-      "🔥 Burnae 공식 서버에 오신 걸 환영해요!\n`/도움말` 을 입력하면 사용법을 볼 수 있어요. `/요금제`로 플랜도 바로 확인해보세요.",
+      `🔥 Burnae 공식 서버에 오신 걸 환영해요!\n\`/도움말\` 을 입력하면 사용법을 볼 수 있어요. \`/요금제\`로 플랜도 바로 확인해보세요.${rulesHint}`,
     )
     .catch(() => {
       // DM을 막아둔 유저면 조용히 무시
@@ -57,6 +64,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
       await handleCommand(interaction);
     } else if (interaction.isAutocomplete()) {
       await handleAutocomplete(interaction);
+    } else if (interaction.isButton()) {
+      await handleButton(interaction);
     }
   } catch (err) {
     console.error("[bot] 인터랙션 처리 오류:", err);

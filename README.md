@@ -11,7 +11,11 @@ Cloudflare DNS, 디스코드 봇과 연동합니다.
 - **커스텀 도메인**: 유저가 소유한 외부 도메인을 서버에 연결 — A/SRV 레코드 안내 후 DNS 조회로 자동 확인
 - **입금자명**: 계정에서 직접 지정 가능(공백 없이 1~5자), 미설정 시 이름 기반 자동 생성
 - **AI**: [OpenRouter](https://openrouter.ai) 기반 Tool-calling — 저렴한 오픈소스 모델(Qwen3), 실제 서버를 읽고/쓰고/재시작/플레이어관리/플러그인설치까지
-- **디스코드 봇**: discord.js, `/서버목록` `/상태` `/시작` `/정지` `/재시작` `/link` `/요금제` `/이벤트` `/문의`
+- **디스코드 봇**: discord.js. `/서버목록` `/상태` `/시작` `/정지` `/재시작` `/갱신` `/link` `/요금제` `/이벤트`
+  `/문의` `/링크트리` `/규칙` `/포인트순위` `/설문` `/알림설정`. 서버 규칙+✅ 인증하기 버튼(인증 시 역할 자동
+  부여), 구매 시 구매자 역할 자동 부여, 공지 등록 시 지정 채널에 자동 임베드, 1분마다 자동 갱신되는
+  실시간 집계 현황판(가동 서버 수·전체 서버 수·노드 상태 — 개별 고객 서버 정보는 노출 안 함), 서버
+  생성/삭제/이전 로그 채널. 링크트리·규칙·채널 설정은 전부 `/admin/discord`에서 관리자가 편집
 - **로그인**: Google/GitHub/Discord OAuth 전용 (비밀번호 없음). 관리자는 `ADMIN_EMAIL` 한 명으로 고정
 - **플레이어 관리**: 화이트리스트/OP/밴/킥 (콘솔 명령 + 서버 파일 기반, RCON 불필요)
 - **플러그인/모드**: [Modrinth](https://modrinth.com) 검색·설치, AI도 같은 기능으로 직접 설치 가능
@@ -38,6 +42,17 @@ Cloudflare DNS, 디스코드 봇과 연동합니다.
 - **멀티 서버 확장**: 메인 관리서버(Panel+웹앱+DB) 1대 + Wings 전용 노드("서버1", "서버2", ...)를
   원하는 만큼 추가하는 구조. `scripts/setup-worker-node.sh`로 노드 추가, 이후 배치는 여유 자원
   기준으로 전부 자동 (자세한 건 9번 참고)
+- **서버 노드 이전**: `/admin/servers`에서 고객 서버 하나씩, 또는 `/admin/nodes`에서 노드 전체를
+  다른 노드로 이전 가능 — 압축→다운로드/업로드→압축해제로 데이터를 통째로 옮기고 DNS까지 자동
+  갱신(원본은 안전하게 정지 상태로 남기고 자동 삭제하지 않음). 메인 관리서버 자체를 새 하드웨어로
+  옮길 때는 `scripts/migrate-main-server.sh export`/`import` 런북 스크립트 사용 (앱이 자기 자신의
+  DB/파일시스템을 실행 중에 옮길 수는 없어서 관리자 패널 버튼이 아닌 스크립트로 제공)
+- **무료 서버 갱신**: 홍보 포인트로 교환한 무료 서버는 7일마다 갱신 필요 — 디스코드 `/갱신` 명령어나
+  대시보드에서 결제 없이 즉시 7일 연장. 기한 지나면 유료 서버와 동일하게 정지 → 보관기간 후 삭제
+- **커스텀 도메인 구매 연결**: 대시보드 커스텀 도메인 카드에 [krl.kr/domains](https://krl.kr/domains)
+  구매 링크 노출
+- **무료 플랜 광고**: 홍보 포인트로 만든 무료 서버의 관리 화면에만 카카오 애드핏 배너 노출(유료
+  서버 화면에는 없음), 페이지 렌더링을 막지 않게 지연 로드
 
 ---
 
@@ -289,10 +304,14 @@ sudo certbot --nginx -d burnae.kr -d www.burnae.kr
    "홍보 포인트로 교환 가능"을 체크하세요 (예: RAM 1GB · CPU 50% · 디스크 500MB · 0원, 필요 포인트 지정).
 8. `/admin/announcements` — 점검/장애 공지를 등록하면 랜딩페이지와 대시보드 상단에 배너로 노출됩니다.
    중요도(안내/경고/긴급)와 노출 기간을 정할 수 있고, 고객이 닫으면 그 브라우저에서는 다시 안 뜹니다.
+   지정 채널이 설정돼 있으면 디스코드에도 자동으로 올라갑니다.
+9. `/admin/discord` — 봇 역할/채널 ID, 규칙 내용, 링크트리 항목을 설정합니다. 저장하면 디스코드
+   채널의 규칙+인증 임베드와 링크트리 임베드가 즉시 갱신됩니다.
 
-운영 중 자주 쓰는 화면: `/admin/servers`(전체 서버 강제 재시작/정지/삭제),
-`/admin/logs`(관리자·시스템 작업 로그), `/admin/statistics`(MRR·RAM 판매율 등),
-`/admin/users`(저장공간/AI크레딧 조정 + 포인트·서버 수동 지급).
+운영 중 자주 쓰는 화면: `/admin/servers`(전체 서버 강제 재시작/정지/삭제 + 노드 이전),
+`/admin/nodes`(노드 전체 이전), `/admin/logs`(관리자·시스템 작업 로그),
+`/admin/statistics`(MRR·RAM 판매율 등), `/admin/users`(저장공간/AI크레딧 조정 + 포인트·서버 수동 지급),
+`/admin/surveys`(디스코드 `/설문`으로 받은 피드백 확인).
 
 여기까지 끝나면 고객이 회원가입 → 서버 생성 → 입금 → 자동으로 Pterodactyl에 Docker 컨테이너가
 만들어지고 `이름.krl.kr` 서브도메인이 자동으로 연결됩니다.
@@ -354,7 +373,11 @@ src/
     provisioning.ts        # 서버 생성/삭제 전체 오케스트레이션
     players.ts             # 화이트리스트/OP/밴/킥 (콘솔 명령 + 파일 읽기)
     modrinth.ts            # 플러그인/모드 검색·다운로드 (Modrinth API)
-    discordNotify.ts       # 게이트웨이 없이 REST로 디스코드 DM 발송 (크론용)
+    discordNotify.ts       # 게이트웨이 없이 REST로 디스코드 DM/채널 메시지/역할 부여 (크론·웹앱용)
+    discordBoards.ts       # 규칙+인증/링크트리 임베드를 설정 저장 시마다 다시 그려서 올리거나 수정
+    botSettings.ts         # 디스코드 봇 설정 싱글턴(BotSettings) 조회 헬퍼
+    serverMigration.ts     # 서버 데이터를 다른 노드로 이전(압축/다운로드/업로드/압축해제 + DNS/DB 갱신)
+    serverRenewal.ts       # 무료(포인트 교환) 서버 7일 갱신 — 대시보드/디스코드 봇 공용
     oauth.ts               # Google/GitHub/Discord OAuth2 직접 구현
     minecraftDatapack.ts   # 데이터팩 pack_format/폴더명 버전 자동 인식
     minecraftPaperApi.ts   # PaperMC Maven에서 서버 버전에 맞는 paper-api jar 자동 다운로드/캐싱
@@ -365,10 +388,12 @@ src/
     ai/pluginMakerApply.ts # 생성 결과를 실제 서버에 적용(컴파일+업로드+재시작 또는 파일쓰기+리로드)
     ai/javaSafety.ts       # 컴파일 전 AI가 자바 소스의 위험한 의도를 검토(generate+적용 직전 2회)
   bot/                     # 디스코드 봇 (공식 서버 전용, 별도 프로세스)
+  bot/statusBoard.ts       # 실시간 집계 현황판 — 1분마다 메시지 편집으로 갱신
 scripts/
   maintenance-cron.ts      # 결제만료/예약백업/예약재시작/노드알림/입금매칭/선주문재시도 — systemd timer로 주기 실행
   setup-ubuntu.sh          # 메인 관리서버 초기 설정 자동화 (Panel 제외, 웹앱+DB+시스템 서비스)
   setup-worker-node.sh     # 추가 게임호스팅 노드("서버1"/"서버2") 초기 설정 — Docker+Wings만 설치
+  migrate-main-server.sh   # 메인 관리서버(웹앱+DB) 자체를 새 서버로 옮기는 런북(export/import)
 prisma/schema.prisma       # 전체 데이터 모델
 deploy/                    # systemd, nginx 설정 예시
 ```

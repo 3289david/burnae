@@ -16,14 +16,18 @@ export default function PrivacyPage() {
 
       <main className="max-w-3xl mx-auto px-6 py-12">
         <h1 className="text-3xl font-bold font-display">개인정보처리방침</h1>
-        <p className="text-sm text-text-dim mt-2">시행일: 2026년 8월 17일</p>
+        <p className="text-sm text-text-dim mt-2">시행일: 2026년 8월 26일</p>
 
         <Section title="1. 수집하는 개인정보 항목">
           <ul className="list-disc pl-5 space-y-1">
             <li>소셜 로그인(Google/GitHub/Discord)을 통해 제공받는 이메일, 이름, 프로필 식별자</li>
             <li>결제 시 입금자명 (계좌 비밀번호 등 금융 인증정보는 일체 수집하지 않습니다)</li>
-            <li>서비스 이용 기록: 서버 생성/삭제 이력, 콘솔 명령 실행 로그, AI 대화 내역, 접속 로그</li>
-            <li>디스코드 연동 시 디스코드 사용자 ID</li>
+            <li>서비스 이용 기록: 서버 생성/삭제/이전 이력, 콘솔 명령 실행 로그, AI 대화 내역, 접속 로그</li>
+            <li>디스코드 연동 시 디스코드 사용자 ID, 규칙 인증·공지 알림 구독 등 역할 부여 여부</li>
+            <li>디스코드 <code>/설문</code> 명령어로 제출한 의견/제안 내용과 제출자의 디스코드 사용자
+              ID·태그(회원 연동 여부에 따라 회원 계정과 연결될 수 있음)</li>
+            <li>무료(홍보 포인트 교환) 플랜 대시보드 접속 시, 광고 노출을 위해 카카오 애드핏이 수집하는
+              쿠키·광고식별자 등 (4번 항목 참고 — 회사가 직접 수집하지 않음)</li>
           </ul>
         </Section>
 
@@ -47,7 +51,18 @@ export default function PrivacyPage() {
             <li><strong>OpenRouter</strong> — AI 챗봇 대화 내용(서버 관련 요청 텍스트)</li>
             <li><strong>Cloudflare</strong> — 서브도메인 연결을 위한 서버 접속 정보(IP, 포트)</li>
             <li><strong>Google / GitHub / Discord</strong> — 소셜 로그인 인증 (OAuth)</li>
+            <li><strong>카카오(Kakao AdFit)</strong> — 무료 플랜 서버 관리 화면에서만 광고 노출을 위해
+              쿠키/광고식별자 등을 수집·처리할 수 있습니다. 회사는 이용자의 Burnae 계정 정보를 카카오에
+              전달하지 않으며, 광고 관련 데이터 처리는 카카오의 개인정보처리방침을 따릅니다. 유료 결제
+              서버의 관리 화면에는 광고가 노출되지 않아 이 항목이 적용되지 않습니다.</li>
           </ul>
+        </Section>
+
+        <Section title="4의2. 광고(카카오 애드핏) 안내">
+          무료(홍보 포인트 교환) 플랜의 서버 관리 화면에는 카카오 애드핏 광고가 노출됩니다. 애드핏은
+          맞춤형 광고 제공을 위해 쿠키 등을 사용할 수 있으며, 이용자는 브라우저 설정에서 쿠키 저장을
+          거부하여 맞춤형 광고 수신을 제한할 수 있습니다(이 경우 광고 자체가 사라지지는 않을 수 있습니다).
+          광고 영역을 통해 연결되는 제3자 사이트의 개인정보 처리에 대해서는 회사가 책임지지 않습니다.
         </Section>
 
         <Section title="5. 이용자의 권리">

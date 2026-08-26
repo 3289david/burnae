@@ -33,12 +33,28 @@ export default function AdminNodesPage() {
   const [form, setForm] = useState(empty);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [migratingNodeId, setMigratingNodeId] = useState<string | null>(null);
+  const [migrateTarget, setMigrateTarget] = useState("");
 
   async function load() {
     const res = await fetch("/api/admin/nodes");
     setNodes(await res.json());
   }
   useEffect(() => { load(); }, []);
+
+  async function migrateAll(nodeId: string) {
+    if (!migrateTarget) return;
+    if (!confirm("이 노드의 모든 서버를 대상 노드로 순서대로 이전할까요? 서버마다 잠시 정지될 수 있어요.")) return;
+    const res = await fetch(`/api/admin/nodes/${nodeId}/migrate-all`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ targetNodeId: migrateTarget }),
+    });
+    const data = await res.json();
+    alert(data.message ?? data.error ?? "요청을 보냈어요.");
+    setMigratingNodeId(null);
+    setMigrateTarget("");
+  }
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
@@ -93,8 +109,34 @@ export default function AdminNodesPage() {
                   <input type="checkbox" checked={n.autoDeployEnabled} onChange={(e) => toggle(n.id, "autoDeployEnabled", e.target.checked)} />
                   자동배치
                 </label>
+                <button
+                  onClick={() => { setMigratingNodeId(migratingNodeId === n.id ? null : n.id); setMigrateTarget(""); }}
+                  className="btn-secondary px-2.5 py-1 text-xs"
+                >
+                  노드 전체 이전
+                </button>
               </div>
             </div>
+
+            {migratingNodeId === n.id && (
+              <div className="mt-3 pt-3 border-t border-border flex flex-wrap items-center gap-2">
+                <select className="input text-xs py-1.5" value={migrateTarget} onChange={(e) => setMigrateTarget(e.target.value)}>
+                  <option value="">대상 노드 선택...</option>
+                  {nodes.filter((o) => o.id !== n.id).map((o) => (
+                    <option key={o.id} value={o.id} disabled={o.status !== "ONLINE"}>
+                      {o.name}/{o.location} {o.status !== "ONLINE" ? `(${o.status})` : ""}
+                    </option>
+                  ))}
+                </select>
+                <button disabled={!migrateTarget} onClick={() => migrateAll(n.id)} className="btn-primary px-3 py-1.5 text-xs disabled:opacity-40">
+                  전체 이전 시작
+                </button>
+                <p className="text-xs text-text-dim w-full">
+                  이 노드의 활성 서버 전부를 순서대로 대상 노드로 옮겨요. 서버마다 개별 이전과 동일하게
+                  진행 중 정지되고, 완료되면 정지 상태로 남으니 확인 후 시작해주세요.
+                </p>
+              </div>
+            )}
             <div className="mt-2 h-2 rounded-full bg-surface-2 overflow-hidden">
               <div className="h-full bg-accent" style={{ width: `${Math.min(100, Math.round((n.usedRamMb / Math.max(1, n.totalRamMb - n.reservedRamMb)) * 100))}%` }} />
             </div>

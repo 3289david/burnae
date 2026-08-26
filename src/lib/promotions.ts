@@ -2,6 +2,7 @@ import dns from "node:dns/promises";
 import net from "node:net";
 import { prisma } from "@/lib/prisma";
 import { PteroClient } from "@/lib/pterodactyl";
+import { sendDiscordDM } from "@/lib/discordNotify";
 
 /**
  * 서버 홍보(20여 가지 방법) → 포인트 적립 → 무료 서버 교환 시스템.
@@ -140,6 +141,15 @@ export async function awardPoints(params: {
       where: { id: params.userId },
       data: { promotionPoints: { increment: params.pointsAwarded } },
     });
+    return completion;
+  }).then(async (completion) => {
+    const link = await prisma.discordLink.findUnique({ where: { userId: params.userId } });
+    if (link) {
+      await sendDiscordDM(
+        link.discordUserId,
+        `🎁 홍보 포인트 ${params.pointsAwarded}점이 적립됐어요! 대시보드에서 확인해보세요.`,
+      ).catch(() => {});
+    }
     return completion;
   });
 }

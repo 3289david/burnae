@@ -55,6 +55,7 @@ model User {
   couponRedemptions    CouponRedemption[]
   oauthAccounts        OAuthAccount[]
   promotionCompletions PromotionCompletion[]
+  surveyResponses      SurveyResponse[]
 
   @@index([email])
   @@index([referralCode])
@@ -630,6 +631,64 @@ model DiscordLinkCode {
   code      String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
+}
+
+/// 디스코드 봇 관련 설정(싱글턴) — 관리자 패널(/admin/discord)에서 수정.
+/// 역할/채널 ID는 봇 프로세스가 REST/게이트웨이 양쪽에서 공통으로 참조한다.
+model BotSettings {
+  id                    Int      @id @default(1)
+  /// 규칙 인증 버튼을 눌렀을 때 부여할 역할
+  verifiedRoleId        String?
+  /// 결제(또는 포인트 교환)로 서버를 만들면 자동으로 부여할 역할
+  purchaserRoleId       String?
+  /// "공지 알림 받기" 버튼으로 스스로 토글하는 역할
+  subscriberRoleId      String?
+  rulesTitle            String   @default("📜 서버 규칙")
+  rulesContent          String   @default("")
+  /// 규칙+인증 임베드가 올라갈 채널. 저장 시 이 채널에 없으면 새로 올리고, 있으면 있는 메시지를 수정한다
+  rulesChannelId        String?
+  rulesMessageId        String?
+  linktreeTitle         String   @default("🔗 Burnae 링크")
+  linktreeChannelId     String?
+  linktreeMessageId     String?
+  /// 실시간 집계 현황판이 올라갈 채널 — 개별 고객 서버 정보는 노출하지 않고 전체 통계만 보여준다
+  statusBoardChannelId  String?
+  statusBoardMessageId  String?
+  /// 관리자가 공지를 등록하면 자동으로 임베드를 올릴 채널
+  announcementChannelId String?
+  /// 서버 생성/삭제/이전 같은 이벤트를 기록으로 남길 채널
+  logChannelId          String?
+  updatedAt             DateTime @updatedAt
+
+  @@map("bot_settings")
+}
+
+/// 관리자가 편집하는 링크트리 항목 — /링크트리 명령어와 채널 임베드에 그대로 반영
+model LinktreeLink {
+  id        String   @id @default(cuid())
+  label     String
+  url       String
+  emoji     String?
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active])
+}
+
+/// 디스코드 /설문 명령어로 받은 자유 응답 — 관리자 패널에서 확인
+model SurveyResponse {
+  id            String   @id @default(cuid())
+  discordUserId String?
+  discordTag    String?
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id])
+  content       String
+  reviewed      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  @@index([reviewed])
 }
 
 // ────────────────────────────────

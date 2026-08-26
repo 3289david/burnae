@@ -6,6 +6,9 @@ import {
   slugifySubdomain,
   isSubdomainTaken,
 } from "@/lib/cloudflare";
+import { getBotSettings } from "@/lib/botSettings";
+import { addDiscordRole, sendDiscordChannelMessage } from "@/lib/discordNotify";
+import { FREE_SERVER_RENEWAL_DAYS } from "@/lib/serverRenewal";
 import type { HostNode, Server } from "@/generated/prisma/client";
 
 export class ProvisioningError extends Error {}
@@ -241,7 +244,12 @@ export async function createServerForOrder(orderId: string) {
         backupSlots: order.product.backupSlots,
         allocationIp: node.publicIp,
         allocationPort: allocation.port,
-        renewalDueAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        // 포인트 교환 등 무료 상품은 7일마다 직접 갱신해야 한다(방치된 무료 서버가 자원을 계속
+        // 차지하는 걸 막기 위함) — 결제 상품은 기존대로 30일
+        renewalDueAt: new Date(
+          Date.now() +
+            (order.product.pointsRedeemable ? FREE_SERVER_RENEWAL_DAYS : 30) * 24 * 60 * 60 * 1000,
+        ),
       },
     });
     await tx.order.update({ where: { id: order.id }, data: { serverId: created.id } });
@@ -275,7 +283,34 @@ export async function createServerForOrder(orderId: string) {
     console.error("[provisioning] Cloudflare DNS 생성 실패:", err);
   }
 
+  notifyServerCreated(server, order.userId, node.name).catch((err) => {
+    console.error("[provisioning] 디스코드 알림/역할 부여 실패(서버 생성 자체는 정상):", err);
+  });
+
   return server;
+}
+
+/** 구매자 역할 자동 부여 + 관리자 로그 채널 알림 — 디스코드 연동을 안 했거나 채널 설정이 없으면 조용히 건너뛴다 */
+async function notifyServerCreated(server: Server, ownerId: string, nodeName: string) {
+  const settings = await getBotSettings();
+  if (!settings) return;
+
+  if (settings.purchaserRoleId) {
+    const link = await prisma.discordLink.findUnique({ where: { userId: ownerId } });
+    if (link) await addDiscordRole(link.discordUserId, settings.purchaserRoleId);
+  }
+
+  if (settings.logChannelId) {
+    await sendDiscordChannelMessage(settings.logChannelId, {
+      embeds: [
+        {
+          title: "🆕 서버 생성",
+          description: `**${server.name}** — ${nodeName}`,
+          color: 0x22c55e,
+        },
+      ],
+    });
+  }
 }
 
 /**
@@ -343,6 +378,15 @@ export async function deleteServerFully(
     });
     return result;
   });
+
+  getBotSettings()
+    .then((settings) => {
+      if (!settings?.logChannelId) return;
+      return sendDiscordChannelMessage(settings.logChannelId, {
+        embeds: [{ title: "🗑️ 서버 삭제", description: `**${server.name}**`, color: 0xef4444 }],
+      });
+    })
+    .catch((err) => console.error("[provisioning] 삭제 로그 알림 실패:", err));
 
   return updated;
 }

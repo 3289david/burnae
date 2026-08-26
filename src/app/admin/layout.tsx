@@ -18,6 +18,8 @@ const NAV = [
   { href: "/admin/bank-account", label: "결제 계좌" },
   { href: "/admin/logs", label: "로그" },
   { href: "/admin/statistics", label: "통계" },
+  { href: "/admin/discord", label: "디스코드 봇" },
+  { href: "/admin/surveys", label: "설문/피드백" },
   { href: "/admin/settings", label: "호스팅 설정" },
 ];
 

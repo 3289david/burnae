@@ -52,19 +52,21 @@ async function handleRenewals() {
       status: { notIn: ["SUSPENDED", "DELETING"] },
       renewalDueAt: { lte: in3days, gt: new Date(now) },
     },
+    include: { product: { select: { pointsRedeemable: true } } },
   });
 
   for (const server of dueSoon) {
     const daysLeft = Math.ceil((server.renewalDueAt!.getTime() - now) / (24 * 60 * 60 * 1000));
-    if (daysLeft !== 3 && daysLeft !== 1) continue;
+    const reminderDays = server.product.pointsRedeemable ? [2, 1] : [3, 1];
+    if (!reminderDays.includes(daysLeft)) continue;
 
     const action = `RENEWAL_REMINDER_D${daysLeft}`;
     if (await recentlyLogged(action, server.id, REMINDER_COOLDOWN_HOURS)) continue;
 
-    const sent = await notifyOwner(
-      server.ownerId,
-      `⏰ **${server.name}** 서버 결제 만료가 ${daysLeft}일 남았어요. burnae.kr 대시보드에서 미리 갱신해주세요.`,
-    );
+    const message = server.product.pointsRedeemable
+      ? `⏰ **${server.name}** 무료 서버 갱신 기한이 ${daysLeft}일 남았어요. \`/갱신\` 명령어나 대시보드에서 갱신해주세요.`
+      : `⏰ **${server.name}** 서버 결제 만료가 ${daysLeft}일 남았어요. burnae.kr 대시보드에서 미리 갱신해주세요.`;
+    const sent = await notifyOwner(server.ownerId, message);
     await prisma.auditLog.create({
       data: { action, targetType: "Server", targetId: server.id, metadata: { daysLeft, discordNotified: sent } },
     });
@@ -77,6 +79,7 @@ async function handleRenewals() {
       status: { notIn: ["SUSPENDED", "DELETING", "PROVISIONING"] },
       renewalDueAt: { lt: new Date(now) },
     },
+    include: { product: { select: { pointsRedeemable: true } } },
   });
 
   for (const server of overdue) {
@@ -87,13 +90,14 @@ async function handleRenewals() {
       console.error(`[cron] ${server.name} 정지 실패:`, err);
       continue;
     }
+    const reason = server.product.pointsRedeemable ? "무료 서버 갱신 기한 만료" : "결제 만료";
     await prisma.server.update({
       where: { id: server.id },
-      data: { status: "SUSPENDED", suspendedReason: "결제 만료" },
+      data: { status: "SUSPENDED", suspendedReason: reason },
     });
     await notifyOwner(
       server.ownerId,
-      `⛔ **${server.name}** 서버가 결제 만료로 일시정지됐어요. ${RETENTION_DAYS}일 안에 갱신하지 않으면 삭제돼요.`,
+      `⛔ **${server.name}** 서버가 ${reason}로 일시정지됐어요. ${RETENTION_DAYS}일 안에 갱신하지 않으면 삭제돼요.`,
     );
     await prisma.auditLog.create({
       data: { action: "SERVER_SUSPENDED_OVERDUE", targetType: "Server", targetId: server.id, metadata: {} },
@@ -139,6 +143,7 @@ async function handleScheduledBackups() {
       }
       await PteroClient.createBackup(server.pterodactylIdentifier, `자동 백업 ${new Date().toLocaleString("ko-KR")}`);
       await prisma.server.update({ where: { id: server.id }, data: { lastBackupAt: new Date() } });
+      await notifyOwner(server.ownerId, `💾 **${server.name}** 자동 백업이 완료됐어요.`);
       console.log(`[cron] ${server.name} — 자동 백업 생성`);
     } catch (err) {
       console.error(`[cron] ${server.name} 자동 백업 실패:`, err);
@@ -146,10 +151,27 @@ async function handleScheduledBackups() {
   }
 }
 
+async function handleRestartWarnings(currentHourKst: number) {
+  const warnHour = (currentHourKst + 1) % 24;
+  const servers = await prisma.server.findMany({
+    where: { deletedAt: null, autoRestartEnabled: true, autoRestartHour: warnHour, status: "RUNNING" },
+  });
+
+  for (const server of servers) {
+    const action = "RESTART_WARNING";
+    if (await recentlyLogged(action, server.id, REMINDER_COOLDOWN_HOURS)) continue;
+    const sent = await notifyOwner(server.ownerId, `🔁 **${server.name}** 서버가 1시간 후 예약된 자동 재시작을 실행해요.`);
+    await prisma.auditLog.create({
+      data: { action, targetType: "Server", targetId: server.id, metadata: { discordNotified: sent } },
+    });
+  }
+}
+
 async function handleScheduledRestarts() {
   const currentHourKst = Number(
     new Intl.DateTimeFormat("en-US", { hour: "numeric", hour12: false, timeZone: "Asia/Seoul" }).format(new Date()),
   );
+  await handleRestartWarnings(currentHourKst);
   const today = new Date().toDateString();
 
   const servers = await prisma.server.findMany({

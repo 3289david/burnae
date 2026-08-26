@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { getBotSettings } from "@/lib/botSettings";
+import { sendDiscordChannelMessage } from "@/lib/discordNotify";
+
+const LEVEL_COLOR = { INFO: 0x3b82f6, WARNING: 0xf59e0b, CRITICAL: 0xef4444 } as const;
 
 export async function GET() {
   const admin = await requireAdmin();
@@ -46,6 +50,21 @@ export async function POST(request: Request) {
       metadata: { title: announcement.title },
     },
   });
+
+  getBotSettings()
+    .then((settings) => {
+      if (!settings?.announcementChannelId) return;
+      return sendDiscordChannelMessage(settings.announcementChannelId, {
+        embeds: [
+          {
+            title: `📢 ${announcement.title}`,
+            description: announcement.body,
+            color: LEVEL_COLOR[announcement.level],
+          },
+        ],
+      });
+    })
+    .catch((err) => console.error("[announcements] 디스코드 알림 실패:", err));
 
   return NextResponse.json(announcement);
 }

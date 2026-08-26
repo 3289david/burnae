@@ -59,6 +59,7 @@ export default async function ServerDetailPage({
         templateName: server.template.displayName,
         minecraftVersion: server.minecraftVersion,
         isOwner: server.ownerId === user.id,
+        isFreeServer: server.product.pointsRedeemable,
       }}
     />
   );

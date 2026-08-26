@@ -6,6 +6,7 @@ import type { ServerInfo } from "./ServerDetailClient";
 import StatusDot from "@/components/StatusDot";
 import AddressActions from "./AddressActions";
 import CustomDomainCard from "./CustomDomainCard";
+import FreeTierAd from "@/components/ads/FreeTierAd";
 
 interface Resources {
   current_state: string;
@@ -84,7 +85,8 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
     setRenewing(true);
     setRenewError(null);
     try {
-      const res = await fetch(`/api/servers/${server.id}/renew`, { method: "POST" });
+      const path = server.isFreeServer ? "renew-free" : "renew";
+      const res = await fetch(`/api/servers/${server.id}/${path}`, { method: "POST" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setRenewRequested(true);
@@ -111,7 +113,9 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
   const daysLeft = server.renewalDueAt
     ? Math.ceil((new Date(server.renewalDueAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000))
     : null;
-  const showRenewal = server.isOwner && (server.status === "SUSPENDED" || (daysLeft !== null && daysLeft <= 7));
+  const renewalWarningDays = server.isFreeServer ? 3 : 7;
+  const showRenewal =
+    server.isOwner && (server.status === "SUSPENDED" || (daysLeft !== null && daysLeft <= renewalWarningDays));
 
   return (
     <div className="space-y-6">
@@ -119,19 +123,24 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
         <div className="card p-4 border-yellow">
           {renewRequested ? (
             <p className="text-sm text-green flex items-center gap-1.5">
-              <CheckCircle2 size={16} /> 갱신 결제 안내를 만들었어요. 결제 내역 페이지에서 입금 정보를 확인하세요.
+              <CheckCircle2 size={16} />
+              {server.isFreeServer
+                ? "7일 연장했어요."
+                : "갱신 결제 안내를 만들었어요. 결제 내역 페이지에서 입금 정보를 확인하세요."}
             </p>
           ) : (
             <>
               <p className="text-sm flex items-center gap-1.5">
                 {server.status === "SUSPENDED" ? (
-                  <><Ban size={16} className="text-red shrink-0" /> 결제 만료로 서버가 정지됐어요. 갱신하지 않으면 곧 삭제돼요.</>
+                  <><Ban size={16} className="text-red shrink-0" /> 만료로 서버가 정지됐어요. 갱신하지 않으면 곧 삭제돼요.</>
+                ) : server.isFreeServer ? (
+                  <><Clock size={16} className="text-yellow shrink-0" /> 무료 서버는 7일마다 갱신이 필요해요 — {daysLeft}일 남았어요.</>
                 ) : (
                   <><Clock size={16} className="text-yellow shrink-0" /> 다음 결제일이 {daysLeft}일 남았어요.</>
                 )}
               </p>
               <button onClick={renew} disabled={renewing} className="btn-primary px-4 py-1.5 text-sm mt-2">
-                {renewing ? "처리 중..." : "지금 갱신하기"}
+                {renewing ? "처리 중..." : server.isFreeServer ? "지금 7일 연장하기" : "지금 갱신하기"}
               </button>
               {renewError && <p className="text-xs text-red mt-1">{renewError}</p>}
             </>
@@ -215,6 +224,8 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
       </div>
 
       <CustomDomainCard serverId={server.id} isOwner={server.isOwner} initial={server.customDomains} />
+
+      {server.isFreeServer && <FreeTierAd />}
     </div>
   );
 }

@@ -16,8 +16,12 @@ Cloudflare DNS, 디스코드 봇과 연동합니다.
 - **플레이어 관리**: 화이트리스트/OP/밴/킥 (콘솔 명령 + 서버 파일 기반, RCON 불필요)
 - **플러그인/모드**: [Modrinth](https://modrinth.com) 검색·설치, AI도 같은 기능으로 직접 설치 가능
 - **AI 플러그인/모드 메이커**: 서버 상세의 "메이커" 탭에서 원하는 걸 말로 설명하면 AI가 서버
-  버전에 맞춰 Skript 스크립트 또는 바닐라 데이터팩(둘 다 컴파일 불필요)을 만들어 바로 적용.
-  진짜 컴파일된 자바 플러그인/모드는 임의 코드 실행 위험 때문에 의도적으로 지원하지 않음
+  버전에 맞춰 즉시 적용 가능한 형태로 만들어줌. Bukkit API를 제공하는 서버(Paper/Purpur/Spigot은
+  물론 Arclight/Mohist/CatServer/Ketting/Cardboard 같은 Forge·Fabric 하이브리드 로더도 포함)는
+  **실제로 javac로 컴파일되는 자바 플러그인(.jar)**까지 만들어 바로 서버에 올림 — 적용 전 AI가
+  코드를 읽고 위험한 의도가 있는지 검토(generate 시점 + 적용 직전 재검증). 그 외 Skript 스크립트나
+  순정 Forge/Fabric/NeoForge/Vanilla용 바닐라 데이터팩은 컴파일 없이 즉시 적용. 순정 모드 컴파일은
+  ForgeGradle/Fabric Loom/NeoGradle 같은 전용 빌드 체계가 필요해 지원 범위 밖
 - **팀**: 서버별 팀원 초대(Owner/Admin/Moderator/Developer/Viewer)
 - **플랜 변경/갱신/만료 자동화**: 업그레이드·갱신 결제, 결제 만료 D-3/D-1 알림 → 정지 → 7일 후 삭제
 - **관리자**: 전체 서버 강제조치, 로그, 통계(MRR·RAM 판매율 등), 노드 과부하 알림
@@ -353,8 +357,13 @@ src/
     discordNotify.ts       # 게이트웨이 없이 REST로 디스코드 DM 발송 (크론용)
     oauth.ts               # Google/GitHub/Discord OAuth2 직접 구현
     minecraftDatapack.ts   # 데이터팩 pack_format/폴더명 버전 자동 인식
+    minecraftPaperApi.ts   # PaperMC Maven에서 서버 버전에 맞는 paper-api jar 자동 다운로드/캐싱
+    minecraftLoaders.ts    # 로더별 Bukkit API 지원 여부 레지스트리(Paper/Arclight/Mohist/Forge 등)
     ai/                    # AI 챗봇 (tool 정의 + 실행 엔진, OpenRouter)
-    ai/pluginMaker.ts      # AI 플러그인/모드 메이커 — Skript 스크립트/데이터팩 생성 + 서버 적용
+    ai/pluginMaker.ts      # AI 플러그인/모드 메이커 — java_plugin/Skript/데이터팩 중 생성 방식 선택
+    ai/pluginCompiler.ts   # javac로 자바 플러그인 직접 컴파일(빌드 도구 없이) + jar 패키징
+    ai/pluginMakerApply.ts # 생성 결과를 실제 서버에 적용(컴파일+업로드+재시작 또는 파일쓰기+리로드)
+    ai/javaSafety.ts       # 컴파일 전 AI가 자바 소스의 위험한 의도를 검토(generate+적용 직전 2회)
   bot/                     # 디스코드 봇 (공식 서버 전용, 별도 프로세스)
 scripts/
   maintenance-cron.ts      # 결제만료/예약백업/예약재시작/노드알림/입금매칭/선주문재시도 — systemd timer로 주기 실행

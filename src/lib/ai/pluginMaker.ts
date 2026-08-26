@@ -8,7 +8,7 @@ import { reviewJavaSourceSafety } from "@/lib/ai/javaSafety";
  *   - "java_plugin": 실제 컴파일되는 Bukkit/Paper 플러그인(.jar). Paper API를 링크해서 javac로
  *     직접 컴파일한다(빌드 도구 없이). 컴파일된 코드는 Modrinth에서 받은 서드파티 플러그인과
  *     동일하게 고객의 이미 격리된 Pterodactyl 컨테이너 안에서만 실행되므로, 적용 전 반드시
- *     정적 검사 + AI 안전성 검토를 통과해야 한다 (src/lib/ai/javaSafety.ts).
+ *     AI 안전성 검토를 통과해야 한다 (src/lib/ai/javaSafety.ts).
  *   - "skript": Skript 플러그인용 스크립트(.sk). 컴파일 불필요, 즉시 리로드.
  *   - "datapack": 순정 서버에서도 동작하는 바닐라 데이터팩.
  * java_plugin/skript는 Bukkit 계열(Paper/Purpur/Spigot) 서버에서만 의미가 있고,

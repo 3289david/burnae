@@ -29,6 +29,7 @@ export interface PteroServer {
   uuid: string;
   identifier: string;
   name: string;
+  /** null=정상, "installing"=설치중, "install_failed"=설치실패, "suspended" 등 */
   status: string | null;
   node: number;
   allocation: number;
@@ -115,6 +116,8 @@ export async function createServer(params: {
   cpuPercent: number;
   backupSlots: number;
   databases?: number;
+  /** 기본 true. 이전(migrate)처럼 파일을 다 옮기기 전까지 자동 시작을 막아야 할 때 false로 넘긴다 */
+  startOnCompletion?: boolean;
 }): Promise<PteroServer> {
   const created = await applicationRequest<PteroItemResponse<PteroServer>>(
     "/api/application/servers",
@@ -141,7 +144,7 @@ export async function createServer(params: {
           backups: params.backupSlots,
         },
         allocation: { default: params.allocationId },
-        start_on_completion: true,
+        start_on_completion: params.startOnCompletion ?? true,
       }),
     },
   );

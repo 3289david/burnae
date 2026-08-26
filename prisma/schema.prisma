@@ -249,6 +249,8 @@ enum ServerStatus {
   SUSPENDED
   ERROR
   DELETING
+  /// 관리자가 다른 노드로 데이터를 이전하는 중 — 이 동안 콘솔/전원 조작 불가
+  MIGRATING
 }
 
 enum ServerMemberRole {

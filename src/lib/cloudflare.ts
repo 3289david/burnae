@@ -112,6 +112,42 @@ export async function createServerDnsRecords(params: {
   return { aRecordId: aRecord.result.id, srvRecordId: srvRecord.result.id };
 }
 
+/**
+ * 서버가 다른 노드로 이전된 뒤, 기존 A/SRV 레코드가 새 노드의 IP/FQDN/포트를 가리키도록 갱신한다.
+ * 레코드를 지웠다 새로 만들면 그 사이 DNS가 잠깐 끊기므로, PATCH로 내용만 바꿔 끊김을 최소화한다.
+ */
+export async function updateServerDnsRecords(params: {
+  aRecordId: string;
+  srvRecordId: string;
+  subdomain: string;
+  nodePublicIp: string;
+  nodeFqdn: string;
+  port: number;
+}): Promise<void> {
+  const zone = process.env.CLOUDFLARE_SUBDOMAIN_ZONE ?? "krl.kr";
+  const fqdn = `${params.subdomain}.${zone}`;
+
+  await cf(zonePath(`/${params.aRecordId}`), {
+    method: "PATCH",
+    body: JSON.stringify({ content: params.nodePublicIp }),
+  });
+
+  await cf(zonePath(`/${params.srvRecordId}`), {
+    method: "PATCH",
+    body: JSON.stringify({
+      data: {
+        service: "_minecraft",
+        proto: "_tcp",
+        name: fqdn,
+        priority: 0,
+        weight: 5,
+        port: params.port,
+        target: params.nodeFqdn,
+      },
+    }),
+  });
+}
+
 export async function deleteServerDnsRecords(ids: Partial<DnsRecordIds>) {
   const deletions: Promise<unknown>[] = [];
   if (ids.aRecordId) {

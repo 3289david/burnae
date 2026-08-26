@@ -42,3 +42,6 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# AI 플러그인 메이커가 캐싱하는 Paper API jar (빌드 산출물, 커밋 대상 아님)
+/.cache

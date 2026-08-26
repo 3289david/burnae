@@ -15,6 +15,9 @@ Cloudflare DNS, 디스코드 봇과 연동합니다.
 - **로그인**: Google/GitHub/Discord OAuth 전용 (비밀번호 없음). 관리자는 `ADMIN_EMAIL` 한 명으로 고정
 - **플레이어 관리**: 화이트리스트/OP/밴/킥 (콘솔 명령 + 서버 파일 기반, RCON 불필요)
 - **플러그인/모드**: [Modrinth](https://modrinth.com) 검색·설치, AI도 같은 기능으로 직접 설치 가능
+- **AI 플러그인/모드 메이커**: 서버 상세의 "메이커" 탭에서 원하는 걸 말로 설명하면 AI가 서버
+  버전에 맞춰 Skript 스크립트 또는 바닐라 데이터팩(둘 다 컴파일 불필요)을 만들어 바로 적용.
+  진짜 컴파일된 자바 플러그인/모드는 임의 코드 실행 위험 때문에 의도적으로 지원하지 않음
 - **팀**: 서버별 팀원 초대(Owner/Admin/Moderator/Developer/Viewer)
 - **플랜 변경/갱신/만료 자동화**: 업그레이드·갱신 결제, 결제 만료 D-3/D-1 알림 → 정지 → 7일 후 삭제
 - **관리자**: 전체 서버 강제조치, 로그, 통계(MRR·RAM 판매율 등), 노드 과부하 알림
@@ -349,7 +352,9 @@ src/
     modrinth.ts            # 플러그인/모드 검색·다운로드 (Modrinth API)
     discordNotify.ts       # 게이트웨이 없이 REST로 디스코드 DM 발송 (크론용)
     oauth.ts               # Google/GitHub/Discord OAuth2 직접 구현
+    minecraftDatapack.ts   # 데이터팩 pack_format/폴더명 버전 자동 인식
     ai/                    # AI 챗봇 (tool 정의 + 실행 엔진, OpenRouter)
+    ai/pluginMaker.ts      # AI 플러그인/모드 메이커 — Skript 스크립트/데이터팩 생성 + 서버 적용
   bot/                     # 디스코드 봇 (공식 서버 전용, 별도 프로세스)
 scripts/
   maintenance-cron.ts      # 결제만료/예약백업/예약재시작/노드알림/입금매칭/선주문재시도 — systemd timer로 주기 실행

@@ -3,7 +3,8 @@
 # Burnae 호스팅 플랫폼 — Ubuntu 22.04+ 서버 초기 설정 스크립트
 #
 # 이 스크립트가 자동으로 하는 것:
-#   - Node.js 22, PostgreSQL, Nginx, certbot 설치
+#   - Node.js 22, PostgreSQL, Nginx, certbot, JDK(AI 플러그인 메이커가 Bukkit/Paper 플러그인을
+#     javac로 직접 컴파일하는 데 필요) 설치
 #   - burnae 시스템 유저 + PostgreSQL DB 생성
 #   - 앱 배치(/opt/burnae), .env 뼈대 생성(AUTH_SECRET 자동 생성)
 #   - npm install / prisma migrate deploy / build
@@ -33,7 +34,7 @@ die() { printf '\033[1;31m✗ %s\033[0m\n' "$1" >&2; exit 1; }
 
 log "1/8 시스템 패키지 설치"
 apt-get update -y
-apt-get install -y ca-certificates curl gnupg postgresql nginx certbot python3-certbot-nginx git
+apt-get install -y ca-certificates curl gnupg postgresql nginx certbot python3-certbot-nginx git default-jdk-headless
 
 if ! command -v node >/dev/null 2>&1 || [ "$(node -v | sed 's/v//' | cut -d. -f1)" -lt 22 ]; then
   log "Node.js 22.x 설치"

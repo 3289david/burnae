@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import {
-  LayoutGrid, Terminal, Users, Puzzle, Folder, RefreshCw, UserPlus, Settings, Bot,
+  LayoutGrid, Terminal, Users, Puzzle, Folder, RefreshCw, UserPlus, Settings, Bot, Wand2,
 } from "lucide-react";
 import OverviewTab from "./OverviewTab";
 import ConsoleTab from "./ConsoleTab";
@@ -13,6 +13,7 @@ import BackupsTab from "./BackupsTab";
 import TeamTab from "./TeamTab";
 import SettingsTab from "./SettingsTab";
 import AiTab from "./AiTab";
+import PluginMakerTab from "./PluginMakerTab";
 
 export interface ServerSubdomainInfo {
   id: string;
@@ -55,6 +56,7 @@ const TABS = [
   { key: "console", label: "콘솔", icon: Terminal },
   { key: "players", label: "플레이어", icon: Users },
   { key: "plugins", label: "플러그인", icon: Puzzle },
+  { key: "maker", label: "메이커", icon: Wand2 },
   { key: "files", label: "파일", icon: Folder },
   { key: "backups", label: "백업", icon: RefreshCw },
   { key: "team", label: "팀", icon: UserPlus },
@@ -99,6 +101,7 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
         {tab === "console" && <ConsoleTab serverId={server.id} />}
         {tab === "players" && <PlayersTab serverId={server.id} />}
         {tab === "plugins" && <PluginsTab serverId={server.id} />}
+        {tab === "maker" && <PluginMakerTab serverId={server.id} />}
         {tab === "files" && <FilesTab serverId={server.id} />}
         {tab === "backups" && <BackupsTab serverId={server.id} backupSlots={server.backupSlots} />}
         {tab === "team" && <TeamTab serverId={server.id} isOwner={server.isOwner} />}

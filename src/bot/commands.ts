@@ -492,9 +492,11 @@ async function handleNotificationSettings(interaction: ChatInputCommandInteracti
 /** 규칙 인증 버튼 / 알림 구독 토글 버튼 — index.ts의 InteractionCreate에서 호출한다 */
 export async function handleButton(interaction: ButtonInteraction) {
   if (interaction.customId === "verify_rules") return handleVerifyButton(interaction);
+  if (interaction.customId.startsWith("verify_ans_")) return handleVerifyCaptchaAnswer(interaction);
   if (interaction.customId === "toggle_subscriber") return handleSubscriberToggle(interaction);
 }
 
+/** 규칙 인증 1단계: 역할을 바로 주지 않고 간단한 계산 캡챠를 먼저 보여준다(단순 자동클릭봇 방지) */
 async function handleVerifyButton(interaction: ButtonInteraction) {
   const settings = await prisma.botSettings.findUnique({ where: { id: 1 } });
   if (!settings?.verifiedRoleId) {
@@ -503,17 +505,58 @@ async function handleVerifyButton(interaction: ButtonInteraction) {
   }
   if (!interaction.inGuild()) return;
 
+  const member = await interaction.guild!.members.fetch(interaction.user.id);
+  if (member.roles.cache.has(settings.verifiedRoleId)) {
+    await interaction.reply({ content: "이미 인증되어 있어요!", ephemeral: true });
+    return;
+  }
+
+  const a = 1 + Math.floor(Math.random() * 9);
+  const b = 1 + Math.floor(Math.random() * 9);
+  const correct = a + b;
+  const options = new Set<number>([correct]);
+  while (options.size < 4) {
+    options.add(Math.max(2, correct + Math.floor(Math.random() * 11) - 5));
+  }
+  const shuffled = [...options].sort(() => Math.random() - 0.5);
+
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    shuffled.map((v) =>
+      new ButtonBuilder().setCustomId(`verify_ans_${v}_${correct}`).setLabel(String(v)).setStyle(ButtonStyle.Secondary),
+    ),
+  );
+  await interaction.reply({
+    content: `🤖 사람인지 확인할게요! **${a} + ${b} = ?**`,
+    components: [row],
+    ephemeral: true,
+  });
+}
+
+/** 규칙 인증 2단계: 캡챠 정답을 확인하고 맞으면 역할을 부여한다 */
+async function handleVerifyCaptchaAnswer(interaction: ButtonInteraction) {
+  const [, , valueStr, correctStr] = interaction.customId.split("_");
+  if (valueStr !== correctStr) {
+    await interaction.update({ content: "❌ 틀렸어요. 다시 인증 채널에서 인증 버튼을 눌러주세요.", components: [] });
+    return;
+  }
+
+  const settings = await prisma.botSettings.findUnique({ where: { id: 1 } });
+  if (!settings?.verifiedRoleId || !interaction.inGuild()) {
+    await interaction.update({ content: "아직 인증 역할이 설정되지 않았어요. 관리자에게 문의해주세요.", components: [] });
+    return;
+  }
+
   try {
     const member = await interaction.guild!.members.fetch(interaction.user.id);
     if (member.roles.cache.has(settings.verifiedRoleId)) {
-      await interaction.reply({ content: "이미 인증되어 있어요!", ephemeral: true });
+      await interaction.update({ content: "이미 인증되어 있어요!", components: [] });
       return;
     }
     await member.roles.add(settings.verifiedRoleId);
-    await interaction.reply({ content: "✅ 인증이 완료됐어요. 환영합니다!", ephemeral: true });
+    await interaction.update({ content: "✅ 인증이 완료됐어요. 환영합니다!", components: [] });
   } catch (err) {
     console.error("[bot] 인증 역할 부여 실패:", err);
-    await interaction.reply({ content: "역할 부여에 실패했어요. 관리자에게 문의해주세요.", ephemeral: true });
+    await interaction.update({ content: "역할 부여에 실패했어요. 관리자에게 문의해주세요.", components: [] });
   }
 }
 

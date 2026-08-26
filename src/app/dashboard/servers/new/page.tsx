@@ -38,9 +38,10 @@ export default function NewServerPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const [order, setOrder] = useState<{ id: string; amountKrw: number; depositorName: string } | null>(null);
+  const [order, setOrder] = useState<{ id: string; amountKrw: number; depositorName: string; isPreorder: boolean } | null>(null);
   const [bank, setBank] = useState<BankAccount | null>(null);
   const [paid, setPaid] = useState(false);
+  const [stillWaitingForNode, setStillWaitingForNode] = useState(false);
 
   useEffect(() => {
     fetch("/api/catalog/products")
@@ -113,6 +114,11 @@ export default function NewServerPage() {
       if (data.status === "PAID") {
         setPaid(true);
         clearInterval(interval);
+        if (!data.serverId && data.preorderWaiting) {
+          setStillWaitingForNode(true);
+          setTimeout(() => router.push("/dashboard/billing"), 2500);
+          return;
+        }
         setTimeout(() => {
           if (data.serverId) router.push(`/dashboard/servers/${data.serverId}`);
           else router.push("/dashboard");
@@ -130,10 +136,20 @@ export default function NewServerPage() {
           <div className="card mt-6 p-6 text-center">
             <CheckCircle2 size={36} className="mx-auto text-green" />
             <p className="mt-2 font-semibold">입금이 확인됐어요!</p>
-            <p className="text-sm text-text-dim mt-1">서버를 만들고 있어요. 잠시만 기다려주세요...</p>
+            <p className="text-sm text-text-dim mt-1">
+              {stillWaitingForNode
+                ? "지금은 배치할 노드 자리가 없어서 선주문으로 접수됐어요. 자리가 나는 대로 자동으로 서버가 생성돼요."
+                : "서버를 만들고 있어요. 잠시만 기다려주세요..."}
+            </p>
           </div>
         ) : (
           <div className="card mt-6 p-6 space-y-3">
+            {order.isPreorder && (
+              <p className="text-xs bg-yellow/10 border border-yellow/30 text-yellow rounded-lg px-3 py-2">
+                지금은 이 플랜의 여유 자리가 없어서 선주문으로 진행돼요. 결제가 확인되면 자리가 나는
+                대로 자동으로 서버가 생성됩니다.
+              </p>
+            )}
             {bank && (
               <>
                 <Row label="은행" value={bank.bankName} />

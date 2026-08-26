@@ -221,3 +221,58 @@ export async function listNodes(): Promise<PteroNode[]> {
   );
   return res.data.map((d) => d.attributes);
 }
+
+export interface PteroNest {
+  id: number;
+  name: string;
+  description: string | null;
+}
+
+export interface PteroEggSummary {
+  id: number;
+  nest: number;
+  name: string;
+  description: string | null;
+}
+
+export interface PteroEggVariable {
+  name: string;
+  description: string;
+  env_variable: string;
+  default_value: string;
+  user_editable: boolean;
+}
+
+export interface PteroEggDetail {
+  id: number;
+  nest: number;
+  name: string;
+  description: string | null;
+  /** { "Java 21": "ghcr.io/pterodactyl/yolks:java_21", ... } — 라벨을 곧 "자바 버전 선택지"로 쓴다 */
+  docker_images: Record<string, string>;
+  startup: string;
+  relationships?: { variables?: PteroListResponse<PteroEggVariable> };
+}
+
+/** Admin → Nests 화면과 동일한 목록. 관리자가 Nest ID를 몰라도 이름으로 고를 수 있게 해준다 */
+export async function listNests(): Promise<PteroNest[]> {
+  const res = await applicationRequest<PteroListResponse<PteroNest>>(
+    "/api/application/nests?per_page=100",
+  );
+  return res.data.map((d) => d.attributes);
+}
+
+export async function listEggs(nestId: number): Promise<PteroEggSummary[]> {
+  const res = await applicationRequest<PteroListResponse<PteroEggSummary>>(
+    `/api/application/nests/${nestId}/eggs?per_page=100`,
+  );
+  return res.data.map((d) => d.attributes);
+}
+
+/** docker_images(=자바 버전 선택지), startup 명령어, 변수 기본값까지 한 번에 가져와서 관리자가 손으로 안 채워도 되게 한다 */
+export async function getEgg(nestId: number, eggId: number): Promise<PteroEggDetail> {
+  const res = await applicationRequest<PteroItemResponse<PteroEggDetail>>(
+    `/api/application/nests/${nestId}/eggs/${eggId}?include=variables`,
+  );
+  return res.attributes;
+}

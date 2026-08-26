@@ -16,11 +16,10 @@ export const MAX_SUBDOMAINS_PER_SERVER = 2;
 export const CPU_PERCENT_PER_CORE = 100;
 
 /**
- * 리소스 여유가 가장 많은 노드를 선택한다.
- * 여러 노드가 등록돼 있으면 RAM/디스크/CPU 여유를 모두 감안해 배치 가능한 노드 중
- * RAM 여유가 가장 큰 곳을 고른다 — 노드 하나가 꽉 차면 자동으로 다음 노드로 넘어간다.
+ * 요청한 RAM/디스크/CPU를 배치할 수 있는 노드 후보를 여유 RAM이 많은 순으로 정렬해 반환한다.
+ * 온라인 + 자동배치 켜진 노드만 대상으로 한다.
  */
-async function selectNode(ramMb: number, diskMb: number, cpuPercent: number) {
+async function findCapacityCandidates(ramMb: number, diskMb: number, cpuPercent: number) {
   const nodes = await prisma.hostNode.findMany({
     where: { status: "ONLINE", autoDeployEnabled: true },
   });
@@ -37,7 +36,7 @@ async function selectNode(ramMb: number, diskMb: number, cpuPercent: number) {
     ]),
   );
 
-  const candidates = nodes
+  return nodes
     .map((node) => {
       const used = usageMap.get(node.id) ?? { ram: 0, disk: 0, cpu: 0 };
       const freeRam = node.totalRamMb - node.reservedRamMb - used.ram;
@@ -47,13 +46,27 @@ async function selectNode(ramMb: number, diskMb: number, cpuPercent: number) {
     })
     .filter((c) => c.freeRam >= ramMb && c.freeDisk >= diskMb && c.freeCpu >= cpuPercent)
     .sort((a, b) => b.freeRam - a.freeRam);
+}
 
+/**
+ * 리소스 여유가 가장 많은 노드를 선택한다.
+ * 여러 노드가 등록돼 있으면 RAM/디스크/CPU 여유를 모두 감안해 배치 가능한 노드 중
+ * RAM 여유가 가장 큰 곳을 고른다 — 노드 하나가 꽉 차면 자동으로 다음 노드로 넘어간다.
+ */
+async function selectNode(ramMb: number, diskMb: number, cpuPercent: number) {
+  const candidates = await findCapacityCandidates(ramMb, diskMb, cpuPercent);
   if (candidates.length === 0) {
     throw new ProvisioningError(
       "현재 요청한 리소스를 배치할 수 있는 노드가 없습니다. 관리자에게 문의해주세요.",
     );
   }
   return candidates[0].node;
+}
+
+/** 지금 이 리소스를 배치할 수 있는 노드가 하나라도 있는지만 확인 (주문 생성 시 선주문 여부 판단용) */
+export async function hasNodeCapacity(ramMb: number, diskMb: number, cpuPercent: number): Promise<boolean> {
+  const candidates = await findCapacityCandidates(ramMb, diskMb, cpuPercent);
+  return candidates.length > 0;
 }
 
 /**

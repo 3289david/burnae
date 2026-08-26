@@ -7,11 +7,46 @@ import { resolveDepositorName } from "@/lib/hanabank";
 import { PteroApp, PteroClient } from "@/lib/pterodactyl";
 import { getNodeFreeCapacity } from "@/lib/provisioning";
 
-const schema = z.object({ productId: z.string() });
+const schema = z.object({ productId: z.string(), usePoints: z.boolean().optional() });
+
+async function applyPlanChange(
+  server: { id: string; pterodactylServerId: number | null; pterodactylIdentifier: string | null; productId: string },
+  targetProduct: { id: string; ramMb: number; diskMb: number; cpuPercent: number; backupSlots: number },
+  actorUserId: string,
+  extraMetadata: Record<string, unknown>,
+) {
+  await PteroApp.updateServerBuild(server.pterodactylServerId!, {
+    memoryMb: targetProduct.ramMb,
+    diskMb: targetProduct.diskMb,
+    cpuPercent: targetProduct.cpuPercent,
+    backupSlots: targetProduct.backupSlots,
+  });
+  await prisma.server.update({
+    where: { id: server.id },
+    data: {
+      productId: targetProduct.id,
+      ramMb: targetProduct.ramMb,
+      diskMb: targetProduct.diskMb,
+      cpuPercent: targetProduct.cpuPercent,
+      backupSlots: targetProduct.backupSlots,
+    },
+  });
+  await PteroClient.sendPowerAction(server.pterodactylIdentifier!, "restart");
+  await prisma.auditLog.create({
+    data: {
+      actorUserId,
+      action: "SERVER_PLAN_CHANGED",
+      targetType: "Server",
+      targetId: server.id,
+      metadata: { from: server.productId, to: targetProduct.id, ...extraMetadata },
+    },
+  });
+}
 
 /**
- * 플랜 변경. 더 비싼 플랜이면 차액을 결제해야 적용되고(webhook에서 실제 리소스 조정),
- * 더 싸거나 같은 플랜이면 환불 없이 즉시 적용한다.
+ * 플랜 변경. 더 비싼 플랜이면 차액을 결제해야 적용되고(웹훅에서 실제 리소스 조정),
+ * 더 싸거나 같은 플랜이면 환불 없이 즉시 적용한다. 대상 플랜이 홍보 포인트로 교환 가능한
+ * 상품(pointsRedeemable)이면 결제 대신 포인트를 차감하고 바로 적용할 수도 있다.
  */
 export async function POST(
   request: Request,
@@ -59,6 +94,27 @@ export async function POST(
     );
   }
 
+  if (parsed.data.usePoints) {
+    if (!targetProduct.pointsRedeemable || targetProduct.pointsCost == null) {
+      return NextResponse.json({ error: "포인트로 교환할 수 없는 플랜이에요." }, { status: 422 });
+    }
+    const fresh = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
+    if (fresh.promotionPoints < targetProduct.pointsCost) {
+      return NextResponse.json({ error: "포인트가 부족해요." }, { status: 422 });
+    }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { promotionPoints: { decrement: targetProduct.pointsCost } },
+    });
+    await applyPlanChange(server, targetProduct, user.id, {
+      via: "points",
+      pointsSpent: targetProduct.pointsCost,
+    });
+
+    return NextResponse.json({ requiresPayment: false, applied: true, pointsSpent: targetProduct.pointsCost });
+  }
+
   const priceDiff = targetProduct.priceMonthlyKrw - server.product.priceMonthlyKrw;
 
   if (priceDiff > 0) {
@@ -88,32 +144,7 @@ export async function POST(
   }
 
   // 다운그레이드 또는 동일 가격 — 환불 없이 즉시 적용
-  await PteroApp.updateServerBuild(server.pterodactylServerId, {
-    memoryMb: targetProduct.ramMb,
-    diskMb: targetProduct.diskMb,
-    cpuPercent: targetProduct.cpuPercent,
-    backupSlots: targetProduct.backupSlots,
-  });
-  await prisma.server.update({
-    where: { id: server.id },
-    data: {
-      productId: targetProduct.id,
-      ramMb: targetProduct.ramMb,
-      diskMb: targetProduct.diskMb,
-      cpuPercent: targetProduct.cpuPercent,
-      backupSlots: targetProduct.backupSlots,
-    },
-  });
-  await PteroClient.sendPowerAction(server.pterodactylIdentifier, "restart");
-  await prisma.auditLog.create({
-    data: {
-      actorUserId: user.id,
-      action: "SERVER_PLAN_CHANGED",
-      targetType: "Server",
-      targetId: server.id,
-      metadata: { from: server.productId, to: targetProduct.id, priceDiff },
-    },
-  });
+  await applyPlanChange(server, targetProduct, user.id, { priceDiff });
 
   return NextResponse.json({ requiresPayment: false, applied: true });
 }

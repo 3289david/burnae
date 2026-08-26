@@ -14,6 +14,7 @@ interface Product {
   active: boolean;
   pointsRedeemable: boolean;
   pointsCost: number | null;
+  preorderPriceKrw: number | null;
   allowedTemplates: Template[];
 }
 
@@ -27,6 +28,7 @@ const empty = {
   allowedTemplateIds: [] as string[],
   pointsRedeemable: false,
   pointsCost: 1000,
+  preorderPriceKrw: "" as number | "",
 };
 
 export default function AdminProductsPage() {
@@ -64,6 +66,7 @@ export default function AdminProductsPage() {
           allowedTemplateIds: form.allowedTemplateIds,
           pointsRedeemable: form.pointsRedeemable,
           pointsCost: form.pointsRedeemable ? form.pointsCost : undefined,
+          preorderPriceKrw: form.preorderPriceKrw === "" ? undefined : form.preorderPriceKrw,
         }),
       });
       const data = await res.json();
@@ -86,14 +89,23 @@ export default function AdminProductsPage() {
     await load();
   }
 
+  async function updatePreorderPrice(id: string, value: string) {
+    await fetch(`/api/admin/products/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ preorderPriceKrw: value === "" ? null : Number(value) }),
+    });
+    await load();
+  }
+
   return (
     <div>
       <h1 className="text-2xl font-bold">상품</h1>
 
       <div className="mt-6 space-y-2">
         {products.map((p) => (
-          <div key={p.id} className="card p-4 flex items-center justify-between">
-            <div>
+          <div key={p.id} className="card p-4 flex items-center justify-between flex-wrap gap-2">
+            <div className="min-w-0">
               <p className="font-medium">
                 {p.name} {!p.active && <span className="text-text-dim text-xs">(비활성)</span>}
                 {p.pointsRedeemable && <span className="text-accent text-xs ml-1">(포인트 {p.pointsCost?.toLocaleString()}P 교환)</span>}
@@ -103,9 +115,21 @@ export default function AdminProductsPage() {
                 백업 {p.backupSlots}개 · {p.priceMonthlyKrw.toLocaleString()}원/월 · {p.allowedTemplates.map((t) => t.displayName).join(", ")}
               </p>
             </div>
-            <button onClick={() => toggleActive(p.id, !p.active)} className="btn-secondary px-3 py-1.5 text-sm">
-              {p.active ? "비활성화" : "활성화"}
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <label className="text-xs text-text-dim flex items-center gap-1">
+                선주문가(원)
+                <input
+                  type="number"
+                  placeholder="정가와 동일"
+                  defaultValue={p.preorderPriceKrw ?? ""}
+                  onBlur={(e) => updatePreorderPrice(p.id, e.target.value)}
+                  className="input w-24 text-sm"
+                />
+              </label>
+              <button onClick={() => toggleActive(p.id, !p.active)} className="btn-secondary px-3 py-1.5 text-sm">
+                {p.active ? "비활성화" : "활성화"}
+              </button>
+            </div>
           </div>
         ))}
       </div>
@@ -122,6 +146,16 @@ export default function AdminProductsPage() {
           <NumField label="디스크 (GB)" value={form.diskGb} onChange={(v) => setForm({ ...form, diskGb: v })} />
           <NumField label="백업 슬롯" value={form.backupSlots} onChange={(v) => setForm({ ...form, backupSlots: v })} />
           <NumField label="월 가격 (원)" value={form.priceMonthlyKrw} onChange={(v) => setForm({ ...form, priceMonthlyKrw: v })} />
+          <div>
+            <label className="text-sm text-text-dim">선주문가 (원, 선택)</label>
+            <input
+              type="number"
+              placeholder="비우면 정가와 동일"
+              className="input w-full mt-1"
+              value={form.preorderPriceKrw}
+              onChange={(e) => setForm({ ...form, preorderPriceKrw: e.target.value === "" ? "" : Number(e.target.value) })}
+            />
+          </div>
         </div>
         <div>
           <label className="text-sm text-text-dim">선택 가능한 서버 종류</label>

@@ -150,6 +150,9 @@ model HostingSettings {
   siteName               String   @default("Burnae")
   siteDomain             String   @default("burnae.kr")
   subdomainZone          String   @default("krl.kr")
+  /// true면 노드 자리가 나는 대로 크론이 선주문을 자동 배치. false면 관리자가 /admin/preorders에서
+  /// 직접 "지금 배치하기"를 눌러야만 처리됨
+  preorderAutoFulfillEnabled Boolean @default(true)
   updatedAt              DateTime @updatedAt
 
   @@map("hosting_settings")
@@ -171,6 +174,8 @@ model Product {
   pointsRedeemable  Boolean  @default(false)
   /// pointsRedeemable이 true일 때 필요한 포인트
   pointsCost        Int?
+  /// 주문 시점에 자리가 없어 "선주문"이 되는 경우 적용할 가격. null이면 priceMonthlyKrw 그대로 사용
+  preorderPriceKrw  Int?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -222,6 +227,9 @@ model Order {
   minecraftVersionRequested String?
   /// 결제(또는 포인트 교환)는 끝났지만 노드 여유 공간이 없어서 서버 생성을 대기 중인 "선주문" 상태
   preorderWaiting           Boolean     @default(false)
+  /// 주문 시점부터 이미 "선주문"으로 안내되고 진행된 주문인지 (preorderPriceKrw 적용 여부 판단용).
+  /// preorderWaiting은 이후 자리가 나면 false로 풀리지만, isPreorder는 기록으로 계속 남는다
+  isPreorder                Boolean     @default(false)
   createdAt                 DateTime    @default(now())
 
   @@index([userId])

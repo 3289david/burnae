@@ -232,6 +232,20 @@ export default async function HomePage() {
               ))}
             </div>
           )}
+
+          <div className="card-glow mt-8 p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-5 border-accent">
+            <div>
+              <span className="text-xs font-semibold text-accent bg-accent/10 rounded-full px-3 py-1">무료</span>
+              <h3 className="mt-3 text-xl font-bold font-display">돈 안 내고도 서버를 만들 수 있어요</h3>
+              <p className="mt-2 text-sm text-text-dim max-w-md">
+                친구 추천, 공식 디스코드 가입, 블로그·영상으로 홍보하기 등 다양한 방법으로 포인트를
+                모으면 무료 체험 서버를 바로 받을 수 있어요. 모은 포인트는 서버 업그레이드에도 쓸 수 있어요.
+              </p>
+            </div>
+            <Link href="/register" className="btn-primary px-6 py-3 text-sm shrink-0">
+              무료로 시작하기
+            </Link>
+          </div>
         </section>
 
         {/* ── FAQ ───────────────────────────────────── */}

@@ -12,7 +12,16 @@ export async function GET(
   const { id } = await params;
   const order = await prisma.order.findFirst({
     where: { id, userId: user.id },
-    select: { id: true, status: true, serverId: true, amountKrw: true, depositorName: true, expiresAt: true },
+    select: {
+      id: true,
+      status: true,
+      serverId: true,
+      amountKrw: true,
+      depositorName: true,
+      expiresAt: true,
+      isPreorder: true,
+      preorderWaiting: true,
+    },
   });
   if (!order) return NextResponse.json({ error: "주문을 찾을 수 없습니다." }, { status: 404 });
   return NextResponse.json(order);

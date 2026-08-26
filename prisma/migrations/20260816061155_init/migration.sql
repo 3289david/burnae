@@ -131,6 +131,7 @@ CREATE TABLE "hosting_settings" (
     "siteName" TEXT NOT NULL DEFAULT 'Burnae',
     "siteDomain" TEXT NOT NULL DEFAULT 'burnae.kr',
     "subdomainZone" TEXT NOT NULL DEFAULT 'krl.kr',
+    "preorderAutoFulfillEnabled" BOOLEAN NOT NULL DEFAULT true,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "hosting_settings_pkey" PRIMARY KEY ("id")
@@ -151,6 +152,7 @@ CREATE TABLE "Product" (
     "sortOrder" INTEGER NOT NULL DEFAULT 0,
     "pointsRedeemable" BOOLEAN NOT NULL DEFAULT false,
     "pointsCost" INTEGER,
+    "preorderPriceKrw" INTEGER,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -175,6 +177,7 @@ CREATE TABLE "Order" (
     "templateIdRequested" TEXT,
     "minecraftVersionRequested" TEXT,
     "preorderWaiting" BOOLEAN NOT NULL DEFAULT false,
+    "isPreorder" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Order_pkey" PRIMARY KEY ("id")

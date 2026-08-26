@@ -27,6 +27,7 @@ const schema = z.object({
   sortOrder: z.number().int().default(0),
   pointsRedeemable: z.boolean().default(false),
   pointsCost: z.number().int().min(0).optional(),
+  preorderPriceKrw: z.number().int().min(0).optional(),
 });
 
 export async function POST(request: Request) {

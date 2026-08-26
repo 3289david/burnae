@@ -15,6 +15,7 @@ interface Settings {
   siteName: string;
   siteDomain: string;
   subdomainZone: string;
+  preorderAutoFulfillEnabled: boolean;
 }
 
 const FIELDS: { key: keyof Settings; label: string; type: "number" | "text" }[] = [
@@ -80,6 +81,21 @@ export default function AdminSettingsPage() {
             />
           </div>
         ))}
+      </div>
+
+      <div className="card p-5 mt-4">
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={settings.preorderAutoFulfillEnabled}
+            onChange={(e) => setSettings({ ...settings, preorderAutoFulfillEnabled: e.target.checked })}
+          />
+          선주문 자동 처리
+        </label>
+        <p className="text-xs text-text-dim mt-1">
+          켜두면 노드에 자리가 나는 대로 크론이 선주문을 자동으로 서버로 생성해요. 끄면 자동으로는
+          처리하지 않고, <code>/admin/preorders</code>에서 관리자가 직접 확인하고 배치해야 해요.
+        </p>
       </div>
 
       <div className="mt-4 flex items-center gap-3">

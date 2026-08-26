@@ -267,6 +267,12 @@ async function handleHanaBankMatching() {
  * 주문을 다시 배치해본다. 노드가 증설되거나 다른 서버가 삭제돼 자리가 나면 자동으로 풀린다.
  */
 async function handlePreorderRetries() {
+  const settings = await prisma.hostingSettings.findUnique({ where: { id: 1 } });
+  if (settings && !settings.preorderAutoFulfillEnabled) {
+    console.log("[cron] 선주문 자동 처리가 꺼져 있어요 — 관리자가 /admin/preorders에서 직접 처리해야 함");
+    return;
+  }
+
   const waiting = await prisma.order.findMany({
     where: { preorderWaiting: true, status: "PAID", serverId: null },
   });

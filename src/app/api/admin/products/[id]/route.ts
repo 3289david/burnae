@@ -17,6 +17,7 @@ const schema = z.object({
   allowedTemplateIds: z.array(z.string()).optional(),
   pointsRedeemable: z.boolean().optional(),
   pointsCost: z.number().int().min(0).optional(),
+  preorderPriceKrw: z.number().int().min(0).nullable().optional(),
 });
 
 export async function PUT(

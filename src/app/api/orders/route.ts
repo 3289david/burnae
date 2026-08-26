@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { resolveDepositorName, isValidDepositorName } from "@/lib/hanabank";
+import { hasNodeCapacity } from "@/lib/provisioning";
 
 const schema = z.object({
   productId: z.string(),
@@ -53,6 +54,12 @@ export async function POST(request: Request) {
     );
   }
 
+  // 지금 이 상품을 배치할 노드 자리가 없으면 "선주문"으로 진행 — 가격은 관리자가 상품별로 따로
+  // 지정한 선주문가(preorderPriceKrw)가 있으면 그걸, 없으면 정가를 그대로 쓴다.
+  const hasCapacity = await hasNodeCapacity(product.ramMb, product.diskMb, product.cpuPercent);
+  const isPreorder = !hasCapacity;
+  const basePrice = isPreorder && product.preorderPriceKrw != null ? product.preorderPriceKrw : product.priceMonthlyKrw;
+
   let discountKrw = 0;
   let couponId: string | undefined;
   if (input.couponCode) {
@@ -64,7 +71,7 @@ export async function POST(request: Request) {
       (!coupon.startsAt || coupon.startsAt <= now) &&
       (!coupon.expiresAt || coupon.expiresAt >= now) &&
       (!coupon.maxUses || coupon.usedCount < coupon.maxUses) &&
-      product.priceMonthlyKrw >= coupon.minOrderKrw;
+      basePrice >= coupon.minOrderKrw;
     if (!valid) {
       return NextResponse.json(
         { error: "사용할 수 없는 쿠폰 코드입니다." },
@@ -83,9 +90,9 @@ export async function POST(request: Request) {
     couponId = coupon!.id;
     discountKrw =
       coupon!.discountType === "PERCENT"
-        ? Math.floor((product.priceMonthlyKrw * coupon!.discountValue) / 100)
+        ? Math.floor((basePrice * coupon!.discountValue) / 100)
         : coupon!.discountValue;
-    discountKrw = Math.min(discountKrw, product.priceMonthlyKrw - 100);
+    discountKrw = Math.min(discountKrw, basePrice - 100);
   }
 
   if (input.depositorName && !isValidDepositorName(input.depositorName)) {
@@ -95,7 +102,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const amountKrw = product.priceMonthlyKrw - discountKrw;
+  const amountKrw = basePrice - discountKrw;
   const depositorName = input.depositorName ?? resolveDepositorName(user);
 
   const collidingPending = await prisma.order.findFirst({
@@ -117,6 +124,7 @@ export async function POST(request: Request) {
       discountKrw,
       couponId,
       depositorName,
+      isPreorder,
       serverNameRequested: input.serverName,
       templateIdRequested: input.templateId,
       minecraftVersionRequested: input.minecraftVersion,

@@ -15,6 +15,7 @@ interface Product {
   pointsRedeemable: boolean;
   pointsCost: number | null;
   preorderPriceKrw: number | null;
+  aiCreditsPerMonth: number;
   allowedTemplates: Template[];
 }
 
@@ -29,6 +30,7 @@ const empty = {
   pointsRedeemable: false,
   pointsCost: 1000,
   preorderPriceKrw: "" as number | "",
+  aiCreditsPerMonth: 0,
 };
 
 export default function AdminProductsPage() {
@@ -67,6 +69,7 @@ export default function AdminProductsPage() {
           pointsRedeemable: form.pointsRedeemable,
           pointsCost: form.pointsRedeemable ? form.pointsCost : undefined,
           preorderPriceKrw: form.preorderPriceKrw === "" ? undefined : form.preorderPriceKrw,
+          aiCreditsPerMonth: form.aiCreditsPerMonth,
         }),
       });
       const data = await res.json();
@@ -98,6 +101,23 @@ export default function AdminProductsPage() {
     await load();
   }
 
+  async function updateAiCredits(id: string, value: string) {
+    await fetch(`/api/admin/products/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ aiCreditsPerMonth: value === "" ? 0 : Number(value) }),
+    });
+    await load();
+  }
+
+  async function deleteProduct(id: string, name: string) {
+    if (!confirm(`"${name}" 상품을 삭제할까요?`)) return;
+    const res = await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
+    const data = await res.json().catch(() => null);
+    if (data?.message) alert(data.message);
+    await load();
+  }
+
   return (
     <div>
       <h1 className="text-2xl font-bold">상품</h1>
@@ -112,7 +132,8 @@ export default function AdminProductsPage() {
               </p>
               <p className="text-xs text-text-dim mt-0.5">
                 RAM {(p.ramMb / 1024).toFixed(1)}GB · CPU {p.cpuPercent}% · 디스크 {(p.diskMb / 1024).toFixed(1)}GB ·
-                백업 {p.backupSlots}개 · {p.priceMonthlyKrw.toLocaleString()}원/월 · {p.allowedTemplates.map((t) => t.displayName).join(", ")}
+                백업 {p.backupSlots}개 · {p.priceMonthlyKrw.toLocaleString()}원/월 · AI 크레딧 {p.aiCreditsPerMonth}개/월 ·{" "}
+                {p.allowedTemplates.map((t) => t.displayName).join(", ")}
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
@@ -126,8 +147,23 @@ export default function AdminProductsPage() {
                   className="input w-24 text-sm"
                 />
               </label>
+              <label className="text-xs text-text-dim flex items-center gap-1">
+                AI 크레딧/월
+                <input
+                  type="number"
+                  defaultValue={p.aiCreditsPerMonth}
+                  onBlur={(e) => updateAiCredits(p.id, e.target.value)}
+                  className="input w-20 text-sm"
+                />
+              </label>
               <button onClick={() => toggleActive(p.id, !p.active)} className="btn-secondary px-3 py-1.5 text-sm">
                 {p.active ? "비활성화" : "활성화"}
+              </button>
+              <button
+                onClick={() => deleteProduct(p.id, p.name)}
+                className="px-3 py-1.5 text-sm rounded-full border border-red/30 text-red hover:bg-red/10"
+              >
+                삭제
               </button>
             </div>
           </div>
@@ -146,6 +182,7 @@ export default function AdminProductsPage() {
           <NumField label="디스크 (GB)" value={form.diskGb} onChange={(v) => setForm({ ...form, diskGb: v })} />
           <NumField label="백업 슬롯" value={form.backupSlots} onChange={(v) => setForm({ ...form, backupSlots: v })} />
           <NumField label="월 가격 (원)" value={form.priceMonthlyKrw} onChange={(v) => setForm({ ...form, priceMonthlyKrw: v })} />
+          <NumField label="AI 크레딧 (개/월)" value={form.aiCreditsPerMonth} onChange={(v) => setForm({ ...form, aiCreditsPerMonth: v })} />
           <div>
             <label className="text-sm text-text-dim">선주문가 (원, 선택)</label>
             <input

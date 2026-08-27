@@ -54,6 +54,18 @@ export async function DELETE(
   if (!admin) return NextResponse.json({ error: "관리자 권한이 필요합니다." }, { status: 403 });
 
   const { id } = await params;
+  const orderCount = await prisma.order.count({ where: { productId: id } });
+  if (orderCount === 0) {
+    await prisma.product.delete({ where: { id } });
+    return NextResponse.json({ ok: true, deleted: true });
+  }
+
+  // 이미 주문 기록이 있는 상품은 완전히 지우면 과거 주문 내역이 깨지므로, 비활성화만 하고
+  // 왜 완전히 삭제되지 않았는지 알려준다.
   await prisma.product.update({ where: { id }, data: { active: false } });
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({
+    ok: true,
+    deleted: false,
+    message: `이미 ${orderCount}건의 주문 기록이 있어 완전히 삭제하지 않고 비활성화만 했어요.`,
+  });
 }

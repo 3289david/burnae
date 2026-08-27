@@ -69,3 +69,54 @@ export async function syncLinktreeMessage(): Promise<void> {
     await prisma.botSettings.update({ where: { id: 1 }, data: { linktreeMessageId: messageId } });
   }
 }
+
+/**
+ * 설문(투표) 임베드를 그려서 올리거나(처음) 기존 메시지를 최신 투표수로 갱신한다.
+ * 관리자가 설문을 만들 때, 그리고 봇이 투표 버튼 클릭을 처리한 직후 둘 다 호출한다.
+ */
+export async function postOrRefreshSurvey(surveyId: string): Promise<void> {
+  const survey = await prisma.survey.findUnique({ where: { id: surveyId } });
+  if (!survey) return;
+
+  const votes = await prisma.surveyVote.findMany({ where: { surveyId } });
+  const total = votes.length;
+  const counts = survey.options.map((_, i) => votes.filter((v) => v.optionIndex === i).length);
+
+  const description = survey.options
+    .map((opt, i) => {
+      const count = counts[i];
+      const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+      const barLength = 12;
+      const filled = total > 0 ? Math.round((count / total) * barLength) : 0;
+      const bar = "█".repeat(filled) + "░".repeat(barLength - filled);
+      return `**${opt}**\n${bar} ${pct}% (${count}표)`;
+    })
+    .join("\n\n");
+
+  const buttons: DiscordButton[] = survey.options.slice(0, 25).map((opt, i) => ({
+    type: 2,
+    style: 1,
+    label: opt.slice(0, 80),
+    custom_id: `survey_${survey.id}_${i}`,
+  }));
+  const rows = [];
+  for (let i = 0; i < buttons.length; i += 5) {
+    rows.push({ type: 1 as const, components: buttons.slice(i, i + 5) });
+  }
+
+  const messageId = await upsertDiscordChannelMessage(survey.channelId, survey.messageId, {
+    embeds: [
+      {
+        title: `📊 ${survey.question}`,
+        description,
+        color: 0xff6b35,
+        footer: { text: `총 ${total}명 참여 · 버튼을 눌러 투표하세요 (다시 누르면 표를 바꿀 수 있어요)` },
+      },
+    ],
+    components: rows,
+  });
+
+  if (messageId && messageId !== survey.messageId) {
+    await prisma.survey.update({ where: { id: survey.id }, data: { messageId } });
+  }
+}

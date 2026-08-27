@@ -221,9 +221,6 @@ export default async function HomePage() {
                     <SpecRow label={`CPU ${p.cpuPercent}%`} />
                     <SpecRow label={`디스크 ${(p.diskMb / 1024).toFixed(0)}GB`} />
                     <SpecRow label={`백업 ${p.backupSlots}개`} />
-                    {p.allowedTemplates.length > 0 && (
-                      <SpecRow label={p.allowedTemplates.map((t) => t.displayName).join(", ")} />
-                    )}
                   </ul>
                   <Link href="/register" className="btn-primary w-full py-2.5 text-sm text-center mt-6">
                     이 플랜으로 시작

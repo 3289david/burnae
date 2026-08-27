@@ -12,6 +12,7 @@ import {
 import { prisma } from "./prismaClient";
 import { PteroClient } from "../lib/pterodactyl";
 import { renewFreeServer, ServerRenewalError } from "../lib/serverRenewal";
+import { postOrRefreshSurvey } from "../lib/discordBoards";
 
 /**
  * 이 봇은 Burnae 공식 디스코드 서버 단 하나에서만 동작한다 (index.ts의 길드 검증 참고).
@@ -494,6 +495,30 @@ export async function handleButton(interaction: ButtonInteraction) {
   if (interaction.customId === "verify_rules") return handleVerifyButton(interaction);
   if (interaction.customId.startsWith("verify_ans_")) return handleVerifyCaptchaAnswer(interaction);
   if (interaction.customId === "toggle_subscriber") return handleSubscriberToggle(interaction);
+  if (interaction.customId.startsWith("survey_")) return handleSurveyVote(interaction);
+}
+
+/** 설문 투표 버튼 — 관리자가 /admin/surveys에서 만든 투표에 아무나 답할 수 있다 (다시 누르면 표 변경) */
+async function handleSurveyVote(interaction: ButtonInteraction) {
+  const rest = interaction.customId.slice("survey_".length);
+  const lastUnderscore = rest.lastIndexOf("_");
+  const surveyId = rest.slice(0, lastUnderscore);
+  const optionIndex = Number(rest.slice(lastUnderscore + 1));
+
+  const survey = await prisma.survey.findUnique({ where: { id: surveyId } });
+  if (!survey || !survey.active) {
+    await interaction.reply({ content: "이 설문은 더 이상 진행하지 않아요.", ephemeral: true });
+    return;
+  }
+
+  await prisma.surveyVote.upsert({
+    where: { surveyId_discordUserId: { surveyId, discordUserId: interaction.user.id } },
+    update: { optionIndex },
+    create: { surveyId, discordUserId: interaction.user.id, optionIndex },
+  });
+
+  await postOrRefreshSurvey(surveyId);
+  await interaction.reply({ content: `✅ "${survey.options[optionIndex]}"에 투표했어요.`, ephemeral: true });
 }
 
 /** 규칙 인증 1단계: 역할을 바로 주지 않고 간단한 계산 캡챠를 먼저 보여준다(단순 자동클릭봇 방지) */

@@ -693,6 +693,30 @@ model SurveyResponse {
   @@index([reviewed])
 }
 
+/// 관리자가 만들어서 디스코드 채널에 올리는 투표형 설문 — 버튼으로 누구나 답할 수 있다
+model Survey {
+  id        String       @id @default(cuid())
+  question  String
+  options   String[]
+  channelId String
+  messageId String?
+  active    Boolean      @default(true)
+  createdAt DateTime     @default(now())
+
+  votes SurveyVote[]
+}
+
+model SurveyVote {
+  id            String   @id @default(cuid())
+  surveyId      String
+  survey        Survey   @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  discordUserId String
+  optionIndex   Int
+  createdAt     DateTime @default(now())
+
+  @@unique([surveyId, discordUserId])
+}
+
 // ────────────────────────────────
 // 감사 로그
 // ────────────────────────────────

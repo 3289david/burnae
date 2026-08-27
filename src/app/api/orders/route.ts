@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { resolveDepositorName, isValidDepositorName } from "@/lib/hanabank";
 import { hasNodeCapacity } from "@/lib/provisioning";
+import { markOrderPaidAndFulfill } from "@/lib/orderFulfillment";
 
 const schema = z.object({
   productId: z.string(),
@@ -135,6 +136,13 @@ export async function POST(request: Request) {
 
   if (couponId) {
     await prisma.couponRedemption.create({ data: { couponId, userId: user.id } });
+  }
+
+  // 쿠폰 등으로 결제 금액이 0원이 되면 입금 대기 없이 바로 처리한다
+  if (amountKrw <= 0) {
+    await markOrderPaidAndFulfill(order.id);
+    const refreshed = await prisma.order.findUniqueOrThrow({ where: { id: order.id } });
+    return NextResponse.json(refreshed);
   }
 
   return NextResponse.json(order);

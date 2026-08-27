@@ -178,11 +178,25 @@ export default function NewServerPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "주문 생성에 실패했습니다.");
       setOrder(data);
+      setStep("pay");
+
+      // 쿠폰 등으로 0원 결제라 이미 처리됐으면 입금 안내 없이 바로 완료 화면으로
+      if (data.status === "PAID") {
+        setPaid(true);
+        if (!data.serverId && data.preorderWaiting) {
+          setStillWaitingForNode(true);
+          setTimeout(() => router.push("/dashboard/billing"), 2500);
+        } else {
+          setTimeout(() => {
+            if (data.serverId) router.push(`/dashboard/servers/${data.serverId}`);
+            else router.push("/dashboard");
+          }, 1500);
+        }
+        return;
+      }
 
       const bankRes = await fetch("/api/payment/bank-account");
       if (bankRes.ok) setBank(await bankRes.json());
-
-      setStep("pay");
     } catch (err) {
       setError(err instanceof Error ? err.message : "오류가 발생했습니다.");
     } finally {

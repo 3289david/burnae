@@ -287,6 +287,13 @@ export async function createServerForOrder(orderId: string) {
     console.error("[provisioning] 디스코드 알림/역할 부여 실패(서버 생성 자체는 정상):", err);
   });
 
+  // 마인크래프트 EULA 자동 동의 — 이걸 안 하면 서버가 뜨자마자 "eula=false"로 바로 종료되고,
+  // Wings 크래시 감지가 그 정상 종료를 크래시로 오인해서 무한 재시작 루프에 빠진다.
+  // 설치가 끝나기 전엔 파일이 없을 수 있어 몇 번 재시도한다.
+  acceptEulaWithRetry(pteroServer.identifier).catch((err) => {
+    console.error("[provisioning] EULA 자동 동의 실패:", err);
+  });
+
   return server;
 }
 
@@ -310,6 +317,21 @@ async function notifyServerCreated(server: Server, ownerId: string, nodeName: st
         },
       ],
     });
+  }
+}
+
+/**
+ * 서버 설치가 끝나기 전엔 파일시스템이 아직 없어서 write가 실패할 수 있으므로 잠깐씩 텀을 두고 재시도한다.
+ * 설치가 너무 오래 걸리는 경우(느린 다운로드 등)에도 결국엔 성공하도록 넉넉히(최대 5분) 시도한다.
+ */
+async function acceptEulaWithRetry(identifier: string, attempt = 0): Promise<void> {
+  try {
+    await PteroClient.writeFile(identifier, "eula.txt", "eula=true\n");
+    return;
+  } catch (err) {
+    if (attempt >= 10) throw err;
+    await new Promise((resolve) => setTimeout(resolve, 5000 + attempt * 3000));
+    return acceptEulaWithRetry(identifier, attempt + 1);
   }
 }
 

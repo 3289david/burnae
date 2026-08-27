@@ -54,10 +54,11 @@ export async function POST(request: Request) {
     );
   }
 
-  // 지금 이 상품을 배치할 노드 자리가 없으면 "선주문"으로 진행 — 가격은 관리자가 상품별로 따로
-  // 지정한 선주문가(preorderPriceKrw)가 있으면 그걸, 없으면 정가를 그대로 쓴다.
+  // 지금 이 상품을 배치할 노드 자리가 없거나, 관리자가 강제로 켜뒀으면 "선주문"으로 진행 —
+  // 가격은 관리자가 상품별로 따로 지정한 선주문가(preorderPriceKrw)가 있으면 그걸, 없으면 정가를 그대로 쓴다.
+  const settings = await prisma.hostingSettings.findUnique({ where: { id: 1 } });
   const hasCapacity = await hasNodeCapacity(product.ramMb, product.diskMb, product.cpuPercent);
-  const isPreorder = !hasCapacity;
+  const isPreorder = settings?.forcePreorderEnabled === true || !hasCapacity;
   const basePrice = isPreorder && product.preorderPriceKrw != null ? product.preorderPriceKrw : product.priceMonthlyKrw;
 
   let discountKrw = 0;

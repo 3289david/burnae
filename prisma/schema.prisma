@@ -154,6 +154,8 @@ model HostingSettings {
   /// true면 노드 자리가 나는 대로 크론이 선주문을 자동 배치. false면 관리자가 /admin/preorders에서
   /// 직접 "지금 배치하기"를 눌러야만 처리됨
   preorderAutoFulfillEnabled Boolean @default(true)
+  /// true면 노드 자리 여유와 상관없이 모든 신규 주문을 무조건 "선주문"으로 처리
+  forcePreorderEnabled   Boolean  @default(false)
   updatedAt              DateTime @updatedAt
 
   @@map("hosting_settings")

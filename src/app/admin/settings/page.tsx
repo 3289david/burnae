@@ -16,6 +16,7 @@ interface Settings {
   siteDomain: string;
   subdomainZone: string;
   preorderAutoFulfillEnabled: boolean;
+  forcePreorderEnabled: boolean;
 }
 
 const FIELDS: { key: keyof Settings; label: string; type: "number" | "text" }[] = [
@@ -95,6 +96,21 @@ export default function AdminSettingsPage() {
         <p className="text-xs text-text-dim mt-1">
           켜두면 노드에 자리가 나는 대로 크론이 선주문을 자동으로 서버로 생성해요. 끄면 자동으로는
           처리하지 않고, <code>/admin/preorders</code>에서 관리자가 직접 확인하고 배치해야 해요.
+        </p>
+      </div>
+
+      <div className="card p-5 mt-4">
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={settings.forcePreorderEnabled}
+            onChange={(e) => setSettings({ ...settings, forcePreorderEnabled: e.target.checked })}
+          />
+          모든 신규 주문을 선주문으로 강제
+        </label>
+        <p className="text-xs text-text-dim mt-1">
+          켜두면 노드 자리 여유와 상관없이 모든 신규 결제 주문이 무조건 &ldquo;선주문&rdquo;으로
+          처리돼요 (즉시 서버가 만들어지지 않고 대기열에 들어감). 점검, 용량 제한, 대기 접수 등에 써요.
         </p>
       </div>
 

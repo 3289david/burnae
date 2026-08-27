@@ -29,6 +29,7 @@ const schema = z.object({
   siteDomain: z.string().min(1).optional(),
   subdomainZone: z.string().min(1).optional(),
   preorderAutoFulfillEnabled: z.boolean().optional(),
+  forcePreorderEnabled: z.boolean().optional(),
 });
 
 export async function PUT(request: Request) {

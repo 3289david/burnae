@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 interface Template { id: string; displayName: string; minecraftVersions: string[]; active: boolean }
 interface Product { id: string; name: string; active: boolean; allowedTemplates: Template[] }
@@ -163,6 +164,7 @@ function GrantServerForm({
   templates: Template[];
   onDone: () => void;
 }) {
+  const router = useRouter();
   const [mode, setMode] = useState<Mode>(products.length > 0 ? "existing" : "custom");
 
   // 기존 상품 모드
@@ -215,6 +217,12 @@ function GrantServerForm({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       onDone();
+      // 결제 완료 후 화면과 동일하게, 실제로 만들어진 서버 페이지로 바로 이동
+      if (data.serverId) {
+        router.push(`/dashboard/servers/${data.serverId}`);
+      } else if (data.preorderWaiting) {
+        router.push("/admin/preorders");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "지급 실패");
     } finally {

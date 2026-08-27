@@ -6,10 +6,9 @@ import { resolveDepositorName, isValidDepositorName } from "@/lib/hanabank";
 import { hasNodeCapacity } from "@/lib/provisioning";
 import { markOrderPaidAndFulfill } from "@/lib/orderFulfillment";
 
+// 서버 종류/버전은 이제 결제가 끝난 뒤에 고른다 — 주문 생성 시점에는 필요 없음
 const schema = z.object({
   productId: z.string(),
-  templateId: z.string(),
-  minecraftVersion: z.string(),
   serverName: z.string().min(2).max(24),
   couponCode: z.string().optional(),
   depositorName: z.string().optional(),
@@ -47,10 +46,9 @@ export async function POST(request: Request) {
   if (!product) {
     return NextResponse.json({ error: "존재하지 않는 상품입니다." }, { status: 404 });
   }
-  const templateAllowed = product.allowedTemplates.some((t) => t.id === input.templateId);
-  if (!templateAllowed) {
+  if (product.allowedTemplates.length === 0) {
     return NextResponse.json(
-      { error: "이 상품에서 선택할 수 없는 서버 종류입니다." },
+      { error: "이 상품에 연결된 서버 종류가 없어요. 관리자에게 문의해주세요." },
       { status: 422 },
     );
   }
@@ -128,8 +126,6 @@ export async function POST(request: Request) {
       depositorName,
       isPreorder,
       serverNameRequested: input.serverName,
-      templateIdRequested: input.templateId,
-      minecraftVersionRequested: input.minecraftVersion,
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
     },
   });

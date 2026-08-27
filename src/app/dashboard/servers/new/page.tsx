@@ -37,6 +37,15 @@ interface BankAccount {
   accountNumber: string;
   accountHolder: string;
 }
+interface OrderState {
+  id: string;
+  amountKrw: number;
+  depositorName: string;
+  isPreorder: boolean;
+  status: string;
+  serverId?: string | null;
+  preorderWaiting?: boolean;
+}
 
 /** 서버 종류 key(예: paper_mid, paper_legacy)에서 "기본 로더 이름"만 뽑아낸다 —
  *  버전대별로 나뉜 템플릿들을 카드 하나로 묶어 보여주기 위함 */
@@ -67,38 +76,35 @@ function loaderMeta(baseKey: string) {
 
 const TIER_ORDER: Record<string, number> = { 최신: 0, 중간: 1, 레거시: 2 };
 
+type Step = "form" | "pay" | "choose" | "done";
+
 export default function NewServerPage() {
   const router = useRouter();
-  const [step, setStep] = useState<"form" | "pay">("form");
+  const [step, setStep] = useState<Step>("form");
   const [products, setProducts] = useState<Product[]>([]);
   const [productId, setProductId] = useState("");
-  const [templateId, setTemplateId] = useState("");
-  const [version, setVersion] = useState("");
-  const [versionQuery, setVersionQuery] = useState("");
   const [serverName, setServerName] = useState("");
   const [couponCode, setCouponCode] = useState("");
   const [depositorName, setDepositorName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const [order, setOrder] = useState<{ id: string; amountKrw: number; depositorName: string; isPreorder: boolean } | null>(null);
+  const [order, setOrder] = useState<OrderState | null>(null);
   const [bank, setBank] = useState<BankAccount | null>(null);
-  const [paid, setPaid] = useState(false);
   const [stillWaitingForNode, setStillWaitingForNode] = useState(false);
+
+  // 결제 후 서버 종류/버전 선택용 상태
+  const [templateId, setTemplateId] = useState("");
+  const [version, setVersion] = useState("");
+  const [versionQuery, setVersionQuery] = useState("");
+  const [choosing, setChoosing] = useState(false);
 
   useEffect(() => {
     fetch("/api/catalog/products")
       .then((r) => r.json())
       .then((data: Product[]) => {
         setProducts(data);
-        if (data[0]) {
-          setProductId(data[0].id);
-          const t = data[0].allowedTemplates[0];
-          if (t) {
-            setTemplateId(t.id);
-            setVersion(t.minecraftVersions[0] ?? "");
-          }
-        }
+        if (data[0]) setProductId(data[0].id);
       });
   }, []);
 
@@ -128,14 +134,6 @@ export default function NewServerPage() {
     [loaderGroups, templateId],
   );
 
-  useEffect(() => {
-    if (selectedProduct && !selectedProduct.allowedTemplates.some((t) => t.id === templateId)) {
-      const t = selectedProduct.allowedTemplates[0];
-      setTemplateId(t?.id ?? "");
-      setVersion(t?.minecraftVersions[0] ?? "");
-    }
-  }, [selectedProduct, templateId]);
-
   function pickLoader(base: string) {
     const group = loaderGroups.find((g) => g.base === base);
     const t = group?.templates[0];
@@ -158,6 +156,20 @@ export default function NewServerPage() {
     return selectedTemplate.minecraftVersions.filter((v) => v.toLowerCase().includes(q));
   }, [selectedTemplate, versionQuery]);
 
+  function goToOutcome(data: { serverId?: string | null; preorderWaiting?: boolean }) {
+    if (!data.serverId && data.preorderWaiting) {
+      setStillWaitingForNode(true);
+      setStep("done");
+      setTimeout(() => router.push("/dashboard/billing"), 2500);
+      return;
+    }
+    setStep("done");
+    setTimeout(() => {
+      if (data.serverId) router.push(`/dashboard/servers/${data.serverId}`);
+      else router.push("/dashboard");
+    }, 1500);
+  }
+
   async function submitOrder(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -168,8 +180,6 @@ export default function NewServerPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           productId,
-          templateId,
-          minecraftVersion: version,
           serverName,
           couponCode: couponCode || undefined,
           depositorName: depositorName || undefined,
@@ -178,25 +188,16 @@ export default function NewServerPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "주문 생성에 실패했습니다.");
       setOrder(data);
-      setStep("pay");
 
-      // 쿠폰 등으로 0원 결제라 이미 처리됐으면 입금 안내 없이 바로 완료 화면으로
+      // 쿠폰 등으로 0원 결제라 이미 처리됐으면 입금 안내 없이 바로 "서버 종류 고르기"로
       if (data.status === "PAID") {
-        setPaid(true);
-        if (!data.serverId && data.preorderWaiting) {
-          setStillWaitingForNode(true);
-          setTimeout(() => router.push("/dashboard/billing"), 2500);
-        } else {
-          setTimeout(() => {
-            if (data.serverId) router.push(`/dashboard/servers/${data.serverId}`);
-            else router.push("/dashboard");
-          }, 1500);
-        }
+        setStep("choose");
         return;
       }
 
       const bankRes = await fetch("/api/payment/bank-account");
       if (bankRes.ok) setBank(await bankRes.json());
+      setStep("pay");
     } catch (err) {
       setError(err instanceof Error ? err.message : "오류가 발생했습니다.");
     } finally {
@@ -204,69 +205,209 @@ export default function NewServerPage() {
     }
   }
 
+  // 입금 대기 중 폴링 — PAID로 바뀌면 "서버 종류 고르기" 단계로 넘어간다
   useEffect(() => {
-    if (!order || paid) return;
+    if (step !== "pay" || !order) return;
     const interval = setInterval(async () => {
       const res = await fetch(`/api/orders/${order.id}`);
       if (!res.ok) return;
       const data = await res.json();
       if (data.status === "PAID") {
-        setPaid(true);
         clearInterval(interval);
-        if (!data.serverId && data.preorderWaiting) {
-          setStillWaitingForNode(true);
-          setTimeout(() => router.push("/dashboard/billing"), 2500);
-          return;
-        }
-        setTimeout(() => {
-          if (data.serverId) router.push(`/dashboard/servers/${data.serverId}`);
-          else router.push("/dashboard");
-        }, 1500);
+        setStep("choose");
       }
     }, 4000);
     return () => clearInterval(interval);
-  }, [order, paid, router]);
+  }, [step, order]);
+
+  async function submitTemplateChoice(e: React.FormEvent) {
+    e.preventDefault();
+    if (!order) return;
+    setError(null);
+    setChoosing(true);
+    try {
+      const res = await fetch(`/api/orders/${order.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ templateId, minecraftVersion: version }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "처리에 실패했습니다.");
+      goToOutcome(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "오류가 발생했습니다.");
+    } finally {
+      setChoosing(false);
+    }
+  }
 
   if (step === "pay" && order) {
     return (
       <div className="max-w-md mx-auto">
         <h1 className="text-2xl font-bold">입금 안내</h1>
-        {paid ? (
-          <div className="card mt-6 p-6 text-center">
-            <CheckCircle2 size={36} className="mx-auto text-green" />
-            <p className="mt-2 font-semibold">입금이 확인됐어요!</p>
-            <p className="text-sm text-text-dim mt-1">
-              {stillWaitingForNode
-                ? "지금은 배치할 노드 자리가 없어서 선주문으로 접수됐어요. 자리가 나는 대로 자동으로 서버가 생성돼요."
-                : "서버를 만들고 있어요. 잠시만 기다려주세요..."}
+        <div className="card mt-6 p-6 space-y-3">
+          {order.isPreorder && (
+            <p className="text-xs bg-yellow/10 border border-yellow/30 text-yellow rounded-lg px-3 py-2">
+              지금은 이 플랜의 여유 자리가 없어서 선주문으로 진행돼요. 결제가 확인되면 자리가 나는
+              대로 자동으로 서버가 생성됩니다.
             </p>
+          )}
+          {bank && (
+            <>
+              <Row label="은행" value={bank.bankName} />
+              <Row label="계좌번호" value={bank.accountNumber} />
+              <Row label="예금주" value={bank.accountHolder} />
+            </>
+          )}
+          <Row label="입금자명" value={order.depositorName} highlight />
+          <Row label="입금 금액" value={`${order.amountKrw.toLocaleString()}원`} highlight />
+          <p className="text-xs text-text-dim pt-2">
+            입금자명과 금액이 정확히 일치해야 자동으로 확인돼요. 결제가 확인되면 바로 이어서 서버
+            종류와 버전을 고를 수 있어요.
+          </p>
+          <div className="flex items-center gap-2 text-sm text-text-dim pt-2">
+            <span className="animate-pulse">●</span> 입금 확인 대기 중...
           </div>
-        ) : (
-          <div className="card mt-6 p-6 space-y-3">
-            {order.isPreorder && (
-              <p className="text-xs bg-yellow/10 border border-yellow/30 text-yellow rounded-lg px-3 py-2">
-                지금은 이 플랜의 여유 자리가 없어서 선주문으로 진행돼요. 결제가 확인되면 자리가 나는
-                대로 자동으로 서버가 생성됩니다.
-              </p>
-            )}
-            {bank && (
-              <>
-                <Row label="은행" value={bank.bankName} />
-                <Row label="계좌번호" value={bank.accountNumber} />
-                <Row label="예금주" value={bank.accountHolder} />
-              </>
-            )}
-            <Row label="입금자명" value={order.depositorName} highlight />
-            <Row label="입금 금액" value={`${order.amountKrw.toLocaleString()}원`} highlight />
-            <p className="text-xs text-text-dim pt-2">
-              입금자명과 금액이 정확히 일치해야 자동으로 확인돼요. 보통 몇 분 안에 자동으로 서버가
-              생성됩니다.
-            </p>
-            <div className="flex items-center gap-2 text-sm text-text-dim pt-2">
-              <span className="animate-pulse">●</span> 입금 확인 대기 중...
-            </div>
-          </div>
-        )}
+        </div>
+      </div>
+    );
+  }
+
+  if (step === "done") {
+    return (
+      <div className="max-w-md mx-auto">
+        <div className="card mt-6 p-6 text-center animate-[fadeIn_0.3s_ease]">
+          <CheckCircle2 size={36} className="mx-auto text-green" />
+          <p className="mt-2 font-semibold">
+            {stillWaitingForNode ? "선주문으로 접수됐어요!" : "서버를 만들고 있어요!"}
+          </p>
+          <p className="text-sm text-text-dim mt-1">
+            {stillWaitingForNode
+              ? "지금은 배치할 노드 자리가 없어서 선주문으로 접수됐어요. 자리가 나는 대로 자동으로 서버가 생성돼요."
+              : "잠시 후 서버 페이지로 이동할게요..."}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === "choose" && order) {
+    return (
+      <div className="max-w-2xl mx-auto pb-16">
+        <div className="card mt-2 mb-8 p-4 flex items-center gap-3 border-green/40 bg-green/[0.06]">
+          <CheckCircle2 size={20} className="text-green shrink-0" />
+          <p className="text-sm">결제가 확인됐어요! 이제 서버 종류와 버전만 고르면 바로 만들어져요.</p>
+        </div>
+
+        <h1 className="text-2xl font-bold">서버 종류 고르기</h1>
+        <p className="text-sm text-text-dim mt-1">어떤 로더로 시작할지, 어떤 버전으로 할지 골라주세요.</p>
+
+        <form onSubmit={submitTemplateChoice} className="mt-8 space-y-10">
+          {selectedProduct && loaderGroups.length > 0 && (
+            <Section step={1} title="서버 종류">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                {loaderGroups.map((g) => {
+                  const meta = loaderMeta(g.base);
+                  const Icon = meta.icon;
+                  const active = selectedGroup?.base === g.base;
+                  return (
+                    <button
+                      type="button"
+                      key={g.base}
+                      onClick={() => pickLoader(g.base)}
+                      className={`rounded-2xl border p-3.5 flex flex-col items-start gap-2 transition-all duration-150 ${
+                        active
+                          ? "border-accent bg-accent/[0.08] shadow-[0_0_0_1px_var(--accent)]"
+                          : "border-border bg-surface hover:border-accent/40 hover:bg-surface-2"
+                      }`}
+                    >
+                      <span
+                        className="w-9 h-9 rounded-xl flex items-center justify-center"
+                        style={{ background: `color-mix(in srgb, ${meta.color} 18%, transparent)` }}
+                      >
+                        <Icon size={18} style={{ color: meta.color }} />
+                      </span>
+                      <span className="font-semibold text-sm capitalize">{g.base}</span>
+                      <span className="text-text-dim text-[11px] leading-tight -mt-1">{meta.blurb}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* 버전대(최신/중간/레거시) 탭 — 로더에 하나만 있으면 숨김 */}
+              {selectedGroup && selectedGroup.templates.length > 1 && (
+                <div className="flex gap-1.5 mt-4 p-1 bg-surface-2 rounded-full w-fit">
+                  {selectedGroup.templates.map((t) => {
+                    const active = t.id === templateId;
+                    return (
+                      <button
+                        type="button"
+                        key={t.id}
+                        onClick={() => pickTier(t)}
+                        className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-150 ${
+                          active ? "bg-accent text-white shadow-sm" : "text-text-dim hover:text-text"
+                        }`}
+                      >
+                        {tierLabel(t.key)}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </Section>
+          )}
+
+          {selectedTemplate && (
+            <Section step={2} title="마인크래프트 버전">
+              {selectedTemplate.minecraftVersions.length > 8 && (
+                <div className="relative mb-3">
+                  <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-dim" />
+                  <input
+                    className="input w-full pl-9"
+                    placeholder="버전 검색 (예: 1.21)"
+                    value={versionQuery}
+                    onChange={(e) => setVersionQuery(e.target.value)}
+                  />
+                </div>
+              )}
+              <div className="flex flex-wrap gap-2 max-h-56 overflow-y-auto pr-1">
+                {filteredVersions.map((v) => {
+                  const active = v === version;
+                  return (
+                    <button
+                      type="button"
+                      key={v}
+                      onClick={() => setVersion(v)}
+                      className={`px-3.5 py-2 rounded-xl text-sm font-medium border transition-all duration-150 flex items-center gap-1.5 ${
+                        active
+                          ? "border-accent bg-accent text-white shadow-[0_4px_14px_-4px_rgba(255,106,26,0.6)]"
+                          : "border-border bg-surface text-text-dim hover:border-accent/40 hover:text-text"
+                      }`}
+                    >
+                      {active && <Check size={13} />}
+                      {v}
+                    </button>
+                  );
+                })}
+                {filteredVersions.length === 0 && (
+                  <p className="text-text-dim text-sm py-2">검색 결과가 없어요.</p>
+                )}
+              </div>
+            </Section>
+          )}
+
+          {error && (
+            <p className="text-sm text-red bg-red/10 border border-red/30 rounded-xl px-3.5 py-2.5">{error}</p>
+          )}
+
+          <button
+            type="submit"
+            disabled={choosing || !templateId || !version}
+            className="btn-primary w-full py-3.5 text-[15px]"
+          >
+            {choosing ? "만드는 중..." : "이 종류로 서버 만들기"}
+          </button>
+        </form>
       </div>
     );
   }
@@ -274,7 +415,9 @@ export default function NewServerPage() {
   return (
     <div className="max-w-2xl mx-auto pb-16">
       <h1 className="text-2xl font-bold">서버 만들기</h1>
-      <p className="text-sm text-text-dim mt-1">몇 단계만 고르면 바로 만들 수 있어요.</p>
+      <p className="text-sm text-text-dim mt-1">
+        먼저 플랜을 정하고 결제하면, 그다음에 서버 종류와 버전을 골라요.
+      </p>
 
       <form onSubmit={submitOrder} className="mt-8 space-y-10">
         {/* 1. 이름 */}
@@ -323,103 +466,8 @@ export default function NewServerPage() {
           </div>
         </Section>
 
-        {/* 3. 서버 종류 */}
-        {selectedProduct && loaderGroups.length > 0 && (
-          <Section step={3} title="서버 종류">
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-              {loaderGroups.map((g) => {
-                const meta = loaderMeta(g.base);
-                const Icon = meta.icon;
-                const active = selectedGroup?.base === g.base;
-                return (
-                  <button
-                    type="button"
-                    key={g.base}
-                    onClick={() => pickLoader(g.base)}
-                    className={`rounded-2xl border p-3.5 flex flex-col items-start gap-2 transition-all duration-150 ${
-                      active
-                        ? "border-accent bg-accent/[0.08] shadow-[0_0_0_1px_var(--accent)]"
-                        : "border-border bg-surface hover:border-accent/40 hover:bg-surface-2"
-                    }`}
-                  >
-                    <span
-                      className="w-9 h-9 rounded-xl flex items-center justify-center"
-                      style={{ background: `color-mix(in srgb, ${meta.color} 18%, transparent)` }}
-                    >
-                      <Icon size={18} style={{ color: meta.color }} />
-                    </span>
-                    <span className="font-semibold text-sm capitalize">{g.base}</span>
-                    <span className="text-text-dim text-[11px] leading-tight -mt-1">{meta.blurb}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* 버전대(최신/중간/레거시) 탭 — 로더에 하나만 있으면 숨김 */}
-            {selectedGroup && selectedGroup.templates.length > 1 && (
-              <div className="flex gap-1.5 mt-4 p-1 bg-surface-2 rounded-full w-fit">
-                {selectedGroup.templates.map((t) => {
-                  const active = t.id === templateId;
-                  return (
-                    <button
-                      type="button"
-                      key={t.id}
-                      onClick={() => pickTier(t)}
-                      className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-150 ${
-                        active ? "bg-accent text-white shadow-sm" : "text-text-dim hover:text-text"
-                      }`}
-                    >
-                      {tierLabel(t.key)}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </Section>
-        )}
-
-        {/* 4. 마인크래프트 버전 */}
-        {selectedTemplate && (
-          <Section step={4} title="마인크래프트 버전">
-            {selectedTemplate.minecraftVersions.length > 8 && (
-              <div className="relative mb-3">
-                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-dim" />
-                <input
-                  className="input w-full pl-9"
-                  placeholder="버전 검색 (예: 1.21)"
-                  value={versionQuery}
-                  onChange={(e) => setVersionQuery(e.target.value)}
-                />
-              </div>
-            )}
-            <div className="flex flex-wrap gap-2 max-h-56 overflow-y-auto pr-1">
-              {filteredVersions.map((v) => {
-                const active = v === version;
-                return (
-                  <button
-                    type="button"
-                    key={v}
-                    onClick={() => setVersion(v)}
-                    className={`px-3.5 py-2 rounded-xl text-sm font-medium border transition-all duration-150 flex items-center gap-1.5 ${
-                      active
-                        ? "border-accent bg-accent text-white shadow-[0_4px_14px_-4px_rgba(255,106,26,0.6)]"
-                        : "border-border bg-surface text-text-dim hover:border-accent/40 hover:text-text"
-                    }`}
-                  >
-                    {active && <Check size={13} />}
-                    {v}
-                  </button>
-                );
-              })}
-              {filteredVersions.length === 0 && (
-                <p className="text-text-dim text-sm py-2">검색 결과가 없어요.</p>
-              )}
-            </div>
-          </Section>
-        )}
-
-        {/* 5. 쿠폰 / 입금자명 */}
-        <Section step={5} title="추가 정보 (선택)">
+        {/* 3. 쿠폰 / 입금자명 */}
+        <Section step={3} title="추가 정보 (선택)">
           <div className="space-y-3">
             <input
               className="input w-full"
@@ -445,7 +493,7 @@ export default function NewServerPage() {
         )}
 
         <button type="submit" disabled={loading || !productId} className="btn-primary w-full py-3.5 text-[15px]">
-          {loading ? "처리 중..." : "결제하고 서버 만들기"}
+          {loading ? "처리 중..." : "결제하기"}
         </button>
       </form>
     </div>

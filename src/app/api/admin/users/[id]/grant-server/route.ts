@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { markOrderPaidAndFulfill } from "@/lib/orderFulfillment";
+import { provisionNewServerOrder } from "@/lib/orderFulfillment";
 
 const baseFields = {
   templateId: z.string(),
@@ -110,10 +110,10 @@ export async function POST(
   });
 
   try {
-    await markOrderPaidAndFulfill(order.id);
+    await provisionNewServerOrder(order.id);
   } catch (err) {
     console.error("[admin grant-server] 서버 생성 실패:", err);
-    // 노드 자리가 없으면 markOrderPaidAndFulfill 내부에서 "선주문" 대기로 자동 전환된다
+    // 노드 자리가 없으면 provisionNewServerOrder 내부에서 "선주문" 대기로 자동 전환된다
   }
 
   const updated = await prisma.order.findUnique({ where: { id: order.id } });

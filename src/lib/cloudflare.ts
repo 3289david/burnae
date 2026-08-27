@@ -95,10 +95,13 @@ export async function createServerDnsRecords(params: {
     method: "POST",
     body: JSON.stringify({
       type: "SRV",
+      // Cloudflare는 최상위 name(_service._proto.호스트 전체)과 data.name(호스트 부분만, service/proto 접두어 없이)이
+      // 둘 다 필요하다 — 둘 중 하나라도 빠지거나 형식이 다르면 "DNS name is invalid"(9000)로 거부된다.
+      name: `_minecraft._tcp.${fqdn}`,
       data: {
         service: "_minecraft",
         proto: "_tcp",
-        name: fqdn,
+        name: params.subdomain,
         priority: 0,
         weight: 5,
         port: params.port,
@@ -135,10 +138,11 @@ export async function updateServerDnsRecords(params: {
   await cf(zonePath(`/${params.srvRecordId}`), {
     method: "PATCH",
     body: JSON.stringify({
+      name: `_minecraft._tcp.${fqdn}`,
       data: {
         service: "_minecraft",
         proto: "_tcp",
-        name: fqdn,
+        name: params.subdomain,
         priority: 0,
         weight: 5,
         port: params.port,

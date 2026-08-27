@@ -59,7 +59,7 @@ export default async function AdminStatisticsPage() {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="card p-4">
+    <div className="card-glow p-4">
       <div className="text-xs text-text-dim">{label}</div>
       <div className="mt-1 text-xl font-bold">{value}</div>
     </div>

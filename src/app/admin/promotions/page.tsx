@@ -80,7 +80,7 @@ export default function AdminPromotionsPage() {
           <h2 className="font-semibold mt-6 mb-2">수동 승인 대기중 ({reviews.length})</h2>
           <div className="space-y-2">
             {reviews.map((r) => (
-              <div key={r.id} className="card p-4 flex flex-wrap items-center justify-between gap-2">
+              <div key={r.id} className="card-glow p-4 flex flex-wrap items-center justify-between gap-2">
                 <div className="min-w-0">
                   <p className="text-sm font-medium">{r.task.title} · {r.user.name} ({r.user.email})</p>
                   {r.proofUrl && (
@@ -103,7 +103,7 @@ export default function AdminPromotionsPage() {
       <h2 className="font-semibold mt-6 mb-2">홍보 항목 ({tasks.length})</h2>
       <div className="space-y-2">
         {tasks.map((t) => (
-          <div key={t.id} className="card p-4 flex flex-wrap items-center justify-between gap-3">
+          <div key={t.id} className="card-glow p-4 flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-sm font-medium">{t.title} {!t.active && <span className="text-text-dim text-xs">(비활성)</span>}</p>
               <p className="text-xs text-text-dim">{t.description}</p>

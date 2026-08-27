@@ -48,7 +48,7 @@ export default function AdminPreordersPage() {
 
       <div className="mt-6 space-y-2">
         {items.map((o) => (
-          <div key={o.id} className="card p-4 flex flex-wrap items-center justify-between gap-2">
+          <div key={o.id} className="card-glow p-4 flex flex-wrap items-center justify-between gap-2">
             <div className="min-w-0">
               <p className="font-medium text-sm">
                 {o.serverNameRequested ?? "이름 미지정"} · {o.product.name}

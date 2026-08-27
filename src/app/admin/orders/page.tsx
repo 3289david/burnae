@@ -50,7 +50,7 @@ export default function AdminOrdersPage() {
 
       <div className="mt-6 space-y-2">
         {items.map((o) => (
-          <div key={o.id} className="card p-4 flex items-center justify-between flex-wrap gap-3">
+          <div key={o.id} className="card-glow p-4 flex items-center justify-between flex-wrap gap-3">
             <div className="min-w-0">
               <p className="font-medium">
                 {o.user.name} <span className="text-text-dim text-xs">({o.user.email})</span>

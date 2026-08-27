@@ -131,7 +131,7 @@ export default function AdminServersPage() {
 
       <div className="mt-6 space-y-2">
         {servers.map((s) => (
-          <div key={s.id} className="card p-4">
+          <div key={s.id} className="card-glow p-4">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div>
                 <p className="font-medium text-sm">

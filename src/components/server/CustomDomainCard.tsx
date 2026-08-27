@@ -81,7 +81,7 @@ export default function CustomDomainCard({
   if (!isOwner && domains.length === 0) return null;
 
   return (
-    <div className="card p-5">
+    <div className="card-glow p-5">
       <h3 className="font-semibold">커스텀 도메인</h3>
       <p className="text-sm text-text-dim mt-1">
         직접 소유한 도메인을 서버에 연결할 수 있어요. 아직 도메인이 없다면{" "}

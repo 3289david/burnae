@@ -90,7 +90,7 @@ export default function AdminUsersPage() {
 
       <div className="mt-6 space-y-2">
         {users.map((u) => (
-          <div key={u.id} className="card p-4">
+          <div key={u.id} className="card-glow p-4">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div>
                 <p className="font-medium text-sm">{u.name} <span className="text-text-dim">· {u.email}</span></p>

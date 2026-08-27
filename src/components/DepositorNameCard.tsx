@@ -31,7 +31,7 @@ export default function DepositorNameCard({ initial }: { initial: string | null 
   }
 
   return (
-    <div className="card p-5">
+    <div className="card-glow p-5">
       <h3 className="font-semibold">결제 입금자명</h3>
       <p className="text-sm text-text-dim mt-1">
         무통장입금 시 사용할 입금자명이에요. 공백 없이 1~5자여야 하고, 비워두면 이름 기반으로 자동

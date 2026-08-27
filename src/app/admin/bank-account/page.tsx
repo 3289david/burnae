@@ -73,7 +73,7 @@ export default function AdminBankAccountPage() {
 
       <div className="mt-6 space-y-2">
         {accounts.map((a) => (
-          <div key={a.id} className="card p-4 flex flex-wrap items-center justify-between gap-2">
+          <div key={a.id} className="card-glow p-4 flex flex-wrap items-center justify-between gap-2">
             <div className="min-w-0">
               <p className="font-medium text-sm">{a.bankName} {a.accountNumber}</p>
               <p className="text-xs text-text-dim">{a.accountHolder}</p>
@@ -83,7 +83,7 @@ export default function AdminBankAccountPage() {
         ))}
       </div>
 
-      <form onSubmit={submit} className="card p-5 mt-6 space-y-3">
+      <form onSubmit={submit} className="card-glow p-5 mt-6 space-y-3">
         <h2 className="font-semibold">새 계좌 등록 (기존 계좌 대체)</h2>
         <div className="grid sm:grid-cols-3 gap-3">
           <F label="은행" value={form.bankName} onChange={(v) => setForm({ ...form, bankName: v })} />
@@ -94,7 +94,7 @@ export default function AdminBankAccountPage() {
         <button type="submit" disabled={loading} className="btn-primary px-5 py-2.5">등록</button>
       </form>
 
-      <div className="card p-5 mt-6">
+      <div className="card-glow p-5 mt-6">
         <h2 className="font-semibold">하나은행 Open API 연동</h2>
         <p className="text-sm text-text-dim mt-1">
           입금 자동확인은 하나은행 거래내역조회 API를 주기적으로 폴링하는 방식이에요. 먼저 하나은행

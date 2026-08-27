@@ -88,7 +88,7 @@ export default function PluginMakerTab({ serverId }: { serverId: string }) {
 
   return (
     <div className="space-y-4">
-      <div className="card p-5">
+      <div className="card-glow p-5">
         <h3 className="font-semibold flex items-center gap-1.5"><Sparkles size={16} className="text-accent" /> 플러그인/모드 메이커</h3>
         <p className="text-sm text-text-dim mt-1">원하는 걸 말로 설명하면 AI가 만들어서 바로 적용해줘요.</p>
         <div className="mt-3">
@@ -122,7 +122,7 @@ export default function PluginMakerTab({ serverId }: { serverId: string }) {
       </div>
 
       {result && (
-        <div className="card p-5 space-y-3">
+        <div className="card-glow p-5 space-y-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <h3 className="font-semibold text-sm">미리보기 · {KIND_LABEL[result.kind]}</h3>
             {!applied && (

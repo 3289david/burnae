@@ -19,7 +19,7 @@ export default function DiscordLinkCard({ linked }: { linked: boolean }) {
 
   if (linked) {
     return (
-      <div className="card p-5">
+      <div className="card-glow p-5">
         <p className="font-semibold text-sm flex items-center gap-1.5"><Bot size={16} className="text-purple" /> 디스코드 연동됨</p>
         <p className="text-xs text-text-dim mt-1">
           Burnae 공식 디스코드 서버에서 /서버목록, /상태 명령어를 쓸 수 있어요.
@@ -29,7 +29,7 @@ export default function DiscordLinkCard({ linked }: { linked: boolean }) {
   }
 
   return (
-    <div className="card p-5">
+    <div className="card-glow p-5">
       <p className="font-semibold text-sm flex items-center gap-1.5"><Bot size={16} className="text-purple" /> 디스코드 연동</p>
       <p className="text-xs text-text-dim mt-1">
         Burnae 공식 디스코드 서버에서 봇으로 서버 상태 확인, 알림을 받으려면 연동하세요.

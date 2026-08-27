@@ -30,7 +30,7 @@ export default function AutomationCard({ serverId, ...initial }: Props) {
   }
 
   return (
-    <div className="card p-5 space-y-4">
+    <div className="card-glow p-5 space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-sm">자동화 {saving && <span className="text-xs text-text-dim">저장 중...</span>}</h3>
       </div>

@@ -89,7 +89,7 @@ export default function UpgradeCard({ serverId, currentProductId }: { serverId: 
 
   if (applied) {
     return (
-      <div className="card p-5">
+      <div className="card-glow p-5">
         <p className="text-sm text-green flex items-center gap-1.5">
           <CheckCircle2 size={16} />
           플랜이 변경됐어요{applied.pointsSpent ? ` (포인트 ${applied.pointsSpent.toLocaleString()}P 사용)` : ""}.
@@ -101,7 +101,7 @@ export default function UpgradeCard({ serverId, currentProductId }: { serverId: 
 
   if (payment) {
     return (
-      <div className="card p-5 space-y-2">
+      <div className="card-glow p-5 space-y-2">
         <h3 className="font-semibold text-sm">차액 입금 안내</h3>
         {bank && (
           <p className="text-sm">{bank.bankName} {bank.accountNumber} ({bank.accountHolder})</p>
@@ -114,7 +114,7 @@ export default function UpgradeCard({ serverId, currentProductId }: { serverId: 
   }
 
   return (
-    <div className="card p-5 space-y-3">
+    <div className="card-glow p-5 space-y-3">
       <h3 className="font-semibold text-sm">플랜 변경</h3>
       <div className="flex gap-2">
         <select className="input flex-1 min-w-0" value={selected} onChange={(e) => setSelected(e.target.value)}>

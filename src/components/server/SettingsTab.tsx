@@ -138,8 +138,8 @@ export default function SettingsTab({
   if (raw === null) return <p className="text-sm text-text-dim">불러오는 중...</p>;
 
   return (
-    <div className="space-y-6">
-    <div className="card p-5 space-y-4">
+    <div className="space-y-6 animate-fade-up">
+    <div className="card-glow p-5 space-y-4">
       {KNOWN_KEYS.map(({ key, label, type, ...rest }) => (
         <div key={key} className="flex items-center justify-between">
           <span className="text-sm">{label}</span>
@@ -193,7 +193,7 @@ export default function SettingsTab({
     {isOwner && <UpgradeCard serverId={serverId} currentProductId={productId} />}
 
     {isOwner && (
-      <div className="card p-5 border-red">
+      <div className="card-glow p-5 border-red">
         <h3 className="font-semibold text-red">위험 구역</h3>
         <p className="text-sm text-text-dim mt-1">서버를 삭제하면 되돌릴 수 없습니다.</p>
         <label className="flex items-center gap-2 mt-3 text-sm">

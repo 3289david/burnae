@@ -102,8 +102,8 @@ export default function PluginsTab({ serverId }: { serverId: string }) {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="card p-0 overflow-hidden">
+    <div className="space-y-6 animate-fade-up">
+      <div className="card-glow p-0 overflow-hidden">
         <div className="px-4 py-2.5 border-b border-border">
           <h3 className="font-semibold text-sm">설치됨 ({installed.length})</h3>
         </div>
@@ -132,7 +132,7 @@ export default function PluginsTab({ serverId }: { serverId: string }) {
 
       <div className="space-y-2">
         {results?.map((r) => (
-          <div key={r.projectId} className="card p-4">
+          <div key={r.projectId} className="card-glow p-4">
             <div className="flex items-center gap-3">
               {r.iconUrl && (
                 <Image src={r.iconUrl} alt="" width={40} height={40} className="w-10 h-10 rounded" unoptimized />

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, RefreshCw, RotateCcw, Trash2 } from "lucide-react";
 
 interface Backup {
   uuid: string;
@@ -58,17 +58,21 @@ export default function BackupsTab({ serverId, backupSlots }: { serverId: string
   }
 
   return (
-    <div>
+    <div className="animate-fade-up">
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm text-text-dim">{backups.length} / {backupSlots}개 사용 중</p>
-        <button onClick={createBackup} disabled={loading} className="btn-primary px-4 py-2 text-sm">
-          지금 백업
+        <button onClick={createBackup} disabled={loading} className="btn-primary px-4 py-2 text-sm inline-flex items-center gap-1.5">
+          <RefreshCw size={14} /> 지금 백업
         </button>
       </div>
       {error && <p className="text-sm text-red mb-3">{error}</p>}
-      <div className="space-y-2">
-        {backups.map((b) => (
-          <div key={b.uuid} className="card p-4 flex flex-wrap items-center justify-between gap-2">
+      <div className="space-y-2.5">
+        {backups.map((b, i) => (
+          <div
+            key={b.uuid}
+            className="card-glow p-4 flex flex-wrap items-center justify-between gap-2 animate-fade-up"
+            style={{ animationDelay: `${Math.min(i, 8) * 0.04}s` }}
+          >
             <div className="min-w-0">
               <p className="font-medium text-sm truncate">{b.name}</p>
               <p className="text-xs text-text-dim mt-0.5 flex items-center gap-1 flex-wrap">
@@ -81,12 +85,18 @@ export default function BackupsTab({ serverId, backupSlots }: { serverId: string
               </p>
             </div>
             <div className="flex gap-2 shrink-0">
-              <button onClick={() => restore(b.uuid)} className="btn-secondary px-3 py-1.5 text-sm">복원</button>
-              <button onClick={() => remove(b.uuid)} className="btn-secondary px-3 py-1.5 text-sm text-red">삭제</button>
+              <button onClick={() => restore(b.uuid)} className="btn-secondary px-3 py-1.5 text-sm inline-flex items-center gap-1">
+                <RotateCcw size={13} /> 복원
+              </button>
+              <button onClick={() => remove(b.uuid)} className="rounded-full px-3 py-1.5 text-sm text-red bg-red/10 hover:bg-red/20 transition-colors inline-flex items-center gap-1">
+                <Trash2 size={13} /> 삭제
+              </button>
             </div>
           </div>
         ))}
-        {backups.length === 0 && <p className="text-sm text-text-dim">아직 백업이 없어요.</p>}
+        {backups.length === 0 && (
+          <div className="card-glow p-8 text-center text-sm text-text-dim">아직 백업이 없어요.</div>
+        )}
       </div>
     </div>
   );

@@ -40,7 +40,7 @@ export default async function AdminDashboardPage() {
           const used = usageMap.get(n.id) ?? 0;
           const pct = Math.min(100, Math.round((used / Math.max(1, n.totalRamMb - n.reservedRamMb)) * 100));
           return (
-            <div key={n.id} className="card p-4">
+            <div key={n.id} className="card-glow p-4">
               <div className="flex justify-between text-sm">
                 <span className="font-medium">{n.name} · {n.location}</span>
                 <span className="text-text-dim">{(used / 1024).toFixed(0)}GB / {((n.totalRamMb - n.reservedRamMb) / 1024).toFixed(0)}GB</span>
@@ -59,7 +59,7 @@ export default async function AdminDashboardPage() {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="card p-4">
+    <div className="card-glow p-4">
       <div className="text-xs text-text-dim">{label}</div>
       <div className="mt-1 text-xl font-bold">{value}</div>
     </div>

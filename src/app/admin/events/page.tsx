@@ -98,7 +98,7 @@ export default function AdminEventsPage() {
         <h1 className="text-2xl font-bold">이벤트</h1>
         <div className="mt-4 space-y-2">
           {events.map((ev) => (
-            <div key={ev.id} className="card p-4 flex flex-wrap items-center justify-between gap-2">
+            <div key={ev.id} className="card-glow p-4 flex flex-wrap items-center justify-between gap-2">
               <div className="min-w-0">
                 <p className="font-medium text-sm">{ev.title} {!ev.active && <span className="text-text-dim text-xs">(종료됨)</span>}</p>
                 <p className="text-xs text-text-dim mt-0.5">
@@ -112,7 +112,7 @@ export default function AdminEventsPage() {
           {events.length === 0 && <p className="text-sm text-text-dim">등록된 이벤트가 없어요.</p>}
         </div>
 
-        <form onSubmit={createEvent} className="card p-5 mt-4 space-y-3">
+        <form onSubmit={createEvent} className="card-glow p-5 mt-4 space-y-3">
           <h2 className="font-semibold">새 이벤트</h2>
           <input className="input w-full" placeholder="제목" value={eventForm.title} onChange={(e) => setEventForm({ ...eventForm, title: e.target.value })} required />
           <textarea className="input w-full" placeholder="설명" value={eventForm.description} onChange={(e) => setEventForm({ ...eventForm, description: e.target.value })} required />
@@ -141,7 +141,7 @@ export default function AdminEventsPage() {
         <h1 className="text-2xl font-bold">쿠폰</h1>
         <div className="mt-4 space-y-2">
           {coupons.map((c) => (
-            <div key={c.id} className="card p-4 text-sm flex justify-between">
+            <div key={c.id} className="card-glow p-4 text-sm flex justify-between">
               <span className="font-mono">{c.code}</span>
               <span className="text-text-dim">
                 {c.discountType === "PERCENT" ? `${c.discountValue}%` : `${c.discountValue.toLocaleString()}원`} 할인 ·
@@ -151,7 +151,7 @@ export default function AdminEventsPage() {
           ))}
         </div>
 
-        <form onSubmit={createCoupon} className="card p-5 mt-4 space-y-3">
+        <form onSubmit={createCoupon} className="card-glow p-5 mt-4 space-y-3">
           <h2 className="font-semibold">새 쿠폰</h2>
           <div className="grid sm:grid-cols-4 gap-3">
             <input className="input" placeholder="코드 (예: SUMMER10)" value={couponForm.code} onChange={(e) => setCouponForm({ ...couponForm, code: e.target.value.toUpperCase() })} required />

@@ -98,7 +98,7 @@ export default function AiTab({ serverId }: { serverId: string }) {
   }
 
   return (
-    <div className="card p-0 overflow-hidden flex flex-col h-[32rem]">
+    <div className="card-glow p-0 overflow-hidden flex flex-col h-[32rem] animate-fade-up">
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.length === 0 && (
           <p className="text-sm text-text-dim">
@@ -120,7 +120,7 @@ export default function AiTab({ serverId }: { serverId: string }) {
         {chatError && <p className="text-sm text-red text-center">{chatError}</p>}
 
         {pending && (
-          <div className="card p-4 border-yellow">
+          <div className="card-glow p-4 border-yellow">
             <p className="text-sm">
               <strong>{TOOL_LABEL[pending.toolName] ?? pending.toolName}</strong> 작업을 실행하려고 해요.
               {pending.riskLevel === "DANGEROUS" && " 실행 전에 자동으로 백업할게요."}

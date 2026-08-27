@@ -62,7 +62,7 @@ export default function AdminSurveysPage() {
     <div>
       <h1 className="text-2xl font-bold">설문/피드백</h1>
 
-      <form onSubmit={createPoll} className="card p-5 mt-6 space-y-3">
+      <form onSubmit={createPoll} className="card-glow p-5 mt-6 space-y-3">
         <h2 className="font-semibold">새 설문(투표) 만들기</h2>
         <p className="text-xs text-text-dim">
           디스코드 채널에 버튼 투표로 올라가서 서버 멤버 누구나 답할 수 있어요.
@@ -112,7 +112,7 @@ export default function AdminSurveysPage() {
 
       <div className="mt-6 space-y-2">
         {items.map((r) => (
-          <div key={r.id} className={`card p-4 ${r.reviewed ? "opacity-60" : ""}`}>
+          <div key={r.id} className={`card-glow p-4 ${r.reviewed ? "opacity-60" : ""}`}>
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-sm">{r.content}</p>

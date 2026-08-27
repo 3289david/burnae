@@ -93,7 +93,7 @@ export default function AdminNodesPage() {
 
       <div className="mt-6 space-y-2">
         {nodes.map((n) => (
-          <div key={n.id} className="card p-4">
+          <div key={n.id} className="card-glow p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="min-w-0">
                 <p className="font-medium">{n.name} · {n.location}</p>
@@ -153,7 +153,7 @@ export default function AdminNodesPage() {
         ))}
       </div>
 
-      <form onSubmit={create} className="card p-5 mt-6 space-y-3">
+      <form onSubmit={create} className="card-glow p-5 mt-6 space-y-3">
         <h2 className="font-semibold">노드 연결</h2>
         <div className="grid sm:grid-cols-2 gap-3">
           <F label="Pterodactyl Node ID" value={form.pterodactylNodeId} onChange={(v) => setForm({ ...form, pterodactylNodeId: v })} />

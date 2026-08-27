@@ -124,7 +124,7 @@ export default function AdminProductsPage() {
 
       <div className="mt-6 space-y-2">
         {products.map((p) => (
-          <div key={p.id} className="card p-4 flex items-center justify-between flex-wrap gap-2">
+          <div key={p.id} className="card-glow p-4 flex items-center justify-between flex-wrap gap-2">
             <div className="min-w-0">
               <p className="font-medium">
                 {p.name} {!p.active && <span className="text-text-dim text-xs">(비활성)</span>}
@@ -170,7 +170,7 @@ export default function AdminProductsPage() {
         ))}
       </div>
 
-      <form onSubmit={create} className="card p-5 mt-6 space-y-3">
+      <form onSubmit={create} className="card-glow p-5 mt-6 space-y-3">
         <h2 className="font-semibold">새 상품 추가</h2>
         <div className="grid sm:grid-cols-3 gap-3">
           <div className="sm:col-span-3">

@@ -65,7 +65,7 @@ export default function AdminSettingsPage() {
         여기서 바꾸는 값은 즉시 고객 화면(가격, 저장공간 한도 등)에 반영됩니다.
       </p>
 
-      <div className="card p-5 mt-6 grid sm:grid-cols-2 gap-4">
+      <div className="card-glow p-5 mt-6 grid sm:grid-cols-2 gap-4">
         {FIELDS.map((f) => (
           <div key={f.key}>
             <label className="text-sm text-text-dim">{f.label}</label>
@@ -84,7 +84,7 @@ export default function AdminSettingsPage() {
         ))}
       </div>
 
-      <div className="card p-5 mt-4">
+      <div className="card-glow p-5 mt-4">
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
@@ -99,7 +99,7 @@ export default function AdminSettingsPage() {
         </p>
       </div>
 
-      <div className="card p-5 mt-4">
+      <div className="card-glow p-5 mt-4">
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"

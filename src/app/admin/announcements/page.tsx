@@ -84,7 +84,7 @@ export default function AdminAnnouncementsPage() {
 
       <div className="mt-6 space-y-2">
         {items.map((a) => (
-          <div key={a.id} className="card p-4 flex items-center justify-between flex-wrap gap-2">
+          <div key={a.id} className="card-glow p-4 flex items-center justify-between flex-wrap gap-2">
             <div className="min-w-0">
               <p className="font-medium text-sm">
                 [{LEVEL_LABEL[a.level]}] {a.title} {!a.active && <span className="text-text-dim text-xs">(비활성)</span>}
@@ -109,7 +109,7 @@ export default function AdminAnnouncementsPage() {
         {items.length === 0 && <p className="text-sm text-text-dim">등록된 공지가 없어요.</p>}
       </div>
 
-      <form onSubmit={create} className="card p-5 mt-6 space-y-3">
+      <form onSubmit={create} className="card-glow p-5 mt-6 space-y-3">
         <h2 className="font-semibold">새 공지 등록</h2>
         <div>
           <label className="text-sm text-text-dim">제목</label>

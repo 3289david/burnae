@@ -79,8 +79,8 @@ export default function TeamTab({ serverId, isOwner }: { serverId: string; isOwn
   }
 
   return (
-    <div className="space-y-6">
-      <div className="card p-0 overflow-hidden">
+    <div className="space-y-6 animate-fade-up">
+      <div className="card-glow p-0 overflow-hidden">
         <div className="px-4 py-2.5 border-b border-border">
           <h3 className="font-semibold text-sm">팀원</h3>
         </div>
@@ -117,7 +117,7 @@ export default function TeamTab({ serverId, isOwner }: { serverId: string; isOwn
       </div>
 
       {isOwner && (
-        <form onSubmit={invite} className="card p-5 space-y-3">
+        <form onSubmit={invite} className="card-glow p-5 space-y-3">
           <h3 className="font-semibold text-sm">팀원 초대</h3>
           <p className="text-xs text-text-dim">초대하려는 사람이 먼저 burnae.kr에 가입돼있어야 해요.</p>
           <div className="flex gap-2">

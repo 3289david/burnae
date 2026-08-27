@@ -118,7 +118,7 @@ export default function AdminDiscordPage() {
         </p>
       </div>
 
-      <div className="card p-5">
+      <div className="card-glow p-5">
         <h2 className="font-semibold mb-3">역할</h2>
         <div className="grid sm:grid-cols-3 gap-4">
           {ROLE_FIELDS.map((f) => (
@@ -135,7 +135,7 @@ export default function AdminDiscordPage() {
         </div>
       </div>
 
-      <div className="card p-5">
+      <div className="card-glow p-5">
         <h2 className="font-semibold mb-3">채널</h2>
         <div className="grid sm:grid-cols-2 gap-4">
           {CHANNEL_FIELDS.map((f) => (
@@ -152,7 +152,7 @@ export default function AdminDiscordPage() {
         </div>
       </div>
 
-      <div className="card p-5 space-y-3">
+      <div className="card-glow p-5 space-y-3">
         <h2 className="font-semibold">규칙</h2>
         <div>
           <label className="text-sm text-text-dim">제목</label>
@@ -174,7 +174,7 @@ export default function AdminDiscordPage() {
         </div>
       </div>
 
-      <div className="card p-5">
+      <div className="card-glow p-5">
         <label className="text-sm text-text-dim">링크트리 제목</label>
         <input
           className="input w-full mt-1"
@@ -194,7 +194,7 @@ export default function AdminDiscordPage() {
         <h2 className="text-xl font-bold">링크트리 목록</h2>
         <div className="mt-3 space-y-2">
           {links.map((l) => (
-            <div key={l.id} className="card p-4 flex items-center justify-between flex-wrap gap-2">
+            <div key={l.id} className="card-glow p-4 flex items-center justify-between flex-wrap gap-2">
               <div className="min-w-0">
                 <p className="font-medium text-sm">
                   {l.emoji ? `${l.emoji} ` : ""}
@@ -213,7 +213,7 @@ export default function AdminDiscordPage() {
           {links.length === 0 && <p className="text-sm text-text-dim">등록된 링크가 없어요.</p>}
         </div>
 
-        <form onSubmit={addLink} className="card p-5 mt-4 space-y-3">
+        <form onSubmit={addLink} className="card-glow p-5 mt-4 space-y-3">
           <h3 className="font-semibold">새 링크 추가</h3>
           <div className="grid sm:grid-cols-3 gap-3">
             <div>

@@ -49,10 +49,10 @@ export default function PlayersTab({ serverId }: { serverId: string }) {
   if (!data) return <p className="text-sm text-text-dim">불러오는 중...</p>;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-up">
       {error && <p className="text-sm text-red">{error}</p>}
 
-      <div className="card p-5">
+      <div className="card-glow p-5">
         <div className="flex flex-wrap items-center gap-2">
           <input
             className="input flex-1 min-w-0"
@@ -128,7 +128,7 @@ export default function PlayersTab({ serverId }: { serverId: string }) {
 
 function Section({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="card p-0 overflow-hidden">
+    <div className="card-glow p-0 overflow-hidden">
       <div className="px-4 py-2.5 border-b border-border flex items-center justify-between">
         <h3 className="font-semibold text-sm">{title}</h3>
         {action}

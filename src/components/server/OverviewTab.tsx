@@ -224,7 +224,7 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
         </div>
       </div>
 
-      <div className="card p-5">
+      <div className="card-glow p-5">
         <h3 className="font-semibold mb-3">서버 정보</h3>
         <div className="grid grid-cols-2 gap-y-2 text-sm">
           <span className="text-text-dim">종류</span>
@@ -236,7 +236,7 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
         </div>
       </div>
 
-      <div className="card p-5">
+      <div className="card-glow p-5">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold">접속 주소</h3>
           <span className="text-xs text-text-dim">{subdomains.length} / 2</span>

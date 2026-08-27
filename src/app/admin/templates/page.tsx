@@ -148,7 +148,7 @@ export default function AdminTemplatesPage() {
 
       <div className="mt-6 space-y-2">
         {templates.map((t) => (
-          <div key={t.id} className="card p-4 text-sm">
+          <div key={t.id} className="card-glow p-4 text-sm">
             <div className="flex justify-between">
               <span className="font-medium">{t.displayName} <span className="text-text-dim">({t.key})</span></span>
               <span className="text-text-dim">{t.active ? "활성" : "비활성"}</span>
@@ -159,7 +159,7 @@ export default function AdminTemplatesPage() {
         ))}
       </div>
 
-      <form onSubmit={create} className="card p-5 mt-6 space-y-4">
+      <form onSubmit={create} className="card-glow p-5 mt-6 space-y-4">
         <h2 className="font-semibold">새 서버 종류 추가</h2>
 
         {nestsError && (

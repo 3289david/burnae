@@ -76,16 +76,28 @@ export default function PromotionsClient({
   }
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold">서버 홍보하고 포인트 받기</h1>
-      <p className="text-sm text-text-dim mt-1">
+    <div className="relative">
+      <div className="blob w-72 h-72 bg-pink -top-28 -right-16 animate-float pointer-events-none" />
+
+      <h1 className="text-2xl font-bold font-display animate-fade-up">
+        서버 <span className="text-gradient">홍보</span>하고 포인트 받기
+      </h1>
+      <p className="text-sm text-text-dim mt-1 animate-fade-up" style={{ animationDelay: "0.05s" }}>
         아래 방법으로 Burnae를 홍보하면 포인트가 쌓여요. 모은 포인트로 무료 체험 서버를 받을 수 있어요.
       </p>
 
-      <div className="card p-5 mt-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-xs text-text-dim">내 포인트</p>
-          <p className="text-2xl font-bold text-accent">{currentPoints.toLocaleString()}P</p>
+      <div
+        className="relative card-glow p-5 mt-6 flex flex-wrap items-center justify-between gap-4 animate-fade-up"
+        style={{ animationDelay: "0.1s" }}
+      >
+        <div className="flex items-center gap-3">
+          <span className="w-11 h-11 rounded-2xl bg-accent/15 flex items-center justify-center shrink-0">
+            <Gift size={20} className="text-accent" />
+          </span>
+          <div>
+            <p className="text-xs text-text-dim">내 포인트</p>
+            <p className="text-2xl font-bold font-display text-gradient">{currentPoints.toLocaleString()}P</p>
+          </div>
         </div>
         <div className="min-w-0">
           <p className="text-xs text-text-dim mb-1">내 추천 링크</p>
@@ -98,19 +110,32 @@ export default function PromotionsClient({
         </div>
       </div>
 
-      <h2 className="font-semibold mt-8 mb-3">홍보 방법</h2>
-      <div className="space-y-2">
-        {taskState.map((t) => (
-          <TaskRow key={t.id} task={t} servers={servers} onDone={(patch) => updateTask(t.id, patch)} onPoints={(p) => setCurrentPoints((c) => c + p)} />
+      <h2 className="font-semibold mt-8 mb-3 animate-fade-up" style={{ animationDelay: "0.15s" }}>홍보 방법</h2>
+      <div className="space-y-2.5">
+        {taskState.map((t, i) => (
+          <TaskRow
+            key={t.id}
+            task={t}
+            servers={servers}
+            delay={0.15 + Math.min(i, 8) * 0.04}
+            onDone={(patch) => updateTask(t.id, patch)}
+            onPoints={(p) => setCurrentPoints((c) => c + p)}
+          />
         ))}
       </div>
 
       {redeemableProducts.length > 0 && (
         <>
-          <h2 className="font-semibold mt-8 mb-3 flex items-center gap-1.5"><Gift size={16} /> 포인트로 교환하기</h2>
+          <h2 className="font-semibold mt-8 mb-3 flex items-center gap-1.5 animate-fade-up"><Gift size={16} /> 포인트로 교환하기</h2>
           <div className="space-y-3">
-            {redeemableProducts.map((p) => (
-              <RedeemCard key={p.id} product={p} points={currentPoints} onRedeemed={(cost) => setCurrentPoints((c) => c - cost)} />
+            {redeemableProducts.map((p, i) => (
+              <RedeemCard
+                key={p.id}
+                product={p}
+                points={currentPoints}
+                delay={Math.min(i, 8) * 0.04}
+                onRedeemed={(cost) => setCurrentPoints((c) => c - cost)}
+              />
             ))}
           </div>
         </>
@@ -122,11 +147,13 @@ export default function PromotionsClient({
 function TaskRow({
   task,
   servers,
+  delay = 0,
   onDone,
   onPoints,
 }: {
   task: Task;
   servers: ServerOption[];
+  delay?: number;
   onDone: (patch: Partial<Task>) => void;
   onPoints: (p: number) => void;
 }) {
@@ -167,7 +194,7 @@ function TaskRow({
   const done = task.completed && !task.repeatable;
 
   return (
-    <div className="card p-4">
+    <div className="card-glow p-4 animate-fade-up" style={{ animationDelay: `${delay}s` }}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
           <p className="font-medium text-sm flex items-center gap-1.5">
@@ -216,10 +243,12 @@ function TaskRow({
 function RedeemCard({
   product,
   points,
+  delay = 0,
   onRedeemed,
 }: {
   product: RedeemableProduct;
   points: number;
+  delay?: number;
   onRedeemed: (cost: number) => void;
 }) {
   const router = useRouter();
@@ -256,7 +285,7 @@ function RedeemCard({
   }
 
   return (
-    <div className="card p-4">
+    <div className="card-glow p-4 animate-fade-up" style={{ animationDelay: `${delay}s` }}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <p className="font-medium text-sm">{product.name}</p>

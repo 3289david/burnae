@@ -10,7 +10,6 @@ interface Settings {
   diskPricePerGbKrw: number;
   defaultBackupSlots: number;
   backupPricePerSlotKrw: number;
-  defaultUserStorageGb: number;
   maxCpuPercentPerServer: number;
   siteName: string;
   siteDomain: string;
@@ -27,7 +26,6 @@ const FIELDS: { key: keyof Settings; label: string; type: "number" | "text" }[] 
   { key: "diskPricePerGbKrw", label: "추가 디스크 단가 (원/GB)", type: "number" },
   { key: "defaultBackupSlots", label: "기본 백업 슬롯 수", type: "number" },
   { key: "backupPricePerSlotKrw", label: "백업 슬롯 단가 (원)", type: "number" },
-  { key: "defaultUserStorageGb", label: "유저 기본 저장공간 (GB, 인당)", type: "number" },
   { key: "maxCpuPercentPerServer", label: "서버당 최대 CPU (%)", type: "number" },
   { key: "siteName", label: "사이트 이름", type: "text" },
   { key: "siteDomain", label: "메인 도메인", type: "text" },

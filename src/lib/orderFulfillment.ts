@@ -71,13 +71,13 @@ export async function markOrderPaidAndFulfill(orderId: string) {
     if (server.status === "SUSPENDED" && server.pterodactylServerId) {
       await PteroApp.unsuspendServer(server.pterodactylServerId);
     }
-    if (order.product.aiCreditsPerMonth > 0) {
+    if (order.product && order.product.aiCreditsPerMonth > 0) {
       await prisma.user.update({
         where: { id: order.userId },
         data: { aiCreditsRemaining: { increment: order.product.aiCreditsPerMonth } },
       });
     }
-  } else if (order.type === "UPGRADE" && order.serverId) {
+  } else if (order.type === "UPGRADE" && order.serverId && order.product) {
     const server = await prisma.server.findUniqueOrThrow({ where: { id: order.serverId } });
     await PteroApp.updateServerBuild(server.pterodactylServerId!, {
       memoryMb: order.product.ramMb,
@@ -88,7 +88,7 @@ export async function markOrderPaidAndFulfill(orderId: string) {
     await prisma.server.update({
       where: { id: server.id },
       data: {
-        productId: order.productId,
+        productId: order.productId ?? undefined,
         ramMb: order.product.ramMb,
         diskMb: order.product.diskMb,
         cpuPercent: order.product.cpuPercent,

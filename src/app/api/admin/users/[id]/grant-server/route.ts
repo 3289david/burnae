@@ -2,11 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { provisionNewServerOrder } from "@/lib/orderFulfillment";
 
 const baseFields = {
-  templateId: z.string(),
-  minecraftVersion: z.string(),
   serverName: z.string().min(2).max(24),
 };
 
@@ -26,6 +23,8 @@ const schema = z.discriminatedUnion("mode", [
 
 /**
  * 관리자가 결제/포인트 없이 특정 유저에게 서버를 바로 지급한다 (이벤트 경품, 보상, 테스트용 등).
+ * 서버 종류(로더)/마인크래프트 버전은 관리자가 정하지 않는다 — 결제 후 선택 흐름과 동일하게
+ * 유저가 로그인해서 직접 고르면 그때 실제로 생성된다.
  * "custom" 모드는 얼마나 줄지(RAM/CPU/디스크/백업 슬롯) 직접 정할 수 있게, 그 스펙 그대로
  * 비공개(active: false) 상품을 하나 만들어서 기존 주문 처리 파이프라인을 그대로 재사용한다.
  */
@@ -47,19 +46,23 @@ export async function POST(
   const input = parsed.data;
 
   let productId: string;
+  let productName: string;
   if (input.mode === "existing") {
     const product = await prisma.product.findUnique({
       where: { id: input.productId, active: true },
       include: { allowedTemplates: true },
     });
     if (!product) return NextResponse.json({ error: "존재하지 않는 상품입니다." }, { status: 404 });
-    if (!product.allowedTemplates.some((t) => t.id === input.templateId)) {
-      return NextResponse.json({ error: "이 상품에서 선택할 수 없는 서버 종류입니다." }, { status: 422 });
+    if (product.allowedTemplates.length === 0) {
+      return NextResponse.json({ error: "이 상품에는 선택 가능한 서버 종류가 없습니다." }, { status: 422 });
     }
     productId = product.id;
+    productName = product.name;
   } else {
-    const template = await prisma.serverTemplate.findUnique({ where: { id: input.templateId, active: true } });
-    if (!template) return NextResponse.json({ error: "존재하지 않는 서버 종류입니다." }, { status: 404 });
+    const activeTemplates = await prisma.serverTemplate.findMany({ where: { active: true } });
+    if (activeTemplates.length === 0) {
+      return NextResponse.json({ error: "선택 가능한 서버 종류가 없습니다." }, { status: 404 });
+    }
 
     const grantProduct = await prisma.product.create({
       data: {
@@ -70,24 +73,27 @@ export async function POST(
         backupSlots: input.backupSlots,
         priceMonthlyKrw: 0,
         active: false, // 고객 가격표/카탈로그에는 노출되지 않고, 이 지급 건 기록용으로만 남는다
-        allowedTemplates: { connect: [{ id: template.id }] },
+        // 유저가 직접 로더/버전을 고를 수 있도록 지원되는 모든 서버 종류를 연결해둔다
+        allowedTemplates: { connect: activeTemplates.map((t) => ({ id: t.id })) },
       },
     });
     productId = grantProduct.id;
+    productName = grantProduct.name;
   }
 
   const order = await prisma.order.create({
     data: {
       userId,
       productId,
+      productNameSnapshot: productName,
       type: "NEW_SERVER",
       amountKrw: 0,
       depositorName: "관리자지급",
       status: "PAID",
       paidAt: new Date(),
       serverNameRequested: input.serverName,
-      templateIdRequested: input.templateId,
-      minecraftVersionRequested: input.minecraftVersion,
+      // 서버 종류/버전은 여기서 정하지 않는다 — 유저가 로그인해서 직접 고르면
+      // /api/orders/[id] (select-template)에서 provisionNewServerOrder가 호출된다
     },
   });
 
@@ -109,13 +115,7 @@ export async function POST(
     },
   });
 
-  try {
-    await provisionNewServerOrder(order.id);
-  } catch (err) {
-    console.error("[admin grant-server] 서버 생성 실패:", err);
-    // 노드 자리가 없으면 provisionNewServerOrder 내부에서 "선주문" 대기로 자동 전환된다
-  }
-
-  const updated = await prisma.order.findUnique({ where: { id: order.id } });
-  return NextResponse.json(updated);
+  // 결제 후 선택 흐름과 동일하게, 유저가 /dashboard/servers/new?orderId=... 에서
+  // 종류/버전을 고르기 전까지는 실제 서버를 만들지 않는다
+  return NextResponse.json(order);
 }

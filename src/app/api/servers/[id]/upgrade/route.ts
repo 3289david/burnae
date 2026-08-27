@@ -132,6 +132,7 @@ export async function POST(
       data: {
         userId: user.id,
         productId: targetProduct.id,
+        productNameSnapshot: targetProduct.name,
         serverId: server.id,
         type: "UPGRADE",
         amountKrw: priceDiff,

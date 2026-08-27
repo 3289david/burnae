@@ -211,8 +211,11 @@ model Order {
   id                        String      @id @default(cuid())
   userId                    String
   user                      User        @relation(fields: [userId], references: [id])
-  productId                 String
-  product                   Product     @relation(fields: [productId], references: [id])
+  /// 상품이 삭제되면 null이 된다 — 그래도 과거 주문 기록은 productNameSnapshot으로 남는다
+  productId                 String?
+  product                   Product?    @relation(fields: [productId], references: [id], onDelete: SetNull)
+  /// 주문 시점 상품명 스냅샷. 상품이 나중에 삭제/변경돼도 결제내역에서 어떤 상품이었는지 알 수 있게 남겨둔다
+  productNameSnapshot       String?
   type                      OrderType   @default(NEW_SERVER)
   serverId                  String?
   server                    Server?     @relation(fields: [serverId], references: [id])

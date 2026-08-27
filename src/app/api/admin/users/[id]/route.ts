@@ -4,12 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 
 const schema = z.object({
-  storageQuotaGbOverride: z.number().int().min(1).nullable().optional(),
   status: z.enum(["ACTIVE", "SUSPENDED"]).optional(),
   aiCreditsRemaining: z.number().int().min(0).optional(),
 });
 
-/** 관리자가 특정 유저의 저장공간 한도(기본 10GB)를 상향하거나 계정을 정지 */
+/** 관리자가 특정 유저의 AI 크레딧을 조정하거나 계정을 정지 */
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },

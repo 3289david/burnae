@@ -55,6 +55,7 @@ export async function POST(request: Request) {
         data: {
           userId: user.id,
           productId: product.id,
+          productNameSnapshot: product.name,
           type: "NEW_SERVER",
           amountKrw: 0,
           depositorName: "포인트",

@@ -23,7 +23,6 @@ const schema = z.object({
   diskPricePerGbKrw: z.number().int().min(0).optional(),
   defaultBackupSlots: z.number().int().min(0).optional(),
   backupPricePerSlotKrw: z.number().int().min(0).optional(),
-  defaultUserStorageGb: z.number().int().min(1).optional(),
   maxCpuPercentPerServer: z.number().int().min(50).optional(),
   siteName: z.string().min(1).optional(),
   siteDomain: z.string().min(1).optional(),

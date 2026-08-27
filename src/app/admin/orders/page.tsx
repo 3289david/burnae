@@ -9,7 +9,8 @@ interface PendingOrder {
   serverNameRequested: string | null;
   createdAt: string;
   user: { name: string; email: string };
-  product: { name: string; priceMonthlyKrw: number };
+  product: { name: string; priceMonthlyKrw: number } | null;
+  productNameSnapshot: string | null;
 }
 
 export default function AdminOrdersPage() {
@@ -56,7 +57,7 @@ export default function AdminOrdersPage() {
                 {o.user.name} <span className="text-text-dim text-xs">({o.user.email})</span>
               </p>
               <p className="text-xs text-text-dim mt-0.5">
-                {o.product.name} · {o.serverNameRequested ?? ""} · 입금자명 <b>{o.depositorName}</b> ·{" "}
+                {o.productNameSnapshot ?? o.product?.name ?? "삭제된 상품"} · {o.serverNameRequested ?? ""} · 입금자명 <b>{o.depositorName}</b> ·{" "}
                 <b className="text-accent">{o.amountKrw.toLocaleString()}원</b> ·{" "}
                 {new Date(o.createdAt).toLocaleString("ko-KR")}
               </p>

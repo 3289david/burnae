@@ -4,9 +4,14 @@ import DiscordLinkCard from "@/components/DiscordLinkCard";
 import DepositorNameCard from "@/components/DepositorNameCard";
 import { UserCircle2 } from "lucide-react";
 
-export default async function AccountPage() {
+export default async function AccountPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ discordError?: string; discordLinked?: string }>;
+}) {
   const user = await getCurrentUser();
   const link = await prisma.discordLink.findUnique({ where: { userId: user!.id } });
+  const params = await searchParams;
 
   return (
     <div className="max-w-md">
@@ -27,7 +32,7 @@ export default async function AccountPage() {
       </div>
 
       <div className="mt-4 animate-fade-up" style={{ animationDelay: "0.15s" }}>
-        <DiscordLinkCard linked={!!link} />
+        <DiscordLinkCard linked={!!link} error={params.discordError} justLinked={params.discordLinked === "1"} />
       </div>
     </div>
   );

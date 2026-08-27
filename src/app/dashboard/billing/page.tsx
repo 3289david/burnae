@@ -51,7 +51,7 @@ export default async function BillingPage() {
             >
               <div className="min-w-0">
                 <p className="font-medium text-sm truncate">
-                  {TYPE_LABEL[o.type]} · {o.product.name}
+                  {TYPE_LABEL[o.type]} · {o.productNameSnapshot ?? o.product?.name ?? "삭제된 상품"}
                   {o.server && ` (${o.server.name})`}
                 </p>
                 <p className="text-xs text-text-dim mt-0.5">

@@ -8,7 +8,8 @@ interface Preorder {
   serverNameRequested: string | null;
   createdAt: string;
   user: { name: string; email: string };
-  product: { name: string };
+  product: { name: string } | null;
+  productNameSnapshot: string | null;
 }
 
 export default function AdminPreordersPage() {
@@ -51,7 +52,7 @@ export default function AdminPreordersPage() {
           <div key={o.id} className="card-glow p-4 flex flex-wrap items-center justify-between gap-2">
             <div className="min-w-0">
               <p className="font-medium text-sm">
-                {o.serverNameRequested ?? "이름 미지정"} · {o.product.name}
+                {o.serverNameRequested ?? "이름 미지정"} · {o.productNameSnapshot ?? o.product?.name ?? "삭제된 상품"}
               </p>
               <p className="text-xs text-text-dim mt-0.5">
                 {o.user.name} ({o.user.email}) · {o.amountKrw.toLocaleString()}원 ·{" "}

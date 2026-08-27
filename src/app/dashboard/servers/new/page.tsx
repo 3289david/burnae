@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   CheckCircle2,
   Check,
@@ -76,11 +76,21 @@ function loaderMeta(baseKey: string) {
 
 const TIER_ORDER: Record<string, number> = { 최신: 0, 중간: 1, 레거시: 2 };
 
-type Step = "form" | "pay" | "choose" | "done";
+type Step = "form" | "pay" | "choose" | "done" | "loading";
 
 export default function NewServerPage() {
+  return (
+    <Suspense fallback={null}>
+      <NewServerPageInner />
+    </Suspense>
+  );
+}
+
+function NewServerPageInner() {
   const router = useRouter();
-  const [step, setStep] = useState<Step>("form");
+  const searchParams = useSearchParams();
+  const grantOrderId = searchParams.get("orderId");
+  const [step, setStep] = useState<Step>(grantOrderId ? "loading" : "form");
   const [products, setProducts] = useState<Product[]>([]);
   const [productId, setProductId] = useState("");
   const [serverName, setServerName] = useState("");
@@ -104,9 +114,37 @@ export default function NewServerPage() {
       .then((r) => r.json())
       .then((data: Product[]) => {
         setProducts(data);
-        if (data[0]) setProductId(data[0].id);
+        if (!grantOrderId && data[0]) setProductId(data[0].id);
       });
-  }, []);
+  }, [grantOrderId]);
+
+  // 관리자가 지급한 서버 등 — 결제는 끝났고 종류/버전만 고르면 되는 주문을 바로 불러온다
+  useEffect(() => {
+    if (!grantOrderId) return;
+    fetch(`/api/orders/${grantOrderId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.serverId) {
+          router.replace(`/dashboard/servers/${data.serverId}`);
+          return;
+        }
+        if (data.status !== "PAID" || data.templateIdRequested) {
+          setError("이 주문은 이미 처리됐거나 종류를 고를 수 없어요.");
+          setStep("form");
+          return;
+        }
+        if (data.product) {
+          setProducts((prev) => (prev.some((p) => p.id === data.product.id) ? prev : [...prev, data.product]));
+          setProductId(data.product.id);
+        }
+        setOrder({ id: data.id, amountKrw: data.amountKrw, depositorName: data.depositorName, isPreorder: data.isPreorder, status: data.status });
+        setStep("choose");
+      })
+      .catch(() => {
+        setError("주문 정보를 불러오지 못했어요.");
+        setStep("form");
+      });
+  }, [grantOrderId, router]);
 
   const selectedProduct = useMemo(() => products.find((p) => p.id === productId), [products, productId]);
   const selectedTemplate = useMemo(
@@ -239,6 +277,14 @@ export default function NewServerPage() {
     } finally {
       setChoosing(false);
     }
+  }
+
+  if (step === "loading") {
+    return (
+      <div className="max-w-md mx-auto text-center py-16 text-text-dim text-sm">
+        불러오는 중...
+      </div>
+    );
   }
 
   if (step === "pay" && order) {
@@ -453,7 +499,7 @@ export default function NewServerPage() {
                     <div className="min-w-0">
                       <div className="font-semibold">{p.name}</div>
                       <div className="text-text-dim text-xs mt-0.5">
-                        RAM {(p.ramMb / 1024).toFixed(0)}GB · 디스크 {(p.diskMb / 1024).toFixed(0)}GB
+                        RAM {(p.ramMb / 1024).toFixed(0)}GB
                       </div>
                     </div>
                   </div>

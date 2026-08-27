@@ -14,7 +14,6 @@ export async function GET() {
       name: true,
       role: true,
       status: true,
-      storageQuotaGbOverride: true,
       aiCreditsRemaining: true,
       promotionPoints: true,
       createdAt: true,

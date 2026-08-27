@@ -43,6 +43,7 @@ export async function POST(
     data: {
       userId: user.id,
       productId: server.productId,
+      productNameSnapshot: server.product.name,
       serverId: server.id,
       type: "RENEWAL",
       amountKrw: server.product.priceMonthlyKrw,

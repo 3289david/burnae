@@ -25,6 +25,20 @@ export async function GET(
       preorderWaiting: true,
       templateIdRequested: true,
       productId: true,
+      product: {
+        select: {
+          id: true,
+          name: true,
+          ramMb: true,
+          diskMb: true,
+          priceMonthlyKrw: true,
+          description: true,
+          allowedTemplates: {
+            where: { active: true },
+            select: { id: true, key: true, displayName: true, minecraftVersions: true },
+          },
+        },
+      },
     },
   });
   if (!order) return NextResponse.json({ error: "주문을 찾을 수 없습니다." }, { status: 404 });
@@ -57,6 +71,9 @@ export async function POST(
   }
   if (order.serverId || order.templateIdRequested) {
     return NextResponse.json({ error: "이미 서버 종류를 선택한 주문이에요." }, { status: 409 });
+  }
+  if (!order.product) {
+    return NextResponse.json({ error: "이 주문의 상품이 삭제되어 종류를 선택할 수 없어요. 관리자에게 문의해주세요." }, { status: 409 });
   }
 
   const parsed = selectTemplateSchema.safeParse(await request.json().catch(() => null));

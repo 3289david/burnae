@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
-import { createSessionCookie, resolveInitialRole, isAdminEmail } from "@/lib/auth";
+import { createSessionCookie, getCurrentUser, resolveInitialRole, isAdminEmail } from "@/lib/auth";
 import { completeOAuthLogin, siteUrl, type OAuthProviderKey } from "@/lib/oauth";
 import { rewardReferralSignup } from "@/lib/promotions";
 
@@ -36,12 +36,54 @@ export async function GET(
     return loginError("로그인 요청이 만료되었거나 올바르지 않습니다. 다시 시도해주세요.");
   }
 
+  const linkMode = store.get(`oauth_link_${provider}`)?.value === "1";
+  store.delete(`oauth_link_${provider}`);
+
   let profile;
   try {
     profile = await completeOAuthLogin(provider, code);
   } catch (err) {
     console.error(`[oauth:${provider}] 로그인 실패:`, err);
+    if (linkMode) {
+      return NextResponse.redirect(
+        new URL(`/dashboard/account?discordError=${encodeURIComponent(err instanceof Error ? err.message : "연동에 실패했습니다.")}`, siteUrl()),
+      );
+    }
     return loginError(err instanceof Error ? err.message : "로그인에 실패했습니다.");
+  }
+
+  // 로그인된 계정에 디스코드만 추가 연동하는 경우 — 새 로그인/가입 로직 없이 바로 연동 처리
+  if (linkMode && provider === "discord") {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      return NextResponse.redirect(new URL("/login", siteUrl()));
+    }
+    try {
+      const conflict = await prisma.discordLink.findUnique({ where: { discordUserId: profile.providerAccountId } });
+      if (conflict && conflict.userId !== currentUser.id) {
+        return NextResponse.redirect(
+          new URL(`/dashboard/account?discordError=${encodeURIComponent("이 디스코드 계정은 이미 다른 Burnae 계정에 연동되어 있습니다.")}`, siteUrl()),
+        );
+      }
+      await prisma.discordLink.upsert({
+        where: { userId: currentUser.id },
+        update: { discordUserId: profile.providerAccountId },
+        create: { userId: currentUser.id, discordUserId: profile.providerAccountId },
+      });
+      await prisma.oAuthAccount
+        .upsert({
+          where: { provider_providerAccountId: { provider: "DISCORD", providerAccountId: profile.providerAccountId } },
+          update: {},
+          create: { userId: currentUser.id, provider: "DISCORD", providerAccountId: profile.providerAccountId },
+        })
+        .catch(() => {});
+      return NextResponse.redirect(new URL("/dashboard/account?discordLinked=1", siteUrl()));
+    } catch (err) {
+      console.error("[oauth:discord] 연동 실패:", err);
+      return NextResponse.redirect(
+        new URL(`/dashboard/account?discordError=${encodeURIComponent("연동 처리 중 오류가 발생했습니다.")}`, siteUrl()),
+      );
+    }
   }
 
   const providerEnum = PROVIDER_ENUM[provider];

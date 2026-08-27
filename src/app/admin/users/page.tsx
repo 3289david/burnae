@@ -1,17 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 
-interface Template { id: string; displayName: string; minecraftVersions: string[]; active: boolean }
-interface Product { id: string; name: string; active: boolean; allowedTemplates: Template[] }
+interface Product { id: string; name: string; active: boolean }
 interface User {
   id: string;
   email: string;
   name: string;
   role: string;
   status: string;
-  storageQuotaGbOverride: number | null;
   aiCreditsRemaining: number;
   promotionPoints: number;
   _count: { servers: number };
@@ -20,7 +17,6 @@ interface User {
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [templates, setTemplates] = useState<Template[]>([]);
   const [grantOpenFor, setGrantOpenFor] = useState<string | null>(null);
 
   async function load() {
@@ -28,24 +24,10 @@ export default function AdminUsersPage() {
     setUsers(await res.json());
   }
   async function loadCatalog() {
-    const [p, t] = await Promise.all([
-      fetch("/api/admin/products").then((r) => r.json()),
-      fetch("/api/admin/templates").then((r) => r.json()),
-    ]);
+    const p = await fetch("/api/admin/products").then((r) => r.json());
     setProducts(p.filter((x: Product) => x.active));
-    setTemplates(t.filter((x: Template) => x.active));
   }
   useEffect(() => { load(); loadCatalog(); }, []);
-
-  async function updateQuota(id: string, value: string) {
-    const num = value === "" ? null : Number(value);
-    await fetch(`/api/admin/users/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ storageQuotaGbOverride: num }),
-    });
-    await load();
-  }
 
   async function updateCredits(id: string, value: string) {
     await fetch(`/api/admin/users/${id}`, {
@@ -85,7 +67,7 @@ export default function AdminUsersPage() {
     <div>
       <h1 className="text-2xl font-bold">유저</h1>
       <p className="text-sm text-text-dim mt-1">
-        저장공간 한도(기본 10GB)를 유저별로 상향하거나, 포인트·서버를 직접 지급할 수 있어요.
+        AI 크레딧·포인트·서버를 직접 지급하거나 계정을 정지할 수 있어요.
       </p>
 
       <div className="mt-6 space-y-2">
@@ -99,16 +81,6 @@ export default function AdminUsersPage() {
                 </p>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
-                <label className="text-xs text-text-dim flex items-center gap-1">
-                  저장공간(GB)
-                  <input
-                    type="number"
-                    placeholder="기본값"
-                    defaultValue={u.storageQuotaGbOverride ?? ""}
-                    onBlur={(e) => updateQuota(u.id, e.target.value)}
-                    className="input w-20 text-sm"
-                  />
-                </label>
                 <label className="text-xs text-text-dim flex items-center gap-1">
                   AI 크레딧
                   <input
@@ -138,7 +110,6 @@ export default function AdminUsersPage() {
                 userId={u.id}
                 userName={u.name}
                 products={products}
-                templates={templates}
                 onDone={() => { setGrantOpenFor(null); load(); }}
               />
             )}
@@ -155,21 +126,17 @@ function GrantServerForm({
   userId,
   userName,
   products,
-  templates,
   onDone,
 }: {
   userId: string;
   userName: string;
   products: Product[];
-  templates: Template[];
   onDone: () => void;
 }) {
-  const router = useRouter();
   const [mode, setMode] = useState<Mode>(products.length > 0 ? "existing" : "custom");
 
   // 기존 상품 모드
   const [productId, setProductId] = useState(products[0]?.id ?? "");
-  const product = products.find((p) => p.id === productId);
 
   // 직접 설정(커스텀) 모드
   const [ramGb, setRamGb] = useState(1);
@@ -177,20 +144,10 @@ function GrantServerForm({
   const [diskGb, setDiskGb] = useState(1);
   const [backupSlots, setBackupSlots] = useState(1);
 
-  const templateOptions = mode === "existing" ? product?.allowedTemplates ?? [] : templates;
-  const [templateId, setTemplateId] = useState(templateOptions[0]?.id ?? "");
-  const template = templateOptions.find((t) => t.id === templateId);
-  const [version, setVersion] = useState(template?.minecraftVersions[0] ?? "");
   const [serverName, setServerName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  function switchMode(next: Mode) {
-    setMode(next);
-    const opts = next === "existing" ? product?.allowedTemplates ?? [] : templates;
-    setTemplateId(opts[0]?.id ?? "");
-    setVersion(opts[0]?.minecraftVersions[0] ?? "");
-  }
+  const [done, setDone] = useState(false);
 
   async function submit() {
     setLoading(true);
@@ -198,11 +155,9 @@ function GrantServerForm({
     try {
       const body =
         mode === "existing"
-          ? { mode, productId, templateId, minecraftVersion: version, serverName }
+          ? { mode, productId, serverName }
           : {
               mode,
-              templateId,
-              minecraftVersion: version,
               serverName,
               ramMb: ramGb * 1024,
               cpuPercent,
@@ -216,18 +171,21 @@ function GrantServerForm({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
+      setDone(true);
       onDone();
-      // 결제 완료 후 화면과 동일하게, 실제로 만들어진 서버 페이지로 바로 이동
-      if (data.serverId) {
-        router.push(`/dashboard/servers/${data.serverId}`);
-      } else if (data.preorderWaiting) {
-        router.push("/admin/preorders");
-      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "지급 실패");
     } finally {
       setLoading(false);
     }
+  }
+
+  if (done) {
+    return (
+      <div className="mt-3 pt-3 border-t border-border">
+        <p className="text-xs text-green">지급 완료! {userName}님이 로그인해서 서버 종류/버전을 고르면 바로 만들어져요.</p>
+      </div>
+    );
   }
 
   return (
@@ -237,7 +195,7 @@ function GrantServerForm({
         {products.length > 0 && (
           <button
             type="button"
-            onClick={() => switchMode("existing")}
+            onClick={() => setMode("existing")}
             className={`px-2.5 py-1 rounded-full border ${mode === "existing" ? "bg-accent border-accent text-white" : "border-border text-text-dim"}`}
           >
             기존 상품에서 지급
@@ -245,26 +203,17 @@ function GrantServerForm({
         )}
         <button
           type="button"
-          onClick={() => switchMode("custom")}
+          onClick={() => setMode("custom")}
           className={`px-2.5 py-1 rounded-full border ${mode === "custom" ? "bg-accent border-accent text-white" : "border-border text-text-dim"}`}
         >
           직접 설정해서 지급
         </button>
       </div>
+      <p className="text-[11px] text-text-dim">서버 종류(로더)와 마인크래프트 버전은 유저가 직접 골라요.</p>
 
       <div className="flex flex-wrap gap-2 items-center">
         {mode === "existing" ? (
-          <select
-            className="input text-sm"
-            value={productId}
-            onChange={(e) => {
-              setProductId(e.target.value);
-              const p = products.find((x) => x.id === e.target.value);
-              const t = p?.allowedTemplates[0];
-              setTemplateId(t?.id ?? "");
-              setVersion(t?.minecraftVersions[0] ?? "");
-            }}
-          >
+          <select className="input text-sm" value={productId} onChange={(e) => setProductId(e.target.value)}>
             {products.map((p) => (
               <option key={p.id} value={p.id}>{p.name}</option>
             ))}
@@ -278,25 +227,6 @@ function GrantServerForm({
           </>
         )}
 
-        <select
-          className="input text-sm"
-          value={templateId}
-          onChange={(e) => {
-            setTemplateId(e.target.value);
-            const t = templateOptions.find((x) => x.id === e.target.value);
-            setVersion(t?.minecraftVersions[0] ?? "");
-          }}
-        >
-          {templateOptions.length === 0 && <option value="">선택 가능한 서버 종류 없음</option>}
-          {templateOptions.map((t) => (
-            <option key={t.id} value={t.id}>{t.displayName}</option>
-          ))}
-        </select>
-        <select className="input text-sm" value={version} onChange={(e) => setVersion(e.target.value)}>
-          {template?.minecraftVersions.map((v) => (
-            <option key={v} value={v}>{v}</option>
-          ))}
-        </select>
         <input
           className="input text-sm flex-1 min-w-[140px]"
           placeholder="서버 이름"
@@ -304,7 +234,11 @@ function GrantServerForm({
           value={serverName}
           onChange={(e) => setServerName(e.target.value)}
         />
-        <button onClick={submit} disabled={loading || serverName.length < 2 || !templateId} className="btn-primary px-4 py-1.5 text-sm">
+        <button
+          onClick={submit}
+          disabled={loading || serverName.length < 2 || (mode === "existing" && !productId)}
+          className="btn-primary px-4 py-1.5 text-sm"
+        >
           {loading ? "지급 중..." : "지급하기"}
         </button>
       </div>

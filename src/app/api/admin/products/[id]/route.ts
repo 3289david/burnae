@@ -54,18 +54,17 @@ export async function DELETE(
   if (!admin) return NextResponse.json({ error: "관리자 권한이 필요합니다." }, { status: 403 });
 
   const { id } = await params;
-  const orderCount = await prisma.order.count({ where: { productId: id } });
-  if (orderCount === 0) {
-    await prisma.product.delete({ where: { id } });
-    return NextResponse.json({ ok: true, deleted: true });
+  // 이 상품을 쓰는 서버가 실제로 있으면(생성 중/삭제된 것 포함) 삭제할 수 없다 — Server.productId는
+  // 필수 필드라 그 서버들의 스펙/과금 기준을 잃게 된다. 과거 주문 기록만 있는 경우는 상관없이 삭제
+  // 가능하며, 그 주문들의 productId는 자동으로 null이 되고 productNameSnapshot에 이름이 남는다.
+  const serverCount = await prisma.server.count({ where: { productId: id } });
+  if (serverCount > 0) {
+    return NextResponse.json(
+      { error: `이 상품으로 만들어진 서버가 ${serverCount}개 있어 삭제할 수 없어요. 먼저 목록에서 숨기려면 "비활성화"를 사용하세요.` },
+      { status: 409 },
+    );
   }
 
-  // 이미 주문 기록이 있는 상품은 완전히 지우면 과거 주문 내역이 깨지므로, 비활성화만 하고
-  // 왜 완전히 삭제되지 않았는지 알려준다.
-  await prisma.product.update({ where: { id }, data: { active: false } });
-  return NextResponse.json({
-    ok: true,
-    deleted: false,
-    message: `이미 ${orderCount}건의 주문 기록이 있어 완전히 삭제하지 않고 비활성화만 했어요.`,
-  });
+  await prisma.product.delete({ where: { id } });
+  return NextResponse.json({ ok: true, deleted: true });
 }

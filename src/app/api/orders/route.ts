@@ -52,6 +52,14 @@ export async function POST(request: Request) {
       { status: 422 },
     );
   }
+  if (product.priceMonthlyKrw === 0) {
+    const existingFreeServer = await prisma.server.findFirst({
+      where: { ownerId: user.id, productId: product.id, deletedAt: null },
+    });
+    if (existingFreeServer) {
+      return NextResponse.json({ error: "무료 서버는 1인당 1개까지만 만들 수 있어요." }, { status: 409 });
+    }
+  }
 
   // 지금 이 상품을 배치할 노드 자리가 없거나, 관리자가 강제로 켜뒀으면 "선주문"으로 진행 —
   // 가격은 관리자가 상품별로 따로 지정한 선주문가(preorderPriceKrw)가 있으면 그걸, 없으면 정가를 그대로 쓴다.
@@ -119,6 +127,7 @@ export async function POST(request: Request) {
     data: {
       userId: user.id,
       productId: product.id,
+      productNameSnapshot: product.name,
       type: "NEW_SERVER",
       amountKrw,
       discountKrw,

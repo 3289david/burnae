@@ -170,30 +170,21 @@ export async function createServerForOrder(orderId: string) {
   if (order.serverId) {
     return prisma.server.findUniqueOrThrow({ where: { id: order.serverId } });
   }
+  if (!order.product) {
+    throw new ProvisioningError("이 주문의 상품이 삭제되어 서버를 생성할 수 없습니다. 관리자에게 문의해주세요.");
+  }
+  const product = order.product;
 
   const template = order.templateIdRequested
     ? await prisma.serverTemplate.findUniqueOrThrow({
         where: { id: order.templateIdRequested },
       })
-    : order.product.allowedTemplates[0];
+    : product.allowedTemplates[0];
   if (!template) throw new ProvisioningError("서버 종류를 찾을 수 없습니다.");
 
   const settings = await prisma.hostingSettings.findUniqueOrThrow({ where: { id: 1 } });
 
-  // 유저 저장공간 한도 확인 (인당 기본 10GB, 관리자가 상향 가능)
-  const quotaGb = order.user.storageQuotaGbOverride ?? settings.defaultUserStorageGb;
-  const currentUsage = await prisma.server.aggregate({
-    where: { ownerId: order.userId, deletedAt: null },
-    _sum: { diskMb: true },
-  });
-  const usedMb = currentUsage._sum.diskMb ?? 0;
-  if (usedMb + order.product.diskMb > quotaGb * 1024) {
-    throw new ProvisioningError(
-      `저장공간 한도(${quotaGb}GB)를 초과합니다. 관리자에게 문의하거나 기존 서버를 정리해주세요.`,
-    );
-  }
-
-  const node = await selectNode(order.product.ramMb, order.product.diskMb, order.product.cpuPercent);
+  const node = await selectNode(product.ramMb, product.diskMb, product.cpuPercent);
 
   const [firstName, ...rest] = order.user.name.split(" ");
   const pteroUser = await PteroApp.findOrCreateUser({
@@ -217,19 +208,19 @@ export async function createServerForOrder(orderId: string) {
     environment: {
       ...(template.defaultEnvironment as Record<string, string | number | boolean>),
       MINECRAFT_VERSION: order.minecraftVersionRequested ?? "latest",
-      SERVER_MEMORY: order.product.ramMb,
+      SERVER_MEMORY: product.ramMb,
     },
-    memoryMb: order.product.ramMb,
-    diskMb: order.product.diskMb,
-    cpuPercent: order.product.cpuPercent,
-    backupSlots: order.product.backupSlots,
+    memoryMb: product.ramMb,
+    diskMb: product.diskMb,
+    cpuPercent: product.cpuPercent,
+    backupSlots: product.backupSlots,
   });
 
   const server = await prisma.$transaction(async (tx) => {
     const created = await tx.server.create({
       data: {
         ownerId: order.userId,
-        productId: order.productId,
+        productId: product.id,
         templateId: template.id,
         nodeId: node.id,
         name: order.serverNameRequested ?? `${order.user.name}의 서버`,
@@ -238,25 +229,25 @@ export async function createServerForOrder(orderId: string) {
         pterodactylServerId: pteroServer.id,
         pterodactylUuid: pteroServer.uuid,
         pterodactylIdentifier: pteroServer.identifier,
-        ramMb: order.product.ramMb,
-        cpuPercent: order.product.cpuPercent,
-        diskMb: order.product.diskMb,
-        backupSlots: order.product.backupSlots,
+        ramMb: product.ramMb,
+        cpuPercent: product.cpuPercent,
+        diskMb: product.diskMb,
+        backupSlots: product.backupSlots,
         allocationIp: node.publicIp,
         allocationPort: allocation.port,
         // 포인트 교환 등 무료 상품은 7일마다 직접 갱신해야 한다(방치된 무료 서버가 자원을 계속
         // 차지하는 걸 막기 위함) — 결제 상품은 기존대로 30일
         renewalDueAt: new Date(
           Date.now() +
-            (order.product.pointsRedeemable ? FREE_SERVER_RENEWAL_DAYS : 30) * 24 * 60 * 60 * 1000,
+            (product.pointsRedeemable ? FREE_SERVER_RENEWAL_DAYS : 30) * 24 * 60 * 60 * 1000,
         ),
       },
     });
     await tx.order.update({ where: { id: order.id }, data: { serverId: created.id } });
-    if (order.product.aiCreditsPerMonth > 0) {
+    if (product.aiCreditsPerMonth > 0) {
       await tx.user.update({
         where: { id: order.userId },
-        data: { aiCreditsRemaining: { increment: order.product.aiCreditsPerMonth } },
+        data: { aiCreditsRemaining: { increment: product.aiCreditsPerMonth } },
       });
     }
     await tx.auditLog.create({

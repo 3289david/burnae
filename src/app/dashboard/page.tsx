@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import EventsBanner from "@/components/EventsBanner";
 import StatusDot from "@/components/StatusDot";
 import EmptyServerIllustration from "@/components/EmptyServerIllustration";
-import { Plus, HardDrive, ArrowRight } from "lucide-react";
+import { Plus, ArrowRight, Gift } from "lucide-react";
 
 const statusLabel: Record<string, { text: string; dot: "green" | "yellow" | "red" | "gray" }> = {
   RUNNING: { text: "온라인", dot: "green" },
@@ -33,14 +33,39 @@ export default async function DashboardPage() {
     update: {},
     create: { id: 1 },
   });
-  const usedGb = servers.reduce((sum, s) => sum + s.diskMb, 0) / 1024;
-  const quotaGb = user!.storageQuotaGbOverride ?? settings.defaultUserStorageGb;
-  const usedPct = Math.min(100, Math.round((usedGb / quotaGb) * 100));
   const runningCount = servers.filter((s) => s.status === "RUNNING").length;
+
+  const pendingGrants = await prisma.order.findMany({
+    where: {
+      userId: user!.id,
+      type: "NEW_SERVER",
+      status: "PAID",
+      serverId: null,
+      templateIdRequested: null,
+    },
+    orderBy: { createdAt: "desc" },
+  });
 
   return (
     <div className="relative">
       <div className="blob w-72 h-72 bg-flame-2 -top-32 -right-20 animate-float pointer-events-none" />
+
+      {pendingGrants.map((o) => (
+        <Link
+          key={o.id}
+          href={`/dashboard/servers/new?orderId=${o.id}`}
+          className="relative card-glow mb-4 p-4 flex items-center gap-3 border-accent/40 bg-accent/[0.06] animate-fade-up"
+        >
+          <span className="w-9 h-9 rounded-xl bg-accent/15 flex items-center justify-center shrink-0">
+            <Gift size={17} className="text-accent" />
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold">지급된 서버가 있어요!</p>
+            <p className="text-xs text-text-dim mt-0.5">서버 종류와 버전을 고르면 바로 만들어져요 — {o.serverNameRequested}</p>
+          </div>
+          <ArrowRight size={16} className="text-accent shrink-0" />
+        </Link>
+      ))}
 
       <EventsBanner />
 
@@ -56,38 +81,6 @@ export default async function DashboardPage() {
         <Link href="/dashboard/servers/new" className="btn-primary px-5 py-2.5 inline-flex items-center gap-1.5">
           <Plus size={17} /> 서버 만들기
         </Link>
-      </div>
-
-      {/* 저장공간 카드 */}
-      <div
-        className="relative card-glow mt-6 p-5 flex items-center gap-4 animate-fade-up"
-        style={{ animationDelay: "0.05s" }}
-      >
-        <span className="w-11 h-11 rounded-2xl bg-accent/15 flex items-center justify-center shrink-0">
-          <HardDrive size={20} className="text-accent" />
-        </span>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-baseline justify-between gap-2">
-            <span className="text-sm font-medium">저장공간</span>
-            <span className="text-sm text-text-dim shrink-0">
-              {usedGb.toFixed(1)}GB / {quotaGb}GB
-            </span>
-          </div>
-          <div className="mt-2 h-2 rounded-full bg-surface-2 overflow-hidden">
-            <div
-              className="h-full rounded-full transition-[width] duration-500"
-              style={{
-                width: `${usedPct}%`,
-                background:
-                  usedPct >= 90
-                    ? "var(--red)"
-                    : usedPct >= 70
-                      ? "var(--yellow)"
-                      : "linear-gradient(90deg, var(--flame-1), var(--flame-3))",
-              }}
-            />
-          </div>
-        </div>
       </div>
 
       {servers.length === 0 ? (

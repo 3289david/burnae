@@ -31,7 +31,11 @@ export default function ConsoleTab({ serverId }: { serverId: string }) {
 
       ws.onmessage = (evt) => {
         const frame: WsFrame = JSON.parse(evt.data);
-        if (frame.event === "auth success") setConnected(true);
+        if (frame.event === "auth success") {
+          setConnected(true);
+          // 접속하자마자 지금까지의 콘솔 출력(백로그)도 요청해서 이어서 보여준다
+          ws?.send(JSON.stringify({ event: "send logs", args: [null] }));
+        }
         if (frame.event === "console output" && frame.args?.[0]) {
           setLines((prev) => [...prev.slice(-500), frame.args![0]]);
         }

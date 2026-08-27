@@ -288,7 +288,7 @@ export async function captureRecentConsoleOutput(
   const lines: string[] = [];
 
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(socket);
+    const ws = new WebSocket(socket, { headers: { Origin: process.env.PTERODACTYL_URL } });
     const timer = setTimeout(() => {
       ws.close();
     }, windowMs);
@@ -333,7 +333,7 @@ export async function runCommandAndCapture(
   const lines: string[] = [];
 
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(socket);
+    const ws = new WebSocket(socket, { headers: { Origin: process.env.PTERODACTYL_URL } });
     let timer: ReturnType<typeof setTimeout> | null = null;
 
     ws.on("open", () => {

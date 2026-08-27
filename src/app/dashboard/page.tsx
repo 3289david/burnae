@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import EventsBanner from "@/components/EventsBanner";
 import StatusDot from "@/components/StatusDot";
-import { Plus, HardDrive, Server as ServerIcon, ArrowRight } from "lucide-react";
+import EmptyServerIllustration from "@/components/EmptyServerIllustration";
+import { Plus, HardDrive, ArrowRight } from "lucide-react";
 
 const statusLabel: Record<string, { text: string; dot: "green" | "yellow" | "red" | "gray" }> = {
   RUNNING: { text: "온라인", dot: "green" },
@@ -94,10 +95,8 @@ export default async function DashboardPage() {
           className="card-glow mt-6 p-12 text-center animate-fade-up"
           style={{ animationDelay: "0.1s" }}
         >
-          <span className="w-14 h-14 rounded-2xl bg-accent/15 flex items-center justify-center mx-auto">
-            <ServerIcon size={26} className="text-accent" />
-          </span>
-          <p className="text-text-dim mt-4">아직 만든 서버가 없어요.</p>
+          <EmptyServerIllustration size={110} />
+          <p className="text-text-dim mt-2">아직 만든 서버가 없어요.</p>
           <Link
             href="/dashboard/servers/new"
             className="btn-primary inline-flex items-center gap-1.5 mt-5 px-5 py-2.5"

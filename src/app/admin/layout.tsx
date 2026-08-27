@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser, isAdminEmail } from "@/lib/auth";
 import LogoutButton from "@/components/LogoutButton";
 import BrandMark from "@/components/BrandMark";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const NAV = [
   { href: "/admin", label: "대시보드" },
@@ -37,6 +38,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </Link>
           <div className="flex items-center gap-3 sm:gap-4 text-sm">
             <Link href="/dashboard" className="text-text-dim hover:text-text whitespace-nowrap">고객 화면으로</Link>
+            <ThemeToggle />
             <LogoutButton />
           </div>
         </div>

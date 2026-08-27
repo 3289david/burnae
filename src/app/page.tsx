@@ -8,6 +8,8 @@ import { prisma } from "@/lib/prisma";
 import BrandMark from "@/components/BrandMark";
 import Footer from "@/components/Footer";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
+import ThemeToggle from "@/components/ThemeToggle";
+import DotGrid from "@/components/DotGrid";
 
 const FEATURES = [
   { icon: Zap, color: "var(--accent)", title: "1분 서버 생성", desc: "결제 즉시 자동으로 Docker 컨테이너가 만들어지고 접속 주소까지 연결돼요." },
@@ -69,6 +71,7 @@ export default async function HomePage() {
             <BrandMark size={26} /> Burnae
           </Link>
           <nav className="flex items-center gap-2 sm:gap-3">
+            <ThemeToggle />
             {user ? (
               <Link href="/dashboard" className="btn-primary px-5 py-2.5 text-sm">대시보드</Link>
             ) : (
@@ -88,6 +91,7 @@ export default async function HomePage() {
       <main>
         {/* ── 히어로 ─────────────────────────────────── */}
         <section className="relative overflow-hidden">
+          <DotGrid />
           <div className="blob w-96 h-96 bg-flame-2 -top-20 -left-20 animate-float" />
           <div className="blob w-80 h-80 bg-purple top-40 right-0 animate-float" style={{ animationDelay: "-3s" }} />
           <div className="blob w-72 h-72 bg-cyan -bottom-10 left-1/3 animate-float" style={{ animationDelay: "-5s" }} />

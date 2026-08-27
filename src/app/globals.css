@@ -29,6 +29,16 @@
   --radius: 1.5rem;
 }
 
+/* ── 화이트 모드 ────────────────────────────────────── */
+:root[data-theme="light"] {
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --surface-2: #f1f1f5;
+  --border: #e5e5ec;
+  --text: #17171f;
+  --text-dim: #6b6b7c;
+}
+
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
@@ -130,7 +140,7 @@ h1, h2, h3, h4,
   transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
 }
 .btn-secondary:hover {
-  background: #262635;
+  background: color-mix(in srgb, var(--surface-2) 80%, var(--text) 8%);
   border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
   transform: translateY(-1px);
 }

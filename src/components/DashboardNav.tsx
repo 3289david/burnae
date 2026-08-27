@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Menu } from "lucide-react";
 import LogoutButton from "@/components/LogoutButton";
+import ThemeToggle from "@/components/ThemeToggle";
 
 interface Props {
   userName: string;
@@ -32,6 +33,7 @@ export default function DashboardNav({ userName, showAdminLink }: Props) {
         {showAdminLink && (
           <Link href="/admin" className="text-sm text-accent">관리자</Link>
         )}
+        <ThemeToggle />
         <LogoutButton />
       </nav>
 
@@ -56,7 +58,10 @@ export default function DashboardNav({ userName, showAdminLink }: Props) {
               관리자
             </Link>
           )}
-          <LogoutButton />
+          <div className="flex items-center justify-between">
+            <ThemeToggle />
+            <LogoutButton />
+          </div>
         </div>
       )}
     </>

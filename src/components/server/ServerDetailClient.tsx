@@ -72,23 +72,33 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
   const addresses = server.subdomains.map((s) => `${s.subdomain}.${server.subdomainZone}`);
 
   return (
-    <div>
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div>
-          <h1 className="text-2xl font-bold">{server.name}</h1>
-          {addresses.length > 0 && (
-            <p className="text-text-dim text-sm mt-1">{addresses.join(" · ")}</p>
-          )}
+    <div className="relative">
+      <div className="blob w-64 h-64 bg-purple -top-24 -right-16 animate-float pointer-events-none" />
+
+      <div className="relative flex items-center justify-between flex-wrap gap-2 animate-fade-up">
+        <div className="flex items-center gap-3">
+          <span className="w-11 h-11 rounded-2xl bg-accent/15 flex items-center justify-center shrink-0">
+            <LayoutGrid size={20} className="text-accent" />
+          </span>
+          <div>
+            <h1 className="text-2xl font-bold font-display">{server.name}</h1>
+            {addresses.length > 0 && (
+              <p className="text-text-dim text-sm mt-0.5 font-mono">{addresses.join(" · ")}</p>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="mt-6 border-b border-border flex gap-1 overflow-x-auto">
+      <div
+        className="relative mt-6 flex gap-1 overflow-x-auto p-1 bg-surface-2 rounded-full w-fit max-w-full animate-fade-up"
+        style={{ animationDelay: "0.05s" }}
+      >
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors ${
-              tab === t.key ? "border-accent text-text" : "border-transparent text-text-dim hover:text-text"
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-150 shrink-0 ${
+              tab === t.key ? "bg-accent text-white shadow-sm" : "text-text-dim hover:text-text"
             }`}
           >
             <t.icon size={15} />
@@ -97,7 +107,7 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
         ))}
       </div>
 
-      <div className="mt-6">
+      <div className="relative mt-6 animate-fade-up" style={{ animationDelay: "0.1s" }}>
         {tab === "overview" && <OverviewTab server={server} />}
         {tab === "console" && <ConsoleTab serverId={server.id} />}
         {tab === "players" && <PlayersTab serverId={server.id} />}

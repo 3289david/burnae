@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, Ban, Clock } from "lucide-react";
+import { CheckCircle2, Ban, Clock, Play, Square, RotateCw, Gauge, Cpu, MemoryStick, HardDrive } from "lucide-react";
 import type { ServerInfo } from "./ServerDetailClient";
 import StatusDot from "@/components/StatusDot";
 import AddressActions from "./AddressActions";
@@ -148,14 +148,34 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
         </div>
       )}
 
-      <div className="flex gap-2">
-        <button disabled={actionLoading} onClick={() => power("start")} className="btn-secondary px-4 py-2 text-sm">시작</button>
-        <button disabled={actionLoading} onClick={() => power("restart")} className="btn-secondary px-4 py-2 text-sm">재시작</button>
-        <button disabled={actionLoading} onClick={() => power("stop")} className="btn-secondary px-4 py-2 text-sm">중지</button>
+      <div className="flex gap-2.5 animate-fade-up">
+        <button
+          disabled={actionLoading}
+          onClick={() => power("start")}
+          className="flex-1 sm:flex-none rounded-2xl px-5 py-2.5 text-sm font-semibold inline-flex items-center justify-center gap-1.5 bg-green/15 text-green hover:bg-green/25 transition-colors disabled:opacity-50"
+        >
+          <Play size={15} /> 시작
+        </button>
+        <button
+          disabled={actionLoading}
+          onClick={() => power("restart")}
+          className="flex-1 sm:flex-none rounded-2xl px-5 py-2.5 text-sm font-semibold inline-flex items-center justify-center gap-1.5 bg-yellow/15 text-yellow hover:bg-yellow/25 transition-colors disabled:opacity-50"
+        >
+          <RotateCw size={15} /> 재시작
+        </button>
+        <button
+          disabled={actionLoading}
+          onClick={() => power("stop")}
+          className="flex-1 sm:flex-none rounded-2xl px-5 py-2.5 text-sm font-semibold inline-flex items-center justify-center gap-1.5 bg-red/15 text-red hover:bg-red/25 transition-colors disabled:opacity-50"
+        >
+          <Square size={15} /> 중지
+        </button>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Stat
+          icon={Gauge}
+          color="var(--accent)"
           label="상태"
           value={
             resources ? (
@@ -168,9 +188,40 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
             )
           }
         />
-        <Stat label="RAM" value={resources ? `${(resources.resources.memory_bytes / 1024 / 1024).toFixed(0)}MB / ${(server.ramMb / 1024).toFixed(0)}GB` : "-"} />
-        <Stat label="CPU" value={resources ? `${resources.resources.cpu_absolute.toFixed(0)}%` : "-"} />
-        <Stat label="가동시간" value={resources ? formatUptime(resources.resources.uptime) : "-"} />
+        <Stat
+          icon={MemoryStick}
+          color="var(--blue)"
+          label="RAM"
+          value={resources ? `${(resources.resources.memory_bytes / 1024 / 1024).toFixed(0)}MB / ${(server.ramMb / 1024).toFixed(0)}GB` : "-"}
+        />
+        <Stat icon={Cpu} color="var(--purple)" label="CPU" value={resources ? `${resources.resources.cpu_absolute.toFixed(0)}%` : "-"} />
+        <Stat icon={Clock} color="var(--cyan)" label="가동시간" value={resources ? formatUptime(resources.resources.uptime) : "-"} />
+      </div>
+
+      {/* 이 서버의 디스크 사용량 (전체 계정 저장공간 한도와는 별개) */}
+      <div className="card-glow p-5 flex items-center gap-4 animate-fade-up">
+        <span className="w-11 h-11 rounded-2xl bg-lime/15 flex items-center justify-center shrink-0">
+          <HardDrive size={20} className="text-lime" />
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="text-sm font-medium">이 서버 디스크</span>
+            <span className="text-sm text-text-dim shrink-0">
+              {resources ? `${(resources.resources.disk_bytes / 1024 / 1024 / 1024).toFixed(1)}GB` : "-"} / {(server.diskMb / 1024).toFixed(0)}GB
+            </span>
+          </div>
+          <div className="mt-2 h-2 rounded-full bg-surface-2 overflow-hidden">
+            <div
+              className="h-full rounded-full transition-[width] duration-500"
+              style={{
+                width: resources
+                  ? `${Math.min(100, (resources.resources.disk_bytes / 1024 / 1024 / 1024 / (server.diskMb / 1024)) * 100)}%`
+                  : "0%",
+                background: "linear-gradient(90deg, var(--lime), var(--cyan))",
+              }}
+            />
+          </div>
+        </div>
       </div>
 
       <div className="card p-5">
@@ -230,11 +281,27 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
   );
 }
 
-function Stat({ label, value }: { label: string; value: React.ReactNode }) {
+function Stat({
+  icon: Icon,
+  color,
+  label,
+  value,
+}: {
+  icon: React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>;
+  color: string;
+  label: string;
+  value: React.ReactNode;
+}) {
   return (
-    <div className="card p-4">
-      <div className="text-xs text-text-dim">{label}</div>
-      <div className="mt-1 font-semibold">{value}</div>
+    <div className="card-glow p-4">
+      <span
+        className="w-8 h-8 rounded-xl flex items-center justify-center"
+        style={{ background: `color-mix(in srgb, ${color} 18%, transparent)` }}
+      >
+        <Icon size={15} style={{ color }} />
+      </span>
+      <div className="text-xs text-text-dim mt-2.5">{label}</div>
+      <div className="mt-0.5 font-semibold text-sm">{value}</div>
     </div>
   );
 }

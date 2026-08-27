@@ -140,6 +140,110 @@ export default function FilesTab({ serverId }: { serverId: string }) {
     }
   }
 
+  async function deleteFiles(names: string[]) {
+    if (names.length === 0) return;
+    if (!confirm(`${names.length}개를 삭제할까요? 되돌릴 수 없어요.`)) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/servers/${serverId}/files/delete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ directory: dir, files: names }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "삭제 실패");
+      await load(dir);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "삭제 실패");
+    } finally {
+      setLoading(false);
+    }
+  }
+  const deleteSelected = () => deleteFiles(Array.from(selected));
+
+  async function renameItem(name: string) {
+    const next = prompt("새 이름을 입력하세요", name);
+    if (!next || next === name) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/servers/${serverId}/files/rename`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ directory: dir, from: name, to: next }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "이름 변경 실패");
+      await load(dir);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "이름 변경 실패");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function copyItem(name: string) {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/servers/${serverId}/files/copy`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ location: joinPath(dir, name) }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "복사 실패");
+      await load(dir);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "복사 실패");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function newFolder() {
+    const name = prompt("새 폴더 이름을 입력하세요");
+    if (!name) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/servers/${serverId}/files/folder`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ directory: dir, name }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "폴더 생성 실패");
+      await load(dir);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "폴더 생성 실패");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function newFile() {
+    const name = prompt("새 파일 이름을 입력하세요 (예: notes.txt)");
+    if (!name) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/servers/${serverId}/files/content`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ file: joinPath(dir, name), content: "" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "파일 생성 실패");
+      await load(dir);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "파일 생성 실패");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   function toggleSelect(name: string) {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -188,13 +292,24 @@ export default function FilesTab({ serverId }: { serverId: string }) {
         <span className="font-mono truncate">{dir}</span>
         <div className="ml-auto flex items-center gap-2">
           {selected.size > 0 && (
-            <button onClick={compressSelected} disabled={loading} className="text-accent text-xs">
-              선택 {selected.size}개 압축
-            </button>
+            <>
+              <button onClick={compressSelected} disabled={loading} className="text-accent text-xs">
+                선택 {selected.size}개 압축
+              </button>
+              <button onClick={deleteSelected} disabled={loading} className="text-red text-xs">
+                선택 삭제
+              </button>
+            </>
           )}
           {dir !== "/" && (
             <button onClick={() => load(parentDir(dir))} className="text-accent text-xs">상위로</button>
           )}
+          <button onClick={newFolder} disabled={loading} className="btn-secondary px-2.5 py-1 text-xs">
+            새 폴더
+          </button>
+          <button onClick={newFile} disabled={loading} className="btn-secondary px-2.5 py-1 text-xs">
+            새 파일
+          </button>
           <input
             ref={fileInputRef}
             type="file"
@@ -248,6 +363,11 @@ export default function FilesTab({ serverId }: { serverId: string }) {
               {isArchive && (
                 <button onClick={() => decompress(f.name)} className="text-xs text-accent shrink-0">압축해제</button>
               )}
+              <button onClick={() => copyItem(f.name)} className="text-xs text-text-dim shrink-0">복사</button>
+              <button onClick={() => renameItem(f.name)} className="text-xs text-text-dim shrink-0">이름변경</button>
+              <button onClick={() => deleteFiles([f.name])} className="text-xs text-red shrink-0">
+                삭제
+              </button>
             </div>
           );
         })}

@@ -83,6 +83,8 @@ export async function readFile(
 ): Promise<string> {
   return clientRequest<string>(
     `/api/client/servers/${identifier}/files/contents?file=${encodeURIComponent(file)}`,
+    undefined,
+    true,
   );
 }
 
@@ -179,6 +181,37 @@ export async function renameFile(
   await clientRequest(`/api/client/servers/${identifier}/files/rename`, {
     method: "PUT",
     body: JSON.stringify({ root: directory, files: [{ from, to }] }),
+  });
+}
+
+/** 파일/폴더를 다른 위치로 옮긴다. renameFile과 같은 API를 쓰지만 root가 아닌 목적지 경로를 to에 넣는다 */
+export async function moveFiles(
+  identifier: string,
+  directory: string,
+  items: { from: string; to: string }[],
+): Promise<void> {
+  await clientRequest(`/api/client/servers/${identifier}/files/rename`, {
+    method: "PUT",
+    body: JSON.stringify({ root: directory, files: items }),
+  });
+}
+
+export async function createFolder(
+  identifier: string,
+  directory: string,
+  name: string,
+): Promise<void> {
+  await clientRequest(`/api/client/servers/${identifier}/files/create-folder`, {
+    method: "POST",
+    body: JSON.stringify({ root: directory, name }),
+  });
+}
+
+/** 같은 디렉토리 안에서 파일/폴더를 복사한다(Pterodactyl이 자동으로 " copy" 접미사를 붙임) */
+export async function copyFile(identifier: string, location: string): Promise<void> {
+  await clientRequest(`/api/client/servers/${identifier}/files/copy`, {
+    method: "POST",
+    body: JSON.stringify({ location }),
   });
 }
 

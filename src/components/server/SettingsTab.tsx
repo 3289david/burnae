@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import UpgradeCard from "./UpgradeCard";
-import FreeUpgradeCard from "./FreeUpgradeCard";
 import AutomationCard from "./AutomationCard";
 
 const KNOWN_KEYS = [
@@ -53,7 +52,6 @@ export default function SettingsTab({
   serverId,
   isOwner,
   productId,
-  isFreeServer,
   autoBackupEnabled,
   autoBackupIntervalHours,
   autoRestartEnabled,
@@ -62,7 +60,6 @@ export default function SettingsTab({
   serverId: string;
   isOwner: boolean;
   productId: string;
-  isFreeServer: boolean;
   autoBackupEnabled: boolean;
   autoBackupIntervalHours: number;
   autoRestartEnabled: boolean;
@@ -192,8 +189,6 @@ export default function SettingsTab({
         autoRestartHour={autoRestartHour}
       />
     )}
-
-    {isOwner && isFreeServer && <FreeUpgradeCard serverId={serverId} />}
 
     {isOwner && <UpgradeCard serverId={serverId} currentProductId={productId} />}
 

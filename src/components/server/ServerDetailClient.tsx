@@ -121,7 +121,6 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
             serverId={server.id}
             isOwner={server.isOwner}
             productId={server.productId}
-            isFreeServer={server.isFreeServer}
             autoBackupEnabled={server.autoBackupEnabled}
             autoBackupIntervalHours={server.autoBackupIntervalHours}
             autoRestartEnabled={server.autoRestartEnabled}

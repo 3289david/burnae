@@ -6,6 +6,7 @@ import type { ServerInfo } from "./ServerDetailClient";
 import StatusDot from "@/components/StatusDot";
 import AddressActions from "./AddressActions";
 import CustomDomainCard from "./CustomDomainCard";
+import FreeUpgradeCard from "./FreeUpgradeCard";
 import FreeTierAd from "@/components/ads/FreeTierAd";
 
 interface Resources {
@@ -276,6 +277,7 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
 
       <CustomDomainCard serverId={server.id} isOwner={server.isOwner} initial={server.customDomains} />
 
+      {server.isFreeServer && server.isOwner && <FreeUpgradeCard serverId={server.id} />}
       {server.isFreeServer && <FreeTierAd />}
     </div>
   );

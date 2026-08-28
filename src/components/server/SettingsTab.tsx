@@ -61,7 +61,7 @@ export default function SettingsTab({
 }: {
   serverId: string;
   isOwner: boolean;
-  productId: string;
+  productId: string | null;
   templateCategory: "MINECRAFT" | "VPS" | "DISCORD_BOT" | "GENERAL";
   autoBackupEnabled: boolean;
   autoBackupIntervalHours: number;

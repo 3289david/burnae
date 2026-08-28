@@ -11,8 +11,8 @@ import { withApiErrorHandling } from "@/lib/apiHandler";
 const schema = z.object({ productId: z.string(), usePoints: z.boolean().optional() });
 
 async function applyPlanChange(
-  server: { id: string; pterodactylServerId: number | null; pterodactylIdentifier: string | null; productId: string },
-  targetProduct: { id: string; ramMb: number; diskMb: number; cpuPercent: number; backupSlots: number },
+  server: { id: string; pterodactylServerId: number | null; pterodactylIdentifier: string | null; productId: string | null },
+  targetProduct: { id: string; name: string; ramMb: number; diskMb: number; cpuPercent: number; backupSlots: number; priceMonthlyKrw: number },
   actorUserId: string,
   extraMetadata: Record<string, unknown>,
 ) {
@@ -26,6 +26,8 @@ async function applyPlanChange(
     where: { id: server.id },
     data: {
       productId: targetProduct.id,
+      productNameSnapshot: targetProduct.name,
+      priceMonthlyKrwSnapshot: targetProduct.priceMonthlyKrw,
       ramMb: targetProduct.ramMb,
       diskMb: targetProduct.diskMb,
       cpuPercent: targetProduct.cpuPercent,
@@ -116,7 +118,8 @@ export const POST = withApiErrorHandling(async (
     return NextResponse.json({ requiresPayment: false, applied: true, pointsSpent: targetProduct.pointsCost });
   }
 
-  const priceDiff = targetProduct.priceMonthlyKrw - server.product.priceMonthlyKrw;
+  const currentPriceMonthlyKrw = server.priceMonthlyKrwSnapshot ?? server.product?.priceMonthlyKrw ?? 0;
+  const priceDiff = targetProduct.priceMonthlyKrw - currentPriceMonthlyKrw;
 
   if (priceDiff > 0) {
     const depositorName = resolveDepositorName(user);

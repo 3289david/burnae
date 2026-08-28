@@ -10,7 +10,8 @@ interface Server {
   nodeId: string;
   owner: { name: string; email: string };
   node: { name: string; location: string };
-  product: { name: string };
+  product: { name: string } | null;
+  productNameSnapshot: string | null;
   subdomains: { subdomain: string }[];
 }
 
@@ -138,7 +139,7 @@ export default function AdminServersPage() {
                   {s.name} <span className="text-text-dim">· {s.status}</span>
                 </p>
                 <p className="text-xs text-text-dim mt-0.5">
-                  {s.owner.name} ({s.owner.email}) · {s.product.name} · {s.node.name}/{s.node.location}
+                  {s.owner.name} ({s.owner.email}) · {s.productNameSnapshot ?? s.product?.name ?? "삭제된 상품"} · {s.node.name}/{s.node.location}
                   {s.subdomains[0] && ` · ${s.subdomains[0].subdomain}`}
                 </p>
               </div>

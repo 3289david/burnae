@@ -52,18 +52,18 @@ async function handleRenewals() {
       status: { notIn: ["SUSPENDED", "DELETING"] },
       renewalDueAt: { lte: in3days, gt: new Date(now) },
     },
-    include: { product: { select: { pointsRedeemable: true } } },
   });
 
   for (const server of dueSoon) {
+    const isFree = server.priceMonthlyKrwSnapshot === 0;
     const daysLeft = Math.ceil((server.renewalDueAt!.getTime() - now) / (24 * 60 * 60 * 1000));
-    const reminderDays = server.product.pointsRedeemable ? [2, 1] : [3, 1];
+    const reminderDays = isFree ? [2, 1] : [3, 1];
     if (!reminderDays.includes(daysLeft)) continue;
 
     const action = `RENEWAL_REMINDER_D${daysLeft}`;
     if (await recentlyLogged(action, server.id, REMINDER_COOLDOWN_HOURS)) continue;
 
-    const message = server.product.pointsRedeemable
+    const message = isFree
       ? `⏰ **${server.name}** 무료 서버 갱신 기한이 ${daysLeft}일 남았어요. \`/갱신\` 명령어나 대시보드에서 갱신해주세요.`
       : `⏰ **${server.name}** 서버 결제 만료가 ${daysLeft}일 남았어요. burnae.kr 대시보드에서 미리 갱신해주세요.`;
     const sent = await notifyOwner(server.ownerId, message);
@@ -79,7 +79,6 @@ async function handleRenewals() {
       status: { notIn: ["SUSPENDED", "DELETING", "PROVISIONING"] },
       renewalDueAt: { lt: new Date(now) },
     },
-    include: { product: { select: { pointsRedeemable: true } } },
   });
 
   for (const server of overdue) {
@@ -90,7 +89,7 @@ async function handleRenewals() {
       console.error(`[cron] ${server.name} 정지 실패:`, err);
       continue;
     }
-    const reason = server.product.pointsRedeemable ? "무료 서버 갱신 기한 만료" : "결제 만료";
+    const reason = server.priceMonthlyKrwSnapshot === 0 ? "무료 서버 갱신 기한 만료" : "결제 만료";
     await prisma.server.update({
       where: { id: server.id },
       data: { status: "SUSPENDED", suspendedReason: reason },

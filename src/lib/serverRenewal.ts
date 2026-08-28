@@ -28,7 +28,8 @@ export async function renewFreeServer(
   if (server.ownerId !== requestingUserId) {
     throw new ServerRenewalError("본인 서버만 갱신할 수 있어요.");
   }
-  if (!server.product.pointsRedeemable) {
+  const priceMonthlyKrw = server.priceMonthlyKrwSnapshot ?? server.product?.priceMonthlyKrw ?? 0;
+  if (priceMonthlyKrw !== 0) {
     throw new ServerRenewalError("이 서버는 결제로 갱신하는 서버예요. 대시보드에서 결제 갱신을 이용해주세요.");
   }
 

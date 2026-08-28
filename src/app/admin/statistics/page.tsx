@@ -29,7 +29,7 @@ export default async function AdminStatisticsPage() {
   const usedRam = activeServerList.reduce((sum, s) => sum + s.ramMb, 0);
   const ramSellRate = totalRam > 0 ? (usedRam / totalRam) * 100 : 0;
 
-  const mrr = activeServerList.reduce((sum, s) => sum + s.product.priceMonthlyKrw, 0);
+  const mrr = activeServerList.reduce((sum, s) => sum + (s.priceMonthlyKrwSnapshot ?? s.product?.priceMonthlyKrw ?? 0), 0);
   const avgRevenuePerServer = activeServerList.length > 0 ? mrr / activeServerList.length : 0;
   const avgRamGb = activeServerList.length > 0 ? usedRam / activeServerList.length / 1024 : 0;
 

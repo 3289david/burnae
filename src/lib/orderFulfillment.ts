@@ -96,6 +96,8 @@ export async function markOrderPaidAndFulfill(orderId: string) {
       where: { id: server.id },
       data: {
         productId: order.productId ?? undefined,
+        productNameSnapshot: order.product.name,
+        priceMonthlyKrwSnapshot: order.product.priceMonthlyKrw,
         ramMb: order.product.ramMb,
         diskMb: order.product.diskMb,
         cpuPercent: order.product.cpuPercent,

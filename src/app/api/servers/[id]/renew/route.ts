@@ -20,6 +20,8 @@ export async function POST(
   }
 
   const server = await prisma.server.findUniqueOrThrow({ where: { id }, include: { product: true } });
+  const priceMonthlyKrw = server.priceMonthlyKrwSnapshot ?? server.product?.priceMonthlyKrw ?? 0;
+  const productName = server.productNameSnapshot ?? server.product?.name ?? "삭제된 상품";
 
   const existingPending = await prisma.order.findFirst({
     where: { serverId: id, type: "RENEWAL", status: "PENDING" },
@@ -30,7 +32,7 @@ export async function POST(
 
   const depositorName = resolveDepositorName(user);
   const collidingPending = await prisma.order.findFirst({
-    where: { depositorName, amountKrw: server.product.priceMonthlyKrw, status: "PENDING" },
+    where: { depositorName, amountKrw: priceMonthlyKrw, status: "PENDING" },
   });
   if (collidingPending) {
     return NextResponse.json(
@@ -43,10 +45,10 @@ export async function POST(
     data: {
       userId: user.id,
       productId: server.productId,
-      productNameSnapshot: server.product.name,
+      productNameSnapshot: productName,
       serverId: server.id,
       type: "RENEWAL",
-      amountKrw: server.product.priceMonthlyKrw,
+      amountKrw: priceMonthlyKrw,
       depositorName,
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
     },

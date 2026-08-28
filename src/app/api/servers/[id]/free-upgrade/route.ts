@@ -33,7 +33,8 @@ export const POST = withApiErrorHandling(async (
   if (!server.pterodactylServerId || !server.pterodactylIdentifier) {
     return NextResponse.json({ error: "서버가 아직 준비 중입니다." }, { status: 409 });
   }
-  if (!server.product.pointsRedeemable) {
+  const priceMonthlyKrw = server.priceMonthlyKrwSnapshot ?? server.product?.priceMonthlyKrw ?? 0;
+  if (priceMonthlyKrw !== 0) {
     return NextResponse.json({ error: "무료 서버만 포인트로 증설할 수 있어요." }, { status: 422 });
   }
 

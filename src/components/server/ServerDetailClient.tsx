@@ -31,7 +31,7 @@ export interface ServerInfo {
   id: string;
   name: string;
   status: string;
-  productId: string;
+  productId: string | null;
   renewalDueAt: string | null;
   autoBackupEnabled: boolean;
   autoBackupIntervalHours: number;

@@ -60,7 +60,7 @@ export default async function ServerDetailPage({
         templateCategory: server.template.category,
         minecraftVersion: server.minecraftVersion,
         isOwner: server.ownerId === user.id,
-        isFreeServer: server.product.pointsRedeemable,
+        isFreeServer: (server.priceMonthlyKrwSnapshot ?? server.product?.priceMonthlyKrw ?? 0) === 0,
         accessSecret: server.ownerId === user.id ? server.accessSecret : null,
       }}
     />

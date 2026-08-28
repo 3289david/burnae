@@ -297,8 +297,13 @@ model Server {
   id         String         @id @default(cuid())
   ownerId    String
   owner      User           @relation(fields: [ownerId], references: [id])
-  productId  String
-  product    Product        @relation(fields: [productId], references: [id])
+  /// 상품이 삭제되면 null이 된다 — 서버 자체는 ramMb 등 스펙을 이미 자기 필드로 갖고 있어
+  /// 계속 정상 동작한다. 상품 삭제는 언제나 가능해야 한다는 정책 때문에 필수 관계로 두지 않음
+  productId  String?
+  product    Product?       @relation(fields: [productId], references: [id], onDelete: SetNull)
+  /// 상품이 삭제돼도 결제내역/갱신가 계산에 쓸 수 있게 생성 시점 상품명·월정액을 스냅샷으로 남김
+  productNameSnapshot   String?
+  priceMonthlyKrwSnapshot Int?
   templateId String
   template   ServerTemplate @relation(fields: [templateId], references: [id])
   nodeId     String

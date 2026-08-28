@@ -18,7 +18,7 @@ interface BankAccount {
   accountHolder: string;
 }
 
-export default function UpgradeCard({ serverId, currentProductId }: { serverId: string; currentProductId: string }) {
+export default function UpgradeCard({ serverId, currentProductId }: { serverId: string; currentProductId: string | null }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [points, setPoints] = useState(0);
   const [selected, setSelected] = useState("");

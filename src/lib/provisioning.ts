@@ -234,6 +234,8 @@ export async function createServerForOrder(orderId: string) {
       data: {
         ownerId: order.userId,
         productId: product.id,
+        productNameSnapshot: product.name,
+        priceMonthlyKrwSnapshot: product.priceMonthlyKrw,
         templateId: template.id,
         nodeId: node.id,
         name: order.serverNameRequested ?? `${order.user.name}의 서버`,
@@ -250,11 +252,12 @@ export async function createServerForOrder(orderId: string) {
         allocationIp: node.publicIp,
         allocationPort: allocation.port,
         accessSecret,
-        // 포인트 교환 등 무료 상품은 7일마다 직접 갱신해야 한다(방치된 무료 서버가 자원을 계속
-        // 차지하는 걸 막기 위함) — 결제 상품은 기존대로 30일
+        // 0원 상품(무료 서버)은 7일마다 직접 갱신해야 한다(방치된 무료 서버가 자원을 계속
+        // 차지하는 걸 막기 위함) — 결제 상품은 기존대로 30일. pointsRedeemable(포인트 교환 가능
+        // 여부)과는 별개 — 0원이면 포인트 상품이 아니어도 자동으로 무료 서버로 취급한다
         renewalDueAt: new Date(
           Date.now() +
-            (product.pointsRedeemable ? FREE_SERVER_RENEWAL_DAYS : 30) * 24 * 60 * 60 * 1000,
+            (product.priceMonthlyKrw === 0 ? FREE_SERVER_RENEWAL_DAYS : 30) * 24 * 60 * 60 * 1000,
         ),
       },
     });

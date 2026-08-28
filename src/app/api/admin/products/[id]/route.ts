@@ -55,17 +55,9 @@ export const DELETE = withApiErrorHandling(async (
   if (!admin) return NextResponse.json({ error: "관리자 권한이 필요합니다." }, { status: 403 });
 
   const { id } = await params;
-  // 이 상품을 쓰는 서버가 실제로 있으면(생성 중/삭제된 것 포함) 삭제할 수 없다 — Server.productId는
-  // 필수 필드라 그 서버들의 스펙/과금 기준을 잃게 된다. 과거 주문 기록만 있는 경우는 상관없이 삭제
-  // 가능하며, 그 주문들의 productId는 자동으로 null이 되고 productNameSnapshot에 이름이 남는다.
-  const serverCount = await prisma.server.count({ where: { productId: id } });
-  if (serverCount > 0) {
-    return NextResponse.json(
-      { error: `이 상품으로 만들어진 서버가 ${serverCount}개 있어 삭제할 수 없어요. 먼저 목록에서 숨기려면 "비활성화"를 사용하세요.` },
-      { status: 409 },
-    );
-  }
-
+  // 상품은 언제나 삭제 가능하다 — Order/Server 모두 삭제 시점에 productId가 null로 바뀌고
+  // (onDelete: SetNull) 그 시점의 이름/월정액이 productNameSnapshot/priceMonthlyKrwSnapshot에
+  // 이미 스냅샷으로 남아있어서, 이 상품을 쓰던 서버들은 계속 정상 동작하고 결제내역도 안 깨진다.
   await prisma.product.delete({ where: { id } });
   return NextResponse.json({ ok: true, deleted: true });
 });

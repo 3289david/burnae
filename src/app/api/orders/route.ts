@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { resolveDepositorName, isValidDepositorName } from "@/lib/hanabank";
 import { hasNodeCapacity } from "@/lib/provisioning";
 import { markOrderPaidAndFulfill } from "@/lib/orderFulfillment";
+import { getFreeServerLimit } from "@/lib/freeServerLimit";
 
 // 서버 종류/버전은 이제 결제가 끝난 뒤에 고른다 — 주문 생성 시점에는 필요 없음
 const schema = z.object({
@@ -53,11 +54,17 @@ export async function POST(request: Request) {
     );
   }
   if (product.priceMonthlyKrw === 0) {
-    const existingFreeServer = await prisma.server.findFirst({
-      where: { ownerId: user.id, productId: product.id, deletedAt: null },
-    });
-    if (existingFreeServer) {
-      return NextResponse.json({ error: "무료 서버는 1인당 1개까지만 만들 수 있어요." }, { status: 409 });
+    const [freeServerCount, limit] = await Promise.all([
+      prisma.server.count({
+        where: { ownerId: user.id, deletedAt: null, product: { priceMonthlyKrw: 0 } },
+      }),
+      getFreeServerLimit(user.id),
+    ]);
+    if (freeServerCount >= limit) {
+      return NextResponse.json(
+        { error: `무료 서버는 최대 ${limit}개까지만 만들 수 있어요. 포인트 상점에서 슬롯을 늘릴 수 있어요.` },
+        { status: 409 },
+      );
     }
   }
 

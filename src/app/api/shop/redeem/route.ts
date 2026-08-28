@@ -53,6 +53,13 @@ export async function POST(request: Request) {
             maxUses: 1,
           },
         });
+      } else if (item.kind === "EXTRA_FREE_SLOT") {
+        await tx.extraFreeSlotGrant.create({
+          data: {
+            userId: user.id,
+            expiresAt: new Date(Date.now() + (item.durationDays ?? 1) * 24 * 60 * 60 * 1000),
+          },
+        });
       }
 
       await tx.shopRedemption.create({

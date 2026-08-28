@@ -47,9 +47,11 @@ export interface ServerInfo {
   cpuPercent: number;
   backupSlots: number;
   templateName: string;
+  templateCategory: "MINECRAFT" | "VPS" | "DISCORD_BOT" | "GENERAL";
   minecraftVersion: string | null;
   isOwner: boolean;
   isFreeServer: boolean;
+  accessSecret: string | null;
 }
 
 const TABS = [
@@ -67,9 +69,14 @@ const TABS = [
 
 type TabKey = (typeof TABS)[number]["key"];
 
+// 플레이어/플러그인/메이커 탭은 마인크래프트 서버 전용 기능(화이트리스트, Modrinth 검색, AI 플러그인
+// 생성)이라 VPS/디스코드봇 같은 일반 서버에는 의미가 없어 숨긴다
+const MINECRAFT_ONLY_TABS = new Set(["players", "plugins", "maker"]);
+
 export default function ServerDetailClient({ server }: { server: ServerInfo }) {
   const [tab, setTab] = useState<TabKey>("overview");
   const addresses = server.subdomains.map((s) => `${s.subdomain}.${server.subdomainZone}`);
+  const visibleTabs = TABS.filter((t) => server.templateCategory === "MINECRAFT" || !MINECRAFT_ONLY_TABS.has(t.key));
 
   return (
     <div className="relative">
@@ -93,7 +100,7 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
         className="relative mt-6 flex gap-1 overflow-x-auto p-1 bg-surface-2 rounded-full w-fit max-w-full animate-fade-up"
         style={{ animationDelay: "0.05s" }}
       >
-        {TABS.map((t) => (
+        {visibleTabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}

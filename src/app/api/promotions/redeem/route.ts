@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { markOrderPaidAndFulfill } from "@/lib/orderFulfillment";
+import { getFreeServerLimit } from "@/lib/freeServerLimit";
 
 const schema = z.object({
   productId: z.string(),
@@ -33,11 +34,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "이 상품에서 선택할 수 없는 서버 종류입니다." }, { status: 422 });
   }
 
-  const existingFreeServer = await prisma.server.findFirst({
-    where: { ownerId: user.id, productId: product.id, deletedAt: null },
-  });
-  if (existingFreeServer) {
-    return NextResponse.json({ error: "이미 이 상품으로 만든 서버가 있어요." }, { status: 409 });
+  const [freeServerCount, limit] = await Promise.all([
+    prisma.server.count({
+      where: { ownerId: user.id, deletedAt: null, product: { priceMonthlyKrw: 0 } },
+    }),
+    getFreeServerLimit(user.id),
+  ]);
+  if (freeServerCount >= limit) {
+    return NextResponse.json(
+      { error: `무료 서버는 최대 ${limit}개까지만 만들 수 있어요. 포인트 상점에서 슬롯을 늘릴 수 있어요.` },
+      { status: 409 },
+    );
   }
 
   let orderId: string;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Gift, Sparkles, Ticket, Package } from "lucide-react";
+import { Gift, Sparkles, Ticket, Package, Server as ServerIcon } from "lucide-react";
 
 interface ShopItem {
   id: string;
@@ -10,12 +10,14 @@ interface ShopItem {
   kind: string;
   pointsCost: number;
   amount: number | null;
+  durationDays: number | null;
 }
 
 const KIND_ICON: Record<string, typeof Sparkles> = {
   AI_CREDITS: Sparkles,
   DISCOUNT_COUPON: Ticket,
   CUSTOM: Package,
+  EXTRA_FREE_SLOT: ServerIcon,
 };
 
 export default function ShopSection({ points }: { points: number }) {
@@ -79,6 +81,9 @@ export default function ShopSection({ points }: { points: number }) {
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm">{item.name}</p>
                   {item.description && <p className="text-xs text-text-dim mt-0.5">{item.description}</p>}
+                  {item.durationDays != null && (
+                    <p className="text-xs text-purple mt-0.5">{item.durationDays}일간 유효</p>
+                  )}
                 </div>
               </div>
               <div className="flex items-center justify-between mt-3">

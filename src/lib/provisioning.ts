@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { PteroApp, PteroClient } from "@/lib/pterodactyl";
 import {
@@ -196,6 +197,12 @@ export async function createServerForOrder(orderId: string) {
 
   const allocation = await PteroApp.getFreeAllocation(node.pterodactylNodeId);
 
+  // PASSWORD 같은 egg 자체 접속 비밀번호는 모든 서버가 defaultEnvironment의 같은 기본값을
+  // 그대로 쓰면 남의 서버에 그 기본값으로 접속할 수 있는 심각한 보안 문제가 된다 —
+  // 서버마다 무작위로 새로 생성해서 덮어쓰고 accessSecret에 저장해 소유자에게만 보여준다
+  const defaultEnv = template.defaultEnvironment as Record<string, string | number | boolean>;
+  const accessSecret = "PASSWORD" in defaultEnv ? crypto.randomBytes(9).toString("base64url") : null;
+
   const pteroServer = await PteroApp.createServer({
     name: order.serverNameRequested ?? `${order.user.name}의 서버`,
     userId: pteroUser.id,
@@ -206,10 +213,11 @@ export async function createServerForOrder(orderId: string) {
     dockerImage: template.dockerImage,
     startupCommand: template.startupCommand,
     environment: {
-      ...(template.defaultEnvironment as Record<string, string | number | boolean>),
+      ...defaultEnv,
       ...(template.category === "MINECRAFT"
         ? { MINECRAFT_VERSION: order.minecraftVersionRequested ?? "latest" }
         : {}),
+      ...(accessSecret ? { PASSWORD: accessSecret } : {}),
       SERVER_MEMORY: product.ramMb,
     },
     memoryMb: product.ramMb,
@@ -238,6 +246,7 @@ export async function createServerForOrder(orderId: string) {
         backupSlots: product.backupSlots,
         allocationIp: node.publicIp,
         allocationPort: allocation.port,
+        accessSecret,
         // 포인트 교환 등 무료 상품은 7일마다 직접 갱신해야 한다(방치된 무료 서버가 자원을 계속
         // 차지하는 걸 막기 위함) — 결제 상품은 기존대로 30일
         renewalDueAt: new Date(

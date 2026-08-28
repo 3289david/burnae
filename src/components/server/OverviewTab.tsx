@@ -235,6 +235,12 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
           <span>{(server.ramMb / 1024).toFixed(0)}GB / {(server.diskMb / 1024).toFixed(0)}GB</span>
           <span className="text-text-dim">백업 슬롯</span>
           <span>{server.backupSlots}개</span>
+          {server.accessSecret && (
+            <>
+              <span className="text-text-dim">접속 비밀번호</span>
+              <span className="font-mono select-all">{server.accessSecret}</span>
+            </>
+          )}
         </div>
       </div>
 

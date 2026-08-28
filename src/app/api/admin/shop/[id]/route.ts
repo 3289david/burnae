@@ -9,6 +9,7 @@ const schema = z.object({
   pointsCost: z.number().int().min(1).optional(),
   amount: z.number().int().min(1).optional(),
   maxTotal: z.number().int().min(1).nullable().optional(),
+  durationDays: z.number().int().min(1).nullable().optional(),
   active: z.boolean().optional(),
   sortOrder: z.number().int().optional(),
 });

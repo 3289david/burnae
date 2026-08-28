@@ -22,10 +22,12 @@ const schema = z.object({
     "CPU_UPGRADE",
     "DISK_UPGRADE",
     "BACKUP_SLOT_UPGRADE",
+    "EXTRA_FREE_SLOT",
   ]),
   pointsCost: z.number().int().min(1),
   amount: z.number().int().min(1).optional(),
   maxTotal: z.number().int().min(1).optional(),
+  durationDays: z.number().int().min(1).optional(),
   sortOrder: z.number().int().default(0),
 });
 

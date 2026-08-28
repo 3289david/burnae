@@ -57,9 +57,11 @@ export default async function ServerDetailPage({
         cpuPercent: server.cpuPercent,
         backupSlots: server.backupSlots,
         templateName: server.template.displayName,
+        templateCategory: server.template.category,
         minecraftVersion: server.minecraftVersion,
         isOwner: server.ownerId === user.id,
         isFreeServer: server.product.pointsRedeemable,
+        accessSecret: server.ownerId === user.id ? server.accessSecret : null,
       }}
     />
   );

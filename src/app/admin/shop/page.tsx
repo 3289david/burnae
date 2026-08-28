@@ -9,7 +9,8 @@ type ShopItemKind =
   | "RAM_UPGRADE"
   | "CPU_UPGRADE"
   | "DISK_UPGRADE"
-  | "BACKUP_SLOT_UPGRADE";
+  | "BACKUP_SLOT_UPGRADE"
+  | "EXTRA_FREE_SLOT";
 
 interface ShopItem {
   id: string;
@@ -19,6 +20,7 @@ interface ShopItem {
   pointsCost: number;
   amount: number | null;
   maxTotal: number | null;
+  durationDays: number | null;
   active: boolean;
 }
 
@@ -30,6 +32,7 @@ const KIND_LABEL: Record<ShopItemKind, string> = {
   CPU_UPGRADE: "서버 CPU 증설",
   DISK_UPGRADE: "서버 저장공간 증설",
   BACKUP_SLOT_UPGRADE: "서버 백업 슬롯 증설",
+  EXTRA_FREE_SLOT: "무료 서버 슬롯 +1개 (기간 한정, 계정)",
 };
 
 const AMOUNT_LABEL: Record<ShopItemKind, string> = {
@@ -40,6 +43,7 @@ const AMOUNT_LABEL: Record<ShopItemKind, string> = {
   CPU_UPGRADE: "1회 증설량(%)",
   DISK_UPGRADE: "1회 증설량(MB, 예: 1024=1GB)",
   BACKUP_SLOT_UPGRADE: "1회 증설량(개)",
+  EXTRA_FREE_SLOT: "-",
 };
 
 const RESOURCE_KINDS = new Set<ShopItemKind>(["RAM_UPGRADE", "CPU_UPGRADE", "DISK_UPGRADE", "BACKUP_SLOT_UPGRADE"]);
@@ -51,6 +55,7 @@ const empty = {
   pointsCost: 300,
   amount: 512,
   maxTotal: "" as number | "",
+  durationDays: 7 as number | "",
 };
 
 export default function AdminShopPage() {
@@ -76,8 +81,9 @@ export default function AdminShopPage() {
         body: JSON.stringify({
           ...form,
           description: form.description || undefined,
-          amount: form.kind === "CUSTOM" ? undefined : form.amount,
+          amount: form.kind === "CUSTOM" || form.kind === "EXTRA_FREE_SLOT" ? undefined : form.amount,
           maxTotal: RESOURCE_KINDS.has(form.kind) && form.maxTotal !== "" ? form.maxTotal : undefined,
+          durationDays: form.kind === "EXTRA_FREE_SLOT" && form.durationDays !== "" ? form.durationDays : undefined,
         }),
       });
       const data = await res.json();
@@ -129,6 +135,7 @@ export default function AdminShopPage() {
                 {item.pointsCost.toLocaleString()}P
                 {item.amount != null && ` · 1회 +${item.amount.toLocaleString()}`}
                 {item.maxTotal != null && ` · 최대 ${item.maxTotal.toLocaleString()}`}
+                {item.durationDays != null && ` · ${item.durationDays}일간 유효`}
                 {item.description && ` · ${item.description}`}
               </p>
             </div>
@@ -173,7 +180,7 @@ export default function AdminShopPage() {
               onChange={(e) => setForm({ ...form, pointsCost: Number(e.target.value) })}
             />
           </div>
-          {form.kind !== "CUSTOM" && (
+          {form.kind !== "CUSTOM" && form.kind !== "EXTRA_FREE_SLOT" && (
             <div>
               <label className="text-sm text-text-dim">{AMOUNT_LABEL[form.kind]}</label>
               <input
@@ -192,6 +199,17 @@ export default function AdminShopPage() {
                 className="input w-full mt-1"
                 value={form.maxTotal}
                 onChange={(e) => setForm({ ...form, maxTotal: e.target.value === "" ? "" : Number(e.target.value) })}
+              />
+            </div>
+          )}
+          {form.kind === "EXTRA_FREE_SLOT" && (
+            <div>
+              <label className="text-sm text-text-dim">유효 기간(일)</label>
+              <input
+                type="number"
+                className="input w-full mt-1"
+                value={form.durationDays}
+                onChange={(e) => setForm({ ...form, durationDays: e.target.value === "" ? "" : Number(e.target.value) })}
               />
             </div>
           )}

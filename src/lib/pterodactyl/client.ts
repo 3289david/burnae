@@ -266,6 +266,49 @@ export async function restoreBackup(
   );
 }
 
+export interface StartupVariable {
+  name: string;
+  description: string;
+  envVariable: string;
+  serverValue: string;
+  isEditable: boolean;
+  rules: string;
+}
+
+/**
+ * egg가 요구하는 시작 변수(토큰, API 키 등) 목록과 현재 값을 가져온다 — Red/Muse 같은 봇
+ * egg는 토큰이 없으면 아예 실행이 안 되니, 유저가 서버 설정에서 직접 채워 넣어야 한다.
+ */
+export async function getStartupVariables(identifier: string): Promise<StartupVariable[]> {
+  const res = await clientRequest<{
+    data: {
+      attributes: {
+        name: string;
+        description: string;
+        env_variable: string;
+        server_value: string;
+        is_editable: boolean;
+        rules: string;
+      };
+    }[];
+  }>(`/api/client/servers/${identifier}/startup`);
+  return res.data.map((d) => ({
+    name: d.attributes.name,
+    description: d.attributes.description,
+    envVariable: d.attributes.env_variable,
+    serverValue: d.attributes.server_value,
+    isEditable: d.attributes.is_editable,
+    rules: d.attributes.rules,
+  }));
+}
+
+export async function updateStartupVariable(identifier: string, key: string, value: string): Promise<void> {
+  await clientRequest(`/api/client/servers/${identifier}/startup/variable`, {
+    method: "PUT",
+    body: JSON.stringify({ key, value }),
+  });
+}
+
 /** 콘솔 실시간 스트림용 웹소켓 인증 정보 발급 */
 export async function getWebsocketCredentials(
   identifier: string,

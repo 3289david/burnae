@@ -254,6 +254,8 @@ model Order {
   serverNameRequested       String?
   templateIdRequested       String?
   minecraftVersionRequested String?
+  /// DISCORD_BOT 서버 종류에서 예제 코드 대신 이 깃 저장소를 clone해서 시작(비워두면 예제 코드)
+  gitRepoRequested          String?
   /// type이 AI_CREDITS일 때 이 주문으로 충전되는 크레딧 수
   aiCreditsAmount           Int?
   /// 결제(또는 포인트 교환)는 끝났지만 노드 여유 공간이 없어서 서버 생성을 대기 중인 "선주문" 상태

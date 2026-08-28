@@ -48,6 +48,7 @@ export async function GET(
 const selectTemplateSchema = z.object({
   templateId: z.string(),
   minecraftVersion: z.string().optional(),
+  gitRepo: z.string().url().max(300).optional(),
 });
 
 /**
@@ -93,6 +94,7 @@ export async function POST(
     data: {
       templateIdRequested: parsed.data.templateId,
       minecraftVersionRequested: parsed.data.minecraftVersion,
+      gitRepoRequested: selectedTemplate.category === "DISCORD_BOT" ? parsed.data.gitRepo : undefined,
     },
   });
 

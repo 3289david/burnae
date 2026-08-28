@@ -108,6 +108,7 @@ function NewServerPageInner() {
   const [templateId, setTemplateId] = useState("");
   const [version, setVersion] = useState("");
   const [versionQuery, setVersionQuery] = useState("");
+  const [gitRepo, setGitRepo] = useState("");
   const [choosing, setChoosing] = useState(false);
 
   useEffect(() => {
@@ -268,7 +269,7 @@ function NewServerPageInner() {
       const res = await fetch(`/api/orders/${order.id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ templateId, minecraftVersion: version || undefined }),
+        body: JSON.stringify({ templateId, minecraftVersion: version || undefined, gitRepo: gitRepo || undefined }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "처리에 실패했습니다.");
@@ -440,6 +441,22 @@ function NewServerPageInner() {
                   <p className="text-text-dim text-sm py-2">검색 결과가 없어요.</p>
                 )}
               </div>
+            </Section>
+          )}
+
+          {selectedTemplate && selectedTemplate.category === "DISCORD_BOT" && (
+            <Section step={2} title="시작 코드 (선택)">
+              <p className="text-xs text-text-dim mb-2">
+                비워두면 바로 실행해볼 수 있는 간단한 예제 코드로 시작해요. 자기 봇 코드가 있다면
+                GitHub 저장소 주소를 넣어주세요 — 서버 생성 시 자동으로 clone해서 시작해요.
+              </p>
+              <input
+                type="url"
+                className="input w-full"
+                placeholder="https://github.com/아이디/저장소이름"
+                value={gitRepo}
+                onChange={(e) => setGitRepo(e.target.value)}
+              />
             </Section>
           )}
 

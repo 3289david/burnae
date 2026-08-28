@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import UpgradeCard from "./UpgradeCard";
 import AutomationCard from "./AutomationCard";
+import StartupVariablesCard from "./StartupVariablesCard";
 
 const KNOWN_KEYS = [
   { key: "difficulty", label: "난이도", type: "select", options: ["peaceful", "easy", "normal", "hard"] },
@@ -52,6 +53,7 @@ export default function SettingsTab({
   serverId,
   isOwner,
   productId,
+  templateCategory,
   autoBackupEnabled,
   autoBackupIntervalHours,
   autoRestartEnabled,
@@ -60,11 +62,13 @@ export default function SettingsTab({
   serverId: string;
   isOwner: boolean;
   productId: string;
+  templateCategory: "MINECRAFT" | "VPS" | "DISCORD_BOT" | "GENERAL";
   autoBackupEnabled: boolean;
   autoBackupIntervalHours: number;
   autoRestartEnabled: boolean;
   autoRestartHour: number | null;
 }) {
+  const isMinecraft = templateCategory === "MINECRAFT";
   const router = useRouter();
   const [raw, setRaw] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -75,6 +79,7 @@ export default function SettingsTab({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!isMinecraft) return;
     fetch(`/api/servers/${serverId}/files/content?file=${encodeURIComponent("/server.properties")}`)
       .then((r) => r.json())
       .then((data) => {
@@ -84,7 +89,7 @@ export default function SettingsTab({
         }
       })
       .catch(() => setError("server.properties를 불러오지 못했어요. 서버 종류에 따라 없을 수 있어요."));
-  }, [serverId]);
+  }, [serverId, isMinecraft]);
 
   async function save() {
     if (raw === null) return;
@@ -134,11 +139,12 @@ export default function SettingsTab({
     }
   }
 
-  if (error) return <p className="text-sm text-red">{error}</p>;
-  if (raw === null) return <p className="text-sm text-text-dim">불러오는 중...</p>;
+  if (isMinecraft && error) return <p className="text-sm text-red">{error}</p>;
+  if (isMinecraft && raw === null) return <p className="text-sm text-text-dim">불러오는 중...</p>;
 
   return (
     <div className="space-y-6 animate-fade-up">
+    {isMinecraft && (
     <div className="card-glow p-5 space-y-4">
       {KNOWN_KEYS.map(({ key, label, type, ...rest }) => (
         <div key={key} className="flex items-center justify-between">
@@ -179,6 +185,9 @@ export default function SettingsTab({
         {saved && <span className="text-sm text-green">저장됐어요. 적용하려면 재시작하세요.</span>}
       </div>
     </div>
+    )}
+
+    {isOwner && <StartupVariablesCard serverId={serverId} />}
 
     {isOwner && (
       <AutomationCard

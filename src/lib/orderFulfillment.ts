@@ -55,7 +55,14 @@ export async function markOrderPaidAndFulfill(orderId: string) {
     });
   }
 
-  if (order.type === "NEW_SERVER") {
+  if (order.type === "AI_CREDITS") {
+    if (order.aiCreditsAmount) {
+      await prisma.user.update({
+        where: { id: order.userId },
+        data: { aiCreditsRemaining: { increment: order.aiCreditsAmount } },
+      });
+    }
+  } else if (order.type === "NEW_SERVER") {
     // 결제 시점에 서버 종류/버전을 아직 안 골랐으면(결제 후 선택 방식) 여기서 바로 만들지 않고
     // 고객이 /api/orders/[id]/select-template 로 고른 뒤에 provisionNewServerOrder를 부른다.
     if (!order.templateIdRequested) return;

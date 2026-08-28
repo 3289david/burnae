@@ -8,6 +8,7 @@ import AddressActions from "./AddressActions";
 import CustomDomainCard from "./CustomDomainCard";
 import FreeUpgradeCard from "./FreeUpgradeCard";
 import FreeTierAd from "@/components/ads/FreeTierAd";
+import GoogleAdSense from "@/components/ads/GoogleAdSense";
 
 interface Resources {
   current_state: string;
@@ -229,7 +230,7 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
         <h3 className="font-semibold mb-3">서버 정보</h3>
         <div className="grid grid-cols-2 gap-y-2 text-sm">
           <span className="text-text-dim">종류</span>
-          <span>{server.templateName} · {server.minecraftVersion}</span>
+          <span>{server.templateName}{server.minecraftVersion && ` · ${server.minecraftVersion}`}</span>
           <span className="text-text-dim">RAM / 디스크</span>
           <span>{(server.ramMb / 1024).toFixed(0)}GB / {(server.diskMb / 1024).toFixed(0)}GB</span>
           <span className="text-text-dim">백업 슬롯</span>
@@ -279,6 +280,7 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
 
       {server.isFreeServer && server.isOwner && <FreeUpgradeCard serverId={server.id} />}
       {server.isFreeServer && <FreeTierAd />}
+      {server.isFreeServer && <GoogleAdSense />}
     </div>
   );
 }

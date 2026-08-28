@@ -29,7 +29,7 @@ export async function POST(
   try {
     const result = await generatePluginContent({
       description: parsed.data.description,
-      minecraftVersion: server.minecraftVersion,
+      minecraftVersion: server.minecraftVersion ?? "latest",
       templateKey: template.key,
     });
     return NextResponse.json(result);

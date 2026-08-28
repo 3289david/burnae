@@ -74,7 +74,7 @@ export async function POST(
   try {
     const { appliedPath } = await applyPluginMakerResult(
       server.pterodactylIdentifier,
-      server.minecraftVersion,
+      server.minecraftVersion ?? "latest",
       parsed.data as PluginMakerResult,
     );
 

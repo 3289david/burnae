@@ -35,7 +35,7 @@ export async function GET(
           description: true,
           allowedTemplates: {
             where: { active: true },
-            select: { id: true, key: true, displayName: true, minecraftVersions: true },
+            select: { id: true, key: true, displayName: true, minecraftVersions: true, category: true },
           },
         },
       },
@@ -47,7 +47,7 @@ export async function GET(
 
 const selectTemplateSchema = z.object({
   templateId: z.string(),
-  minecraftVersion: z.string(),
+  minecraftVersion: z.string().optional(),
 });
 
 /**
@@ -80,9 +80,12 @@ export async function POST(
   if (!parsed.success) {
     return NextResponse.json({ error: "입력값이 올바르지 않습니다." }, { status: 422 });
   }
-  const templateAllowed = order.product.allowedTemplates.some((t) => t.id === parsed.data.templateId);
-  if (!templateAllowed) {
+  const selectedTemplate = order.product.allowedTemplates.find((t) => t.id === parsed.data.templateId);
+  if (!selectedTemplate) {
     return NextResponse.json({ error: "이 상품에서 선택할 수 없는 서버 종류입니다." }, { status: 422 });
+  }
+  if (selectedTemplate.category === "MINECRAFT" && !parsed.data.minecraftVersion) {
+    return NextResponse.json({ error: "마인크래프트 버전을 선택해주세요." }, { status: 422 });
   }
 
   await prisma.order.update({

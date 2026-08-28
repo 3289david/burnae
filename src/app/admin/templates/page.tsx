@@ -2,10 +2,20 @@
 
 import { useEffect, useState } from "react";
 
+type ServerCategory = "MINECRAFT" | "VPS" | "DISCORD_BOT" | "GENERAL";
+
+const CATEGORY_LABEL: Record<ServerCategory, string> = {
+  MINECRAFT: "마인크래프트",
+  VPS: "VPS",
+  DISCORD_BOT: "디스코드 봇 호스팅",
+  GENERAL: "일반 서버(기타)",
+};
+
 interface Template {
   id: string;
   key: string;
   displayName: string;
+  category: ServerCategory;
   pterodactylNestId: number;
   pterodactylEggId: number;
   dockerImage: string;
@@ -23,6 +33,7 @@ interface NestOption {
 const empty = {
   key: "",
   displayName: "",
+  category: "MINECRAFT" as ServerCategory,
   pterodactylNestId: "",
   pterodactylEggId: "",
   dockerImage: "",
@@ -84,6 +95,7 @@ export default function AdminTemplatesPage() {
       setForm({
         key: data.suggestedKey,
         displayName: data.name,
+        category: form.category,
         pterodactylNestId: nestId,
         pterodactylEggId: eggId,
         dockerImage: data.dockerImages[firstJavaLabel] ?? "",
@@ -116,6 +128,7 @@ export default function AdminTemplatesPage() {
         body: JSON.stringify({
           key: form.key,
           displayName: form.displayName,
+          category: form.category,
           pterodactylNestId: Number(form.pterodactylNestId),
           pterodactylEggId: Number(form.pterodactylEggId),
           dockerImage: form.dockerImage,
@@ -150,11 +163,16 @@ export default function AdminTemplatesPage() {
         {templates.map((t) => (
           <div key={t.id} className="card-glow p-4 text-sm">
             <div className="flex justify-between">
-              <span className="font-medium">{t.displayName} <span className="text-text-dim">({t.key})</span></span>
+              <span className="font-medium">
+                {t.displayName} <span className="text-text-dim">({t.key})</span>{" "}
+                <span className="text-accent">· {CATEGORY_LABEL[t.category]}</span>
+              </span>
               <span className="text-text-dim">{t.active ? "활성" : "비활성"}</span>
             </div>
             <p className="text-text-dim text-xs mt-1">Nest #{t.pterodactylNestId} / Egg #{t.pterodactylEggId} · {t.dockerImage}</p>
-            <p className="text-text-dim text-xs">버전: {t.minecraftVersions.join(", ")}</p>
+            {t.category === "MINECRAFT" && (
+              <p className="text-text-dim text-xs">버전: {t.minecraftVersions.join(", ")}</p>
+            )}
           </div>
         ))}
       </div>
@@ -226,6 +244,18 @@ export default function AdminTemplatesPage() {
             </p>
             <Field label="키 (예: paper)" value={form.key} onChange={(v) => setForm({ ...form, key: v })} />
             <Field label="표시 이름 (예: Paper)" value={form.displayName} onChange={(v) => setForm({ ...form, displayName: v })} />
+            <div>
+              <label className="text-sm text-text-dim">분류</label>
+              <select
+                className="input w-full mt-1"
+                value={form.category}
+                onChange={(e) => setForm({ ...form, category: e.target.value as ServerCategory })}
+              >
+                {Object.entries(CATEGORY_LABEL).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </select>
+            </div>
             {(advanced || !nests) && (
               <>
                 <Field label="Nest ID" value={form.pterodactylNestId} onChange={(v) => setForm({ ...form, pterodactylNestId: v })} />

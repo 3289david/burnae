@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import AiCreditsCard from "./AiCreditsCard";
 
 interface Message {
   id: string;
@@ -98,6 +99,8 @@ export default function AiTab({ serverId }: { serverId: string }) {
   }
 
   return (
+    <div>
+    <AiCreditsCard />
     <div className="card-glow p-0 overflow-hidden flex flex-col h-[32rem] animate-fade-up">
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.length === 0 && (
@@ -152,6 +155,7 @@ export default function AiTab({ serverId }: { serverId: string }) {
           {busy ? "..." : "전송"}
         </button>
       </form>
+    </div>
     </div>
   );
 }

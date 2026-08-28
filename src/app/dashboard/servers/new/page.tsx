@@ -22,6 +22,7 @@ interface Template {
   key: string;
   displayName: string;
   minecraftVersions: string[];
+  category: "MINECRAFT" | "VPS" | "DISCORD_BOT" | "GENERAL";
 }
 interface Product {
   id: string;
@@ -267,7 +268,7 @@ function NewServerPageInner() {
       const res = await fetch(`/api/orders/${order.id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ templateId, minecraftVersion: version }),
+        body: JSON.stringify({ templateId, minecraftVersion: version || undefined }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "처리에 실패했습니다.");
@@ -403,7 +404,7 @@ function NewServerPageInner() {
             </Section>
           )}
 
-          {selectedTemplate && (
+          {selectedTemplate && selectedTemplate.category === "MINECRAFT" && (
             <Section step={2} title="마인크래프트 버전">
               {selectedTemplate.minecraftVersions.length > 8 && (
                 <div className="relative mb-3">
@@ -448,7 +449,7 @@ function NewServerPageInner() {
 
           <button
             type="submit"
-            disabled={choosing || !templateId || !version}
+            disabled={choosing || !templateId || (selectedTemplate?.category === "MINECRAFT" && !version)}
             className="btn-primary w-full py-3.5 text-[15px]"
           >
             {choosing ? "만드는 중..." : "이 종류로 서버 만들기"}

@@ -141,7 +141,7 @@ export async function migrateServerToNode(
       startupCommand: server.template.startupCommand,
       environment: {
         ...(server.template.defaultEnvironment as Record<string, string | number | boolean>),
-        MINECRAFT_VERSION: server.minecraftVersion,
+        ...(server.minecraftVersion ? { MINECRAFT_VERSION: server.minecraftVersion } : {}),
         SERVER_MEMORY: server.ramMb,
       },
       memoryMb: server.ramMb,

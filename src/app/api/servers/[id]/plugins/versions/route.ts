@@ -22,7 +22,7 @@ export async function GET(
   const projectId = new URL(request.url).searchParams.get("projectId");
   if (!projectId) return NextResponse.json({ error: "projectId가 필요합니다." }, { status: 422 });
 
-  const gameVersion = /^\d+\.\d+/.test(server.minecraftVersion) ? server.minecraftVersion : undefined;
+  const gameVersion = server.minecraftVersion && /^\d+\.\d+/.test(server.minecraftVersion) ? server.minecraftVersion : undefined;
 
   try {
     const versions = await getVersions({ projectId, loader, gameVersion });

@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import PromotionsClient from "@/components/PromotionsClient";
+import ShopSection from "@/components/ShopSection";
 
 export default async function PromotionsPage() {
   const user = await getCurrentUser();
@@ -21,6 +22,7 @@ export default async function PromotionsPage() {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
   return (
+    <>
     <PromotionsClient
       points={user!.promotionPoints}
       referralLink={`${siteUrl}/register?ref=${user!.referralCode}`}
@@ -54,5 +56,7 @@ export default async function PromotionsPage() {
         };
       })}
     />
+    <ShopSection points={user!.promotionPoints} />
+    </>
   );
 }

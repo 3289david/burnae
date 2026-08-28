@@ -10,6 +10,7 @@ import Footer from "@/components/Footer";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import ThemeToggle from "@/components/ThemeToggle";
 import DotGrid from "@/components/DotGrid";
+import { allowedCategoriesForSiteMode, type SiteMode } from "@/lib/siteMode";
 
 const FEATURES = [
   { icon: Zap, color: "var(--accent)", title: "1분 서버 생성", desc: "결제 즉시 자동으로 Docker 컨테이너가 만들어지고 접속 주소까지 연결돼요." },
@@ -38,11 +39,16 @@ const FAQ = [
 
 async function loadLandingData() {
   try {
-    const [products, events] = await Promise.all([
+    const settings = await prisma.hostingSettings.upsert({ where: { id: 1 }, update: {}, create: { id: 1 } });
+    const categories = allowedCategoriesForSiteMode(settings.siteMode);
+
+    const [rawProducts, events] = await Promise.all([
       prisma.product.findMany({
         where: { active: true },
         orderBy: { sortOrder: "asc" },
-        include: { allowedTemplates: { where: { active: true }, select: { displayName: true } } },
+        include: {
+          allowedTemplates: { where: { active: true, category: { in: categories } }, select: { displayName: true } },
+        },
       }),
       prisma.event.findMany({
         where: { active: true, startsAt: { lte: new Date() }, endsAt: { gte: new Date() } },
@@ -51,17 +57,23 @@ async function loadLandingData() {
         include: { coupon: true },
       }),
     ]);
-    return { products, events };
+    const products = rawProducts.filter((p) => p.allowedTemplates.length > 0);
+    return { products, events, siteMode: settings.siteMode };
   } catch (err) {
     // DB에 잠깐 문제가 있어도 랜딩페이지 자체는 항상 떠야 한다
     console.error("[landing] 상품/이벤트 조회 실패:", err);
-    return { products: [], events: [] };
+    return { products: [], events: [], siteMode: "MINECRAFT_ONLY" as SiteMode };
   }
 }
 
 export default async function HomePage() {
   const user = await getCurrentUser().catch(() => null);
-  const { products, events } = await loadLandingData();
+  const { products, events, siteMode } = await loadLandingData();
+  const heroTitle = siteMode === "MINECRAFT_ONLY" ? "마인크래프트 서버" : siteMode === "GENERAL_ONLY" ? "서버 호스팅" : "마인크래프트·서버 호스팅";
+  const heroDesc =
+    siteMode === "MINECRAFT_ONLY"
+      ? "1분 안에 서버를 만들고, 설정도 플러그인도 오류 해결도 채팅 한 줄로 끝내세요. 복잡한 관리 패널은 저희가 다 가려드릴게요."
+      : "마인크래프트부터 VPS, 디스코드 봇 호스팅까지 — 1분 안에 만들고, 설정도 오류 해결도 채팅 한 줄로 끝내세요.";
 
   return (
     <div className="min-h-screen">
@@ -108,13 +120,12 @@ export default async function HomePage() {
               </Link>
             )}
             <h1 className="text-4xl sm:text-6xl font-bold font-display leading-[1.08] animate-fade-up">
-              마인크래프트 서버,
+              {heroTitle},
               <br />
               <span className="text-gradient">말로 관리하는</span> 시대
             </h1>
             <p className="mt-6 text-lg text-text-dim max-w-xl mx-auto animate-fade-up" style={{ animationDelay: "0.1s" }}>
-              1분 안에 서버를 만들고, 설정도 플러그인도 오류 해결도 채팅 한 줄로 끝내세요.
-              복잡한 관리 패널은 저희가 다 가려드릴게요.
+              {heroDesc}
             </p>
             <div className="mt-9 flex flex-wrap items-center justify-center gap-3 animate-fade-up" style={{ animationDelay: "0.2s" }}>
               <Link href="/register" className="btn-primary px-7 py-3.5 text-base inline-flex items-center gap-2">

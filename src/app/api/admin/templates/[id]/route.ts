@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/auth";
 
 const schema = z.object({
   displayName: z.string().min(1).optional(),
+  category: z.enum(["MINECRAFT", "VPS", "DISCORD_BOT", "GENERAL"]).optional(),
   dockerImage: z.string().min(1).optional(),
   startupCommand: z.string().min(1).optional(),
   minecraftVersions: z.array(z.string()).optional(),

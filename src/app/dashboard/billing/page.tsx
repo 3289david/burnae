@@ -20,6 +20,7 @@ const TYPE_LABEL: Record<string, string> = {
   NEW_SERVER: "서버 생성",
   RENEWAL: "갱신",
   UPGRADE: "플랜 변경",
+  AI_CREDITS: "AI 크레딧 충전",
 };
 
 export default async function BillingPage() {
@@ -51,7 +52,10 @@ export default async function BillingPage() {
             >
               <div className="min-w-0">
                 <p className="font-medium text-sm truncate">
-                  {TYPE_LABEL[o.type]} · {o.productNameSnapshot ?? o.product?.name ?? "삭제된 상품"}
+                  {TYPE_LABEL[o.type]}
+                  {o.type === "AI_CREDITS"
+                    ? ` · ${o.aiCreditsAmount?.toLocaleString() ?? 0}개`
+                    : ` · ${o.productNameSnapshot ?? o.product?.name ?? "삭제된 상품"}`}
                   {o.server && ` (${o.server.name})`}
                 </p>
                 <p className="text-xs text-text-dim mt-0.5">

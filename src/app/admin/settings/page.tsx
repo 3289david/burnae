@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from "react";
 
+type SiteMode = "MINECRAFT_ONLY" | "GENERAL_ONLY" | "BOTH";
+
 interface Settings {
+  siteMode: SiteMode;
   ramPricePerGbKrw: number;
   minRamGb: number;
   maxRamGb: number;
@@ -63,7 +66,37 @@ export default function AdminSettingsPage() {
         여기서 바꾸는 값은 즉시 고객 화면(가격, 저장공간 한도 등)에 반영됩니다.
       </p>
 
-      <div className="card-glow p-5 mt-6 grid sm:grid-cols-2 gap-4">
+      <div className="card-glow p-5 mt-6">
+        <label className="text-sm text-text-dim">사이트 모드</label>
+        <p className="text-xs text-text-dim mt-0.5 mb-2">
+          어떤 서비스를 노출할지 정해요. &ldquo;일반 서버&rdquo;는 VPS·디스코드 봇 호스팅 등
+          마인크래프트가 아닌 서버 종류를 말해요 (서버 종류 관리에서 분류로 구분).
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {(
+            [
+              { value: "MINECRAFT_ONLY", label: "마인크래프트만" },
+              { value: "GENERAL_ONLY", label: "일반 서버만" },
+              { value: "BOTH", label: "둘 다" },
+            ] as { value: SiteMode; label: string }[]
+          ).map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setSettings({ ...settings, siteMode: opt.value })}
+              className={`px-3.5 py-1.5 rounded-full text-sm border ${
+                settings.siteMode === opt.value
+                  ? "bg-accent border-accent text-white"
+                  : "border-border text-text-dim"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="card-glow p-5 mt-4 grid sm:grid-cols-2 gap-4">
         {FIELDS.map((f) => (
           <div key={f.key}>
             <label className="text-sm text-text-dim">{f.label}</label>

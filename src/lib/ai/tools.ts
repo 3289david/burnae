@@ -157,7 +157,7 @@ export const AI_TOOLS: Record<string, ToolDef> = {
       const loader = loaderForTemplateKey(template.key);
       if (!loader) throw new Error("이 서버 종류는 플러그인/모드를 지원하지 않습니다.");
 
-      const gameVersion = /^\d+\.\d+/.test(server.minecraftVersion) ? server.minecraftVersion : undefined;
+      const gameVersion = server.minecraftVersion && /^\d+\.\d+/.test(server.minecraftVersion) ? server.minecraftVersion : undefined;
       const versions = await getVersions({ projectId: String(input.projectId), loader, gameVersion });
       const best = versions.find((v) => v.primaryFile);
       if (!best?.primaryFile) throw new Error("이 서버 버전에 맞는 파일을 찾지 못했습니다.");

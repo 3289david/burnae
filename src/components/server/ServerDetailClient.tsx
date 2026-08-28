@@ -47,7 +47,7 @@ export interface ServerInfo {
   cpuPercent: number;
   backupSlots: number;
   templateName: string;
-  minecraftVersion: string;
+  minecraftVersion: string | null;
   isOwner: boolean;
   isFreeServer: boolean;
 }

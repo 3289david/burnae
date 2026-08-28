@@ -16,6 +16,7 @@ export async function GET() {
 }
 
 const schema = z.object({
+  siteMode: z.enum(["MINECRAFT_ONLY", "GENERAL_ONLY", "BOTH"]).optional(),
   ramPricePerGbKrw: z.number().int().min(0).optional(),
   minRamGb: z.number().int().min(1).optional(),
   maxRamGb: z.number().int().min(1).optional(),

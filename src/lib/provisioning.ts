@@ -207,7 +207,9 @@ export async function createServerForOrder(orderId: string) {
     startupCommand: template.startupCommand,
     environment: {
       ...(template.defaultEnvironment as Record<string, string | number | boolean>),
-      MINECRAFT_VERSION: order.minecraftVersionRequested ?? "latest",
+      ...(template.category === "MINECRAFT"
+        ? { MINECRAFT_VERSION: order.minecraftVersionRequested ?? "latest" }
+        : {}),
       SERVER_MEMORY: product.ramMb,
     },
     memoryMb: product.ramMb,
@@ -224,7 +226,8 @@ export async function createServerForOrder(orderId: string) {
         templateId: template.id,
         nodeId: node.id,
         name: order.serverNameRequested ?? `${order.user.name}의 서버`,
-        minecraftVersion: order.minecraftVersionRequested ?? "최신",
+        minecraftVersion:
+          template.category === "MINECRAFT" ? order.minecraftVersionRequested ?? "최신" : null,
         status: "PROVISIONING",
         pterodactylServerId: pteroServer.id,
         pterodactylUuid: pteroServer.uuid,

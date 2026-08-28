@@ -14,14 +14,19 @@ export async function GET() {
 const schema = z.object({
   key: z.string().min(1),
   displayName: z.string().min(1),
+  category: z.enum(["MINECRAFT", "VPS", "DISCORD_BOT", "GENERAL"]).default("MINECRAFT"),
   pterodactylNestId: z.number().int(),
   pterodactylEggId: z.number().int(),
   dockerImage: z.string().min(1),
   startupCommand: z.string().min(1),
-  minecraftVersions: z.array(z.string()).min(1),
+  minecraftVersions: z.array(z.string()).default([]),
   defaultEnvironment: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])),
   sortOrder: z.number().int().default(0),
-});
+})
+  .refine((v) => v.category !== "MINECRAFT" || v.minecraftVersions.length > 0, {
+    message: "마인크래프트 종류는 지원 버전을 1개 이상 입력해야 해요.",
+    path: ["minecraftVersions"],
+  });
 
 /**
  * Pterodactyl 패널에 미리 등록된 Egg(예: Paper, Fabric, Forge)를 Burnae 상품 시스템에 연결한다.

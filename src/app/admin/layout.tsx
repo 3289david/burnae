@@ -17,6 +17,7 @@ const NAV = [
   { href: "/admin/preorders", label: "선주문" },
   { href: "/admin/announcements", label: "공지사항" },
   { href: "/admin/promotions", label: "홍보 포인트" },
+  { href: "/admin/shop", label: "포인트 상점" },
   { href: "/admin/bank-account", label: "결제 계좌" },
   { href: "/admin/logs", label: "로그" },
   { href: "/admin/statistics", label: "통계" },

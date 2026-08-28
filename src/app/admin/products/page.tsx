@@ -114,7 +114,7 @@ export default function AdminProductsPage() {
     if (!confirm(`"${name}" 상품을 삭제할까요?`)) return;
     const res = await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
     const data = await res.json().catch(() => null);
-    if (data?.message) alert(data.message);
+    if (!res.ok) alert(data?.error ?? "삭제에 실패했어요.");
     await load();
   }
 

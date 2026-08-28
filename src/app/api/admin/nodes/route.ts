@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { PteroApp } from "@/lib/pterodactyl";
+import { withApiErrorHandling } from "@/lib/apiHandler";
 
 export async function GET() {
   const admin = await requireAdmin();
@@ -45,7 +46,7 @@ const schema = z.object({
  * Pterodactyl에 이미 등록된 노드(Wings 설치 완료)를 Burnae 시스템에 연결한다.
  * fqdn/총 RAM/디스크는 Pterodactyl에서 실제 값을 가져온다 — 임의 입력 아님.
  */
-export async function POST(request: Request) {
+export const POST = withApiErrorHandling(async (request: Request) => {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "관리자 권한이 필요합니다." }, { status: 403 });
 
@@ -90,4 +91,4 @@ export async function POST(request: Request) {
   });
 
   return NextResponse.json(node);
-}
+});

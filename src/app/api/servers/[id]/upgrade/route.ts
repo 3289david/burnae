@@ -6,6 +6,7 @@ import { authorizeServerAccess } from "@/lib/serverAccess";
 import { resolveDepositorName } from "@/lib/hanabank";
 import { PteroApp, PteroClient } from "@/lib/pterodactyl";
 import { getNodeFreeCapacity } from "@/lib/provisioning";
+import { withApiErrorHandling } from "@/lib/apiHandler";
 
 const schema = z.object({ productId: z.string(), usePoints: z.boolean().optional() });
 
@@ -48,10 +49,10 @@ async function applyPlanChange(
  * 더 싸거나 같은 플랜이면 환불 없이 즉시 적용한다. 대상 플랜이 홍보 포인트로 교환 가능한
  * 상품(pointsRedeemable)이면 결제 대신 포인트를 차감하고 바로 적용할 수도 있다.
  */
-export async function POST(
+export const POST = withApiErrorHandling(async (
   request: Request,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   const user = await requireUser();
   if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
 
@@ -148,4 +149,4 @@ export async function POST(
   await applyPlanChange(server, targetProduct, user.id, { priceDiff });
 
   return NextResponse.json({ requiresPayment: false, applied: true });
-}
+});

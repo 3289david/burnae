@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { authorizeServerAccess } from "@/lib/serverAccess";
 import { PteroApp, PteroClient } from "@/lib/pterodactyl";
 import { getNodeFreeCapacity } from "@/lib/provisioning";
+import { withApiErrorHandling } from "@/lib/apiHandler";
 
 const schema = z.object({ resource: z.enum(["ram", "cpu", "backupSlot"]) });
 
@@ -19,10 +20,10 @@ const STEPS = {
  * 무료 서버 전용 — 플랜을 통째로 바꾸는 대신 램/CPU/백업 슬롯을 낱개로 포인트를 써서 증설한다.
  * 저장공간(디스크)은 서버당 고정이라 증설 대상에 포함하지 않는다.
  */
-export async function POST(
+export const POST = withApiErrorHandling(async (
   request: Request,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   const user = await requireUser();
   if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
 
@@ -103,4 +104,4 @@ export async function POST(
     cpuPercent: nextCpuPercent,
     backupSlots: nextBackupSlots,
   });
-}
+});

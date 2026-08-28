@@ -3,11 +3,12 @@ import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { authorizeServerAccess } from "@/lib/serverAccess";
 import { PteroClient } from "@/lib/pterodactyl";
+import { withApiErrorHandling } from "@/lib/apiHandler";
 
-export async function GET(
+export const GET = withApiErrorHandling(async (
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   const user = await requireUser();
   if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
 
@@ -19,14 +20,14 @@ export async function GET(
 
   const backups = await PteroClient.listBackups(server.pterodactylIdentifier);
   return NextResponse.json(backups);
-}
+});
 
 const schema = z.object({ name: z.string().min(1).max(60).optional() });
 
-export async function POST(
+export const POST = withApiErrorHandling(async (
   request: Request,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   const user = await requireUser();
   if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
 
@@ -45,11 +46,12 @@ export async function POST(
   }
 
   const body = await request.json().catch(() => ({}));
-  const { name } = schema.parse(body);
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 422 });
 
   const backup = await PteroClient.createBackup(
     server.pterodactylIdentifier,
-    name ?? `수동 백업 ${new Date().toLocaleString("ko-KR")}`,
+    parsed.data.name ?? `수동 백업 ${new Date().toLocaleString("ko-KR")}`,
   );
   return NextResponse.json(backup);
-}
+});

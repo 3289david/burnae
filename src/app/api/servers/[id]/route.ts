@@ -4,11 +4,12 @@ import { requireUser } from "@/lib/auth";
 import { authorizeServerAccess } from "@/lib/serverAccess";
 import { deleteServerFully } from "@/lib/provisioning";
 import { prisma } from "@/lib/prisma";
+import { withApiErrorHandling } from "@/lib/apiHandler";
 
-export async function GET(
+export const GET = withApiErrorHandling(async (
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   const user = await requireUser();
   if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
 
@@ -21,14 +22,14 @@ export async function GET(
     include: { template: true, product: true, node: { select: { name: true, location: true } } },
   });
   return NextResponse.json(full);
-}
+});
 
 const deleteSchema = z.object({ createFinalBackup: z.boolean().default(true) });
 
-export async function DELETE(
+export const DELETE = withApiErrorHandling(async (
   request: Request,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   const user = await requireUser();
   if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
 
@@ -40,11 +41,12 @@ export async function DELETE(
   }
 
   const body = await request.json().catch(() => ({}));
-  const { createFinalBackup } = deleteSchema.parse(body);
+  const parsed = deleteSchema.safeParse(body);
+  if (!parsed.success) return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 422 });
 
   const result = await deleteServerFully(id, {
-    createFinalBackup,
+    createFinalBackup: parsed.data.createFinalBackup,
     requestedByUserId: user.id,
   });
   return NextResponse.json(result);
-}
+});

@@ -3,13 +3,14 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { PteroClient } from "@/lib/pterodactyl";
+import { withApiErrorHandling } from "@/lib/apiHandler";
 
 const schema = z.object({ signal: z.enum(["start", "stop", "restart", "kill"]) });
 
-export async function POST(
+export const POST = withApiErrorHandling(async (
   request: Request,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "관리자 권한이 필요합니다." }, { status: 403 });
 
@@ -24,4 +25,4 @@ export async function POST(
 
   await PteroClient.sendPowerAction(server.pterodactylIdentifier, parsed.data.signal);
   return NextResponse.json({ ok: true });
-}
+});

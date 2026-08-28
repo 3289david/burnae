@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { authorizeServerAccess } from "@/lib/serverAccess";
 import { contentTypeForLoader, loaderForTemplateKey } from "@/lib/modrinth";
 import { PteroClient } from "@/lib/pterodactyl";
+import { withApiErrorHandling } from "@/lib/apiHandler";
 
 async function resolveDir(id: string) {
   const server = await prisma.server.findUniqueOrThrow({ where: { id }, include: { template: true } });
@@ -13,10 +14,10 @@ async function resolveDir(id: string) {
   return { server, dir };
 }
 
-export async function GET(
+export const GET = withApiErrorHandling(async (
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   const user = await requireUser();
   if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
 
@@ -34,14 +35,14 @@ export async function GET(
     // plugins/mods 폴더가 아직 없는 서버(한 번도 설치한 적 없음)
     return NextResponse.json({ dir, files: [] });
   }
-}
+});
 
 const schema = z.object({ filename: z.string().min(1) });
 
-export async function DELETE(
+export const DELETE = withApiErrorHandling(async (
   request: Request,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   const user = await requireUser();
   if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
 
@@ -59,4 +60,4 @@ export async function DELETE(
 
   await PteroClient.deleteFiles(server.pterodactylIdentifier, dir, [parsed.data.filename]);
   return NextResponse.json({ ok: true });
-}
+});

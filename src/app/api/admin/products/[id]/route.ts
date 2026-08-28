@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { withApiErrorHandling } from "@/lib/apiHandler";
 
 const schema = z.object({
   name: z.string().min(1).optional(),
@@ -20,10 +21,10 @@ const schema = z.object({
   preorderPriceKrw: z.number().int().min(0).nullable().optional(),
 });
 
-export async function PUT(
+export const PUT = withApiErrorHandling(async (
   request: Request,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "관리자 권한이 필요합니다." }, { status: 403 });
 
@@ -44,12 +45,12 @@ export async function PUT(
     },
   });
   return NextResponse.json(product);
-}
+});
 
-export async function DELETE(
+export const DELETE = withApiErrorHandling(async (
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "관리자 권한이 필요합니다." }, { status: 403 });
 
@@ -67,4 +68,4 @@ export async function DELETE(
 
   await prisma.product.delete({ where: { id } });
   return NextResponse.json({ ok: true, deleted: true });
-}
+});

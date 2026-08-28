@@ -3,13 +3,14 @@ import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { authorizeServerAccess } from "@/lib/serverAccess";
 import { PteroClient } from "@/lib/pterodactyl";
+import { withApiErrorHandling } from "@/lib/apiHandler";
 
 const schema = z.object({ location: z.string().min(1) });
 
-export async function POST(
+export const POST = withApiErrorHandling(async (
   request: Request,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   const user = await requireUser();
   if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
 
@@ -22,13 +23,6 @@ export async function POST(
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 422 });
 
-  try {
-    await PteroClient.copyFile(server.pterodactylIdentifier, parsed.data.location);
-    return NextResponse.json({ ok: true });
-  } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "복사 중 오류가 발생했습니다." },
-      { status: 502 },
-    );
-  }
-}
+  await PteroClient.copyFile(server.pterodactylIdentifier, parsed.data.location);
+  return NextResponse.json({ ok: true });
+});

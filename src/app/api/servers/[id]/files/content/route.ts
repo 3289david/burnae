@@ -3,11 +3,12 @@ import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { authorizeServerAccess } from "@/lib/serverAccess";
 import { PteroClient } from "@/lib/pterodactyl";
+import { withApiErrorHandling } from "@/lib/apiHandler";
 
-export async function GET(
+export const GET = withApiErrorHandling(async (
   request: Request,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   const user = await requireUser();
   if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
 
@@ -22,14 +23,14 @@ export async function GET(
 
   const content = await PteroClient.readFile(server.pterodactylIdentifier, file);
   return NextResponse.json({ content });
-}
+});
 
 const writeSchema = z.object({ file: z.string().min(1), content: z.string() });
 
-export async function PUT(
+export const PUT = withApiErrorHandling(async (
   request: Request,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   const user = await requireUser();
   if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
 
@@ -46,4 +47,4 @@ export async function PUT(
 
   await PteroClient.writeFile(server.pterodactylIdentifier, parsed.data.file, parsed.data.content);
   return NextResponse.json({ ok: true });
-}
+});

@@ -3,13 +3,14 @@ import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { authorizeServerAccess } from "@/lib/serverAccess";
 import { PteroClient } from "@/lib/pterodactyl";
+import { withApiErrorHandling } from "@/lib/apiHandler";
 
 const schema = z.object({ signal: z.enum(["start", "stop", "restart", "kill"]) });
 
-export async function POST(
+export const POST = withApiErrorHandling(async (
   request: Request,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   const user = await requireUser();
   if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
 
@@ -27,4 +28,4 @@ export async function POST(
 
   await PteroClient.sendPowerAction(server.pterodactylIdentifier, parsed.data.signal);
   return NextResponse.json({ ok: true });
-}
+});

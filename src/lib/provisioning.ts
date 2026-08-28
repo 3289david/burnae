@@ -362,7 +362,13 @@ export async function deleteServerFully(
   }
 
   if (server.pterodactylServerId) {
-    await PteroApp.deleteServer(server.pterodactylServerId);
+    try {
+      await PteroApp.deleteServer(server.pterodactylServerId);
+    } catch (err) {
+      // Wings가 일시적으로 죽어있거나 응답이 없어도 삭제 자체가 여기서 영영 멈추면 안 된다 —
+      // DB 쪽 삭제는 그대로 마무리하고, 판넬에 남은 자원은 로그로 남겨 나중에 수동 정리한다.
+      console.error("[provisioning] Pterodactyl 서버 삭제 실패(DB 정리는 계속 진행):", err);
+    }
   }
 
   await Promise.allSettled(

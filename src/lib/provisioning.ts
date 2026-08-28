@@ -297,6 +297,15 @@ export async function createServerForOrder(orderId: string) {
     console.error("[provisioning] EULA 자동 동의 실패:", err);
   });
 
+  // 디스코드 봇 호스팅은 컨테이너가 텅 비어있으면 그냥 재포장한 마인크래프트 서버처럼 느껴지니,
+  // 바로 실행해볼 수 있는 최소 예제 코드를 미리 심어둔다 — 유저가 파일 관리자에서 지우고
+  // 자기 코드로 바꾸면 그만이다
+  if (template.category === "DISCORD_BOT") {
+    seedDiscordBotStarterFiles(pteroServer.identifier, template.key).catch((err) => {
+      console.error("[provisioning] 디스코드 봇 예제 코드 심기 실패:", err);
+    });
+  }
+
   return server;
 }
 
@@ -335,6 +344,73 @@ async function acceptEulaWithRetry(identifier: string, attempt = 0): Promise<voi
     if (attempt >= 10) throw err;
     await new Promise((resolve) => setTimeout(resolve, 5000 + attempt * 3000));
     return acceptEulaWithRetry(identifier, attempt + 1);
+  }
+}
+
+const DISCORD_BOT_PRESETS: Record<string, Record<string, string>> = {
+  "nodejs-bot": {
+    "index.js": `// discord.js 핑퐁 봇 예제 — 이 파일을 지우고 자기 코드를 올려도 됩니다.
+// 1) 파일 관리자에서 .env 없이 바로 토큰을 넣으려면 아래 TOKEN을 채우거나
+//    "서버 설정 > 시작 변수"에 DISCORD_TOKEN을 추가해서 process.env.DISCORD_TOKEN을 쓰세요.
+const { Client, GatewayIntentBits } = require("discord.js");
+
+const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
+
+client.once("ready", () => console.log(\`로그인됨: \${client.user.tag}\`));
+
+client.on("messageCreate", (message) => {
+  if (message.author.bot) return;
+  if (message.content === "!핑") message.reply("퐁!");
+});
+
+const TOKEN = process.env.DISCORD_TOKEN || "여기에_봇_토큰을_넣으세요";
+client.login(TOKEN);
+`,
+    "package.json": JSON.stringify(
+      { name: "burnae-discord-bot", version: "1.0.0", main: "index.js", dependencies: { "discord.js": "^14.14.1" } },
+      null,
+      2,
+    ),
+  },
+  "python-bot": {
+    "bot.py": `# discord.py 핑퐁 봇 예제 — 이 파일을 지우고 자기 코드를 올려도 됩니다.
+import os
+import discord
+
+intents = discord.Intents.default()
+intents.message_content = True
+client = discord.Client(intents=intents)
+
+@client.event
+async def on_ready():
+    print(f"로그인됨: {client.user}")
+
+@client.event
+async def on_message(message):
+    if message.author == client.user:
+        return
+    if message.content == "!핑":
+        await message.channel.send("퐁!")
+
+TOKEN = os.environ.get("DISCORD_TOKEN", "여기에_봇_토큰을_넣으세요")
+client.run(TOKEN)
+`,
+    "requirements.txt": "discord.py>=2.3.0\n",
+  },
+};
+
+/** EULA와 같은 이유로 설치가 끝나기 전엔 파일 쓰기가 실패할 수 있어 재시도한다 */
+async function seedDiscordBotStarterFiles(identifier: string, templateKey: string, attempt = 0): Promise<void> {
+  const files = DISCORD_BOT_PRESETS[templateKey];
+  if (!files) return;
+  try {
+    for (const [name, content] of Object.entries(files)) {
+      await PteroClient.writeFile(identifier, name, content);
+    }
+  } catch (err) {
+    if (attempt >= 10) throw err;
+    await new Promise((resolve) => setTimeout(resolve, 5000 + attempt * 3000));
+    return seedDiscordBotStarterFiles(identifier, templateKey, attempt + 1);
   }
 }
 

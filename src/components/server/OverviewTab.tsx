@@ -253,10 +253,16 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
           {subdomains.map((s) => (
             <div key={s.id} className="relative flex flex-wrap items-center justify-between gap-2 text-sm">
               <span className="font-mono min-w-0 break-all">
-                {s.subdomain}.{server.subdomainZone} {s.isPrimary && <span className="text-text-dim text-xs">(기본)</span>}
+                {s.subdomain}.{server.subdomainZone}
+                {server.templateCategory !== "MINECRAFT" && server.allocationPort && `:${server.allocationPort}`}
+                {" "}{s.isPrimary && <span className="text-text-dim text-xs">(기본)</span>}
               </span>
               <div className="flex items-center gap-3 shrink-0">
-                <AddressActions address={`${s.subdomain}.${server.subdomainZone}`} />
+                <AddressActions
+                  address={`${s.subdomain}.${server.subdomainZone}${
+                    server.templateCategory !== "MINECRAFT" && server.allocationPort ? `:${server.allocationPort}` : ""
+                  }`}
+                />
                 {server.isOwner && (
                   <button onClick={() => removeSubdomain(s.id)} className="text-red text-xs">삭제</button>
                 )}

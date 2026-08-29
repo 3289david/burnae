@@ -72,6 +72,17 @@ export const POST = withApiErrorHandling(async (
   }
 
   await PteroApp.addServerAllocation(server.pterodactylServerId!, allocationId);
+
+  const allocations = await PteroApp.listNodeAllocations(node.pterodactylNodeId);
+  const added = allocations.find((a) => a.id === allocationId);
+  if (added) {
+    const extraPorts = server.extraPorts as { id: number; ip: string; port: number }[];
+    await prisma.server.update({
+      where: { id: server.id },
+      data: { extraPorts: [...extraPorts, { id: added.id, ip: added.ip, port: added.port }] },
+    });
+  }
+
   return NextResponse.json({ ok: true });
 });
 
@@ -93,5 +104,12 @@ export const DELETE = withApiErrorHandling(async (
   if (!parsed.success) return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 422 });
 
   await PteroApp.removeServerAllocation(server.pterodactylServerId!, parsed.data.allocationId);
+
+  const extraPorts = server.extraPorts as { id: number; ip: string; port: number }[];
+  await prisma.server.update({
+    where: { id: server.id },
+    data: { extraPorts: extraPorts.filter((p) => p.id !== parsed.data.allocationId) },
+  });
+
   return NextResponse.json({ ok: true });
 });

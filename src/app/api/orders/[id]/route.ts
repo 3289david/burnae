@@ -35,7 +35,7 @@ export async function GET(
           description: true,
           allowedTemplates: {
             where: { active: true },
-            select: { id: true, key: true, displayName: true, minecraftVersions: true, category: true },
+            select: { id: true, key: true, displayName: true, minecraftVersions: true, category: true, defaultEnvironment: true },
           },
         },
       },
@@ -88,13 +88,14 @@ export async function POST(
   if (selectedTemplate.category === "MINECRAFT" && !parsed.data.minecraftVersion) {
     return NextResponse.json({ error: "마인크래프트 버전을 선택해주세요." }, { status: 422 });
   }
+  const templateSupportsGitRepo = "GIT_ADDRESS" in (selectedTemplate.defaultEnvironment as Record<string, unknown>);
 
   await prisma.order.update({
     where: { id: order.id },
     data: {
       templateIdRequested: parsed.data.templateId,
       minecraftVersionRequested: parsed.data.minecraftVersion,
-      gitRepoRequested: selectedTemplate.category === "DISCORD_BOT" ? parsed.data.gitRepo : undefined,
+      gitRepoRequested: templateSupportsGitRepo ? parsed.data.gitRepo : undefined,
     },
   });
 

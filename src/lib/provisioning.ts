@@ -224,7 +224,7 @@ export async function createServerForOrder(orderId: string) {
       ...(template.category === "MINECRAFT"
         ? { MINECRAFT_VERSION: order.minecraftVersionRequested ?? "latest" }
         : {}),
-      ...(template.category === "DISCORD_BOT" && order.gitRepoRequested
+      ...("GIT_ADDRESS" in defaultEnv && order.gitRepoRequested
         ? { GIT_ADDRESS: order.gitRepoRequested, USER_UPLOAD: "0" }
         : {}),
       ...(accessSecret && secretEnvKey ? { [secretEnvKey]: accessSecret } : {}),

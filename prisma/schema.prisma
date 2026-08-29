@@ -331,6 +331,8 @@ model Server {
 
   allocationIp   String?
   allocationPort Int?
+  /// 기본 포트 외에 관리자가 추가로 할당해준 포트들. [{id(ptero allocation id), ip, port}]
+  extraPorts Json @default("[]")
   /// VPS(code-server) 등 egg가 자체 웹/접속 비밀번호를 요구할 때 서버마다 무작위로 생성해서 저장
   /// (전 서버 공통 기본값을 그대로 쓰면 남의 서버에 접속할 수 있는 보안 문제가 생김)
   accessSecret String?

@@ -24,6 +24,8 @@ import {
   Network,
   Code2,
   Terminal,
+  Radio,
+  Waves,
 } from "lucide-react";
 
 interface Template {
@@ -32,6 +34,7 @@ interface Template {
   displayName: string;
   minecraftVersions: string[];
   category: "MINECRAFT" | "VPS" | "DISCORD_BOT" | "GENERAL";
+  defaultEnvironment: Record<string, unknown>;
 }
 interface Product {
   id: string;
@@ -106,6 +109,14 @@ const LOADER_META: Record<string, { icon: typeof Package; color: string; blurb: 
   rabbitmq: { icon: Network, color: "var(--flame-2)", blurb: "메시지 큐 브로커" },
   meilisearch: { icon: Search, color: "var(--purple)", blurb: "빠른 검색 엔진" },
   "haste-server": { icon: FileText, color: "var(--cyan)", blurb: "코드/텍스트 스니펫 공유" },
+  corpbot: { icon: Bot, color: "var(--lime)", blurb: "Python 모듈형 봇 프레임워크" },
+  fragbot: { icon: Bot, color: "var(--cyan)", blurb: "심플한 디스코드 봇" },
+  atlbot: { icon: Bot, color: "var(--blue)", blurb: "ATLauncher 공식 봇" },
+  "pixel-bot": { icon: Bot, color: "var(--purple)", blurb: "Python 디스코드 봇" },
+  bastion: { icon: Bot, color: "var(--flame-2)", blurb: "올인원 봇 (별도 MongoDB 서버 필요)" },
+  phantombot: { icon: Radio, color: "var(--purple)", blurb: "유명한 트위치 채팅봇" },
+  sogebot: { icon: Radio, color: "var(--pink)", blurb: "트위치 스트리머용 봇" },
+  lavalink: { icon: Waves, color: "var(--cyan)", blurb: "음악봇용 오디오 노드" },
 };
 
 function loaderMeta(baseKey: string) {
@@ -481,11 +492,11 @@ function NewServerPageInner() {
             </Section>
           )}
 
-          {selectedTemplate && selectedTemplate.category === "DISCORD_BOT" && (
+          {selectedTemplate && "GIT_ADDRESS" in selectedTemplate.defaultEnvironment && (
             <Section step={2} title="시작 코드 (선택)">
               <p className="text-xs text-text-dim mb-2">
-                비워두면 빈 서버로 시작해요 — 파일 탭이나 SFTP로 직접 코드를 올리면 돼요. 자기 봇 코드가
-                GitHub 저장소에 있다면 주소를 넣어주세요 — 서버 생성 시 자동으로 clone해서 시작해요.
+                비워두면 빈 서버로 시작해요 — 파일 탭이나 SFTP로 직접 코드를 올리면 돼요. GitHub
+                저장소에 코드가 있다면 주소를 넣어주세요 — 서버 생성 시 자동으로 clone해서 시작해요.
               </p>
               <input
                 type="url"

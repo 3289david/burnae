@@ -127,6 +127,85 @@ export async function getFreeAllocation(
   );
 }
 
+export interface PteroAllocationWithUsage extends PteroAllocation {
+  /** 이 포트를 쓰고 있는 서버의 Pterodactyl ID/이름 — 비어있으면(assigned=false) null */
+  assignedServerId: number | null;
+  assignedServerName: string | null;
+}
+
+/** 관리자 화면에서 "이 포트가 쓰는 중인지 안 쓰는 중인지" 보여주기 위해 노드의 모든 allocation을 서버 정보 포함해 가져온다 */
+export async function listNodeAllocations(pterodactylNodeId: number): Promise<PteroAllocationWithUsage[]> {
+  const res = await applicationRequest<{
+    data: {
+      attributes: PteroAllocation & {
+        relationships?: { server?: { attributes?: { id: number; name: string } | null } };
+      };
+    }[];
+  }>(`/api/application/nodes/${pterodactylNodeId}/allocations?per_page=200&include=server`);
+  return res.data.map((d) => ({
+    ...d.attributes,
+    assignedServerId: d.attributes.relationships?.server?.attributes?.id ?? null,
+    assignedServerName: d.attributes.relationships?.server?.attributes?.name ?? null,
+  }));
+}
+
+/** 특정 노드에 새 포트 allocation을 만든다 (기존 미사용 포트가 없을 때) */
+export async function createNodeAllocation(pterodactylNodeId: number, ip: string, port: number): Promise<void> {
+  await applicationRequest(`/api/application/nodes/${pterodactylNodeId}/allocations`, {
+    method: "POST",
+    body: JSON.stringify({ ip, ports: [String(port)] }),
+  });
+}
+
+export async function getServer(pterodactylServerId: number): Promise<PteroServer> {
+  const res = await applicationRequest<PteroItemResponse<PteroServer>>(
+    `/api/application/servers/${pterodactylServerId}`,
+  );
+  return res.attributes;
+}
+
+/**
+ * 서버 빌드(build) 갱신 API는 부분 수정이 아니라 리소스 전체를 요구하므로, 먼저 현재 값을
+ * 조회해 그대로 채우고 allocations 개수와 add/remove 목록만 바꿔서 보낸다.
+ */
+async function updateServerAllocations(
+  pterodactylServerId: number,
+  options: { addAllocationId?: number; removeAllocationId?: number },
+): Promise<void> {
+  const server = await getServer(pterodactylServerId);
+  const delta = options.addAllocationId ? 1 : options.removeAllocationId ? -1 : 0;
+  await applicationRequest(`/api/application/servers/${pterodactylServerId}/build`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      allocation: server.allocation,
+      memory: server.limits.memory,
+      swap: server.limits.swap,
+      disk: server.limits.disk,
+      io: server.limits.io,
+      cpu: server.limits.cpu,
+      feature_limits: {
+        databases: server.feature_limits.databases,
+        allocations: Math.max(1, server.feature_limits.allocations + delta),
+        backups: server.feature_limits.backups,
+      },
+      ...(options.addAllocationId ? { add_allocations: [options.addAllocationId] } : {}),
+      ...(options.removeAllocationId ? { remove_allocations: [options.removeAllocationId] } : {}),
+    }),
+  });
+}
+
+export async function addServerAllocation(pterodactylServerId: number, allocationId: number): Promise<void> {
+  await updateServerAllocations(pterodactylServerId, { addAllocationId: allocationId });
+}
+
+export async function removeServerAllocation(pterodactylServerId: number, allocationId: number): Promise<void> {
+  const server = await getServer(pterodactylServerId);
+  if (server.allocation === allocationId) {
+    throw new Error("기본 접속 포트는 제거할 수 없습니다. 다른 추가 포트만 제거할 수 있어요.");
+  }
+  await updateServerAllocations(pterodactylServerId, { removeAllocationId: allocationId });
+}
+
 export async function createServer(params: {
   name: string;
   userId: number;

@@ -201,11 +201,14 @@ export async function createServerForOrder(orderId: string) {
 
   const allocation = await PteroApp.getFreeAllocation(node.pterodactylNodeId);
 
-  // PASSWORD 같은 egg 자체 접속 비밀번호는 모든 서버가 defaultEnvironment의 같은 기본값을
-  // 그대로 쓰면 남의 서버에 그 기본값으로 접속할 수 있는 심각한 보안 문제가 된다 —
+  // PASSWORD 같은 egg 자체 접속 비밀번호(Postgres PGPASSWORD, Redis SERVER_PASSWORD, Mongo
+  // MONGO_USER_PASS, Meilisearch MEILI_MASTER_KEY 등)는 모든 서버가 defaultEnvironment의 같은
+  // 기본값을 그대로 쓰면 남의 서버에 그 기본값으로 접속할 수 있는 심각한 보안 문제가 된다 —
   // 서버마다 무작위로 새로 생성해서 덮어쓰고 accessSecret에 저장해 소유자에게만 보여준다
   const defaultEnv = template.defaultEnvironment as Record<string, string | number | boolean>;
-  const accessSecret = "PASSWORD" in defaultEnv ? crypto.randomBytes(9).toString("base64url") : null;
+  const SECRET_ENV_KEYS = ["PASSWORD", "PGPASSWORD", "SERVER_PASSWORD", "MONGO_USER_PASS", "MEILI_MASTER_KEY"];
+  const secretEnvKey = SECRET_ENV_KEYS.find((key) => key in defaultEnv);
+  const accessSecret = secretEnvKey ? crypto.randomBytes(9).toString("base64url") : null;
 
   const pteroServer = await PteroApp.createServer({
     name: order.serverNameRequested ?? `${order.user.name}의 서버`,
@@ -224,7 +227,7 @@ export async function createServerForOrder(orderId: string) {
       ...(template.category === "DISCORD_BOT" && order.gitRepoRequested
         ? { GIT_ADDRESS: order.gitRepoRequested, USER_UPLOAD: "0" }
         : {}),
-      ...(accessSecret ? { PASSWORD: accessSecret } : {}),
+      ...(accessSecret && secretEnvKey ? { [secretEnvKey]: accessSecret } : {}),
       SERVER_MEMORY: product.ramMb,
     },
     memoryMb: product.ramMb,

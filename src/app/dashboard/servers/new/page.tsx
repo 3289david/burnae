@@ -15,6 +15,15 @@ import {
   Anvil,
   Sparkles,
   Box,
+  Bot,
+  Music,
+  Activity,
+  BarChart3,
+  FileText,
+  Database,
+  Network,
+  Code2,
+  Terminal,
 } from "lucide-react";
 
 interface Template {
@@ -69,6 +78,34 @@ const LOADER_META: Record<string, { icon: typeof Package; color: string; blurb: 
   fabric: { icon: Boxes, color: "var(--cyan)", blurb: "가볍고 빠른 모드 로더" },
   neoforge: { icon: Anvil, color: "var(--blue)", blurb: "Forge의 차세대 후속" },
   mohist: { icon: Sparkles, color: "var(--yellow)", blurb: "모드+플러그인 동시 지원" },
+
+  // 일반 서버(VPS/디스코드 봇/유틸리티) 종류
+  "code-server": { icon: Terminal, color: "var(--accent)", blurb: "브라우저에서 VS Code로 코딩" },
+  "nodejs-bot": { icon: Bot, color: "var(--lime)", blurb: "Node.js로 직접 만드는 봇" },
+  "python-bot": { icon: Bot, color: "var(--lime)", blurb: "Python으로 직접 만드는 봇" },
+  "red-discordbot": { icon: Bot, color: "var(--purple)", blurb: "커뮤니티 큰 모듈형 봇 프레임워크" },
+  "muse-musicbot": { icon: Music, color: "var(--pink)", blurb: "안정적인 인기 음악봇" },
+  "aoede-musicbot": { icon: Music, color: "var(--pink)", blurb: "Spotify 연동 음악봇" },
+  "dynamica-bot": { icon: Bot, color: "var(--cyan)", blurb: "동적 음성채널 자동 생성봇" },
+  "game-server-watcher": { icon: Activity, color: "var(--blue)", blurb: "게임서버 상태 모니터링봇" },
+  jmusicbot: { icon: Music, color: "var(--pink)", blurb: "안정적인 자바 기반 음악봇" },
+  "ree6-bot": { icon: Bot, color: "var(--flame-2)", blurb: "레벨링·모더레이션 올인원 봇" },
+  "golang-generic": { icon: Code2, color: "var(--cyan)", blurb: "Go 코드 직접 업로드" },
+  "java-generic": { icon: Code2, color: "var(--flame-2)", blurb: "Java(.jar) 직접 업로드" },
+  "csharp-generic": { icon: Code2, color: "var(--purple)", blurb: "C#/.NET 직접 업로드" },
+  "rust-generic": { icon: Code2, color: "var(--flame-2)", blurb: "Rust 코드 직접 업로드" },
+  "deno-generic": { icon: Code2, color: "var(--blue)", blurb: "Deno 런타임 코드 직접 업로드" },
+  "bun-generic": { icon: Code2, color: "var(--yellow)", blurb: "Bun 런타임 코드 직접 업로드" },
+  "uptime-kuma": { icon: Activity, color: "var(--green)", blurb: "서버·사이트 다운타임 모니터링" },
+  gitea: { icon: Box, color: "var(--lime)", blurb: "가벼운 자체 호스팅 깃 서버" },
+  "postgres-16": { icon: Database, color: "var(--blue)", blurb: "관계형 DB 서버" },
+  "redis-7": { icon: Database, color: "var(--flame-2)", blurb: "초고속 캐시/DB 서버" },
+  "mongodb-7": { icon: Database, color: "var(--green)", blurb: "NoSQL 문서 DB 서버" },
+  grafana: { icon: BarChart3, color: "var(--flame-2)", blurb: "예쁜 모니터링 대시보드" },
+  prometheus: { icon: Activity, color: "var(--flame-2)", blurb: "메트릭 수집·저장" },
+  rabbitmq: { icon: Network, color: "var(--flame-2)", blurb: "메시지 큐 브로커" },
+  meilisearch: { icon: Search, color: "var(--purple)", blurb: "빠른 검색 엔진" },
+  "haste-server": { icon: FileText, color: "var(--cyan)", blurb: "코드/텍스트 스니펫 공유" },
 };
 
 function loaderMeta(baseKey: string) {
@@ -447,8 +484,8 @@ function NewServerPageInner() {
           {selectedTemplate && selectedTemplate.category === "DISCORD_BOT" && (
             <Section step={2} title="시작 코드 (선택)">
               <p className="text-xs text-text-dim mb-2">
-                비워두면 바로 실행해볼 수 있는 간단한 예제 코드로 시작해요. 자기 봇 코드가 있다면
-                GitHub 저장소 주소를 넣어주세요 — 서버 생성 시 자동으로 clone해서 시작해요.
+                비워두면 빈 서버로 시작해요 — 파일 탭이나 SFTP로 직접 코드를 올리면 돼요. 자기 봇 코드가
+                GitHub 저장소에 있다면 주소를 넣어주세요 — 서버 생성 시 자동으로 clone해서 시작해요.
               </p>
               <input
                 type="url"

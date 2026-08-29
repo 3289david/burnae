@@ -30,6 +30,16 @@ export async function compileJavaPlugin(params: {
   pluginYml: string;
   minecraftVersion: string;
 }): Promise<{ jarBuffer: Buffer }> {
+  // packageName/className은 AI가 생성한 값이라 경로 조작 문자(../ 등)가 섞여 나올 가능성을 배제할
+  // 수 없다 — 자바 식별자 형식으로만 제한해서 파일시스템 경로 조작(path traversal)을 막는다
+  const JAVA_IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
+  if (!params.packageName.split(".").every((seg) => JAVA_IDENTIFIER.test(seg))) {
+    throw new PluginCompileError("패키지 이름이 올바르지 않습니다.");
+  }
+  if (!JAVA_IDENTIFIER.test(params.className)) {
+    throw new PluginCompileError("클래스 이름이 올바르지 않습니다.");
+  }
+
   const apiJar = await getPaperApiJarPath(params.minecraftVersion);
 
   const workDir = await fs.mkdtemp(path.join(os.tmpdir(), "burnae-plugin-"));

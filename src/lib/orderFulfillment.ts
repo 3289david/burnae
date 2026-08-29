@@ -4,6 +4,20 @@ import { PteroApp, PteroClient } from "@/lib/pterodactyl";
 import { rewardReferralFirstPayment } from "@/lib/promotions";
 
 /**
+ * Date.setMonth은 그 달에 없는 날짜(예: 1/31 + 1달 = 2/31)를 다음다음 달로 넘겨버린다(3/3 등) —
+ * 매달 결제일이 조금씩 밀리는 걸 막기 위해 없는 날짜는 그 달의 마지막 날로 맞춘다
+ */
+function addOneMonthClamped(date: Date): Date {
+  const day = date.getDate();
+  const next = new Date(date);
+  next.setDate(1);
+  next.setMonth(next.getMonth() + 1);
+  const lastDayOfNextMonth = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
+  next.setDate(Math.min(day, lastDayOfNextMonth));
+  return next;
+}
+
+/**
  * 결제 완료 + 서버 종류/버전 선택까지 끝난 신규 서버 주문을 실제로 프로비저닝한다.
  * 결제 시점에 바로 골랐으면 markOrderPaidAndFulfill에서, 결제 후에 나중에 골랐으면
  * /api/orders/[id] (select-template)에서 호출한다.
@@ -48,65 +62,78 @@ export async function markOrderPaidAndFulfill(orderId: string) {
     data: { status: "PAID", paidAt: new Date() },
   });
 
-  if (order.couponId) {
-    await prisma.coupon.update({
-      where: { id: order.couponId },
-      data: { usedCount: { increment: 1 } },
-    });
-  }
+  // 여기서부터 실패하면(네트워크 오류, Pterodactyl 장애 등) 결제 상태를 PENDING으로 되돌려서
+  // 다음 크론 주기나 재시도에서 다시 처리할 수 있게 한다 — 안 그러면 위에서 이미 PAID로
+  // 바뀐 뒤라 44번째 줄의 멱등 가드에 막혀 영원히 재시도가 안 되고, 고객은 돈은 냈는데
+  // 서버/갱신/업그레이드는 적용 안 된 채로 방치된다
+  try {
+    if (order.couponId) {
+      await prisma.coupon.update({
+        where: { id: order.couponId },
+        data: { usedCount: { increment: 1 } },
+      });
+    }
 
-  if (order.type === "AI_CREDITS") {
-    if (order.aiCreditsAmount) {
-      await prisma.user.update({
-        where: { id: order.userId },
-        data: { aiCreditsRemaining: { increment: order.aiCreditsAmount } },
+    if (order.type === "AI_CREDITS") {
+      if (order.aiCreditsAmount) {
+        await prisma.user.update({
+          where: { id: order.userId },
+          data: { aiCreditsRemaining: { increment: order.aiCreditsAmount } },
+        });
+      }
+    } else if (order.type === "NEW_SERVER") {
+      // 결제 시점에 서버 종류/버전을 아직 안 골랐으면(결제 후 선택 방식) 여기서 바로 만들지 않고
+      // 고객이 /api/orders/[id]/select-template 로 고른 뒤에 provisionNewServerOrder를 부른다.
+      if (!order.templateIdRequested) return;
+      await provisionNewServerOrder(order.id);
+    } else if (order.type === "RENEWAL" && order.serverId) {
+      const server = await prisma.server.findUniqueOrThrow({ where: { id: order.serverId } });
+      const nextDue = addOneMonthClamped(
+        new Date(Math.max(Date.now(), server.renewalDueAt?.getTime() ?? Date.now())),
+      );
+      await prisma.server.update({
+        where: { id: server.id },
+        data: { renewalDueAt: nextDue, status: server.status === "SUSPENDED" ? "STOPPED" : server.status },
       });
-    }
-  } else if (order.type === "NEW_SERVER") {
-    // 결제 시점에 서버 종류/버전을 아직 안 골랐으면(결제 후 선택 방식) 여기서 바로 만들지 않고
-    // 고객이 /api/orders/[id]/select-template 로 고른 뒤에 provisionNewServerOrder를 부른다.
-    if (!order.templateIdRequested) return;
-    await provisionNewServerOrder(order.id);
-  } else if (order.type === "RENEWAL" && order.serverId) {
-    const server = await prisma.server.findUniqueOrThrow({ where: { id: order.serverId } });
-    const nextDue = new Date(Math.max(Date.now(), server.renewalDueAt?.getTime() ?? Date.now()));
-    nextDue.setMonth(nextDue.getMonth() + 1);
-    await prisma.server.update({
-      where: { id: server.id },
-      data: { renewalDueAt: nextDue, status: server.status === "SUSPENDED" ? "STOPPED" : server.status },
-    });
-    if (server.status === "SUSPENDED" && server.pterodactylServerId) {
-      await PteroApp.unsuspendServer(server.pterodactylServerId);
-    }
-    if (order.product && order.product.aiCreditsPerMonth > 0) {
-      await prisma.user.update({
-        where: { id: order.userId },
-        data: { aiCreditsRemaining: { increment: order.product.aiCreditsPerMonth } },
-      });
-    }
-  } else if (order.type === "UPGRADE" && order.serverId && order.product) {
-    const server = await prisma.server.findUniqueOrThrow({ where: { id: order.serverId } });
-    await PteroApp.updateServerBuild(server.pterodactylServerId!, {
-      memoryMb: order.product.ramMb,
-      diskMb: order.product.diskMb,
-      cpuPercent: order.product.cpuPercent,
-      backupSlots: order.product.backupSlots,
-    });
-    await prisma.server.update({
-      where: { id: server.id },
-      data: {
-        productId: order.productId ?? undefined,
-        productNameSnapshot: order.product.name,
-        priceMonthlyKrwSnapshot: order.product.priceMonthlyKrw,
-        ramMb: order.product.ramMb,
+      if (server.status === "SUSPENDED" && server.pterodactylServerId) {
+        await PteroApp.unsuspendServer(server.pterodactylServerId);
+      }
+      if (order.product && order.product.aiCreditsPerMonth > 0) {
+        await prisma.user.update({
+          where: { id: order.userId },
+          data: { aiCreditsRemaining: { increment: order.product.aiCreditsPerMonth } },
+        });
+      }
+    } else if (order.type === "UPGRADE" && order.serverId && order.product) {
+      const server = await prisma.server.findUniqueOrThrow({ where: { id: order.serverId } });
+      await PteroApp.updateServerBuild(server.pterodactylServerId!, {
+        memoryMb: order.product.ramMb,
         diskMb: order.product.diskMb,
         cpuPercent: order.product.cpuPercent,
         backupSlots: order.product.backupSlots,
-      },
-    });
-    if (server.pterodactylIdentifier) {
-      await PteroClient.sendPowerAction(server.pterodactylIdentifier, "restart");
+      });
+      await prisma.server.update({
+        where: { id: server.id },
+        data: {
+          productId: order.productId ?? undefined,
+          productNameSnapshot: order.product.name,
+          priceMonthlyKrwSnapshot: order.product.priceMonthlyKrw,
+          ramMb: order.product.ramMb,
+          diskMb: order.product.diskMb,
+          cpuPercent: order.product.cpuPercent,
+          backupSlots: order.product.backupSlots,
+        },
+      });
+      if (server.pterodactylIdentifier) {
+        await PteroClient.sendPowerAction(server.pterodactylIdentifier, "restart");
+      }
     }
+  } catch (err) {
+    await prisma.order.update({
+      where: { id: order.id },
+      data: { status: "PENDING", paidAt: null },
+    });
+    throw err;
   }
 }
 

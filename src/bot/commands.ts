@@ -13,6 +13,7 @@ import { prisma } from "./prismaClient";
 import { PteroClient } from "../lib/pterodactyl";
 import { renewFreeServer, ServerRenewalError } from "../lib/serverRenewal";
 import { postOrRefreshSurvey } from "../lib/discordBoards";
+import crypto from "node:crypto";
 
 /**
  * 이 봇은 Burnae 공식 디스코드 서버 단 하나에서만 동작한다 (index.ts의 길드 검증 참고).
@@ -522,6 +523,12 @@ async function handleSurveyVote(interaction: ButtonInteraction) {
 }
 
 /** 규칙 인증 1단계: 역할을 바로 주지 않고 간단한 계산 캡챠를 먼저 보여준다(단순 자동클릭봇 방지) */
+// customId는 클라이언트(디스코드 앱/게이트웨이 메시지)에 그대로 노출되므로 정답을 여기 담으면
+// 안 된다 — 랜덤 challenge id로 서버(봇 프로세스) 메모리에만 정답을 들고 있는다. 방치된 챌린지가
+// 계속 쌓이지 않게 일정 시간 뒤 자동으로 지운다
+const verifyCaptchaAnswers = new Map<string, number>();
+const VERIFY_CAPTCHA_TTL_MS = 2 * 60 * 1000;
+
 async function handleVerifyButton(interaction: ButtonInteraction) {
   const settings = await prisma.botSettings.findUnique({ where: { id: 1 } });
   if (!settings?.verifiedRoleId) {
@@ -545,9 +552,13 @@ async function handleVerifyButton(interaction: ButtonInteraction) {
   }
   const shuffled = [...options].sort(() => Math.random() - 0.5);
 
+  const challengeId = crypto.randomUUID();
+  verifyCaptchaAnswers.set(challengeId, correct);
+  setTimeout(() => verifyCaptchaAnswers.delete(challengeId), VERIFY_CAPTCHA_TTL_MS);
+
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
     shuffled.map((v) =>
-      new ButtonBuilder().setCustomId(`verify_ans_${v}_${correct}`).setLabel(String(v)).setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId(`verify_ans_${challengeId}_${v}`).setLabel(String(v)).setStyle(ButtonStyle.Secondary),
     ),
   );
   await interaction.reply({
@@ -559,8 +570,14 @@ async function handleVerifyButton(interaction: ButtonInteraction) {
 
 /** 규칙 인증 2단계: 캡챠 정답을 확인하고 맞으면 역할을 부여한다 */
 async function handleVerifyCaptchaAnswer(interaction: ButtonInteraction) {
-  const [, , valueStr, correctStr] = interaction.customId.split("_");
-  if (valueStr !== correctStr) {
+  const [, , challengeId, valueStr] = interaction.customId.split("_");
+  const correct = verifyCaptchaAnswers.get(challengeId);
+  verifyCaptchaAnswers.delete(challengeId); // 한 번 쓰면 만료 — 재사용/재전송 방지
+  if (correct === undefined) {
+    await interaction.update({ content: "⏰ 만료됐어요. 다시 인증 채널에서 인증 버튼을 눌러주세요.", components: [] });
+    return;
+  }
+  if (Number(valueStr) !== correct) {
     await interaction.update({ content: "❌ 틀렸어요. 다시 인증 채널에서 인증 버튼을 눌러주세요.", components: [] });
     return;
   }

@@ -111,6 +111,10 @@ async function fetchProfile(provider: OAuthProviderKey, accessToken: string): Pr
     });
     const data = await res.json();
     if (!res.ok || !data.email) throw new Error("구글 프로필 조회 실패");
+    // 인증 안 된 이메일로 로그인하면 그 이메일을 이미 쓰는 다른 계정에 무단으로 연결될 수 있다
+    if (!data.email_verified) {
+      throw new Error("구글 계정에 인증된 이메일이 없습니다. 구글에서 이메일을 인증해주세요.");
+    }
     return { providerAccountId: data.sub, email: data.email, name: data.name ?? data.email };
   }
 
@@ -141,7 +145,8 @@ async function fetchProfile(provider: OAuthProviderKey, accessToken: string): Pr
   const res = await fetch("https://discord.com/api/users/@me", { headers: authHeader });
   const data = await res.json();
   if (!res.ok) throw new Error("디스코드 프로필 조회 실패");
-  if (!data.email) {
+  // 인증 안 된 이메일로 로그인하면 그 이메일을 이미 쓰는 다른 계정에 무단으로 연결될 수 있다
+  if (!data.email || !data.verified) {
     throw new Error("디스코드 계정에 인증된 이메일이 없습니다. 디스코드에서 이메일을 인증해주세요.");
   }
   return {

@@ -86,6 +86,11 @@ export const AI_TOOLS: Record<string, ToolDef> = {
       if (!server.pterodactylIdentifier) throw new Error("서버가 아직 준비 중입니다.");
       const identifier = server.pterodactylIdentifier;
       const action = String(input.action);
+      if (action === "add" || action === "remove") {
+        if (typeof input.name !== "string" || !input.name.trim()) {
+          throw new Error("플레이어 이름이 필요합니다.");
+        }
+      }
       if (action === "add") await Players.whitelistAdd(identifier, String(input.name));
       else if (action === "remove") await Players.whitelistRemove(identifier, String(input.name));
       else if (action === "enable") await Players.whitelistToggle(identifier, true);

@@ -18,6 +18,16 @@ export async function PATCH(request: Request) {
   if (depositorName !== null && !isValidDepositorName(depositorName)) {
     return NextResponse.json({ error: "입금자명은 공백 없이 1~5자여야 해요." }, { status: 422 });
   }
+  // 다른 유저가 이미 쓰는 입금자명과 같으면 은행 입금 자동 매칭 시 서로 뒤바뀔 수 있어 막는다
+  if (depositorName !== null) {
+    const conflict = await prisma.user.findFirst({
+      where: { preferredDepositorName: depositorName, id: { not: user.id } },
+      select: { id: true },
+    });
+    if (conflict) {
+      return NextResponse.json({ error: "이미 다른 유저가 쓰고 있는 입금자명이에요. 다른 이름을 입력해주세요." }, { status: 409 });
+    }
+  }
 
   await prisma.user.update({
     where: { id: user.id },

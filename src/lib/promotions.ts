@@ -1,5 +1,7 @@
 import dns from "node:dns/promises";
 import net from "node:net";
+import http from "node:http";
+import https from "node:https";
 import { prisma } from "@/lib/prisma";
 import { PteroClient } from "@/lib/pterodactyl";
 import { sendDiscordDM } from "@/lib/discordNotify";
@@ -35,7 +37,12 @@ function isPrivateOrReservedIp(ip: string): boolean {
   return false;
 }
 
-async function assertPublicUrl(url: URL) {
+/**
+ * 검증 통과한 IP를 돌려준다 — fetch()에 원본 hostname을 그대로 넘기면 fetch가 내부적으로
+ * DNS를 다시 조회하는데, 그 사이(TTL이 아주 짧은 도메인 등)에 응답이 사설 IP로 바뀌는
+ * "DNS 리바인딩"으로 이 검사를 우회할 수 있다 — 그래서 여기서 확인한 IP로 직접 접속해야 한다.
+ */
+async function assertPublicUrl(url: URL): Promise<{ address: string; family: number }> {
   if (url.protocol !== "http:" && url.protocol !== "https:") {
     throw new Error("http/https 주소만 사용할 수 있어요.");
   }
@@ -47,6 +54,7 @@ async function assertPublicUrl(url: URL) {
   for (const { address } of addresses) {
     if (isPrivateOrReservedIp(address)) throw new Error("접근할 수 없는 주소예요.");
   }
+  return addresses[0];
 }
 
 export async function verifyUrlContainsText(rawUrl: string, requiredText: string): Promise<boolean> {
@@ -56,42 +64,60 @@ export async function verifyUrlContainsText(rawUrl: string, requiredText: string
   } catch {
     throw new Error("올바른 URL이 아니에요.");
   }
-  await assertPublicUrl(url);
+  const { address, family } = await assertPublicUrl(url);
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
-  try {
-    const res = await fetch(url.toString(), {
-      redirect: "manual",
-      signal: controller.signal,
-      headers: { "User-Agent": "BurnaePromotionBot/1.0 (+https://burnae.kr)" },
-    });
-    if (res.status >= 300 && res.status < 400) {
-      throw new Error("리다이렉트되는 주소는 확인할 수 없어요. 최종 페이지 주소를 입력해주세요.");
-    }
-    if (!res.ok) throw new Error("페이지를 불러올 수 없어요.");
+  const text = await new Promise<string>((resolve, reject) => {
+    const client = url.protocol === "https:" ? https : http;
+    const req = client.request(
+      {
+        // 접속은 검증된 IP로 직접 하되(리바인딩 방지), Host/SNI는 원래 도메인 이름을 그대로 써야
+        // 가상 호스팅(같은 IP에 여러 도메인)이 정상 동작한다
+        host: address,
+        family,
+        servername: url.protocol === "https:" ? url.hostname : undefined,
+        path: `${url.pathname}${url.search}`,
+        headers: { Host: url.hostname, "User-Agent": "BurnaePromotionBot/1.0 (+https://burnae.kr)" },
+        timeout: 8000,
+      },
+      (res) => {
+        const status = res.statusCode ?? 0;
+        if (status >= 300 && status < 400) {
+          res.destroy();
+          reject(new Error("리다이렉트되는 주소는 확인할 수 없어요. 최종 페이지 주소를 입력해주세요."));
+          return;
+        }
+        if (status < 200 || status >= 300) {
+          res.destroy();
+          reject(new Error("페이지를 불러올 수 없어요."));
+          return;
+        }
+        const MAX_BYTES = 2_000_000;
+        let bytes = 0;
+        let settled = false;
+        const chunks: Buffer[] = [];
+        res.on("data", (chunk: Buffer) => {
+          bytes += chunk.length;
+          chunks.push(chunk);
+          if (bytes > MAX_BYTES && !settled) {
+            settled = true;
+            res.destroy();
+            resolve(Buffer.concat(chunks).toString("utf-8"));
+          }
+        });
+        res.on("end", () => {
+          if (!settled) resolve(Buffer.concat(chunks).toString("utf-8"));
+        });
+        res.on("error", (err) => {
+          if (!settled) reject(err);
+        });
+      },
+    );
+    req.on("timeout", () => req.destroy(new Error("응답 시간이 초과됐어요.")));
+    req.on("error", reject);
+    req.end();
+  });
 
-    const reader = res.body?.getReader();
-    let text = "";
-    if (reader) {
-      const decoder = new TextDecoder();
-      const MAX_BYTES = 2_000_000;
-      let bytes = 0;
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        bytes += value.length;
-        text += decoder.decode(value, { stream: true });
-        if (bytes > MAX_BYTES) break;
-      }
-      await reader.cancel().catch(() => {});
-    } else {
-      text = await res.text();
-    }
-    return text.toLowerCase().includes(requiredText.toLowerCase());
-  } finally {
-    clearTimeout(timeout);
-  }
+  return text.toLowerCase().includes(requiredText.toLowerCase());
 }
 
 // ── DISCORD_MEMBER: 공식 디스코드 서버 가입 여부 ──

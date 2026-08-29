@@ -217,7 +217,7 @@ export async function createServerForOrder(orderId: string) {
     allocationId: allocation.id,
     eggId: template.pterodactylEggId,
     nestId: template.pterodactylNestId,
-    dockerImage: template.dockerImage,
+    dockerImage: order.dockerImageRequested ?? template.dockerImage,
     startupCommand: template.startupCommand,
     environment: {
       ...defaultEnv,

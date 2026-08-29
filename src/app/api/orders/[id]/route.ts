@@ -35,7 +35,7 @@ export async function GET(
           description: true,
           allowedTemplates: {
             where: { active: true },
-            select: { id: true, key: true, displayName: true, minecraftVersions: true, category: true, defaultEnvironment: true },
+            select: { id: true, key: true, displayName: true, minecraftVersions: true, category: true, defaultEnvironment: true, availableDockerImages: true },
           },
         },
       },
@@ -49,6 +49,7 @@ const selectTemplateSchema = z.object({
   templateId: z.string(),
   minecraftVersion: z.string().optional(),
   gitRepo: z.string().url().max(300).optional(),
+  dockerImage: z.string().max(300).optional(),
 });
 
 /**
@@ -89,6 +90,10 @@ export async function POST(
     return NextResponse.json({ error: "마인크래프트 버전을 선택해주세요." }, { status: 422 });
   }
   const templateSupportsGitRepo = "GIT_ADDRESS" in (selectedTemplate.defaultEnvironment as Record<string, unknown>);
+  const availableImages = selectedTemplate.availableDockerImages as Record<string, string> | null;
+  if (parsed.data.dockerImage && (!availableImages || !Object.values(availableImages).includes(parsed.data.dockerImage))) {
+    return NextResponse.json({ error: "선택할 수 없는 런타임 버전입니다." }, { status: 422 });
+  }
 
   await prisma.order.update({
     where: { id: order.id },
@@ -96,6 +101,7 @@ export async function POST(
       templateIdRequested: parsed.data.templateId,
       minecraftVersionRequested: parsed.data.minecraftVersion,
       gitRepoRequested: templateSupportsGitRepo ? parsed.data.gitRepo : undefined,
+      dockerImageRequested: availableImages ? parsed.data.dockerImage : undefined,
     },
   });
 

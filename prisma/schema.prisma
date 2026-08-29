@@ -140,6 +140,8 @@ model ServerTemplate {
   dockerImage        String
   startupCommand     String
   minecraftVersions  String[] // 선택 가능한 마인크래프트 버전 목록 (MINECRAFT 카테고리에서만 사용)
+  /// 런타임 버전 선택지가 여러 개인 egg(Node.js/Python/Java/C#/Rust 등)용. {"라벨": "도커이미지"} — null이면 dockerImage 하나뿐
+  availableDockerImages Json?
   defaultEnvironment Json // Pterodactyl egg 기본 environment 변수
   active             Boolean        @default(true)
   sortOrder          Int            @default(0)
@@ -260,8 +262,10 @@ model Order {
   serverNameRequested       String?
   templateIdRequested       String?
   minecraftVersionRequested String?
-  /// DISCORD_BOT 서버 종류에서 예제 코드 대신 이 깃 저장소를 clone해서 시작(비워두면 예제 코드)
+  /// GIT_ADDRESS를 지원하는 서버 종류에서 이 깃 저장소를 clone해서 시작(비워두면 빈 서버)
   gitRepoRequested          String?
+  /// 런타임 버전 선택지가 있는 서버 종류에서 고른 도커 이미지(예: Python 3.11). 비워두면 템플릿 기본값
+  dockerImageRequested      String?
   /// type이 AI_CREDITS일 때 이 주문으로 충전되는 크레딧 수
   aiCreditsAmount           Int?
   /// 결제(또는 포인트 교환)는 끝났지만 노드 여유 공간이 없어서 서버 생성을 대기 중인 "선주문" 상태

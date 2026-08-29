@@ -36,6 +36,7 @@ interface Template {
   minecraftVersions: string[];
   category: "MINECRAFT" | "VPS" | "DISCORD_BOT" | "GENERAL";
   defaultEnvironment: Record<string, unknown>;
+  availableDockerImages: Record<string, string> | null;
 }
 interface Product {
   id: string;
@@ -168,6 +169,7 @@ function NewServerPageInner() {
   const [version, setVersion] = useState("");
   const [versionQuery, setVersionQuery] = useState("");
   const [gitRepo, setGitRepo] = useState("");
+  const [dockerImage, setDockerImage] = useState("");
   const [choosing, setChoosing] = useState(false);
 
   useEffect(() => {
@@ -242,12 +244,14 @@ function NewServerPageInner() {
     setTemplateId(t.id);
     setVersion(t.minecraftVersions[0] ?? "");
     setVersionQuery("");
+    setDockerImage(Object.values(t.availableDockerImages ?? {})[0] ?? "");
   }
 
   function pickTier(t: Template) {
     setTemplateId(t.id);
     setVersion(t.minecraftVersions[0] ?? "");
     setVersionQuery("");
+    setDockerImage(Object.values(t.availableDockerImages ?? {})[0] ?? "");
   }
 
   const filteredVersions = useMemo(() => {
@@ -330,7 +334,12 @@ function NewServerPageInner() {
       const res = await fetch(`/api/orders/${order.id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ templateId, minecraftVersion: version || undefined, gitRepo: gitRepo || undefined }),
+        body: JSON.stringify({
+          templateId,
+          minecraftVersion: version || undefined,
+          gitRepo: gitRepo || undefined,
+          dockerImage: dockerImage || undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "처리에 실패했습니다.");
@@ -505,8 +514,32 @@ function NewServerPageInner() {
             </Section>
           )}
 
+          {selectedTemplate && Object.keys(selectedTemplate.availableDockerImages ?? {}).length > 1 && (
+            <Section step={2} title="런타임 버전">
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(selectedTemplate.availableDockerImages!).map(([label, image]) => {
+                  const active = image === dockerImage;
+                  return (
+                    <button
+                      type="button"
+                      key={image}
+                      onClick={() => setDockerImage(image)}
+                      className={`px-3.5 py-2 rounded-xl text-sm font-medium border transition-all duration-150 ${
+                        active
+                          ? "border-accent bg-accent text-white"
+                          : "border-border bg-surface text-text-dim hover:border-accent/40 hover:text-text"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </Section>
+          )}
+
           {selectedTemplate && "GIT_ADDRESS" in selectedTemplate.defaultEnvironment && (
-            <Section step={2} title="시작 코드 (선택)">
+            <Section step={Object.keys(selectedTemplate.availableDockerImages ?? {}).length > 1 ? 3 : 2} title="시작 코드 (선택)">
               <p className="text-xs text-text-dim mb-2">
                 비워두면 빈 서버로 시작해요 — 파일 탭이나 SFTP로 직접 코드를 올리면 돼요. GitHub
                 저장소에 코드가 있다면 주소를 넣어주세요 — 서버 생성 시 자동으로 clone해서 시작해요.

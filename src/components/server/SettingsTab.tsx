@@ -6,6 +6,7 @@ import UpgradeCard from "./UpgradeCard";
 import AutomationCard from "./AutomationCard";
 import StartupVariablesCard from "./StartupVariablesCard";
 import SftpCard from "./SftpCard";
+import DiscordInviteCard from "./DiscordInviteCard";
 
 const KNOWN_KEYS = [
   { key: "difficulty", label: "난이도", type: "select", options: ["peaceful", "easy", "normal", "hard"] },
@@ -207,6 +208,8 @@ export default function SettingsTab({
     )}
 
     {isOwner && <StartupVariablesCard serverId={serverId} />}
+
+    {isOwner && templateCategory === "DISCORD_BOT" && <DiscordInviteCard serverId={serverId} />}
 
     {isOwner && <SftpCard serverId={serverId} />}
 

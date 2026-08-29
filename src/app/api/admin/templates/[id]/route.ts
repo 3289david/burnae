@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 
@@ -12,7 +13,7 @@ const schema = z.object({
   defaultEnvironment: z
     .record(z.string(), z.union([z.string(), z.number(), z.boolean()]))
     .optional(),
-  availableDockerImages: z.record(z.string(), z.string()).optional(),
+  availableDockerImages: z.record(z.string(), z.string()).nullable().optional(),
   active: z.boolean().optional(),
   sortOrder: z.number().int().optional(),
 });
@@ -30,6 +31,15 @@ export async function PUT(
     return NextResponse.json({ error: "입력값이 올바르지 않습니다." }, { status: 422 });
   }
 
-  const template = await prisma.serverTemplate.update({ where: { id }, data: parsed.data });
+  const { availableDockerImages, ...rest } = parsed.data;
+  const template = await prisma.serverTemplate.update({
+    where: { id },
+    data: {
+      ...rest,
+      ...(availableDockerImages !== undefined
+        ? { availableDockerImages: availableDockerImages === null ? Prisma.JsonNull : availableDockerImages }
+        : {}),
+    },
+  });
   return NextResponse.json(template);
 }

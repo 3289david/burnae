@@ -309,6 +309,13 @@ export async function updateStartupVariable(identifier: string, key: string, val
   });
 }
 
+/** egg 설치 스크립트를 다시 실행한다 — 커스텀 GitHub repo 배포가 꼬였거나 초기 상태로 되돌리고 싶을 때 사용 (VPS/봇 서버에 특히 유용) */
+export async function reinstallServer(identifier: string): Promise<void> {
+  await clientRequest(`/api/client/servers/${identifier}/settings/reinstall`, {
+    method: "POST",
+  });
+}
+
 /** 콘솔 실시간 스트림용 웹소켓 인증 정보 발급 */
 export async function getWebsocketCredentials(
   identifier: string,

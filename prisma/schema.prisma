@@ -37,6 +37,10 @@ model User {
   preferredDepositorName String?
   /// 서버 홍보 활동으로 모은 포인트 — 무료 서버 교환 등에 사용
   promotionPoints        Int        @default(0)
+  /// Pterodactyl 패널 계정의 내부 유저 ID. 첫 서버 생성 시 채워짐 — SFTP 비밀번호 재발급 등에 사용
+  pterodactylUserId      Int?       @unique
+  /// SFTP 접속용으로 재발급한 패널 계정 비밀번호(평문) — 소유자에게만 노출. accessSecret과 동일한 이유로 평문 저장
+  sftpPassword           String?
   /// 친구 추천용 코드. 가입 링크에 ?ref=코드 로 붙여서 공유
   referralCode            String     @unique @default(cuid())
   referredByUserId        String?
@@ -104,6 +108,8 @@ model HostNode {
   reservedRamMb     Int        @default(0)
   reservedDiskMb    Int        @default(0)
   cpuCores          Int
+  /// Wings SFTP 리슨 포트. config.yml의 sftp.bind_port와 항상 일치해야 한다(기본 2022)
+  sftpPort          Int        @default(2022)
   status            NodeStatus @default(ONLINE)
   autoDeployEnabled Boolean    @default(true)
   createdAt         DateTime   @default(now())

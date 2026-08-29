@@ -26,7 +26,20 @@ const TOOL_LABEL: Record<string, string> = {
   restore_backup: "백업 복원",
 };
 
-export default function AiTab({ serverId }: { serverId: string }) {
+const EXAMPLE_PROMPTS: Record<"MINECRAFT" | "VPS" | "DISCORD_BOT" | "GENERAL", string> = {
+  MINECRAFT: '서버에 원하는 걸 말해보세요. 예) "커맨드 블럭 켜줘", "최대 인원 30명으로 바꿔줘"',
+  DISCORD_BOT: '서버에 원하는 걸 말해보세요. 예) "봇 재시작해줘", "requirements.txt에 패키지 추가해줘"',
+  VPS: '서버에 원하는 걸 말해보세요. 예) "포트 열려있는지 확인해줘", "로그 파일 보여줘"',
+  GENERAL: '서버에 원하는 걸 말해보세요. 예) "설정 파일 고쳐줘", "서버 재시작해줘"',
+};
+
+export default function AiTab({
+  serverId,
+  templateCategory = "MINECRAFT",
+}: {
+  serverId: string;
+  templateCategory?: "MINECRAFT" | "VPS" | "DISCORD_BOT" | "GENERAL";
+}) {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [pending, setPending] = useState<PendingActivity | null>(null);
@@ -104,9 +117,7 @@ export default function AiTab({ serverId }: { serverId: string }) {
     <div className="card-glow p-0 overflow-hidden flex flex-col h-[32rem] animate-fade-up">
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.length === 0 && (
-          <p className="text-sm text-text-dim">
-            서버에 원하는 걸 말해보세요. 예) &ldquo;커맨드 블럭 켜줘&rdquo;, &ldquo;최대 인원 30명으로 바꿔줘&rdquo;
-          </p>
+          <p className="text-sm text-text-dim">{EXAMPLE_PROMPTS[templateCategory]}</p>
         )}
         {messages.map((m) => (
           <div key={m.id} className={`flex ${m.role === "USER" ? "justify-end" : "justify-start"}`}>

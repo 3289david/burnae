@@ -10,6 +10,7 @@ const schema = z.object({
   reservedRamMb: z.number().int().min(0).optional(),
   reservedDiskMb: z.number().int().min(0).optional(),
   cpuCores: z.number().int().min(1).optional(),
+  sftpPort: z.number().int().min(1).max(65535).optional(),
   status: z.enum(["ONLINE", "OFFLINE", "MAINTENANCE"]).optional(),
   autoDeployEnabled: z.boolean().optional(),
 });

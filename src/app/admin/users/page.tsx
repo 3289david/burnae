@@ -209,7 +209,7 @@ function GrantServerForm({
           직접 설정해서 지급
         </button>
       </div>
-      <p className="text-[11px] text-text-dim">서버 종류(로더)와 마인크래프트 버전은 유저가 직접 골라요.</p>
+      <p className="text-[11px] text-text-dim">서버 종류(마인크래프트 로더/버전, VPS, 디스코드 봇 등)는 유저가 직접 골라요.</p>
 
       <div className="flex flex-wrap gap-2 items-center">
         {mode === "existing" ? (

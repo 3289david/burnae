@@ -87,6 +87,32 @@ export async function findOrCreateUser(params: {
   return created.attributes;
 }
 
+/** SFTP 비밀번호 재설정 등 유저 상세 정보가 필요할 때 조회 */
+export async function getUser(pterodactylUserId: number): Promise<PteroUser> {
+  const res = await applicationRequest<PteroItemResponse<PteroUser>>(
+    `/api/application/users/${pterodactylUserId}`,
+  );
+  return res.attributes;
+}
+
+/**
+ * SFTP 접속용 패널 계정 비밀번호를 새로 발급한다. 패널 유저 갱신 API는 전체 필드를
+ * 요구하므로 기존 정보를 먼저 조회해 email/username/이름은 그대로 두고 비밀번호만 바꾼다.
+ */
+export async function resetUserPassword(pterodactylUserId: number, newPassword: string): Promise<void> {
+  const user = await getUser(pterodactylUserId);
+  await applicationRequest(`/api/application/users/${pterodactylUserId}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      email: user.email,
+      username: user.username,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      password: newPassword,
+    }),
+  });
+}
+
 /** 노드의 미할당 allocation 중 하나를 가져온다 (없으면 새로 생성) */
 export async function getFreeAllocation(
   pterodactylNodeId: number,

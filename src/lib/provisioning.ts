@@ -10,6 +10,7 @@ import {
 import { getBotSettings } from "@/lib/botSettings";
 import { addDiscordRole, sendDiscordChannelMessage } from "@/lib/discordNotify";
 import { FREE_SERVER_RENEWAL_DAYS } from "@/lib/serverRenewal";
+import { panelUsernameForUser } from "@/lib/pterodactylUser";
 import type { HostNode, Server } from "@/generated/prisma/client";
 
 export class ProvisioningError extends Error {}
@@ -190,10 +191,13 @@ export async function createServerForOrder(orderId: string) {
   const [firstName, ...rest] = order.user.name.split(" ");
   const pteroUser = await PteroApp.findOrCreateUser({
     email: order.user.email,
-    username: `burnae_${order.userId.slice(-8)}`,
+    username: panelUsernameForUser(order.userId),
     firstName: firstName || order.user.name,
     lastName: rest.join(" ") || "Burnae",
   });
+  if (!order.user.pterodactylUserId) {
+    await prisma.user.update({ where: { id: order.userId }, data: { pterodactylUserId: pteroUser.id } });
+  }
 
   const allocation = await PteroApp.getFreeAllocation(node.pterodactylNodeId);
 

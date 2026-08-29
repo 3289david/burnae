@@ -1,7 +1,7 @@
 import Link from "next/link";
 import {
   Zap, Bot, Terminal, Users, Puzzle, ShieldCheck, Globe, RefreshCw,
-  ArrowRight, Check, MessageCircle, Rocket, Gift,
+  ArrowRight, Check, MessageCircle, Rocket, Gift, KeyRound, FolderGit2,
 } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -12,30 +12,60 @@ import ThemeToggle from "@/components/ThemeToggle";
 import DotGrid from "@/components/DotGrid";
 import { allowedCategoriesForSiteMode, type SiteMode } from "@/lib/siteMode";
 
-const FEATURES = [
+const SHARED_FEATURES = [
   { icon: Zap, color: "var(--accent)", title: "1분 서버 생성", desc: "결제 즉시 자동으로 Docker 컨테이너가 만들어지고 접속 주소까지 연결돼요." },
-  { icon: Bot, color: "var(--purple)", title: "AI 서버 관리", desc: "\"커맨드 블럭 켜줘\" 라고 채팅하면 AI가 실제 설정을 확인하고 바꿔줘요." },
   { icon: Terminal, color: "var(--cyan)", title: "실시간 콘솔", desc: "웹에서 바로 명령어를 입력하고 로그를 실시간으로 확인해요." },
-  { icon: Users, color: "var(--blue)", title: "플레이어 관리", desc: "화이트리스트·OP·밴·킥을 버튼 하나로. RCON 설정 필요 없어요." },
-  { icon: Puzzle, color: "var(--pink)", title: "플러그인·모드 마켓", desc: "Modrinth 검색부터 설치까지 클릭 몇 번, AI에게 부탁해도 돼요." },
   { icon: RefreshCw, color: "var(--lime)", title: "자동 백업", desc: "주기를 정해두면 알아서 백업하고, 위험한 작업 전엔 자동으로 스냅샷을 남겨요." },
-  { icon: Globe, color: "var(--flame-2)", title: "서브도메인 자동 연결", desc: "서버를 만들면 이름.krl.kr 주소가 자동으로 생겨요. 포트 번호는 몰라도 돼요." },
+  { icon: Globe, color: "var(--flame-2)", title: "서브도메인 자동 연결", desc: "서버를 만들면 이름.krl.kr 주소가 자동으로 생겨요." },
   { icon: ShieldCheck, color: "var(--green)", title: "팀 협업", desc: "친구를 초대해서 운영자·개발자 권한을 나눠줄 수 있어요." },
 ];
 
-const STEPS = [
-  { n: 1, title: "플랜 선택", desc: "RAM/CPU/디스크와 서버 종류(Paper·Fabric·Forge 등)를 고르세요." },
-  { n: 2, title: "계좌 입금", desc: "입금자명과 금액만 맞으면 자동으로 확인돼요." },
-  { n: 3, title: "자동 생성", desc: "노드 배치부터 Docker 설치, 주소 연결까지 전부 자동이에요." },
-  { n: 4, title: "바로 접속", desc: "생성된 주소를 친구에게 공유하고 바로 플레이하세요." },
+const MINECRAFT_FEATURES = [
+  { icon: Bot, color: "var(--purple)", title: "AI 서버 관리", desc: "\"커맨드 블럭 켜줘\" 라고 채팅하면 AI가 실제 설정을 확인하고 바꿔줘요." },
+  { icon: Users, color: "var(--blue)", title: "플레이어 관리", desc: "화이트리스트·OP·밴·킥을 버튼 하나로. RCON 설정 필요 없어요." },
+  { icon: Puzzle, color: "var(--pink)", title: "플러그인·모드 마켓", desc: "Modrinth 검색부터 설치까지 클릭 몇 번, AI에게 부탁해도 돼요." },
 ];
 
-const FAQ = [
+const GENERAL_FEATURES = [
+  { icon: Bot, color: "var(--purple)", title: "AI 서버 관리", desc: "\"봇 재시작해줘\" 라고 채팅하면 AI가 실제 콘솔과 파일을 확인하고 바꿔줘요." },
+  { icon: KeyRound, color: "var(--blue)", title: "시작 변수 편집", desc: "봇 토큰·API 키 같은 환경변수를 웹에서 바로 수정해요." },
+  { icon: FolderGit2, color: "var(--pink)", title: "GitHub repo 배포", desc: "Red, Muse, Uptime Kuma 등 20여 개 인기 프리셋 또는 원하는 GitHub repo로 바로 시작해요." },
+];
+
+function featuresForMode(mode: SiteMode) {
+  if (mode === "MINECRAFT_ONLY") return [...SHARED_FEATURES.slice(0, 2), ...MINECRAFT_FEATURES, ...SHARED_FEATURES.slice(2)];
+  if (mode === "GENERAL_ONLY") return [...SHARED_FEATURES.slice(0, 2), ...GENERAL_FEATURES, ...SHARED_FEATURES.slice(2)];
+  return [...SHARED_FEATURES.slice(0, 2), MINECRAFT_FEATURES[1], GENERAL_FEATURES[1], MINECRAFT_FEATURES[2], ...SHARED_FEATURES.slice(2)];
+}
+
+function stepsForMode(mode: SiteMode) {
+  const planDesc =
+    mode === "MINECRAFT_ONLY"
+      ? "RAM/CPU/디스크와 서버 종류(Paper·Fabric·Forge 등)를 고르세요."
+      : mode === "GENERAL_ONLY"
+        ? "RAM/CPU/디스크와 서버 종류(VPS·디스코드 봇 등)를 고르세요."
+        : "RAM/CPU/디스크와 서버 종류를 고르세요.";
+  return [
+    { n: 1, title: "플랜 선택", desc: planDesc },
+    { n: 2, title: "계좌 입금", desc: "입금자명과 금액만 맞으면 자동으로 확인돼요." },
+    { n: 3, title: "자동 생성", desc: "노드 배치부터 Docker 설치, 주소 연결까지 전부 자동이에요." },
+    { n: 4, title: "바로 접속", desc: "생성된 주소를 바로 공유하고 사용하세요." },
+  ];
+}
+
+const BASE_FAQ = [
   { q: "환불이 가능한가요?", a: "단순 변심에 의한 환불은 제한되며, 관련 법령이 정하는 절차에 따라 처리돼요. 자세한 내용은 이용약관을 확인해주세요." },
   { q: "AI가 서버를 마음대로 바꾸나요?", a: "아니요. 파일 수정·명령 실행처럼 실제 영향을 주는 작업은 항상 승인 버튼을 눌러야 실행돼요. 위험한 작업 전엔 자동으로 백업도 만들어요." },
-  { q: "어떤 마인크래프트 버전을 지원하나요?", a: "Paper, Fabric, Forge, NeoForge, Vanilla 등 관리자가 등록한 서버 종류를 지원해요. 서버 생성 시 버전을 선택할 수 있어요." },
-  { q: "결제는 어떻게 하나요?", a: "카드 없이 계좌 무통장입금으로 결제해요. 입금자명과 금액이 일치하면 자동으로 확인되고 서버가 만들어져요." },
 ];
+const MINECRAFT_FAQ = { q: "어떤 마인크래프트 버전을 지원하나요?", a: "Paper, Fabric, Forge, NeoForge, Vanilla 등 관리자가 등록한 서버 종류를 지원해요. 서버 생성 시 버전을 선택할 수 있어요." };
+const GENERAL_FAQ = { q: "어떤 서버 종류를 지원하나요?", a: "VPS(Code-Server), 디스코드 봇(Red, Muse 등 20여 개 인기 프리셋 + 커스텀 GitHub repo), Node.js/Python/Go/Java/C# 제네릭, Uptime Kuma·Gitea 같은 유틸리티까지 다양한 프리셋을 지원해요." };
+const PAYMENT_FAQ = { q: "결제는 어떻게 하나요?", a: "카드 없이 계좌 무통장입금으로 결제해요. 입금자명과 금액이 일치하면 자동으로 확인되고 서버가 만들어져요." };
+
+function faqForMode(mode: SiteMode) {
+  if (mode === "MINECRAFT_ONLY") return [...BASE_FAQ, MINECRAFT_FAQ, PAYMENT_FAQ];
+  if (mode === "GENERAL_ONLY") return [...BASE_FAQ, GENERAL_FAQ, PAYMENT_FAQ];
+  return [...BASE_FAQ, MINECRAFT_FAQ, GENERAL_FAQ, PAYMENT_FAQ];
+}
 
 async function loadLandingData() {
   try {
@@ -73,7 +103,16 @@ export default async function HomePage() {
   const heroDesc =
     siteMode === "MINECRAFT_ONLY"
       ? "1분 안에 서버를 만들고, 설정도 플러그인도 오류 해결도 채팅 한 줄로 끝내세요. 복잡한 관리 패널은 저희가 다 가려드릴게요."
-      : "마인크래프트부터 VPS, 디스코드 봇 호스팅까지 — 1분 안에 만들고, 설정도 오류 해결도 채팅 한 줄로 끝내세요.";
+      : siteMode === "GENERAL_ONLY"
+        ? "VPS부터 디스코드 봇 호스팅까지 — 1분 안에 만들고, 설정도 오류 해결도 채팅 한 줄로 끝내세요."
+        : "마인크래프트부터 VPS, 디스코드 봇 호스팅까지 — 1분 안에 만들고, 설정도 오류 해결도 채팅 한 줄로 끝내세요.";
+  const FEATURES = featuresForMode(siteMode);
+  const STEPS = stepsForMode(siteMode);
+  const FAQ = faqForMode(siteMode);
+  const aiExample =
+    siteMode === "GENERAL_ONLY"
+      ? { user: "봇 재시작하고 로그 확인해줘", ai: "봇을 재시작했어요. 최근 로그에 에러는 없어요. 계속 지켜볼까요?" }
+      : { user: "커맨드 블럭 사용 가능하게 해줘", ai: "server.properties에서 enable-command-block이 꺼져있어요. 켜고 재시작할까요?" };
 
   return (
     <div className="min-h-screen">
@@ -199,10 +238,8 @@ export default async function HomePage() {
               </p>
             </div>
             <div className="card p-4 space-y-3 bg-bg">
-              <ChatBubble from="user">커맨드 블럭 사용 가능하게 해줘</ChatBubble>
-              <ChatBubble from="ai">
-                server.properties에서 enable-command-block이 꺼져있어요. 켜고 재시작할까요?
-              </ChatBubble>
+              <ChatBubble from="user">{aiExample.user}</ChatBubble>
+              <ChatBubble from="ai">{aiExample.ai}</ChatBubble>
               <div className="flex justify-end">
                 <span className="text-xs bg-accent text-white rounded-full px-3 py-1.5 font-medium">적용하기</span>
               </div>

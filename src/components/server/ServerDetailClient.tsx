@@ -135,7 +135,7 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
             autoRestartHour={server.autoRestartHour}
           />
         )}
-        {tab === "ai" && <AiTab serverId={server.id} />}
+        {tab === "ai" && <AiTab serverId={server.id} templateCategory={server.templateCategory} />}
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import UpgradeCard from "./UpgradeCard";
 import AutomationCard from "./AutomationCard";
 import StartupVariablesCard from "./StartupVariablesCard";
+import SftpCard from "./SftpCard";
 
 const KNOWN_KEYS = [
   { key: "difficulty", label: "난이도", type: "select", options: ["peaceful", "easy", "normal", "hard"] },
@@ -72,6 +73,8 @@ export default function SettingsTab({
   const router = useRouter();
   const [raw, setRaw] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [reinstalling, setReinstalling] = useState(false);
+  const [reinstallDone, setReinstallDone] = useState(false);
   const [keepBackup, setKeepBackup] = useState(true);
   const [values, setValues] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
@@ -118,6 +121,22 @@ export default function SettingsTab({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ signal: "restart" }),
     });
+  }
+
+  async function reinstall() {
+    if (!confirm("서버를 재설치할까요? 설치 스크립트를 다시 실행해 초기 상태로 되돌립니다. 파일 대부분이 사라질 수 있어요.")) return;
+    setReinstalling(true);
+    setReinstallDone(false);
+    setError(null);
+    try {
+      const res = await fetch(`/api/servers/${serverId}/reinstall`, { method: "POST" });
+      if (!res.ok) throw new Error((await res.json()).error ?? "재설치 실패");
+      setReinstallDone(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "오류가 발생했습니다.");
+    } finally {
+      setReinstalling(false);
+    }
   }
 
   async function deleteServer() {
@@ -189,6 +208,8 @@ export default function SettingsTab({
 
     {isOwner && <StartupVariablesCard serverId={serverId} />}
 
+    {isOwner && <SftpCard serverId={serverId} />}
+
     {isOwner && (
       <AutomationCard
         serverId={serverId}
@@ -200,6 +221,21 @@ export default function SettingsTab({
     )}
 
     {isOwner && <UpgradeCard serverId={serverId} currentProductId={productId} />}
+
+    {isOwner && (
+      <div className="card-glow p-5 space-y-2">
+        <h3 className="font-semibold text-sm">서버 재설치</h3>
+        <p className="text-xs text-text-dim">
+          {isMinecraft
+            ? "서버 종류의 설치 스크립트를 다시 실행해 초기 상태로 되돌려요. 월드 등 대부분의 파일이 사라질 수 있어요."
+            : "설치 스크립트를 다시 실행해 초기 상태로 되돌려요. GitHub repo에서 새로 배포하거나 꼬인 설치를 고칠 때 유용해요. 대부분의 파일이 사라질 수 있어요."}
+        </p>
+        <button onClick={reinstall} disabled={reinstalling} className="btn-secondary px-4 py-2 text-sm">
+          {reinstalling ? "재설치 중..." : "재설치"}
+        </button>
+        {reinstallDone && <p className="text-sm text-green">재설치를 시작했어요. 콘솔에서 진행 상황을 확인하세요.</p>}
+      </div>
+    )}
 
     {isOwner && (
       <div className="card-glow p-5 border-red">

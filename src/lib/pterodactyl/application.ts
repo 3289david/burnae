@@ -29,6 +29,8 @@ export interface PteroServer {
   uuid: string;
   identifier: string;
   name: string;
+  description: string;
+  user: number;
   /** null=정상, "installing"=설치중, "install_failed"=설치실패, "suspended" 등 */
   status: string | null;
   node: number;
@@ -196,6 +198,23 @@ async function updateServerAllocations(
 
 export async function addServerAllocation(pterodactylServerId: number, allocationId: number): Promise<void> {
   await updateServerAllocations(pterodactylServerId, { addAllocationId: allocationId });
+}
+
+/**
+ * 서버 이름을 바꾼다. details 갱신 API도 build API처럼 전체 필드를 요구해서(name만 보내면
+ * user/description이 비워짐) 현재 값을 먼저 조회해 그대로 채우고 name만 바꿔서 보낸다.
+ */
+export async function renameServer(pterodactylServerId: number, name: string): Promise<void> {
+  const server = await getServer(pterodactylServerId);
+  await applicationRequest(`/api/application/servers/${pterodactylServerId}/details`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      name,
+      user: server.user,
+      description: server.description,
+      external_id: null,
+    }),
+  });
 }
 
 export async function removeServerAllocation(pterodactylServerId: number, allocationId: number): Promise<void> {

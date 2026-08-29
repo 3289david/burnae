@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import {
-  LayoutGrid, Terminal, Users, Puzzle, Folder, RefreshCw, UserPlus, Settings, Bot, Wand2,
+  LayoutGrid, Terminal, Users, Puzzle, Folder, RefreshCw, UserPlus, Settings, Bot, Wand2, Pencil, Check, X,
 } from "lucide-react";
 import OverviewTab from "./OverviewTab";
 import ConsoleTab from "./ConsoleTab";
@@ -76,8 +76,33 @@ const MINECRAFT_ONLY_TABS = new Set(["players", "plugins", "maker"]);
 
 export default function ServerDetailClient({ server }: { server: ServerInfo }) {
   const [tab, setTab] = useState<TabKey>("overview");
+  const [name, setName] = useState(server.name);
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState(server.name);
+  const [nameSaving, setNameSaving] = useState(false);
+  const [nameError, setNameError] = useState<string | null>(null);
   const addresses = server.subdomains.map((s) => `${s.subdomain}.${server.subdomainZone}`);
   const visibleTabs = TABS.filter((t) => server.templateCategory === "MINECRAFT" || !MINECRAFT_ONLY_TABS.has(t.key));
+
+  async function saveName() {
+    setNameSaving(true);
+    setNameError(null);
+    try {
+      const res = await fetch(`/api/servers/${server.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: nameInput }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setName(data.name);
+      setEditingName(false);
+    } catch (err) {
+      setNameError(err instanceof Error ? err.message : "이름 변경 실패");
+    } finally {
+      setNameSaving(false);
+    }
+  }
 
   return (
     <div className="relative">
@@ -89,7 +114,46 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
             <LayoutGrid size={20} className="text-accent" />
           </span>
           <div>
-            <h1 className="text-2xl font-bold font-display">{server.name}</h1>
+            {editingName ? (
+              <div className="flex items-center gap-1.5">
+                <input
+                  autoFocus
+                  className="input py-1 text-lg font-bold font-display"
+                  value={nameInput}
+                  maxLength={24}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && saveName()}
+                />
+                <button onClick={saveName} disabled={nameSaving} className="text-green p-1" aria-label="저장">
+                  <Check size={18} />
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingName(false);
+                    setNameInput(name);
+                    setNameError(null);
+                  }}
+                  className="text-text-dim p-1"
+                  aria-label="취소"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            ) : (
+              <h1 className="text-2xl font-bold font-display flex items-center gap-2">
+                {name}
+                {server.isOwner && (
+                  <button
+                    onClick={() => setEditingName(true)}
+                    className="text-text-dim hover:text-accent"
+                    aria-label="이름 바꾸기"
+                  >
+                    <Pencil size={15} />
+                  </button>
+                )}
+              </h1>
+            )}
+            {nameError && <p className="text-xs text-red mt-0.5">{nameError}</p>}
             {addresses.length > 0 && (
               <p className="text-text-dim text-sm mt-0.5 font-mono">{addresses.join(" · ")}</p>
             )}

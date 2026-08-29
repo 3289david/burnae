@@ -9,6 +9,7 @@ import CustomDomainCard from "./CustomDomainCard";
 import FreeUpgradeCard from "./FreeUpgradeCard";
 import FreeTierAd from "@/components/ads/FreeTierAd";
 import GoogleAdSense from "@/components/ads/GoogleAdSense";
+import GettingStartedCard from "./GettingStartedCard";
 
 interface Resources {
   current_state: string;
@@ -121,6 +122,8 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
 
   return (
     <div className="space-y-6">
+      {server.isOwner && <GettingStartedCard server={server} />}
+
       {showRenewal && (
         <div className="card p-4 border-yellow">
           {renewRequested ? (

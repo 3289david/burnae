@@ -241,10 +241,7 @@ function NewServerPageInner() {
     const group = loaderGroups.find((g) => g.base === base);
     const t = group?.templates[0];
     if (!t) return;
-    setTemplateId(t.id);
-    setVersion(t.minecraftVersions[0] ?? "");
-    setVersionQuery("");
-    setDockerImage(Object.values(t.availableDockerImages ?? {})[0] ?? "");
+    pickTier(t);
   }
 
   function pickTier(t: Template) {
@@ -409,6 +406,16 @@ function NewServerPageInner() {
     );
   }
 
+  // 서버 종류 선택 다음에 나오는 선택 섹션들(마인크래프트 버전/런타임 버전/시작 코드)은 템플릿에 따라
+  // 있다 없다 하므로, 실제로 보이는 섹션 순서대로 번호를 다시 매겨서 2, 3, 4... 가 항상 이어지게 한다
+  const optionalSteps: ("minecraftVersion" | "dockerImage" | "gitRepo")[] = [];
+  if (selectedTemplate?.category === "MINECRAFT") optionalSteps.push("minecraftVersion");
+  if (Object.keys(selectedTemplate?.availableDockerImages ?? {}).length > 1) optionalSteps.push("dockerImage");
+  if (selectedTemplate && "GIT_ADDRESS" in selectedTemplate.defaultEnvironment) optionalSteps.push("gitRepo");
+  function stepFor(key: (typeof optionalSteps)[number]) {
+    return 2 + optionalSteps.indexOf(key);
+  }
+
   if (step === "choose" && order) {
     return (
       <div className="max-w-2xl mx-auto pb-16">
@@ -476,7 +483,7 @@ function NewServerPageInner() {
           )}
 
           {selectedTemplate && selectedTemplate.category === "MINECRAFT" && (
-            <Section step={2} title="마인크래프트 버전">
+            <Section step={stepFor("minecraftVersion")} title="마인크래프트 버전">
               {selectedTemplate.minecraftVersions.length > 8 && (
                 <div className="relative mb-3">
                   <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-dim" />
@@ -515,7 +522,7 @@ function NewServerPageInner() {
           )}
 
           {selectedTemplate && Object.keys(selectedTemplate.availableDockerImages ?? {}).length > 1 && (
-            <Section step={2} title="런타임 버전">
+            <Section step={stepFor("dockerImage")} title="런타임 버전">
               <div className="flex flex-wrap gap-2">
                 {Object.entries(selectedTemplate.availableDockerImages!).map(([label, image]) => {
                   const active = image === dockerImage;
@@ -539,7 +546,7 @@ function NewServerPageInner() {
           )}
 
           {selectedTemplate && "GIT_ADDRESS" in selectedTemplate.defaultEnvironment && (
-            <Section step={Object.keys(selectedTemplate.availableDockerImages ?? {}).length > 1 ? 3 : 2} title="시작 코드 (선택)">
+            <Section step={stepFor("gitRepo")} title="시작 코드 (선택)">
               <p className="text-xs text-text-dim mb-2">
                 비워두면 빈 서버로 시작해요 — 파일 탭이나 SFTP로 직접 코드를 올리면 돼요. GitHub
                 저장소에 코드가 있다면 주소를 넣어주세요 — 서버 생성 시 자동으로 clone해서 시작해요.

@@ -210,6 +210,8 @@ export async function createServerForOrder(orderId: string) {
   const secretEnvKey = SECRET_ENV_KEYS.find((key) => key in defaultEnv);
   const accessSecret = secretEnvKey ? crypto.randomBytes(9).toString("base64url") : null;
 
+  const dockerImage = order.dockerImageRequested ?? template.dockerImage;
+
   const pteroServer = await PteroApp.createServer({
     name: order.serverNameRequested ?? `${order.user.name}의 서버`,
     userId: pteroUser.id,
@@ -217,7 +219,7 @@ export async function createServerForOrder(orderId: string) {
     allocationId: allocation.id,
     eggId: template.pterodactylEggId,
     nestId: template.pterodactylNestId,
-    dockerImage: order.dockerImageRequested ?? template.dockerImage,
+    dockerImage,
     startupCommand: template.startupCommand,
     environment: {
       ...defaultEnv,
@@ -248,6 +250,7 @@ export async function createServerForOrder(orderId: string) {
         name: order.serverNameRequested ?? `${order.user.name}의 서버`,
         minecraftVersion:
           template.category === "MINECRAFT" ? order.minecraftVersionRequested ?? "최신" : null,
+        dockerImage,
         status: "PROVISIONING",
         pterodactylServerId: pteroServer.id,
         pterodactylUuid: pteroServer.uuid,

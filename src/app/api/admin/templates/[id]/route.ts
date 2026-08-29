@@ -12,6 +12,7 @@ const schema = z.object({
   defaultEnvironment: z
     .record(z.string(), z.union([z.string(), z.number(), z.boolean()]))
     .optional(),
+  availableDockerImages: z.record(z.string(), z.string()).optional(),
   active: z.boolean().optional(),
   sortOrder: z.number().int().optional(),
 });

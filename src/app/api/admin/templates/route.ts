@@ -21,6 +21,7 @@ const schema = z.object({
   startupCommand: z.string().min(1),
   minecraftVersions: z.array(z.string()).default([]),
   defaultEnvironment: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])),
+  availableDockerImages: z.record(z.string(), z.string()).optional(),
   sortOrder: z.number().int().default(0),
 })
   .refine((v) => v.category !== "MINECRAFT" || v.minecraftVersions.length > 0, {

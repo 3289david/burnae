@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { PteroApp, PteroClient } from "@/lib/pterodactyl";
 import { updateServerDnsRecords } from "@/lib/cloudflare";
 import { getBotSettings } from "@/lib/botSettings";
+import { panelUsernameForUser } from "@/lib/pterodactylUser";
 import { sendDiscordChannelMessage } from "@/lib/discordNotify";
 import type { Server, ServerStatus } from "@/generated/prisma/client";
 
@@ -126,7 +127,7 @@ export async function migrateServerToNode(
     const [firstName, ...rest] = server.owner.name.split(" ");
     const pteroUser = await PteroApp.findOrCreateUser({
       email: server.owner.email,
-      username: `burnae_${server.owner.id.slice(-8)}`,
+      username: panelUsernameForUser(server.owner.id),
       firstName: firstName || server.owner.name,
       lastName: rest.join(" ") || "Burnae",
     });
@@ -137,7 +138,7 @@ export async function migrateServerToNode(
       allocationId: allocation.id,
       eggId: server.template.pterodactylEggId,
       nestId: server.template.pterodactylNestId,
-      dockerImage: server.template.dockerImage,
+      dockerImage: server.dockerImage ?? server.template.dockerImage,
       startupCommand: server.template.startupCommand,
       environment: {
         ...(server.template.defaultEnvironment as Record<string, string | number | boolean>),

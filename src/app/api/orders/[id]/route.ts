@@ -91,7 +91,8 @@ export async function POST(
   }
   const templateSupportsGitRepo = "GIT_ADDRESS" in (selectedTemplate.defaultEnvironment as Record<string, unknown>);
   const availableImages = selectedTemplate.availableDockerImages as Record<string, string> | null;
-  if (parsed.data.dockerImage && (!availableImages || !Object.values(availableImages).includes(parsed.data.dockerImage))) {
+  const dockerImage = parsed.data.dockerImage || undefined;
+  if (dockerImage && (!availableImages || !Object.values(availableImages).includes(dockerImage))) {
     return NextResponse.json({ error: "선택할 수 없는 런타임 버전입니다." }, { status: 422 });
   }
 
@@ -101,7 +102,7 @@ export async function POST(
       templateIdRequested: parsed.data.templateId,
       minecraftVersionRequested: parsed.data.minecraftVersion,
       gitRepoRequested: templateSupportsGitRepo ? parsed.data.gitRepo : undefined,
-      dockerImageRequested: availableImages ? parsed.data.dockerImage : undefined,
+      dockerImageRequested: availableImages ? dockerImage : undefined,
     },
   });
 

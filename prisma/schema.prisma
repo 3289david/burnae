@@ -322,6 +322,9 @@ model Server {
   name             String
   /// VPS/디스코드봇 등 마인크래프트가 아닌 서버는 null
   minecraftVersion String?
+  /// 생성 시 실제로 쓰인 도커 이미지(런타임 버전 선택 등). null이면 template.dockerImage를 대신 쓴다 —
+  /// 노드 이전(migration) 때 템플릿의 "현재" 기본값이 아니라 이 서버가 원래 쓰던 버전 그대로 재생성하기 위함
+  dockerImage      String?
   status           ServerStatus @default(PROVISIONING)
   /// 대시보드 목록에서 상단 고정용
   isFavorite       Boolean      @default(false)

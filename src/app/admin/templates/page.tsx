@@ -21,6 +21,7 @@ interface Template {
   dockerImage: string;
   startupCommand: string;
   minecraftVersions: string[];
+  availableDockerImages: Record<string, string> | null;
   active: boolean;
 }
 
@@ -55,6 +56,7 @@ export default function AdminTemplatesPage() {
   const [selectedEggId, setSelectedEggId] = useState("");
   const [javaVersionLabel, setJavaVersionLabel] = useState("");
   const [dockerImages, setDockerImages] = useState<Record<string, string>>({});
+  const [multiVersionLabels, setMultiVersionLabels] = useState<Set<string>>(new Set());
   const [fetchingEgg, setFetchingEgg] = useState(false);
   const [advanced, setAdvanced] = useState(false);
 
@@ -80,6 +82,7 @@ export default function AdminTemplatesPage() {
     setSelectedEggId(eggId);
     setDockerImages({});
     setJavaVersionLabel("");
+    setMultiVersionLabels(new Set());
     if (!nestId || !eggId) return;
 
     setFetchingEgg(true);
@@ -122,6 +125,10 @@ export default function AdminTemplatesPage() {
         const [k, v] = pair.split("=");
         if (k && v) environment[k.trim()] = v.trim();
       }
+      const availableDockerImages =
+        multiVersionLabels.size > 1
+          ? Object.fromEntries(Object.entries(dockerImages).filter(([label]) => multiVersionLabels.has(label)))
+          : undefined;
       const res = await fetch("/api/admin/templates", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -135,6 +142,7 @@ export default function AdminTemplatesPage() {
           startupCommand: form.startupCommand,
           minecraftVersions: form.minecraftVersionsText.split(",").map((v) => v.trim()).filter(Boolean),
           defaultEnvironment: environment,
+          availableDockerImages,
         }),
       });
       const data = await res.json();
@@ -143,6 +151,7 @@ export default function AdminTemplatesPage() {
       setSelectedNestId("");
       setSelectedEggId("");
       setDockerImages({});
+      setMultiVersionLabels(new Set());
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "생성 실패");
@@ -172,6 +181,9 @@ export default function AdminTemplatesPage() {
             <p className="text-text-dim text-xs mt-1">Nest #{t.pterodactylNestId} / Egg #{t.pterodactylEggId} · {t.dockerImage}</p>
             {t.category === "MINECRAFT" && (
               <p className="text-text-dim text-xs">버전: {t.minecraftVersions.join(", ")}</p>
+            )}
+            {t.availableDockerImages && (
+              <p className="text-text-dim text-xs">런타임 버전: {Object.keys(t.availableDockerImages).join(", ")}</p>
             )}
           </div>
         ))}
@@ -231,6 +243,30 @@ export default function AdminTemplatesPage() {
                     <option key={label} value={label}>{label}</option>
                   ))}
                 </select>
+              </div>
+            )}
+            {Object.keys(dockerImages).length > 1 && (
+              <div className="sm:col-span-2">
+                <label className="text-sm text-text-dim">
+                  버전 여러 개 선택 가능하게 하기 (선택, 서버 생성 화면에서 유저가 고를 수 있어요)
+                </label>
+                <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-1.5">
+                  {Object.keys(dockerImages).map((label) => (
+                    <label key={label} className="flex items-center gap-1.5 text-xs text-text-dim">
+                      <input
+                        type="checkbox"
+                        checked={multiVersionLabels.has(label)}
+                        onChange={(e) => {
+                          const next = new Set(multiVersionLabels);
+                          if (e.target.checked) next.add(label);
+                          else next.delete(label);
+                          setMultiVersionLabels(next);
+                        }}
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
               </div>
             )}
             {fetchingEgg && <p className="text-xs text-text-dim sm:col-span-2">불러오는 중...</p>}

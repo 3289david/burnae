@@ -53,6 +53,7 @@ export default async function ServerDetailPage({
         allocationIp: server.allocationIp,
         allocationPort: server.allocationPort,
         extraPorts: server.extraPorts as { id: number; ip: string; port: number }[],
+        ownerNote: server.ownerId === user.id ? server.ownerNote : null,
         ramMb: server.ramMb,
         diskMb: server.diskMb,
         cpuPercent: server.cpuPercent,

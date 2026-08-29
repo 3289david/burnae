@@ -17,6 +17,7 @@ export async function GET() {
       aiCreditsRemaining: true,
       promotionPoints: true,
       createdAt: true,
+      discordLink: { select: { discordUserId: true } },
       _count: { select: { servers: { where: { deletedAt: null } } } },
     },
   });

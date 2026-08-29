@@ -41,6 +41,7 @@ export default function AiTab({
   templateCategory?: "MINECRAFT" | "VPS" | "DISCORD_BOT" | "GENERAL";
 }) {
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [conversations, setConversations] = useState<{ id: string; title: string; updatedAt: string }[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [pending, setPending] = useState<PendingActivity | null>(null);
   const [input, setInput] = useState("");
@@ -48,12 +49,32 @@ export default function AiTab({
   const [chatError, setChatError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  async function loadConversationList() {
+    const res = await fetch(`/api/ai/conversations?serverId=${serverId}`);
+    if (res.ok) setConversations(await res.json());
+  }
+
+  async function startNewConversation() {
+    const res = await fetch("/api/ai/conversations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ serverId }) });
+    const data = await res.json();
+    setConversationId(data.id);
+    setMessages([]);
+    setPending(null);
+    await loadConversationList();
+  }
+
   useEffect(() => {
     (async () => {
-      const res = await fetch("/api/ai/conversations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ serverId }) });
-      const data = await res.json();
-      setConversationId(data.id);
+      const res = await fetch(`/api/ai/conversations?serverId=${serverId}`);
+      const list = res.ok ? await res.json() : [];
+      setConversations(list);
+      if (list.length > 0) {
+        setConversationId(list[0].id);
+      } else {
+        await startNewConversation();
+      }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [serverId]);
 
   async function refresh(id: string) {
@@ -115,6 +136,24 @@ export default function AiTab({
     <div>
     <AiCreditsCard />
     <div className="card-glow p-0 overflow-hidden flex flex-col h-[32rem] animate-fade-up">
+      <div className="px-4 py-2 border-b border-border flex items-center gap-2">
+        {conversations.length > 1 && (
+          <select
+            value={conversationId ?? ""}
+            onChange={(e) => setConversationId(e.target.value)}
+            className="input py-1 text-xs flex-1 min-w-0"
+          >
+            {conversations.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.title} ({new Date(c.updatedAt).toLocaleDateString("ko-KR")})
+              </option>
+            ))}
+          </select>
+        )}
+        <button onClick={startNewConversation} className="text-xs text-accent shrink-0 ml-auto">
+          + 새 대화
+        </button>
+      </div>
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.length === 0 && (
           <p className="text-sm text-text-dim">{EXAMPLE_PROMPTS[templateCategory]}</p>

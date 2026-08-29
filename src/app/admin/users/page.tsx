@@ -11,6 +11,7 @@ interface User {
   status: string;
   aiCreditsRemaining: number;
   promotionPoints: number;
+  discordLink: { discordUserId: string } | null;
   _count: { servers: number };
 }
 
@@ -45,6 +46,18 @@ export default function AdminUsersPage() {
       body: JSON.stringify({ status: status === "ACTIVE" ? "SUSPENDED" : "ACTIVE" }),
     });
     await load();
+  }
+
+  async function sendDiscordMessage(id: string) {
+    const message = prompt("디스코드 DM으로 보낼 메시지를 입력하세요.");
+    if (!message) return;
+    const res = await fetch(`/api/admin/users/${id}/message`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message }),
+    });
+    const data = await res.json().catch(() => ({}));
+    alert(res.ok ? "보냈어요." : data.error ?? "전송 실패");
   }
 
   async function grantPoints(id: string) {
@@ -102,6 +115,11 @@ export default function AdminUsersPage() {
                 <button onClick={() => toggleStatus(u.id, u.status)} className="btn-secondary px-3 py-1.5 text-sm">
                   {u.status === "ACTIVE" ? "정지" : "정지 해제"}
                 </button>
+                {u.discordLink && (
+                  <button onClick={() => sendDiscordMessage(u.id)} className="btn-secondary px-3 py-1.5 text-sm">
+                    디스코드 메시지
+                  </button>
+                )}
               </div>
             </div>
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { FileText, Folder as FolderIcon } from "lucide-react";
+import { FileText, Folder as FolderIcon, Search } from "lucide-react";
 
 interface FileObject {
   name: string;
@@ -22,6 +22,7 @@ export default function FilesTab({ serverId }: { serverId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [query, setQuery] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function load(d: string) {
@@ -34,6 +35,7 @@ export default function FilesTab({ serverId }: { serverId: string }) {
       setFiles(data);
       setDir(d);
       setSelected(new Set());
+      setQuery("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "오류가 발생했습니다.");
     } finally {
@@ -253,6 +255,8 @@ export default function FilesTab({ serverId }: { serverId: string }) {
     });
   }
 
+  const filteredFiles = files.filter((f) => f.name.toLowerCase().includes(query.toLowerCase()));
+
   if (editing) {
     return (
       <div className="card p-4">
@@ -290,6 +294,15 @@ export default function FilesTab({ serverId }: { serverId: string }) {
       <div className="px-4 py-2 border-b border-border flex items-center gap-2 text-sm flex-wrap">
         <span className="text-text-dim">경로:</span>
         <span className="font-mono truncate">{dir}</span>
+        <div className="relative">
+          <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-dim" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="파일 검색"
+            className="input py-1 pl-7 text-xs w-32"
+          />
+        </div>
         <div className="ml-auto flex items-center gap-2">
           {selected.size > 0 && (
             <>
@@ -335,7 +348,7 @@ export default function FilesTab({ serverId }: { serverId: string }) {
       {error && <p className="p-4 text-sm text-red">{error}</p>}
 
       <div className="divide-y divide-border">
-        {files.map((f) => {
+        {filteredFiles.map((f) => {
           const isArchive = f.is_file && ARCHIVE_EXT.test(f.name);
           return (
             <div key={f.name} className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-surface-2">
@@ -372,6 +385,7 @@ export default function FilesTab({ serverId }: { serverId: string }) {
           );
         })}
         {!loading && files.length === 0 && <p className="p-4 text-sm text-text-dim">빈 폴더예요. 파일을 끌어다 놓아도 업로드돼요.</p>}
+        {!loading && files.length > 0 && filteredFiles.length === 0 && <p className="p-4 text-sm text-text-dim">검색 결과가 없어요.</p>}
       </div>
     </div>
   );

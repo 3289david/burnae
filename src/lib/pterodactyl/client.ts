@@ -256,6 +256,18 @@ export async function deleteBackup(
   );
 }
 
+/** 실수로 삭제/자동 정리되지 않게 백업을 잠그거나 잠금 해제한다 */
+export async function toggleBackupLock(
+  identifier: string,
+  backupUuid: string,
+): Promise<PteroBackup> {
+  const res = await clientRequest<{ object: string; attributes: PteroBackup }>(
+    `/api/client/servers/${identifier}/backups/${backupUuid}/lock`,
+    { method: "POST" },
+  );
+  return res.attributes;
+}
+
 export async function restoreBackup(
   identifier: string,
   backupUuid: string,

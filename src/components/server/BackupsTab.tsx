@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, RefreshCw, RotateCcw, Trash2 } from "lucide-react";
+import { AlertTriangle, RefreshCw, RotateCcw, Trash2, Lock, Unlock } from "lucide-react";
 
 interface Backup {
   uuid: string;
   name: string;
   bytes: number;
   is_successful: boolean;
+  is_locked: boolean;
   created_at: string;
 }
 
@@ -53,8 +54,33 @@ export default function BackupsTab({ serverId, backupSlots }: { serverId: string
 
   async function remove(uuid: string) {
     if (!confirm("이 백업을 삭제할까요?")) return;
-    await fetch(`/api/servers/${serverId}/backups/${uuid}`, { method: "DELETE" });
-    await load();
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/servers/${serverId}/backups/${uuid}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? "삭제 실패");
+      }
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "삭제 실패");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function toggleLock(uuid: string) {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/servers/${serverId}/backups/${uuid}/lock`, { method: "POST" });
+      if (!res.ok) throw new Error("잠금 변경 실패");
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "잠금 변경 실패");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -82,13 +108,30 @@ export default function BackupsTab({ serverId, backupSlots }: { serverId: string
                     · <AlertTriangle size={12} /> 실패
                   </span>
                 )}
+                {b.is_locked && (
+                  <span className="inline-flex items-center gap-1 text-yellow">
+                    · <Lock size={11} /> 잠김
+                  </span>
+                )}
               </p>
             </div>
             <div className="flex gap-2 shrink-0">
               <button onClick={() => restore(b.uuid)} className="btn-secondary px-3 py-1.5 text-sm inline-flex items-center gap-1">
                 <RotateCcw size={13} /> 복원
               </button>
-              <button onClick={() => remove(b.uuid)} className="rounded-full px-3 py-1.5 text-sm text-red bg-red/10 hover:bg-red/20 transition-colors inline-flex items-center gap-1">
+              <button
+                onClick={() => toggleLock(b.uuid)}
+                disabled={loading}
+                className="btn-secondary px-3 py-1.5 text-sm inline-flex items-center gap-1"
+                title={b.is_locked ? "잠금 해제하면 삭제할 수 있어요" : "잠그면 실수로 삭제되지 않아요"}
+              >
+                {b.is_locked ? <Unlock size={13} /> : <Lock size={13} />} {b.is_locked ? "잠금 해제" : "잠그기"}
+              </button>
+              <button
+                onClick={() => remove(b.uuid)}
+                disabled={b.is_locked}
+                className="rounded-full px-3 py-1.5 text-sm text-red bg-red/10 hover:bg-red/20 transition-colors inline-flex items-center gap-1 disabled:opacity-40"
+              >
                 <Trash2 size={13} /> 삭제
               </button>
             </div>

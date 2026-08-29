@@ -25,7 +25,11 @@ export const GET = withApiErrorHandling(async (
   return NextResponse.json(full);
 });
 
-const renameSchema = z.object({ name: z.string().min(2).max(24) });
+const patchSchema = z.object({
+  name: z.string().min(2).max(24).optional(),
+  isFavorite: z.boolean().optional(),
+  ownerNote: z.string().max(500).nullable().optional(),
+});
 
 export const PATCH = withApiErrorHandling(async (
   request: Request,
@@ -38,18 +42,27 @@ export const PATCH = withApiErrorHandling(async (
   const server = await authorizeServerAccess(user, id);
   if (!server) return NextResponse.json({ error: "서버를 찾을 수 없습니다." }, { status: 404 });
   if (server.ownerId !== user.id && user.role !== "ADMIN") {
-    return NextResponse.json({ error: "서버 소유자만 이름을 바꿀 수 있어요." }, { status: 403 });
+    return NextResponse.json({ error: "서버 소유자만 변경할 수 있어요." }, { status: 403 });
   }
 
-  const parsed = renameSchema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: "이름은 2~24자로 입력해주세요." }, { status: 422 });
+  const parsed = patchSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 422 });
+  const { name, isFavorite, ownerNote } = parsed.data;
 
-  if (server.pterodactylServerId) {
-    await PteroApp.renameServer(server.pterodactylServerId, parsed.data.name);
+  if (name && server.pterodactylServerId) {
+    await PteroApp.renameServer(server.pterodactylServerId, name);
   }
-  await prisma.server.update({ where: { id }, data: { name: parsed.data.name } });
 
-  return NextResponse.json({ ok: true, name: parsed.data.name });
+  const updated = await prisma.server.update({
+    where: { id },
+    data: {
+      ...(name !== undefined ? { name } : {}),
+      ...(isFavorite !== undefined ? { isFavorite } : {}),
+      ...(ownerNote !== undefined ? { ownerNote } : {}),
+    },
+  });
+
+  return NextResponse.json({ ok: true, name: updated.name, isFavorite: updated.isFavorite, ownerNote: updated.ownerNote });
 });
 
 const deleteSchema = z.object({ createFinalBackup: z.boolean().default(true) });

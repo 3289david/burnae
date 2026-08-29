@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Copy } from "lucide-react";
 import UpgradeCard from "./UpgradeCard";
 import AutomationCard from "./AutomationCard";
 import StartupVariablesCard from "./StartupVariablesCard";
@@ -60,6 +62,7 @@ export default function SettingsTab({
   autoBackupIntervalHours,
   autoRestartEnabled,
   autoRestartHour,
+  ownerNote,
 }: {
   serverId: string;
   isOwner: boolean;
@@ -69,6 +72,7 @@ export default function SettingsTab({
   autoBackupIntervalHours: number;
   autoRestartEnabled: boolean;
   autoRestartHour: number | null;
+  ownerNote: string | null;
 }) {
   const isMinecraft = templateCategory === "MINECRAFT";
   const router = useRouter();
@@ -77,6 +81,9 @@ export default function SettingsTab({
   const [reinstalling, setReinstalling] = useState(false);
   const [reinstallDone, setReinstallDone] = useState(false);
   const [keepBackup, setKeepBackup] = useState(true);
+  const [note, setNote] = useState(ownerNote ?? "");
+  const [noteSaving, setNoteSaving] = useState(false);
+  const [noteSaved, setNoteSaved] = useState(false);
   const [values, setValues] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -137,6 +144,24 @@ export default function SettingsTab({
       setError(err instanceof Error ? err.message : "오류가 발생했습니다.");
     } finally {
       setReinstalling(false);
+    }
+  }
+
+  async function saveNote() {
+    setNoteSaving(true);
+    setNoteSaved(false);
+    try {
+      const res = await fetch(`/api/servers/${serverId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ownerNote: note }),
+      });
+      if (!res.ok) throw new Error();
+      setNoteSaved(true);
+    } catch {
+      setError("메모 저장에 실패했어요.");
+    } finally {
+      setNoteSaving(false);
     }
   }
 
@@ -205,6 +230,38 @@ export default function SettingsTab({
         {saved && <span className="text-sm text-green">저장됐어요. 적용하려면 재시작하세요.</span>}
       </div>
     </div>
+    )}
+
+    {isOwner && (
+      <div className="card-glow p-5 space-y-2">
+        <h3 className="font-semibold text-sm">메모</h3>
+        <p className="text-xs text-text-dim">나만 볼 수 있는 비공개 메모예요. 예: &ldquo;친구 서버, 매달 15일 갱신&rdquo;</p>
+        <textarea
+          className="input w-full text-sm min-h-[70px] resize-y"
+          value={note}
+          maxLength={500}
+          onChange={(e) => {
+            setNote(e.target.value);
+            setNoteSaved(false);
+          }}
+          placeholder="메모를 입력하세요..."
+        />
+        <button onClick={saveNote} disabled={noteSaving} className="btn-secondary px-4 py-2 text-sm">
+          {noteSaving ? "저장 중..." : noteSaved ? "저장됨" : "저장"}
+        </button>
+      </div>
+    )}
+
+    {isOwner && productId && (
+      <div className="card-glow p-5 flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <h3 className="font-semibold text-sm">이 설정으로 새 서버 또 만들기</h3>
+          <p className="text-xs text-text-dim mt-0.5">같은 플랜으로 처음부터 다시 설정할 필요 없이 바로 시작해요.</p>
+        </div>
+        <Link href={`/dashboard/servers/new?productId=${productId}`} className="btn-secondary px-4 py-2 text-sm inline-flex items-center gap-1.5 shrink-0">
+          <Copy size={14} /> 또 만들기
+        </Link>
+      </div>
     )}
 
     {isOwner && <StartupVariablesCard serverId={serverId} />}

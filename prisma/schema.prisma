@@ -319,6 +319,10 @@ model Server {
   /// VPS/디스코드봇 등 마인크래프트가 아닌 서버는 null
   minecraftVersion String?
   status           ServerStatus @default(PROVISIONING)
+  /// 대시보드 목록에서 상단 고정용
+  isFavorite       Boolean      @default(false)
+  /// 소유자만 보는 비공개 메모 (예: "친구 서버, 매달 15일 갱신")
+  ownerNote        String?
 
   pterodactylServerId   Int?    @unique
   pterodactylUuid       String? @unique

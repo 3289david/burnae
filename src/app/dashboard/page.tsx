@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import EventsBanner from "@/components/EventsBanner";
 import StatusDot from "@/components/StatusDot";
 import EmptyServerIllustration from "@/components/EmptyServerIllustration";
+import FavoriteButton from "@/components/FavoriteButton";
 import { Plus, ArrowRight, Gift } from "lucide-react";
 
 const statusLabel: Record<string, { text: string; dot: "green" | "yellow" | "red" | "gray" }> = {
@@ -24,7 +25,7 @@ export default async function DashboardPage() {
       deletedAt: null,
       OR: [{ ownerId: user!.id }, { members: { some: { userId: user!.id } } }],
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ isFavorite: "desc" }, { createdAt: "desc" }],
     include: { subdomains: { orderBy: { isPrimary: "desc" } } },
   });
 
@@ -109,7 +110,10 @@ export default async function DashboardPage() {
                 style={{ animationDelay: `${0.1 + i * 0.05}s` }}
               >
                 <div className="flex flex-wrap items-center justify-between gap-x-2">
-                  <span className="font-semibold truncate min-w-0">{s.name}</span>
+                  <span className="flex items-center gap-1.5 min-w-0">
+                    <FavoriteButton serverId={s.id} initial={s.isFavorite} />
+                    <span className="font-semibold truncate min-w-0">{s.name}</span>
+                  </span>
                   <span className="text-sm shrink-0 inline-flex items-center gap-1.5">
                     <StatusDot color={label.dot} /> {label.text}
                   </span>

@@ -1,13 +1,28 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Download } from "lucide-react";
 
 interface WsFrame {
   event: string;
   args?: string[];
 }
 
-export default function ConsoleTab({ serverId }: { serverId: string }) {
+const MINECRAFT_QUICK_COMMANDS = [
+  { label: "전체 저장", command: "save-all" },
+  { label: "화이트리스트 목록", command: "whitelist list" },
+  { label: "접속자 목록", command: "list" },
+  { label: "낮으로", command: "time set day" },
+  { label: "날씨 맑게", command: "weather clear" },
+];
+
+export default function ConsoleTab({
+  serverId,
+  templateCategory,
+}: {
+  serverId: string;
+  templateCategory?: "MINECRAFT" | "VPS" | "DISCORD_BOT" | "GENERAL";
+}) {
   const [lines, setLines] = useState<string[]>([]);
   const [command, setCommand] = useState("");
   const [connected, setConnected] = useState(false);
@@ -67,11 +82,47 @@ export default function ConsoleTab({ serverId }: { serverId: string }) {
     setCommand("");
   }
 
+  function runQuickCommand(cmd: string) {
+    wsRef.current?.send(JSON.stringify({ event: "send command", args: [cmd] }));
+  }
+
+  function downloadLog() {
+    const text = lines.map(stripAnsi).join("\n");
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `console-log-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="card p-0 overflow-hidden">
       <div className="px-4 py-2 border-b border-border flex items-center justify-between">
         <span className="text-sm text-text-dim">콘솔 {connected ? "· 연결됨" : "· 연결 중..."}</span>
+        <button
+          onClick={downloadLog}
+          disabled={lines.length === 0}
+          className="text-xs text-text-dim hover:text-text inline-flex items-center gap-1 disabled:opacity-40"
+        >
+          <Download size={13} /> 로그 다운로드
+        </button>
       </div>
+      {templateCategory === "MINECRAFT" && (
+        <div className="px-4 py-2 border-b border-border flex flex-wrap gap-1.5">
+          {MINECRAFT_QUICK_COMMANDS.map((qc) => (
+            <button
+              key={qc.command}
+              onClick={() => runQuickCommand(qc.command)}
+              disabled={!connected}
+              className="btn-secondary px-2.5 py-1 text-xs disabled:opacity-40"
+            >
+              {qc.label}
+            </button>
+          ))}
+        </div>
+      )}
       <div ref={scrollRef} className="h-96 overflow-y-auto bg-black/30 px-4 py-3 font-mono text-xs leading-relaxed">
         {lines.length === 0 && <p className="text-text-dim">출력을 기다리는 중...</p>}
         {lines.map((line, i) => (

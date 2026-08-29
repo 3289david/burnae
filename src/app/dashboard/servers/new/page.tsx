@@ -26,6 +26,7 @@ import {
   Terminal,
   Radio,
   Waves,
+  Dices,
 } from "lucide-react";
 
 interface Template {
@@ -125,6 +126,15 @@ function loaderMeta(baseKey: string) {
 
 const TIER_ORDER: Record<string, number> = { 최신: 0, 중간: 1, 레거시: 2 };
 
+const NAME_ADJECTIVES = ["즐거운", "든든한", "반짝이는", "포근한", "용감한", "느긋한", "은은한", "씩씩한", "신비한", "아늑한"];
+const NAME_NOUNS = ["감자밭", "은하수", "다락방", "탐험대", "비밀기지", "요새", "정원", "등대", "오두막", "항구"];
+
+function randomServerName(): string {
+  const a = NAME_ADJECTIVES[Math.floor(Math.random() * NAME_ADJECTIVES.length)];
+  const n = NAME_NOUNS[Math.floor(Math.random() * NAME_NOUNS.length)];
+  return `${a} ${n}`;
+}
+
 type Step = "form" | "pay" | "choose" | "done" | "loading";
 
 export default function NewServerPage() {
@@ -139,6 +149,7 @@ function NewServerPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const grantOrderId = searchParams.get("orderId");
+  const prefillProductId = searchParams.get("productId");
   const [step, setStep] = useState<Step>(grantOrderId ? "loading" : "form");
   const [products, setProducts] = useState<Product[]>([]);
   const [productId, setProductId] = useState("");
@@ -164,9 +175,11 @@ function NewServerPageInner() {
       .then((r) => r.json())
       .then((data: Product[]) => {
         setProducts(data);
-        if (!grantOrderId && data[0]) setProductId(data[0].id);
+        if (grantOrderId) return;
+        const prefilled = prefillProductId && data.find((p) => p.id === prefillProductId);
+        setProductId(prefilled ? prefilled.id : data[0]?.id ?? "");
       });
-  }, [grantOrderId]);
+  }, [grantOrderId, prefillProductId]);
 
   // 관리자가 지급한 서버 등 — 결제는 끝났고 종류/버전만 고르면 되는 주문을 바로 불러온다
   useEffect(() => {
@@ -534,14 +547,24 @@ function NewServerPageInner() {
       <form onSubmit={submitOrder} className="mt-8 space-y-10">
         {/* 1. 이름 */}
         <Section step={1} title="서버 이름">
-          <input
-            required
-            maxLength={24}
-            className="input w-full"
-            placeholder="예: 친구들 SMP"
-            value={serverName}
-            onChange={(e) => setServerName(e.target.value)}
-          />
+          <div className="flex gap-2">
+            <input
+              required
+              maxLength={24}
+              className="input w-full"
+              placeholder="예: 친구들 SMP"
+              value={serverName}
+              onChange={(e) => setServerName(e.target.value)}
+            />
+            <button
+              type="button"
+              onClick={() => setServerName(randomServerName())}
+              className="btn-secondary px-3.5 shrink-0 inline-flex items-center gap-1.5 text-sm"
+              title="무작위 이름 추천"
+            >
+              <Dices size={16} /> 추천
+            </button>
+          </div>
         </Section>
 
         {/* 2. 플랜 */}

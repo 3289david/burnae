@@ -43,6 +43,7 @@ export interface ServerInfo {
   allocationIp: string | null;
   allocationPort: number | null;
   extraPorts: { id: number; ip: string; port: number }[];
+  ownerNote: string | null;
   ramMb: number;
   diskMb: number;
   cpuPercent: number;
@@ -181,7 +182,7 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
 
       <div className="relative mt-6 animate-fade-up" style={{ animationDelay: "0.1s" }}>
         {tab === "overview" && <OverviewTab server={server} />}
-        {tab === "console" && <ConsoleTab serverId={server.id} />}
+        {tab === "console" && <ConsoleTab serverId={server.id} templateCategory={server.templateCategory} />}
         {tab === "players" && <PlayersTab serverId={server.id} />}
         {tab === "plugins" && <PluginsTab serverId={server.id} />}
         {tab === "maker" && <PluginMakerTab serverId={server.id} />}
@@ -198,6 +199,7 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
             autoBackupIntervalHours={server.autoBackupIntervalHours}
             autoRestartEnabled={server.autoRestartEnabled}
             autoRestartHour={server.autoRestartHour}
+            ownerNote={server.ownerNote}
           />
         )}
         {tab === "ai" && <AiTab serverId={server.id} templateCategory={server.templateCategory} />}

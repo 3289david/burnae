@@ -11,6 +11,7 @@ import FreeTierAd from "@/components/ads/FreeTierAd";
 import GoogleAdSense from "@/components/ads/GoogleAdSense";
 import GettingStartedCard from "./GettingStartedCard";
 import SuccessCheck from "@/components/SuccessCheck";
+import CountUp from "@/components/CountUp";
 
 interface Resources {
   current_state: string;
@@ -198,9 +199,31 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
           icon={MemoryStick}
           color="var(--blue)"
           label="RAM"
-          value={resources ? `${(resources.resources.memory_bytes / 1024 / 1024).toFixed(0)}MB / ${(server.ramMb / 1024).toFixed(0)}GB` : "-"}
+          value={
+            resources ? (
+              <>
+                <CountUp value={resources.resources.memory_bytes / 1024 / 1024} format={(n) => Math.round(n).toString()} duration={600} />
+                MB / {(server.ramMb / 1024).toFixed(0)}GB
+              </>
+            ) : (
+              "-"
+            )
+          }
         />
-        <Stat icon={Cpu} color="var(--purple)" label="CPU" value={resources ? `${resources.resources.cpu_absolute.toFixed(0)}%` : "-"} />
+        <Stat
+          icon={Cpu}
+          color="var(--purple)"
+          label="CPU"
+          value={
+            resources ? (
+              <>
+                <CountUp value={resources.resources.cpu_absolute} format={(n) => n.toFixed(0)} duration={600} />%
+              </>
+            ) : (
+              "-"
+            )
+          }
+        />
         <Stat icon={Clock} color="var(--cyan)" label="가동시간" value={resources ? formatUptime(resources.resources.uptime) : "-"} />
       </div>
 

@@ -5,6 +5,7 @@ import EventsBanner from "@/components/EventsBanner";
 import StatusDot from "@/components/StatusDot";
 import EmptyServerIllustration from "@/components/EmptyServerIllustration";
 import FavoriteButton from "@/components/FavoriteButton";
+import CountUp from "@/components/CountUp";
 import { Plus, ArrowRight, Gift } from "lucide-react";
 
 const statusLabel: Record<string, { text: string; dot: "green" | "yellow" | "red" | "gray" }> = {
@@ -76,7 +77,8 @@ export default async function DashboardPage() {
             안녕하세요, <span className="text-gradient">{user!.name}</span>님
           </h1>
           <p className="text-sm text-text-dim mt-1">
-            서버 {servers.length}개 · 그중 {runningCount}개 가동 중
+            서버 <CountUp value={servers.length} className="font-medium text-text" />개 · 그중{" "}
+            <CountUp value={runningCount} className="font-medium text-green" />개 가동 중
           </p>
         </div>
         <Link href="/dashboard/servers/new" className="btn-primary px-5 py-2.5 inline-flex items-center gap-1.5">
@@ -106,7 +108,7 @@ export default async function DashboardPage() {
               <Link
                 key={s.id}
                 href={`/dashboard/servers/${s.id}`}
-                className="card-glow p-5 block animate-fade-up"
+                className="card-glow p-5 block animate-fade-up active:scale-[0.98] transition-transform"
                 style={{ animationDelay: `${0.1 + i * 0.05}s` }}
               >
                 <div className="flex flex-wrap items-center justify-between gap-x-2">

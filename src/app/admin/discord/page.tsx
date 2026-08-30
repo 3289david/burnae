@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Toggle from "@/components/Toggle";
 
 interface BotSettings {
   verifiedRoleId: string | null;
@@ -193,8 +194,12 @@ export default function AdminDiscordPage() {
       <div>
         <h2 className="text-xl font-bold">링크트리 목록</h2>
         <div className="mt-3 space-y-2">
-          {links.map((l) => (
-            <div key={l.id} className="card-glow p-4 flex items-center justify-between flex-wrap gap-2">
+          {links.map((l, i) => (
+            <div
+              key={l.id}
+              className="card-glow p-4 flex items-center justify-between flex-wrap gap-2 animate-fade-up"
+              style={{ animationDelay: `${Math.min(i, 10) * 0.03}s` }}
+            >
               <div className="min-w-0">
                 <p className="font-medium text-sm">
                   {l.emoji ? `${l.emoji} ` : ""}
@@ -203,9 +208,7 @@ export default function AdminDiscordPage() {
                 <p className="text-xs text-text-dim mt-0.5 truncate">{l.url}</p>
               </div>
               <div className="flex gap-2 shrink-0">
-                <button onClick={() => toggleLinkActive(l.id, !l.active)} className="btn-secondary px-3 py-1.5 text-sm">
-                  {l.active ? "비활성화" : "활성화"}
-                </button>
+                <Toggle checked={l.active} onChange={() => toggleLinkActive(l.id, !l.active)} size="sm" />
                 <button onClick={() => removeLink(l.id)} className="text-red text-sm px-2">삭제</button>
               </div>
             </div>

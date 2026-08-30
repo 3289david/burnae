@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Toggle from "@/components/Toggle";
 
 type ShopItemKind =
   | "AI_CREDITS"
@@ -125,8 +126,12 @@ export default function AdminShopPage() {
       </p>
 
       <div className="mt-6 space-y-2">
-        {items.map((item) => (
-          <div key={item.id} className="card-glow p-4 flex items-center justify-between flex-wrap gap-2">
+        {items.map((item, i) => (
+          <div
+            key={item.id}
+            className="card-glow p-4 flex items-center justify-between flex-wrap gap-2 animate-fade-up"
+            style={{ animationDelay: `${Math.min(i, 10) * 0.03}s` }}
+          >
             <div>
               <p className="font-medium text-sm">
                 {item.name} <span className="text-text-dim text-xs">· {KIND_LABEL[item.kind]}</span>
@@ -140,9 +145,7 @@ export default function AdminShopPage() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={() => toggleActive(item.id, item.active)} className="btn-secondary px-3 py-1.5 text-sm">
-                {item.active ? "비활성화" : "활성화"}
-              </button>
+              <Toggle checked={item.active} onChange={() => toggleActive(item.id, item.active)} size="sm" />
               <button onClick={() => remove(item.id, item.name)} className="btn-secondary px-3 py-1.5 text-sm text-red">
                 삭제
               </button>

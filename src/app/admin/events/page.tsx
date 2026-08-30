@@ -97,8 +97,12 @@ export default function AdminEventsPage() {
       <div>
         <h1 className="text-2xl font-bold">이벤트</h1>
         <div className="mt-4 space-y-2">
-          {events.map((ev) => (
-            <div key={ev.id} className="card-glow p-4 flex flex-wrap items-center justify-between gap-2">
+          {events.map((ev, i) => (
+            <div
+              key={ev.id}
+              className="card-glow p-4 flex flex-wrap items-center justify-between gap-2 animate-fade-up"
+              style={{ animationDelay: `${Math.min(i, 10) * 0.03}s` }}
+            >
               <div className="min-w-0">
                 <p className="font-medium text-sm">{ev.title} {!ev.active && <span className="text-text-dim text-xs">(종료됨)</span>}</p>
                 <p className="text-xs text-text-dim mt-0.5">

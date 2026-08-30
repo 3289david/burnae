@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Cpu, MemoryStick, Archive, HardDrive } from "lucide-react";
+import CountUp from "@/components/CountUp";
 
 interface ShopItem {
   id: string;
@@ -77,11 +78,11 @@ export default function FreeUpgradeCard({ serverId }: { serverId: string }) {
         <h3 className="font-semibold text-sm">포인트로 증설하기</h3>
         <p className="text-xs text-text-dim mt-0.5">
           무료 서버는 플랜을 통째로 바꾸지 않아도 포인트로 램/CPU/저장공간/백업 슬롯을 낱개로 늘릴 수
-          있어요. 보유 포인트 <span className="text-accent font-medium">{points.toLocaleString()}P</span>
+          있어요. 보유 포인트 <span className="text-accent font-medium"><CountUp value={points} />P</span>
         </p>
       </div>
       <div className="grid sm:grid-cols-2 gap-2">
-        {items.map((item) => {
+        {items.map((item, i) => {
           const Icon = KIND_ICON[item.kind] ?? Cpu;
           const affordable = points >= item.pointsCost;
           return (
@@ -89,7 +90,8 @@ export default function FreeUpgradeCard({ serverId }: { serverId: string }) {
               key={item.id}
               onClick={() => upgrade(item)}
               disabled={busy !== null || !affordable}
-              className="rounded-xl border border-border bg-surface p-3 flex flex-col items-start gap-1.5 hover:border-accent/40 hover:bg-surface-2 disabled:opacity-40 disabled:hover:border-border disabled:hover:bg-surface transition-all duration-150"
+              className="animate-fade-up rounded-xl border border-border bg-surface p-3 flex flex-col items-start gap-1.5 hover:border-accent/40 hover:bg-surface-2 active:scale-[0.97] disabled:opacity-40 disabled:hover:border-border disabled:hover:bg-surface disabled:active:scale-100 transition-all duration-150"
+              style={{ animationDelay: `${Math.min(i, 10) * 0.03}s` }}
             >
               <span className="w-8 h-8 rounded-lg bg-accent/15 flex items-center justify-center">
                 <Icon size={16} className="text-accent" />

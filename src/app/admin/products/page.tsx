@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Toggle from "@/components/Toggle";
 
 interface Template { id: string; displayName: string }
 interface Product {
@@ -123,8 +124,12 @@ export default function AdminProductsPage() {
       <h1 className="text-2xl font-bold">상품</h1>
 
       <div className="mt-6 space-y-2">
-        {products.map((p) => (
-          <div key={p.id} className="card-glow p-4 flex items-center justify-between flex-wrap gap-2">
+        {products.map((p, i) => (
+          <div
+            key={p.id}
+            className="card-glow p-4 flex items-center justify-between flex-wrap gap-2 animate-fade-up"
+            style={{ animationDelay: `${Math.min(i, 10) * 0.03}s` }}
+          >
             <div className="min-w-0">
               <p className="font-medium">
                 {p.name} {!p.active && <span className="text-text-dim text-xs">(비활성)</span>}
@@ -156,9 +161,10 @@ export default function AdminProductsPage() {
                   className="input w-20 text-sm"
                 />
               </label>
-              <button onClick={() => toggleActive(p.id, !p.active)} className="btn-secondary px-3 py-1.5 text-sm">
-                {p.active ? "비활성화" : "활성화"}
-              </button>
+              <label className="text-xs text-text-dim flex items-center gap-1.5">
+                활성
+                <Toggle checked={p.active} onChange={() => toggleActive(p.id, !p.active)} size="sm" />
+              </label>
               <button
                 onClick={() => deleteProduct(p.id, p.name)}
                 className="px-3 py-1.5 text-sm rounded-full border border-red/30 text-red hover:bg-red/10"
@@ -220,11 +226,7 @@ export default function AdminProductsPage() {
           </div>
         </div>
         <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={form.pointsRedeemable}
-            onChange={(e) => setForm({ ...form, pointsRedeemable: e.target.checked })}
-          />
+          <Toggle checked={form.pointsRedeemable} onChange={(next) => setForm({ ...form, pointsRedeemable: next })} />
           홍보 포인트로 교환 가능 (예: 무료 체험 서버)
         </label>
         {form.pointsRedeemable && (

@@ -119,7 +119,7 @@ export default function AiTab({
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, pending]);
+  }, [messages, pending, busy]);
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
@@ -228,12 +228,12 @@ export default function AiTab({
         )}
         {messages.map((m) =>
           m.role === "TOOL" ? (
-            <div key={m.id} className="flex items-center gap-1.5 text-xs text-text-dim pl-1">
+            <div key={m.id} className="animate-toast-in flex items-center gap-1.5 text-xs text-text-dim pl-1">
               <Wrench size={12} className="shrink-0" />
               {m.content}
             </div>
           ) : (
-            <div key={m.id} className={`flex ${m.role === "USER" ? "justify-end" : "justify-start"}`}>
+            <div key={m.id} className={`animate-fade-up flex ${m.role === "USER" ? "justify-end" : "justify-start"}`}>
               <div
                 className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap ${
                   m.role === "USER" ? "bg-accent text-white" : "bg-surface-2"
@@ -247,8 +247,18 @@ export default function AiTab({
 
         {chatError && <p className="text-sm text-red text-center">{chatError}</p>}
 
+        {busy && !pending && (
+          <div className="flex justify-start">
+            <div className="bg-surface-2 rounded-2xl px-4 py-3 inline-flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-text-dim animate-typing-dot" style={{ animationDelay: "0s" }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-text-dim animate-typing-dot" style={{ animationDelay: "0.15s" }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-text-dim animate-typing-dot" style={{ animationDelay: "0.3s" }} />
+            </div>
+          </div>
+        )}
+
         {pending && (
-          <div className="card-glow p-4 border-yellow">
+          <div className="animate-success-ring card-glow p-4 border-yellow">
             <p className="text-sm">
               <strong>{TOOL_LABEL[pending.toolName] ?? pending.toolName}</strong> 작업을 실행하려고 해요.
               {pending.riskLevel === "DANGEROUS" && " 실행 전에 자동으로 백업할게요."}

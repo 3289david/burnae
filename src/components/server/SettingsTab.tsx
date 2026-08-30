@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Copy } from "lucide-react";
+import Toggle from "@/components/Toggle";
 import UpgradeCard from "./UpgradeCard";
 import AutomationCard from "./AutomationCard";
 import StartupVariablesCard from "./StartupVariablesCard";
@@ -197,14 +198,10 @@ export default function SettingsTab({
         <div key={key} className="flex items-center justify-between">
           <span className="text-sm">{label}</span>
           {type === "bool" ? (
-            <select
-              className="input"
-              value={values[key] ?? "false"}
-              onChange={(e) => setValues((v) => ({ ...v, [key]: e.target.value }))}
-            >
-              <option value="true">ON</option>
-              <option value="false">OFF</option>
-            </select>
+            <Toggle
+              checked={(values[key] ?? "false") === "true"}
+              onChange={(next) => setValues((v) => ({ ...v, [key]: String(next) }))}
+            />
           ) : type === "select" ? (
             <select
               className="input"
@@ -305,7 +302,7 @@ export default function SettingsTab({
         <h3 className="font-semibold text-red">위험 구역</h3>
         <p className="text-sm text-text-dim mt-1">서버를 삭제하면 되돌릴 수 없습니다.</p>
         <label className="flex items-center gap-2 mt-3 text-sm">
-          <input type="checkbox" checked={keepBackup} onChange={(e) => setKeepBackup(e.target.checked)} />
+          <Toggle checked={keepBackup} onChange={setKeepBackup} size="sm" />
           삭제 전 마지막 백업 생성
         </label>
         <button onClick={deleteServer} disabled={deleting} className="btn-secondary text-red px-4 py-2 text-sm mt-3">

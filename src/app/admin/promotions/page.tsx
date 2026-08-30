@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Toggle from "@/components/Toggle";
 
 interface Task {
   id: string;
@@ -102,8 +103,12 @@ export default function AdminPromotionsPage() {
 
       <h2 className="font-semibold mt-6 mb-2">홍보 항목 ({tasks.length})</h2>
       <div className="space-y-2">
-        {tasks.map((t) => (
-          <div key={t.id} className="card-glow p-4 flex flex-wrap items-center justify-between gap-3">
+        {tasks.map((t, i) => (
+          <div
+            key={t.id}
+            className="card-glow p-4 flex flex-wrap items-center justify-between gap-3 animate-fade-up"
+            style={{ animationDelay: `${Math.min(i, 10) * 0.03}s` }}
+          >
             <div className="min-w-0">
               <p className="text-sm font-medium">{t.title} {!t.active && <span className="text-text-dim text-xs">(비활성)</span>}</p>
               <p className="text-xs text-text-dim">{t.description}</p>
@@ -116,9 +121,7 @@ export default function AdminPromotionsPage() {
                 onBlur={(e) => updatePoints(t.id, Number(e.target.value))}
                 className="input text-sm w-20"
               />
-              <button disabled={busy === t.id} onClick={() => toggleActive(t.id, !t.active)} className="btn-secondary px-3 py-1.5 text-sm">
-                {t.active ? "비활성화" : "활성화"}
-              </button>
+              <Toggle checked={t.active} disabled={busy === t.id} onChange={() => toggleActive(t.id, !t.active)} size="sm" />
             </div>
           </div>
         ))}

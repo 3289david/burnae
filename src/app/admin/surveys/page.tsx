@@ -111,8 +111,12 @@ export default function AdminSurveysPage() {
       </p>
 
       <div className="mt-6 space-y-2">
-        {items.map((r) => (
-          <div key={r.id} className={`card-glow p-4 ${r.reviewed ? "opacity-60" : ""}`}>
+        {items.map((r, i) => (
+          <div
+            key={r.id}
+            className={`card-glow p-4 animate-fade-up ${r.reviewed ? "opacity-60" : ""}`}
+            style={{ animationDelay: `${Math.min(i, 10) * 0.03}s` }}
+          >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-sm">{r.content}</p>

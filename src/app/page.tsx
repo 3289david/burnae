@@ -10,6 +10,7 @@ import Footer from "@/components/Footer";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import ThemeToggle from "@/components/ThemeToggle";
 import DotGrid from "@/components/DotGrid";
+import CountUp from "@/components/CountUp";
 import { allowedCategoriesForSiteMode, type SiteMode } from "@/lib/siteMode";
 
 const SHARED_FEATURES = [
@@ -266,7 +267,7 @@ export default async function HomePage() {
                   <h3 className="font-semibold text-lg font-display">{p.name}</h3>
                   {p.description && <p className="text-sm text-text-dim mt-1">{p.description}</p>}
                   <p className="mt-4 text-3xl font-bold font-display">
-                    {p.priceMonthlyKrw.toLocaleString()}<span className="text-base font-normal text-text-dim">원/월</span>
+                    <CountUp value={p.priceMonthlyKrw} duration={900} /><span className="text-base font-normal text-text-dim">원/월</span>
                   </p>
                   <ul className="mt-5 space-y-2 text-sm flex-1">
                     <SpecRow label={`RAM ${(p.ramMb / 1024).toFixed(0)}GB`} />

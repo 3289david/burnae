@@ -15,7 +15,7 @@ export default async function EventsBanner() {
   return (
     <div className="space-y-2 mb-6">
       {events.map((e) => (
-        <div key={e.id} className="card-glow p-4 flex flex-wrap items-center justify-between gap-2 bg-gradient-to-r from-accent/10 to-transparent">
+        <div key={e.id} className="card-glow p-4 flex flex-wrap items-center justify-between gap-2 bg-gradient-to-r from-accent/10 to-transparent animate-fade-up">
           <div className="min-w-0 flex items-start gap-2">
             <Gift size={16} className="text-accent shrink-0 mt-0.5" />
             <div className="min-w-0">

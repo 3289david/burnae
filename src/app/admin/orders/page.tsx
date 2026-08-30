@@ -50,8 +50,12 @@ export default function AdminOrdersPage() {
       {error && <p className="text-sm text-red mt-3">{error}</p>}
 
       <div className="mt-6 space-y-2">
-        {items.map((o) => (
-          <div key={o.id} className="card-glow p-4 flex items-center justify-between flex-wrap gap-3">
+        {items.map((o, i) => (
+          <div
+            key={o.id}
+            className="card-glow p-4 flex items-center justify-between flex-wrap gap-3 animate-fade-up"
+            style={{ animationDelay: `${Math.min(i, 10) * 0.03}s` }}
+          >
             <div className="min-w-0">
               <p className="font-medium">
                 {o.user.name} <span className="text-text-dim text-xs">({o.user.email})</span>

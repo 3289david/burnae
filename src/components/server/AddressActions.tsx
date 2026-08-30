@@ -36,7 +36,7 @@ export default function AddressActions({ address }: { address: string }) {
         title="주소 복사"
         className="text-text-dim hover:text-text shrink-0"
       >
-        {copied ? <Check size={14} className="text-green" /> : <Copy size={14} />}
+        {copied ? <Check size={14} className="text-green animate-toast-in" /> : <Copy size={14} />}
       </button>
       <button
         type="button"
@@ -47,7 +47,7 @@ export default function AddressActions({ address }: { address: string }) {
         <QrCode size={14} />
       </button>
       {qr && (
-        <div className="absolute z-10 mt-2 p-2 bg-surface-2 border border-border rounded-xl shadow-lg">
+        <div className="animate-toast-in absolute z-10 mt-2 p-2 bg-surface-2 border border-border rounded-xl shadow-lg">
           {/* eslint-disable-next-line @next/next/no-img-element -- 런타임에 생성되는 data URL이라 next/image 최적화 대상이 아님 */}
           <img src={qr} alt={address} width={160} height={160} />
         </div>

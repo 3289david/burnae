@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import {
   LayoutGrid, Terminal, Users, Puzzle, Folder, RefreshCw, UserPlus, Settings, Bot, Wand2, Pencil, Check, X,
 } from "lucide-react";
@@ -84,6 +84,14 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
   const [nameError, setNameError] = useState<string | null>(null);
   const addresses = server.subdomains.map((s) => `${s.subdomain}.${server.subdomainZone}`);
   const visibleTabs = TABS.filter((t) => server.templateCategory === "MINECRAFT" || !MINECRAFT_ONLY_TABS.has(t.key));
+
+  // 토스식 슬라이딩 탭 인디케이터 — 활성 탭 뒤 배경이 색 전환 없이 실제로 미끄러져 이동한다
+  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [indicator, setIndicator] = useState<{ left: number; width: number } | null>(null);
+  useLayoutEffect(() => {
+    const el = tabRefs.current[tab];
+    if (el) setIndicator({ left: el.offsetLeft, width: el.offsetWidth });
+  }, [tab, visibleTabs.length]);
   const primarySubdomain = server.subdomains.find((s) => s.isPrimary) ?? server.subdomains[0];
   const previewAddress =
     server.templateCategory !== "MINECRAFT" && primarySubdomain && server.allocationPort
@@ -171,12 +179,21 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
         className="relative mt-6 flex gap-1 overflow-x-auto p-1 bg-surface-2 rounded-full w-fit max-w-full animate-fade-up"
         style={{ animationDelay: "0.05s" }}
       >
+        {indicator && (
+          <span
+            className="absolute top-1 bottom-1 rounded-full bg-accent shadow-sm transition-[left,width] duration-300 ease-[cubic-bezier(0.65,0,0.35,1)]"
+            style={{ left: indicator.left, width: indicator.width }}
+          />
+        )}
         {visibleTabs.map((t) => (
           <button
             key={t.key}
+            ref={(el) => {
+              tabRefs.current[t.key] = el;
+            }}
             onClick={() => setTab(t.key)}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-150 shrink-0 ${
-              tab === t.key ? "bg-accent text-white shadow-sm" : "text-text-dim hover:text-text"
+            className={`relative z-10 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors duration-150 shrink-0 ${
+              tab === t.key ? "text-white" : "text-text-dim hover:text-text"
             }`}
           >
             <t.icon size={15} />

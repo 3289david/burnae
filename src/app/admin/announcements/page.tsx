@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Toggle from "@/components/Toggle";
 
 interface Announcement {
   id: string;
@@ -83,8 +84,12 @@ export default function AdminAnnouncementsPage() {
       </p>
 
       <div className="mt-6 space-y-2">
-        {items.map((a) => (
-          <div key={a.id} className="card-glow p-4 flex items-center justify-between flex-wrap gap-2">
+        {items.map((a, i) => (
+          <div
+            key={a.id}
+            className="card-glow p-4 flex items-center justify-between flex-wrap gap-2 animate-fade-up"
+            style={{ animationDelay: `${Math.min(i, 10) * 0.03}s` }}
+          >
             <div className="min-w-0">
               <p className="font-medium text-sm">
                 [{LEVEL_LABEL[a.level]}] {a.title} {!a.active && <span className="text-text-dim text-xs">(비활성)</span>}
@@ -99,9 +104,7 @@ export default function AdminAnnouncementsPage() {
               )}
             </div>
             <div className="flex gap-2 shrink-0">
-              <button onClick={() => toggleActive(a.id, !a.active)} className="btn-secondary px-3 py-1.5 text-sm">
-                {a.active ? "비활성화" : "활성화"}
-              </button>
+              <Toggle checked={a.active} onChange={() => toggleActive(a.id, !a.active)} size="sm" />
               <button onClick={() => remove(a.id)} className="text-red text-sm px-2">삭제</button>
             </div>
           </div>

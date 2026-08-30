@@ -236,8 +236,8 @@ export default function AdminServersPage() {
       </form>
 
       <div className="mt-6 space-y-2">
-        {servers.map((s) => (
-          <div key={s.id} className="card-glow p-4">
+        {servers.map((s, i) => (
+          <div key={s.id} className="card-glow p-4 animate-fade-up" style={{ animationDelay: `${Math.min(i, 10) * 0.03}s` }}>
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div>
                 <p className="font-medium text-sm">

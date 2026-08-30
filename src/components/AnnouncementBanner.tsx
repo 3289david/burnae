@@ -52,7 +52,7 @@ export default function AnnouncementBanner({ maxWidthClass = "max-w-5xl" }: { ma
       {announcements.map((a) => {
         const { icon: Icon, classes } = STYLE[a.level];
         return (
-          <div key={a.id} className={`border rounded-xl px-4 py-3 flex items-start gap-2.5 text-sm ${classes}`}>
+          <div key={a.id} className={`animate-toast-in border rounded-xl px-4 py-3 flex items-start gap-2.5 text-sm ${classes}`}>
             <Icon size={16} className="shrink-0 mt-0.5" />
             <div className="min-w-0 flex-1 text-text">
               <p className="font-semibold">{a.title}</p>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Gift, Sparkles, Ticket, Package, Server as ServerIcon } from "lucide-react";
 import SuccessCheck from "@/components/SuccessCheck";
+import CountUp from "@/components/CountUp";
 
 interface ShopItem {
   id: string;
@@ -69,12 +70,16 @@ export default function ShopSection({ points }: { points: number }) {
       </div>
 
       <div className="grid sm:grid-cols-2 gap-3">
-        {items.map((item) => {
+        {items.map((item, i) => {
           const Icon = KIND_ICON[item.kind];
           const affordable = remainingPoints >= item.pointsCost;
           const redeemedHere = result?.itemId === item.id;
           return (
-            <div key={item.id} className="card-glow p-4">
+            <div
+              key={item.id}
+              className="card-glow p-4 animate-fade-up"
+              style={{ animationDelay: `${Math.min(i, 10) * 0.03}s` }}
+            >
               <div className="flex items-start gap-3">
                 <span className="w-9 h-9 rounded-xl bg-purple/15 flex items-center justify-center shrink-0">
                   <Icon size={16} className="text-purple" />
@@ -88,7 +93,9 @@ export default function ShopSection({ points }: { points: number }) {
                 </div>
               </div>
               <div className="flex items-center justify-between mt-3">
-                <span className="text-sm font-semibold text-accent">{item.pointsCost.toLocaleString()}P</span>
+                <span className="text-sm font-semibold text-accent">
+                  <CountUp value={item.pointsCost} />P
+                </span>
                 <button
                   onClick={() => redeem(item)}
                   disabled={busy !== null || !affordable}

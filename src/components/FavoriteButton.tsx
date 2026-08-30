@@ -7,6 +7,7 @@ import { Star } from "lucide-react";
 export default function FavoriteButton({ serverId, initial }: { serverId: string; initial: boolean }) {
   const [isFavorite, setIsFavorite] = useState(initial);
   const [busy, setBusy] = useState(false);
+  const [popKey, setPopKey] = useState(0);
   const router = useRouter();
 
   async function toggle(e: React.MouseEvent) {
@@ -16,6 +17,7 @@ export default function FavoriteButton({ serverId, initial }: { serverId: string
     setBusy(true);
     const next = !isFavorite;
     setIsFavorite(next);
+    setPopKey((k) => k + 1);
     try {
       const res = await fetch(`/api/servers/${serverId}`, {
         method: "PATCH",
@@ -35,9 +37,9 @@ export default function FavoriteButton({ serverId, initial }: { serverId: string
     <button
       onClick={toggle}
       aria-label={isFavorite ? "즐겨찾기 해제" : "즐겨찾기 추가"}
-      className={`shrink-0 p-1 rounded-full transition-colors ${isFavorite ? "text-yellow" : "text-text-dim hover:text-yellow"}`}
+      className={`shrink-0 p-1 rounded-full transition-colors active:scale-90 ${isFavorite ? "text-yellow" : "text-text-dim hover:text-yellow"}`}
     >
-      <Star size={16} fill={isFavorite ? "currentColor" : "none"} />
+      <Star key={popKey} size={16} fill={isFavorite ? "currentColor" : "none"} className={popKey > 0 ? "animate-star-pop" : ""} />
     </button>
   );
 }

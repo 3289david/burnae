@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Copy, Check, CheckCircle2, Clock, Gift } from "lucide-react";
 import SuccessCheck from "@/components/SuccessCheck";
+import CountUp from "@/components/CountUp";
 
 type VerifyMethod =
   | "URL_CONTAINS_LINK"
@@ -97,7 +98,9 @@ export default function PromotionsClient({
           </span>
           <div>
             <p className="text-xs text-text-dim">내 포인트</p>
-            <p className="text-2xl font-bold font-display text-gradient">{currentPoints.toLocaleString()}P</p>
+            <p className="text-2xl font-bold font-display text-gradient">
+              <CountUp value={currentPoints} />P
+            </p>
           </div>
         </div>
         <div className="min-w-0">

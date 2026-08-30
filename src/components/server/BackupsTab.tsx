@@ -126,7 +126,12 @@ export default function BackupsTab({ serverId, backupSlots }: { serverId: string
                 className="btn-secondary px-3 py-1.5 text-sm inline-flex items-center gap-1"
                 title={b.is_locked ? "잠금 해제하면 삭제할 수 있어요" : "잠그면 실수로 삭제되지 않아요"}
               >
-                {b.is_locked ? <Unlock size={13} /> : <Lock size={13} />} {b.is_locked ? "잠금 해제" : "잠그기"}
+                {b.is_locked ? (
+                  <Unlock size={13} key="unlocked" className="animate-star-pop" />
+                ) : (
+                  <Lock size={13} key="locked" />
+                )}{" "}
+                {b.is_locked ? "잠금 해제" : "잠그기"}
               </button>
               <button
                 onClick={() => remove(b.uuid)}

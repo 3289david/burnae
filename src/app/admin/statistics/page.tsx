@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import CountUp from "@/components/CountUp";
 
 export default async function AdminStatisticsPage() {
   const now = new Date();
@@ -38,16 +39,16 @@ export default async function AdminStatisticsPage() {
       <h1 className="text-2xl font-bold">통계</h1>
 
       <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <Stat label="전체 서버" value={totalServers.toLocaleString()} />
-        <Stat label="온라인 서버" value={activeServers.toLocaleString()} />
-        <Stat label="전체 유저" value={totalUsers.toLocaleString()} />
-        <Stat label="RAM 판매율" value={`${ramSellRate.toFixed(1)}%`} />
-        <Stat label="평균 RAM/서버" value={`${avgRamGb.toFixed(1)}GB`} />
-        <Stat label="서버당 평균 매출" value={`${Math.round(avgRevenuePerServer).toLocaleString()}원`} />
-        <Stat label="월 반복 매출(MRR)" value={`${mrr.toLocaleString()}원`} />
-        <Stat label="이번 달 실결제액" value={`${(revenueThisMonth._sum.amountKrw ?? 0).toLocaleString()}원`} />
-        <Stat label="이번 달 신규 서버" value={newServersThisMonth.toLocaleString()} />
-        <Stat label="최근 30일 해지 서버" value={churnedServersLast30d.toLocaleString()} />
+        <Stat label="전체 서버" value={totalServers} />
+        <Stat label="온라인 서버" value={activeServers} />
+        <Stat label="전체 유저" value={totalUsers} />
+        <Stat label="RAM 판매율" value={ramSellRate} format={(n) => `${n.toFixed(1)}%`} />
+        <Stat label="평균 RAM/서버" value={avgRamGb} format={(n) => `${n.toFixed(1)}GB`} />
+        <Stat label="서버당 평균 매출" value={Math.round(avgRevenuePerServer)} format={(n) => `${Math.round(n).toLocaleString()}원`} />
+        <Stat label="월 반복 매출(MRR)" value={mrr} format={(n) => `${Math.round(n).toLocaleString()}원`} />
+        <Stat label="이번 달 실결제액" value={revenueThisMonth._sum.amountKrw ?? 0} format={(n) => `${Math.round(n).toLocaleString()}원`} />
+        <Stat label="이번 달 신규 서버" value={newServersThisMonth} />
+        <Stat label="최근 30일 해지 서버" value={churnedServersLast30d} />
       </div>
 
       <p className="mt-6 text-xs text-text-dim">
@@ -57,11 +58,13 @@ export default async function AdminStatisticsPage() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, format }: { label: string; value: number; format?: (n: number) => string }) {
   return (
-    <div className="card-glow p-4">
+    <div className="card-glow p-4 animate-fade-up">
       <div className="text-xs text-text-dim">{label}</div>
-      <div className="mt-1 text-xl font-bold">{value}</div>
+      <div className="mt-1 text-xl font-bold">
+        <CountUp value={value} format={format} />
+      </div>
     </div>
   );
 }

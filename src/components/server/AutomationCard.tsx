@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Toggle from "@/components/Toggle";
 
 interface Props {
   serverId: string;
@@ -53,11 +54,7 @@ export default function AutomationCard({ serverId, ...initial }: Props) {
               <option value={72}>3일마다</option>
             </select>
           )}
-          <input
-            type="checkbox"
-            checked={state.autoBackupEnabled}
-            onChange={(e) => update({ autoBackupEnabled: e.target.checked })}
-          />
+          <Toggle checked={state.autoBackupEnabled} onChange={(next) => update({ autoBackupEnabled: next })} />
         </div>
       </div>
 
@@ -78,10 +75,9 @@ export default function AutomationCard({ serverId, ...initial }: Props) {
               ))}
             </select>
           )}
-          <input
-            type="checkbox"
+          <Toggle
             checked={state.autoRestartEnabled}
-            onChange={(e) => update({ autoRestartEnabled: e.target.checked, autoRestartHour: state.autoRestartHour ?? 4 })}
+            onChange={(next) => update({ autoRestartEnabled: next, autoRestartHour: state.autoRestartHour ?? 4 })}
           />
         </div>
       </div>

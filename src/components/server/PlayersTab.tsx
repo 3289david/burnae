@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Toggle from "@/components/Toggle";
 
 interface PlayersData {
   online: string[];
@@ -87,12 +88,8 @@ export default function PlayersTab({ serverId }: { serverId: string }) {
       <Section
         title="화이트리스트"
         action={
-          <label className="flex items-center gap-1 text-xs text-text-dim">
-            <input
-              type="checkbox"
-              checked={data.whitelistEnabled}
-              onChange={(e) => act("whitelist_toggle", { enabled: e.target.checked })}
-            />
+          <label className="flex items-center gap-1.5 text-xs text-text-dim">
+            <Toggle checked={data.whitelistEnabled} onChange={(next) => act("whitelist_toggle", { enabled: next })} size="sm" />
             사용
           </label>
         }

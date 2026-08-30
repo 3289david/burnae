@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Toggle from "@/components/Toggle";
 
 interface Node {
   id: string;
@@ -92,8 +93,8 @@ export default function AdminNodesPage() {
       <p className="text-sm text-text-dim mt-1">Wings가 이미 설치되고 Pterodactyl 패널에 등록된 노드만 연결할 수 있어요.</p>
 
       <div className="mt-6 space-y-2">
-        {nodes.map((n) => (
-          <div key={n.id} className="card-glow p-4">
+        {nodes.map((n, i) => (
+          <div key={n.id} className="card-glow p-4 animate-fade-up" style={{ animationDelay: `${Math.min(i, 10) * 0.03}s` }}>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="min-w-0">
                 <p className="font-medium">{n.name} · {n.location}</p>
@@ -105,8 +106,8 @@ export default function AdminNodesPage() {
                   <option value="MAINTENANCE">MAINTENANCE</option>
                   <option value="OFFLINE">OFFLINE</option>
                 </select>
-                <label className="flex items-center gap-1 text-xs text-text-dim">
-                  <input type="checkbox" checked={n.autoDeployEnabled} onChange={(e) => toggle(n.id, "autoDeployEnabled", e.target.checked)} />
+                <label className="flex items-center gap-1.5 text-xs text-text-dim">
+                  <Toggle checked={n.autoDeployEnabled} onChange={(next) => toggle(n.id, "autoDeployEnabled", next)} size="sm" />
                   자동배치
                 </label>
                 <button

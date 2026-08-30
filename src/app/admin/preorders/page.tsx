@@ -48,8 +48,12 @@ export default function AdminPreordersPage() {
       </p>
 
       <div className="mt-6 space-y-2">
-        {items.map((o) => (
-          <div key={o.id} className="card-glow p-4 flex flex-wrap items-center justify-between gap-2">
+        {items.map((o, i) => (
+          <div
+            key={o.id}
+            className="card-glow p-4 flex flex-wrap items-center justify-between gap-2 animate-fade-up"
+            style={{ animationDelay: `${Math.min(i, 10) * 0.03}s` }}
+          >
             <div className="min-w-0">
               <p className="font-medium text-sm">
                 {o.serverNameRequested ?? "이름 미지정"} · {o.productNameSnapshot ?? o.product?.name ?? "삭제된 상품"}

@@ -7,10 +7,14 @@ const COLORS: Record<string, string> = {
 
 export default function StatusDot({ color }: { color: "green" | "yellow" | "red" | "gray" }) {
   return (
-    <span
-      className="inline-block w-2 h-2 rounded-full shrink-0"
-      style={{ background: COLORS[color] }}
-      aria-hidden="true"
-    />
+    <span className="relative inline-flex w-2 h-2 shrink-0" aria-hidden="true">
+      {color === "green" && (
+        <span
+          className="absolute inline-flex w-full h-full rounded-full animate-ping opacity-60"
+          style={{ background: COLORS[color] }}
+        />
+      )}
+      <span className="relative inline-block w-2 h-2 rounded-full" style={{ background: COLORS[color] }} />
+    </span>
   );
 }

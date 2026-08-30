@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Toggle from "@/components/Toggle";
 
 type SiteMode = "MINECRAFT_ONLY" | "GENERAL_ONLY" | "BOTH";
 
@@ -117,10 +118,9 @@ export default function AdminSettingsPage() {
 
       <div className="card-glow p-5 mt-4">
         <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
+          <Toggle
             checked={settings.preorderAutoFulfillEnabled}
-            onChange={(e) => setSettings({ ...settings, preorderAutoFulfillEnabled: e.target.checked })}
+            onChange={(next) => setSettings({ ...settings, preorderAutoFulfillEnabled: next })}
           />
           선주문 자동 처리
         </label>
@@ -132,10 +132,9 @@ export default function AdminSettingsPage() {
 
       <div className="card-glow p-5 mt-4">
         <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
+          <Toggle
             checked={settings.forcePreorderEnabled}
-            onChange={(e) => setSettings({ ...settings, forcePreorderEnabled: e.target.checked })}
+            onChange={(next) => setSettings({ ...settings, forcePreorderEnabled: next })}
           />
           모든 신규 주문을 선주문으로 강제
         </label>

@@ -12,7 +12,7 @@ export default async function AdminLogsPage() {
       <h1 className="text-2xl font-bold">로그</h1>
       <p className="text-sm text-text-dim mt-1">최근 관리자/시스템 작업 150건</p>
 
-      <div className="mt-6 card p-0 overflow-hidden">
+      <div className="mt-6 card p-0 overflow-hidden animate-fade-up">
         <div className="divide-y divide-border">
           {logs.map((log) => (
             <div key={log.id} className="px-4 py-3 text-sm">

@@ -84,8 +84,8 @@ export default function AdminUsersPage() {
       </p>
 
       <div className="mt-6 space-y-2">
-        {users.map((u) => (
-          <div key={u.id} className="card-glow p-4">
+        {users.map((u, i) => (
+          <div key={u.id} className="card-glow p-4 animate-fade-up" style={{ animationDelay: `${Math.min(i, 10) * 0.03}s` }}>
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div>
                 <p className="font-medium text-sm">{u.name} <span className="text-text-dim">· {u.email}</span></p>

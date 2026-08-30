@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Wrench } from "lucide-react";
+import { Wrench, ExternalLink, Folder } from "lucide-react";
 import AiCreditsCard from "./AiCreditsCard";
+import MakerFilePanel from "./MakerFilePanel";
 
 interface Message {
   id: string;
@@ -48,11 +49,14 @@ export default function AiTab({
   serverId,
   templateCategory = "MINECRAFT",
   kind = "CHAT",
+  previewAddress = null,
 }: {
   serverId: string;
   templateCategory?: Category;
   kind?: "CHAT" | "MAKER";
+  previewAddress?: string | null;
 }) {
+  const [showFiles, setShowFiles] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [conversations, setConversations] = useState<{ id: string; title: string; updatedAt: string }[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -190,10 +194,32 @@ export default function AiTab({
             ))}
           </select>
         )}
-        <button onClick={startNewConversation} className="text-xs text-accent shrink-0 ml-auto">
+        {kind === "MAKER" && (
+          <button
+            onClick={() => setShowFiles((v) => !v)}
+            className={`text-xs shrink-0 inline-flex items-center gap-1 ${showFiles ? "text-accent" : "text-text-dim"} ${conversations.length > 1 ? "" : "ml-auto"}`}
+          >
+            <Folder size={13} /> 파일
+          </button>
+        )}
+        <button onClick={startNewConversation} className={`text-xs text-accent shrink-0 ${kind === "MAKER" ? "" : "ml-auto"}`}>
           + 새 대화
         </button>
       </div>
+      {kind === "MAKER" && previewAddress && (
+        <div className="px-4 py-1.5 border-b border-border flex items-center justify-between gap-2 bg-surface-2/50">
+          <span className="text-xs font-mono text-text-dim truncate">{previewAddress}</span>
+          <a
+            href={`http://${previewAddress}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-accent inline-flex items-center gap-1 shrink-0"
+          >
+            <ExternalLink size={12} /> 미리보기
+          </a>
+        </div>
+      )}
+      {kind === "MAKER" && showFiles && <MakerFilePanel serverId={serverId} refreshKey={messages.length} />}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.length === 0 && (
           <p className="text-sm text-text-dim">

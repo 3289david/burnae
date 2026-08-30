@@ -84,6 +84,11 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
   const [nameError, setNameError] = useState<string | null>(null);
   const addresses = server.subdomains.map((s) => `${s.subdomain}.${server.subdomainZone}`);
   const visibleTabs = TABS.filter((t) => server.templateCategory === "MINECRAFT" || !MINECRAFT_ONLY_TABS.has(t.key));
+  const primarySubdomain = server.subdomains.find((s) => s.isPrimary) ?? server.subdomains[0];
+  const previewAddress =
+    server.templateCategory !== "MINECRAFT" && primarySubdomain && server.allocationPort
+      ? `${primarySubdomain.subdomain}.${server.subdomainZone}:${server.allocationPort}`
+      : null;
 
   async function saveName() {
     setNameSaving(true);
@@ -185,7 +190,9 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
         {tab === "console" && <ConsoleTab serverId={server.id} templateCategory={server.templateCategory} />}
         {tab === "players" && <PlayersTab serverId={server.id} />}
         {tab === "plugins" && <PluginsTab serverId={server.id} />}
-        {tab === "maker" && <AiTab serverId={server.id} templateCategory={server.templateCategory} kind="MAKER" />}
+        {tab === "maker" && (
+          <AiTab serverId={server.id} templateCategory={server.templateCategory} kind="MAKER" previewAddress={previewAddress} />
+        )}
         {tab === "files" && <FilesTab serverId={server.id} />}
         {tab === "backups" && <BackupsTab serverId={server.id} backupSlots={server.backupSlots} />}
         {tab === "team" && <TeamTab serverId={server.id} isOwner={server.isOwner} />}

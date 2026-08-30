@@ -63,7 +63,7 @@ export default function SftpCard({ serverId }: { serverId: string }) {
         {password && (
           <>
             <span className="text-text-dim">비밀번호</span>
-            <span className="font-mono select-all">{password}</span>
+            <span className="font-mono select-all animate-toast-in">{password}</span>
           </>
         )}
       </div>

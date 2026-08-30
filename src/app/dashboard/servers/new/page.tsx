@@ -127,6 +127,14 @@ function loaderMeta(baseKey: string) {
 
 const TIER_ORDER: Record<string, number> = { 최신: 0, 중간: 1, 레거시: 2 };
 
+const CATEGORY_FILTER_LABEL: Record<"ALL" | "MINECRAFT" | "VPS" | "DISCORD_BOT" | "GENERAL", string> = {
+  ALL: "전체",
+  MINECRAFT: "마인크래프트",
+  DISCORD_BOT: "디스코드 봇",
+  VPS: "VPS",
+  GENERAL: "일반 서버",
+};
+
 const NAME_ADJECTIVES = ["즐거운", "든든한", "반짝이는", "포근한", "용감한", "느긋한", "은은한", "씩씩한", "신비한", "아늑한"];
 const NAME_NOUNS = ["감자밭", "은하수", "다락방", "탐험대", "비밀기지", "요새", "정원", "등대", "오두막", "항구"];
 
@@ -235,6 +243,17 @@ function NewServerPageInner() {
   const selectedGroup = useMemo(
     () => loaderGroups.find((g) => g.templates.some((t) => t.id === templateId)),
     [loaderGroups, templateId],
+  );
+
+  // 서버 종류가 38개까지 늘어나서 한 화면에 다 보여주면 찾기 어려우니, 카테고리별로 걸러 볼 수 있게 한다
+  const [categoryFilter, setCategoryFilter] = useState<"ALL" | Template["category"]>("ALL");
+  const availableCategories = useMemo(() => {
+    const set = new Set(loaderGroups.map((g) => g.templates[0]?.category).filter(Boolean));
+    return [...set] as Template["category"][];
+  }, [loaderGroups]);
+  const filteredLoaderGroups = useMemo(
+    () => (categoryFilter === "ALL" ? loaderGroups : loaderGroups.filter((g) => g.templates[0]?.category === categoryFilter)),
+    [loaderGroups, categoryFilter],
   );
 
   function pickLoader(base: string) {
@@ -430,8 +449,24 @@ function NewServerPageInner() {
         <form onSubmit={submitTemplateChoice} className="mt-8 space-y-10">
           {selectedProduct && loaderGroups.length > 0 && (
             <Section step={1} title="서버 종류">
+              {availableCategories.length > 1 && (
+                <div className="flex flex-wrap gap-1.5 mb-3 p-1 bg-surface-2 rounded-full w-fit">
+                  {(["ALL", ...availableCategories] as const).map((c) => (
+                    <button
+                      type="button"
+                      key={c}
+                      onClick={() => setCategoryFilter(c)}
+                      className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-150 ${
+                        categoryFilter === c ? "bg-accent text-white shadow-sm" : "text-text-dim hover:text-text"
+                      }`}
+                    >
+                      {CATEGORY_FILTER_LABEL[c]}
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                {loaderGroups.map((g) => {
+                {filteredLoaderGroups.map((g, i) => {
                   const meta = loaderMeta(g.base);
                   const Icon = meta.icon;
                   const active = selectedGroup?.base === g.base;
@@ -440,11 +475,12 @@ function NewServerPageInner() {
                       type="button"
                       key={g.base}
                       onClick={() => pickLoader(g.base)}
-                      className={`rounded-2xl border p-3.5 flex flex-col items-start gap-2 transition-all duration-150 ${
+                      className={`animate-fade-up rounded-2xl border p-3.5 flex flex-col items-start gap-2 transition-all duration-150 active:scale-[0.97] ${
                         active
                           ? "border-accent bg-accent/[0.08] shadow-[0_0_0_1px_var(--accent)]"
                           : "border-border bg-surface hover:border-accent/40 hover:bg-surface-2"
                       }`}
+                      style={{ animationDelay: `${Math.min(i, 12) * 0.025}s` }}
                     >
                       <span
                         className="w-9 h-9 rounded-xl flex items-center justify-center"

@@ -113,10 +113,10 @@ export default function StartupVariablesCard({ serverId }: { serverId: string })
       {variables === null && <p className="text-sm text-text-dim">불러오는 중...</p>}
 
       <div className="space-y-3">
-        {editable.map((v) => {
+        {editable.map((v, i) => {
           const info = friendlyHelp(v.envVariable);
           return (
-            <div key={v.envVariable} className="space-y-1">
+            <div key={v.envVariable} className="space-y-1 animate-fade-up" style={{ animationDelay: `${Math.min(i, 10) * 0.03}s` }}>
               <div className="flex flex-wrap items-end gap-2">
                 <div className="flex-1 min-w-[180px]">
                   <label className="text-xs text-text-dim">{v.name} <span className="font-mono">({v.envVariable})</span></label>

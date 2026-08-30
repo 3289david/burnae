@@ -91,8 +91,12 @@ export default function TeamTab({ serverId, isOwner }: { serverId: string; isOwn
               <span className="text-xs text-text-dim shrink-0">소유자</span>
             </div>
           )}
-          {members.map((m) => (
-            <div key={m.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-sm">
+          {members.map((m, i) => (
+            <div
+              key={m.id}
+              className="animate-fade-up flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-sm"
+              style={{ animationDelay: `${Math.min(i, 10) * 0.03}s` }}
+            >
               <span className="min-w-0 truncate">{m.user.name} ({m.user.email})</span>
               {isOwner ? (
                 <div className="flex items-center gap-2 shrink-0">

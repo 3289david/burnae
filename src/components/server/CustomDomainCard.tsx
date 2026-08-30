@@ -92,8 +92,8 @@ export default function CustomDomainCard({
       </p>
 
       <div className="space-y-3 mt-3">
-        {domains.map((d) => (
-          <div key={d.id} className="border border-border rounded-xl p-3">
+        {domains.map((d, i) => (
+          <div key={d.id} className="border border-border rounded-xl p-3 animate-fade-up" style={{ animationDelay: `${Math.min(i, 10) * 0.03}s` }}>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="font-mono text-sm min-w-0 break-all flex items-center gap-1.5">
                 {d.verified ? (

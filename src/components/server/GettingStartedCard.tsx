@@ -60,7 +60,7 @@ export default function GettingStartedCard({ server }: { server: ServerInfo }) {
       </div>
       <ol className="space-y-1.5 text-sm text-text-dim list-decimal pl-5">
         {stepsFor(server).map((step, i) => (
-          <li key={i}>{step}</li>
+          <li key={i} className="animate-fade-up" style={{ animationDelay: `${i * 0.06}s` }}>{step}</li>
         ))}
       </ol>
     </div>

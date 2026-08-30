@@ -11,7 +11,7 @@ export default async function RegisterPage({
 
   return (
     <div className="min-h-screen flex items-center justify-center px-6">
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-sm animate-fade-up">
         <Link href="/" className="inline-flex items-center gap-2 text-xl font-bold font-display">
           <BrandMark /> Burnae
         </Link>
@@ -20,7 +20,7 @@ export default async function RegisterPage({
           아래 계정 중 하나로 바로 시작할 수 있어요. 처음이면 자동으로 가입돼요.
         </p>
         {ref && (
-          <p className="mt-2 text-xs text-accent">추천 링크로 들어오셨네요 — 가입하면 추천인에게 포인트가 적립돼요.</p>
+          <p className="animate-toast-in mt-2 text-xs text-accent">추천 링크로 들어오셨네요 — 가입하면 추천인에게 포인트가 적립돼요.</p>
         )}
 
         <div className="mt-6">

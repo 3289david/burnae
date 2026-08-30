@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2 } from "lucide-react";
+import SuccessCheck from "@/components/SuccessCheck";
 
 export default function DepositorNameCard({ initial }: { initial: string | null }) {
   const [value, setValue] = useState(initial ?? "");
@@ -53,8 +53,8 @@ export default function DepositorNameCard({ initial }: { initial: string | null 
         </button>
       </form>
       {saved && (
-        <p className="text-xs text-green mt-2 flex items-center gap-1">
-          <CheckCircle2 size={14} /> 저장됐어요.
+        <p className="animate-toast-in text-xs text-green mt-2 flex items-center gap-1">
+          <SuccessCheck size={16} /> 저장됐어요.
         </p>
       )}
       {error && <p className="text-xs text-red mt-2">{error}</p>}

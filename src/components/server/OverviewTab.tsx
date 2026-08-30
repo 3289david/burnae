@@ -10,6 +10,7 @@ import FreeUpgradeCard from "./FreeUpgradeCard";
 import FreeTierAd from "@/components/ads/FreeTierAd";
 import GoogleAdSense from "@/components/ads/GoogleAdSense";
 import GettingStartedCard from "./GettingStartedCard";
+import SuccessCheck from "@/components/SuccessCheck";
 
 interface Resources {
   current_state: string;
@@ -128,7 +129,7 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
         <div className="card p-4 border-yellow">
           {renewRequested ? (
             <p className="text-sm text-green flex items-center gap-1.5">
-              <CheckCircle2 size={16} />
+              {server.isFreeServer ? <SuccessCheck size={20} /> : <CheckCircle2 size={16} />}
               {server.isFreeServer
                 ? "7일 연장했어요."
                 : "갱신 결제 안내를 만들었어요. 결제 내역 페이지에서 입금 정보를 확인하세요."}

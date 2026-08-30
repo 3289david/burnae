@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Copy, Check, CheckCircle2, Clock, Gift } from "lucide-react";
+import SuccessCheck from "@/components/SuccessCheck";
 
 type VerifyMethod =
   | "URL_CONTAINS_LINK"
@@ -347,7 +348,9 @@ function RedeemCard({
         </div>
       )}
       {done && (
-        <p className="text-xs text-green mt-2 flex items-center gap-1"><CheckCircle2 size={14} /> 교환 완료! 대시보드로 이동할게요.</p>
+        <p className="animate-toast-in text-xs text-green mt-2 flex items-center gap-1">
+          <SuccessCheck size={16} confetti /> 교환 완료! 대시보드로 이동할게요.
+        </p>
       )}
     </div>
   );

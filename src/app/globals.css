@@ -192,3 +192,57 @@ h1, h2, h3, h4,
 .animate-fade-up {
   animation: fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+
+/* ── 결제완료/성공 애니메이션 (토스식 체크마크) ────────── */
+@keyframes success-ring-pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.06); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-success-ring {
+  animation: success-ring-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes success-circle-draw {
+  from { stroke-dashoffset: 164; }
+  to { stroke-dashoffset: 0; }
+}
+.animate-success-circle {
+  stroke-dasharray: 164;
+  animation: success-circle-draw 0.5s 0.1s cubic-bezier(0.65, 0, 0.35, 1) both;
+}
+
+@keyframes success-check-draw {
+  from { stroke-dashoffset: 34; }
+  to { stroke-dashoffset: 0; }
+}
+.animate-success-check {
+  stroke-dasharray: 34;
+  animation: success-check-draw 0.3s 0.55s cubic-bezier(0.65, 0, 0.35, 1) both;
+}
+
+@keyframes confetti-burst {
+  0% { transform: translate(0, 0) scale(1); opacity: 1; }
+  100% { transform: translate(var(--tx), var(--ty)) scale(0.2); opacity: 0; }
+}
+.animate-confetti {
+  animation: confetti-burst 0.9s 0.15s cubic-bezier(0.25, 0.8, 0.4, 1) both;
+}
+
+/* ── 숫자 카운트업(가격/포인트 등) ──────────────────────── */
+@keyframes count-up-fade {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-count-up {
+  animation: count-up-fade 0.3s ease both;
+}
+
+/* ── 토스트 슬라이드인 ──────────────────────────────────── */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-10px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-toast-in {
+  animation: toast-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}

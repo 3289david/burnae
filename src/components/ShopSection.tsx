@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Gift, Sparkles, Ticket, Package, Server as ServerIcon } from "lucide-react";
+import SuccessCheck from "@/components/SuccessCheck";
 
 interface ShopItem {
   id: string;
@@ -97,7 +98,8 @@ export default function ShopSection({ points }: { points: number }) {
                 </button>
               </div>
               {redeemedHere && (
-                <p className="text-xs text-green mt-2">
+                <p className="text-xs text-green mt-2 flex items-center gap-1">
+                  <SuccessCheck size={16} />
                   교환 완료!{result?.couponCode && ` 쿠폰 코드: ${result.couponCode}`}
                 </p>
               )}

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
+import SuccessCheck from "@/components/SuccessCheck";
+import CountUp from "@/components/CountUp";
 
 const PACKAGES = [
   { credits: 100, priceKrw: 3000 },
@@ -22,6 +24,7 @@ export default function AiCreditsCard() {
   const [error, setError] = useState<string | null>(null);
   const [payment, setPayment] = useState<{ orderId: string; amountKrw: number; depositorName: string } | null>(null);
   const [bank, setBank] = useState<BankAccount | null>(null);
+  const [justCharged, setJustCharged] = useState(false);
 
   function loadBalance() {
     fetch("/api/ai-credits/balance")
@@ -44,6 +47,8 @@ export default function AiCreditsCard() {
       if (data.status === "PAID") {
         loadBalance();
         setOpen(false);
+        setJustCharged(true);
+        setTimeout(() => setJustCharged(false), 3000);
         return;
       }
       setPayment({ orderId: data.id, amountKrw: data.amountKrw, depositorName: data.depositorName });
@@ -67,6 +72,8 @@ export default function AiCreditsCard() {
         setPayment(null);
         setOpen(false);
         loadBalance();
+        setJustCharged(true);
+        setTimeout(() => setJustCharged(false), 3000);
       }
     }, 4000);
     return () => clearInterval(interval);
@@ -81,13 +88,23 @@ export default function AiCreditsCard() {
           </span>
           <div>
             <p className="text-sm font-medium">AI 크레딧</p>
-            <p className="text-xs text-text-dim">메시지 1건당 1크레딧 소모 · 보유 {credits?.toLocaleString() ?? "-"}개</p>
+            <p className="text-xs text-text-dim">
+              메시지 1건당 1크레딧 소모 · 보유{" "}
+              {credits === null ? "-" : <CountUp value={credits} format={(n) => n.toLocaleString("ko-KR")} />}개
+            </p>
           </div>
         </div>
         <button onClick={() => setOpen((v) => !v)} className="btn-secondary px-3.5 py-1.5 text-xs shrink-0">
           {open ? "닫기" : "충전하기"}
         </button>
       </div>
+
+      {justCharged && (
+        <div className="animate-toast-in mt-3 pt-3 border-t border-border flex items-center gap-2 text-sm text-green">
+          <SuccessCheck size={24} confetti />
+          충전됐어요!
+        </div>
+      )}
 
       {open && !payment && (
         <div className="mt-3 pt-3 border-t border-border grid grid-cols-3 gap-2">

@@ -2,8 +2,8 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import SuccessCheck from "@/components/SuccessCheck";
 import {
-  CheckCircle2,
   Check,
   Search,
   Package,
@@ -392,7 +392,7 @@ function NewServerPageInner() {
     return (
       <div className="max-w-md mx-auto">
         <div className="card mt-6 p-6 text-center animate-[fadeIn_0.3s_ease]">
-          <CheckCircle2 size={36} className="mx-auto text-green" />
+          <SuccessCheck size={72} confetti={!stillWaitingForNode} className="mx-auto" />
           <p className="mt-2 font-semibold">
             {stillWaitingForNode ? "선주문으로 접수됐어요!" : "서버를 만들고 있어요!"}
           </p>
@@ -420,7 +420,7 @@ function NewServerPageInner() {
     return (
       <div className="max-w-2xl mx-auto pb-16">
         <div className="card mt-2 mb-8 p-4 flex items-center gap-3 border-green/40 bg-green/[0.06]">
-          <CheckCircle2 size={20} className="text-green shrink-0" />
+          <SuccessCheck size={28} className="shrink-0" />
           <p className="text-sm">결제가 확인됐어요! 이제 서버 종류와 버전만 고르면 바로 만들어져요.</p>
         </div>
 

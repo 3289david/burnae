@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2 } from "lucide-react";
+import SuccessCheck from "@/components/SuccessCheck";
 
 interface Product {
   id: string;
@@ -89,9 +89,9 @@ export default function UpgradeCard({ serverId, currentProductId }: { serverId: 
 
   if (applied) {
     return (
-      <div className="card-glow p-5">
-        <p className="text-sm text-green flex items-center gap-1.5">
-          <CheckCircle2 size={16} />
+      <div className="card-glow p-5 flex items-center gap-3">
+        <SuccessCheck size={40} confetti className="shrink-0" />
+        <p className="text-sm text-green">
           플랜이 변경됐어요{applied.pointsSpent ? ` (포인트 ${applied.pointsSpent.toLocaleString()}P 사용)` : ""}.
           적용을 위해 서버가 재시작될 수 있어요.
         </p>

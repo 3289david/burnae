@@ -673,15 +673,23 @@ enum AiMessageRole {
   TOOL
 }
 
+/// CHAT = "AI" 탭(서버 관리/운영 상담), MAKER = "메이커" 탭(플러그인/봇/웹사이트 등을 대화로 만들고 업그레이드)
+/// — 둘 다 같은 엔진(runAiTurn)을 쓰지만 대화 목록이 섞이지 않게 구분한다
+enum AiConversationKind {
+  CHAT
+  MAKER
+}
+
 model AiConversation {
-  id        String   @id @default(cuid())
+  id        String             @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
+  user      User               @relation(fields: [userId], references: [id])
   serverId  String?
-  server    Server?  @relation(fields: [serverId], references: [id])
-  title     String   @default("새 대화")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  server    Server?            @relation(fields: [serverId], references: [id])
+  kind      AiConversationKind @default(CHAT)
+  title     String             @default("새 대화")
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
 
   messages AiMessage[]
 

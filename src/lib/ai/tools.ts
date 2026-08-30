@@ -10,7 +10,7 @@ import {
   downloadVersionFile,
 } from "@/lib/modrinth";
 import type { Server } from "@/generated/prisma/client";
-import type { AiRiskLevel } from "@/generated/prisma/enums";
+import type { AiRiskLevel, ServerCategory } from "@/generated/prisma/enums";
 
 /**
  * Burnae AI가 사용할 수 있는 유일한 창구.
@@ -26,6 +26,8 @@ export interface ToolDef {
   description: string;
   parameters: JsonSchema;
   run: (server: Server, input: Record<string, unknown>) => Promise<unknown>;
+  /** 특정 서버 종류에서만 의미 있는 도구(예: 화이트리스트는 마인크래프트뿐). 생략하면 모든 종류에서 노출 */
+  categories?: ServerCategory[];
 }
 
 export const AI_TOOLS: Record<string, ToolDef> = {
@@ -98,6 +100,7 @@ export const AI_TOOLS: Record<string, ToolDef> = {
       else throw new Error("알 수 없는 action");
       return { ok: true };
     },
+    categories: ["MINECRAFT"],
   },
 
   manage_player: {
@@ -127,6 +130,7 @@ export const AI_TOOLS: Record<string, ToolDef> = {
       else throw new Error("알 수 없는 action");
       return { ok: true };
     },
+    categories: ["MINECRAFT"],
   },
 
   search_plugins: {
@@ -145,6 +149,7 @@ export const AI_TOOLS: Record<string, ToolDef> = {
       const results = await searchProjects({ query: String(input.query), loader, limit: 8 });
       return { results };
     },
+    categories: ["MINECRAFT"],
   },
 
   install_plugin: {
@@ -172,6 +177,7 @@ export const AI_TOOLS: Record<string, ToolDef> = {
       await PteroClient.writeBinaryFile(server.pterodactylIdentifier, `${dir}/${best.primaryFile.filename}`, bytes);
       return { ok: true, filename: best.primaryFile.filename, version: best.versionNumber };
     },
+    categories: ["MINECRAFT"],
   },
 
   list_files: {
@@ -341,11 +347,48 @@ export const AI_TOOLS: Record<string, ToolDef> = {
       return { ok: true };
     },
   },
+
+  generate_minecraft_plugin: {
+    riskLevel: "CONFIRM",
+    name: "generate_minecraft_plugin",
+    description:
+      "새 마인크래프트 플러그인/모드/데이터팩을 만들거나, 지금까지 대화에서 같이 만든 걸 업그레이드한다. " +
+      "매번 설명을 바탕으로 처음부터 새로 생성하므로, description에는 지금까지 원했던 기능 전체(기존 기능 + " +
+      "이번에 추가/수정할 내용)를 빠짐없이 적어야 한다 — '쿨다운도 추가해줘'처럼 이번 요청만 적으면 이전 기능이 사라진다.",
+    parameters: {
+      type: "object",
+      properties: {
+        description: { type: "string", description: "완성됐으면 하는 전체 동작 설명(이전 버전 기능 포함)" },
+      },
+      required: ["description"],
+    },
+    run: async (server, input) => {
+      if (!server.pterodactylIdentifier) throw new Error("서버가 아직 준비 중입니다.");
+      const template = await prisma.serverTemplate.findUniqueOrThrow({ where: { id: server.templateId } });
+      const { generatePluginContent } = await import("@/lib/ai/pluginMaker");
+      const { applyPluginMakerResult } = await import("@/lib/ai/pluginMakerApply");
+
+      const minecraftVersion = server.minecraftVersion ?? "latest";
+      const result = await generatePluginContent({
+        description: String(input.description),
+        minecraftVersion,
+        templateKey: template.key,
+      });
+      if (result.safetyReview && !result.safetyReview.safe) {
+        throw new Error(`안전하지 않은 코드로 판단돼 적용하지 않았어요: ${result.safetyReview.reasons.join(", ")}`);
+      }
+      const { appliedPath } = await applyPluginMakerResult(server.pterodactylIdentifier, minecraftVersion, result);
+      return { ok: true, kind: result.kind, summary: result.summary, appliedPath, warnings: result.warnings };
+    },
+    categories: ["MINECRAFT"],
+  },
 };
 
-export function openAiToolList(): OpenAI.Chat.Completions.ChatCompletionTool[] {
-  return Object.values(AI_TOOLS).map((t) => ({
-    type: "function",
-    function: { name: t.name, description: t.description, parameters: t.parameters },
-  }));
+export function openAiToolList(category?: ServerCategory): OpenAI.Chat.Completions.ChatCompletionTool[] {
+  return Object.values(AI_TOOLS)
+    .filter((t) => !t.categories || !category || t.categories.includes(category))
+    .map((t) => ({
+      type: "function" as const,
+      function: { name: t.name, description: t.description, parameters: t.parameters },
+    }));
 }

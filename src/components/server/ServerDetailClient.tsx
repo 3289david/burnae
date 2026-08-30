@@ -13,7 +13,6 @@ import BackupsTab from "./BackupsTab";
 import TeamTab from "./TeamTab";
 import SettingsTab from "./SettingsTab";
 import AiTab from "./AiTab";
-import PluginMakerTab from "./PluginMakerTab";
 
 export interface ServerSubdomainInfo {
   id: string;
@@ -71,9 +70,10 @@ const TABS = [
 
 type TabKey = (typeof TABS)[number]["key"];
 
-// 플레이어/플러그인/메이커 탭은 마인크래프트 서버 전용 기능(화이트리스트, Modrinth 검색, AI 플러그인
-// 생성)이라 VPS/디스코드봇 같은 일반 서버에는 의미가 없어 숨긴다
-const MINECRAFT_ONLY_TABS = new Set(["players", "plugins", "maker"]);
+// 플레이어/플러그인 탭은 마인크래프트 전용 기능(화이트리스트, Modrinth 검색)이라 VPS/디스코드봇 같은
+// 일반 서버에는 의미가 없어 숨긴다. 메이커는 이제 서버 종류에 상관없이(플러그인/봇/웹사이트 등) 대화로
+// 뭔가를 만드는 채팅이라 모든 종류에서 보여준다.
+const MINECRAFT_ONLY_TABS = new Set(["players", "plugins"]);
 
 export default function ServerDetailClient({ server }: { server: ServerInfo }) {
   const [tab, setTab] = useState<TabKey>("overview");
@@ -185,7 +185,7 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
         {tab === "console" && <ConsoleTab serverId={server.id} templateCategory={server.templateCategory} />}
         {tab === "players" && <PlayersTab serverId={server.id} />}
         {tab === "plugins" && <PluginsTab serverId={server.id} />}
-        {tab === "maker" && <PluginMakerTab serverId={server.id} />}
+        {tab === "maker" && <AiTab serverId={server.id} templateCategory={server.templateCategory} kind="MAKER" />}
         {tab === "files" && <FilesTab serverId={server.id} />}
         {tab === "backups" && <BackupsTab serverId={server.id} backupSlots={server.backupSlots} />}
         {tab === "team" && <TeamTab serverId={server.id} isOwner={server.isOwner} />}

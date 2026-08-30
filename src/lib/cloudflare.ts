@@ -56,7 +56,9 @@ export function slugifySubdomain(input: string, fallback: string): string {
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
   const slug = ascii.length >= 3 ? ascii : fallback;
-  return slug.slice(0, 32);
+  // 32자로 자르면 그 지점이 하필 "-" 바로 뒤일 수 있어(예: 한글이 전부 "x-"로 치환된 경우),
+  // 자른 뒤에도 끝에 남은 "-"를 다시 한번 정리한다
+  return slug.slice(0, 32).replace(/-+$/, "");
 }
 
 export interface DnsRecordIds {
@@ -91,26 +93,34 @@ export async function createServerDnsRecords(params: {
     }),
   });
 
-  const srvRecord = await cf<{ result: { id: string } }>(zonePath(), {
-    method: "POST",
-    body: JSON.stringify({
-      type: "SRV",
-      // Cloudflare는 최상위 name(_service._proto.호스트 전체)과 data.name(호스트 부분만, service/proto 접두어 없이)이
-      // 둘 다 필요하다 — 둘 중 하나라도 빠지거나 형식이 다르면 "DNS name is invalid"(9000)로 거부된다.
-      name: `_minecraft._tcp.${fqdn}`,
-      data: {
-        service: "_minecraft",
-        proto: "_tcp",
-        name: params.subdomain,
-        priority: 0,
-        weight: 5,
-        port: params.port,
-        target: params.nodeFqdn,
-      },
-      ttl: 300,
-      comment: "Burnae 서버 자동 생성",
-    }),
-  });
+  let srvRecord: { result: { id: string } };
+  try {
+    srvRecord = await cf<{ result: { id: string } }>(zonePath(), {
+      method: "POST",
+      body: JSON.stringify({
+        type: "SRV",
+        // Cloudflare는 최상위 name(_service._proto.호스트 전체)과 data.name(호스트 부분만, service/proto 접두어 없이)이
+        // 둘 다 필요하다 — 둘 중 하나라도 빠지거나 형식이 다르면 "DNS name is invalid"(9000)로 거부된다.
+        name: `_minecraft._tcp.${fqdn}`,
+        data: {
+          service: "_minecraft",
+          proto: "_tcp",
+          name: params.subdomain,
+          priority: 0,
+          weight: 5,
+          port: params.port,
+          target: params.nodeFqdn,
+        },
+        ttl: 300,
+        comment: "Burnae 서버 자동 생성",
+      }),
+    });
+  } catch (err) {
+    // SRV 생성이 실패하면 A 레코드만 고아로 남아 그 서브도메인이 영영 "사용 중"으로 막힌다 —
+    // 실패 시 방금 만든 A 레코드도 같이 지워서 이 함수가 통째로 성공하거나 실패하게 한다
+    await deleteServerDnsRecords({ aRecordId: aRecord.result.id }).catch(() => {});
+    throw err;
+  }
 
   return { aRecordId: aRecord.result.id, srvRecordId: srvRecord.result.id };
 }
@@ -135,21 +145,29 @@ export async function updateServerDnsRecords(params: {
     body: JSON.stringify({ content: params.nodePublicIp }),
   });
 
-  await cf(zonePath(`/${params.srvRecordId}`), {
-    method: "PATCH",
-    body: JSON.stringify({
-      name: `_minecraft._tcp.${fqdn}`,
-      data: {
-        service: "_minecraft",
-        proto: "_tcp",
-        name: params.subdomain,
-        priority: 0,
-        weight: 5,
-        port: params.port,
-        target: params.nodeFqdn,
-      },
-    }),
-  });
+  try {
+    await cf(zonePath(`/${params.srvRecordId}`), {
+      method: "PATCH",
+      body: JSON.stringify({
+        name: `_minecraft._tcp.${fqdn}`,
+        data: {
+          service: "_minecraft",
+          proto: "_tcp",
+          name: params.subdomain,
+          priority: 0,
+          weight: 5,
+          port: params.port,
+          target: params.nodeFqdn,
+        },
+      }),
+    });
+  } catch (err) {
+    // A 레코드는 이미 새 IP로 바뀐 상태 — SRV까지 실패하면 A/SRV가 서로 다른 노드를 가리키는
+    // 불일치 상태로 남으니, 호출하는 쪽 로그에서 바로 알아볼 수 있게 명확히 표시한다
+    throw new Error(
+      `A 레코드는 ${params.nodePublicIp}로 갱신됐지만 SRV 레코드 갱신에 실패했습니다 — DNS가 새 노드와 옛 노드로 갈라져 있을 수 있어 수동 확인이 필요합니다: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
 }
 
 export async function deleteServerDnsRecords(ids: Partial<DnsRecordIds>) {

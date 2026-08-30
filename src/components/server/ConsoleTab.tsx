@@ -75,15 +75,15 @@ export default function ConsoleTab({
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [lines]);
 
+  function runQuickCommand(cmd: string) {
+    wsRef.current?.send(JSON.stringify({ event: "send command", args: [cmd] }));
+  }
+
   function sendCommand(e: React.FormEvent) {
     e.preventDefault();
     if (!command.trim()) return;
-    wsRef.current?.send(JSON.stringify({ event: "send command", args: [command] }));
+    runQuickCommand(command);
     setCommand("");
-  }
-
-  function runQuickCommand(cmd: string) {
-    wsRef.current?.send(JSON.stringify({ event: "send command", args: [cmd] }));
   }
 
   function downloadLog() {

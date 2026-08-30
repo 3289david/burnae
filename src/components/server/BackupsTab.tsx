@@ -55,6 +55,7 @@ export default function BackupsTab({ serverId, backupSlots }: { serverId: string
   async function remove(uuid: string) {
     if (!confirm("이 백업을 삭제할까요?")) return;
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch(`/api/servers/${serverId}/backups/${uuid}`, { method: "DELETE" });
       if (!res.ok) {

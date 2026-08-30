@@ -84,6 +84,7 @@ export default function SettingsTab({
   const [note, setNote] = useState(ownerNote ?? "");
   const [noteSaving, setNoteSaving] = useState(false);
   const [noteSaved, setNoteSaved] = useState(false);
+  const [noteError, setNoteError] = useState<string | null>(null);
   const [values, setValues] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -150,6 +151,7 @@ export default function SettingsTab({
   async function saveNote() {
     setNoteSaving(true);
     setNoteSaved(false);
+    setNoteError(null);
     try {
       const res = await fetch(`/api/servers/${serverId}`, {
         method: "PATCH",
@@ -159,7 +161,7 @@ export default function SettingsTab({
       if (!res.ok) throw new Error();
       setNoteSaved(true);
     } catch {
-      setError("메모 저장에 실패했어요.");
+      setNoteError("메모 저장에 실패했어요.");
     } finally {
       setNoteSaving(false);
     }
@@ -249,6 +251,7 @@ export default function SettingsTab({
         <button onClick={saveNote} disabled={noteSaving} className="btn-secondary px-4 py-2 text-sm">
           {noteSaving ? "저장 중..." : noteSaved ? "저장됨" : "저장"}
         </button>
+        {noteError && <p className="text-xs text-red">{noteError}</p>}
       </div>
     )}
 

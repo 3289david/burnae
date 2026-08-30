@@ -111,7 +111,7 @@ export default async function DashboardPage() {
               >
                 <div className="flex flex-wrap items-center justify-between gap-x-2">
                   <span className="flex items-center gap-1.5 min-w-0">
-                    <FavoriteButton serverId={s.id} initial={s.isFavorite} />
+                    {s.ownerId === user!.id && <FavoriteButton serverId={s.id} initial={s.isFavorite} />}
                     <span className="font-semibold truncate min-w-0">{s.name}</span>
                   </span>
                   <span className="text-sm shrink-0 inline-flex items-center gap-1.5">

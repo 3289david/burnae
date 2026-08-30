@@ -298,7 +298,12 @@ export default function FilesTab({ serverId }: { serverId: string }) {
           <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-dim" />
           <input
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              // 검색으로 화면에서 안 보이게 된 선택 항목이 남아있으면 "선택 삭제"를 누를 때
+              // 본인이 잊은 파일까지 같이 지워질 수 있어서, 검색어를 바꾸면 선택을 초기화한다
+              setQuery(e.target.value);
+              setSelected(new Set());
+            }}
             placeholder="파일 검색"
             className="input py-1 pl-7 text-xs w-32"
           />

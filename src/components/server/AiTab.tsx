@@ -48,6 +48,7 @@ export default function AiTab({
   const [busy, setBusy] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   async function loadConversationList() {
     const res = await fetch(`/api/ai/conversations?serverId=${serverId}`);
@@ -55,18 +56,28 @@ export default function AiTab({
   }
 
   async function startNewConversation() {
-    const res = await fetch("/api/ai/conversations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ serverId }) });
-    const data = await res.json();
-    setConversationId(data.id);
-    setMessages([]);
-    setPending(null);
-    await loadConversationList();
+    setLoadError(null);
+    try {
+      const res = await fetch("/api/ai/conversations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ serverId }) });
+      const data = await res.json();
+      if (!res.ok || !data.id) throw new Error(data.error ?? "대화를 시작하지 못했어요.");
+      setConversationId(data.id);
+      setMessages([]);
+      setPending(null);
+      await loadConversationList();
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : "대화를 시작하지 못했어요.");
+    }
   }
 
   useEffect(() => {
     (async () => {
       const res = await fetch(`/api/ai/conversations?serverId=${serverId}`);
-      const list = res.ok ? await res.json() : [];
+      if (!res.ok) {
+        setLoadError("대화 목록을 불러오지 못했어요. 새로고침해보세요.");
+        return;
+      }
+      const list = await res.json();
       setConversations(list);
       if (list.length > 0) {
         setConversationId(list[0].id);
@@ -130,6 +141,18 @@ export default function AiTab({
     } finally {
       setBusy(false);
     }
+  }
+
+  if (loadError) {
+    return (
+      <div>
+        <AiCreditsCard />
+        <div className="card-glow p-5 space-y-3 animate-fade-up">
+          <p className="text-sm text-red">{loadError}</p>
+          <button onClick={startNewConversation} className="btn-secondary px-4 py-2 text-sm">다시 시도</button>
+        </div>
+      </div>
+    );
   }
 
   return (

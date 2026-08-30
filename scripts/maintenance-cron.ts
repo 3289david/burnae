@@ -266,10 +266,13 @@ async function handleHanaBankMatching() {
       const depositorName = deposit.printContent.trim();
       if (!isValidDepositorName(depositorName)) continue;
 
-      const match = pendingOrders.find(
+      const matchIndex = pendingOrders.findIndex(
         (o) => o.depositorName === depositorName && o.amountKrw === deposit.amount,
       );
-      if (!match) continue;
+      if (matchIndex === -1) continue;
+      // 같은 사람이 같은 금액인 주문을 두 개 이상 갖고 있을 수 있어(예: 같은 요금제 갱신 2건),
+      // 이번 배치 안에서 같은 주문에 입금이 중복 매칭되지 않게 바로 목록에서 뺀다
+      const [match] = pendingOrders.splice(matchIndex, 1);
 
       try {
         await markOrderPaidAndFulfill(match.id);

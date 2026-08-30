@@ -27,6 +27,11 @@ import {
   Radio,
   Waves,
   Dices,
+  Gamepad2,
+  Factory,
+  Ghost,
+  Mountain,
+  Axe,
 } from "lucide-react";
 
 interface Template {
@@ -119,6 +124,12 @@ const LOADER_META: Record<string, { icon: typeof Package; color: string; blurb: 
   phantombot: { icon: Radio, color: "var(--purple)", blurb: "유명한 트위치 채팅봇" },
   sogebot: { icon: Radio, color: "var(--pink)", blurb: "트위치 스트리머용 봇" },
   lavalink: { icon: Waves, color: "var(--cyan)", blurb: "음악봇용 오디오 노드" },
+  "terraria-vanilla": { icon: Gamepad2, color: "var(--lime)", blurb: "친구들과 함께하는 2D 샌드박스" },
+  factorio: { icon: Factory, color: "var(--yellow)", blurb: "공장 자동화 게임" },
+  "among-us-impostor": { icon: Ghost, color: "var(--purple)", blurb: "어몽어스 오픈소스 서버" },
+  mindustry: { icon: Gamepad2, color: "var(--blue)", blurb: "타워디펜스+공장 게임" },
+  "vintage-story": { icon: Mountain, color: "var(--flame-2)", blurb: "생존 샌드박스 게임" },
+  valheim: { icon: Axe, color: "var(--green)", blurb: "바이킹 생존 게임" },
 };
 
 function loaderMeta(baseKey: string) {

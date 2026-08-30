@@ -34,11 +34,24 @@ export const AI_TOOLS: Record<string, ToolDef> = {
   get_server_status: {
     riskLevel: "SAFE",
     name: "get_server_status",
-    description: "서버의 현재 상태(온라인 여부, CPU/RAM/디스크 사용량, 가동시간)를 조회한다.",
+    description:
+      "서버의 현재 상태(온라인 여부, CPU/RAM/디스크 사용량, 가동시간)와 접속 주소를 조회한다. " +
+      "뭔가 만들고 나서 사용자에게 확인해볼 주소를 알려줄 때도 이 도구로 주소를 가져온다.",
     parameters: { type: "object", properties: {} },
     run: async (server) => {
-      if (!server.pterodactylIdentifier) return { status: "PROVISIONING" };
-      return PteroClient.getServerResources(server.pterodactylIdentifier);
+      const [subdomain, settings] = await Promise.all([
+        prisma.serverSubdomain.findFirst({ where: { serverId: server.id }, orderBy: { isPrimary: "desc" } }),
+        prisma.hostingSettings.findUnique({ where: { id: 1 } }),
+      ]);
+      const address =
+        subdomain && settings
+          ? `${subdomain.subdomain}.${settings.subdomainZone}` +
+            (server.allocationPort ? `:${server.allocationPort}` : "")
+          : null;
+
+      if (!server.pterodactylIdentifier) return { status: "PROVISIONING", address };
+      const resources = await PteroClient.getServerResources(server.pterodactylIdentifier);
+      return { ...resources, address };
     },
   },
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Wrench } from "lucide-react";
 import AiCreditsCard from "./AiCreditsCard";
 
 interface Message {
@@ -124,6 +125,9 @@ export default function AiTab({
     setBusy(true);
     setChatError(null);
     setMessages((prev) => [...prev, { id: `tmp-${Date.now()}`, role: "USER", content: text, createdAt: new Date().toISOString() }]);
+    // 메이커는 파일을 여러 개 만드느라 응답까지 오래 걸릴 수 있어서, 기다리는 동안에도 주기적으로
+    // 대화를 다시 불러와 지금까지 만든 파일들(진행 로그)이 실시간으로 보이게 한다
+    const pollTimer = setInterval(() => refresh(conversationId), 2500);
     try {
       const res = await fetch(`/api/ai/conversations/${conversationId}/messages`, {
         method: "POST",
@@ -136,6 +140,7 @@ export default function AiTab({
       }
       await refresh(conversationId);
     } finally {
+      clearInterval(pollTimer);
       setBusy(false);
     }
   }
@@ -195,17 +200,24 @@ export default function AiTab({
             {(kind === "MAKER" ? MAKER_EXAMPLE_PROMPTS : CHAT_EXAMPLE_PROMPTS)[templateCategory]}
           </p>
         )}
-        {messages.map((m) => (
-          <div key={m.id} className={`flex ${m.role === "USER" ? "justify-end" : "justify-start"}`}>
-            <div
-              className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap ${
-                m.role === "USER" ? "bg-accent text-white" : "bg-surface-2"
-              }`}
-            >
+        {messages.map((m) =>
+          m.role === "TOOL" ? (
+            <div key={m.id} className="flex items-center gap-1.5 text-xs text-text-dim pl-1">
+              <Wrench size={12} className="shrink-0" />
               {m.content}
             </div>
-          </div>
-        ))}
+          ) : (
+            <div key={m.id} className={`flex ${m.role === "USER" ? "justify-end" : "justify-start"}`}>
+              <div
+                className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap ${
+                  m.role === "USER" ? "bg-accent text-white" : "bg-surface-2"
+                }`}
+              >
+                {m.content}
+              </div>
+            </div>
+          ),
+        )}
 
         {chatError && <p className="text-sm text-red text-center">{chatError}</p>}
 
@@ -238,7 +250,7 @@ export default function AiTab({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           disabled={busy || !!pending}
-          placeholder={pending ? "승인 대기 중이에요..." : "메시지를 입력하세요..."}
+          placeholder={pending ? "승인 대기 중이에요..." : busy ? (kind === "MAKER" ? "만드는 중이에요... 위에서 진행 상황을 볼 수 있어요" : "처리 중이에요...") : "메시지를 입력하세요..."}
           className="flex-1 bg-transparent px-4 py-3 text-sm outline-none"
         />
         <button type="submit" disabled={busy || !!pending} className="px-4 text-accent font-medium">

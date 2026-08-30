@@ -18,10 +18,9 @@ export async function GET(
   });
   if (!conversation) return NextResponse.json({ error: "대화를 찾을 수 없습니다." }, { status: 404 });
 
-  // 도구 결과 원본(JSON blocks)은 프론트에 노출하지 않고, 사람이 읽을 대화만 반환
-  const messages = conversation.messages
-    .filter((m) => m.role !== "TOOL")
-    .map((m) => ({ id: m.id, role: m.role, content: m.content, createdAt: m.createdAt }));
+  // 도구 결과 원본(JSON blocks)은 프론트에 노출하지 않는다 — TOOL 메시지는 content(사람이 읽을
+  // 한 줄 요약, 예: "파일 작성: index.html")만 내려서 빌드 진행 로그처럼 보여준다
+  const messages = conversation.messages.map((m) => ({ id: m.id, role: m.role, content: m.content, createdAt: m.createdAt }));
 
   const pendingActivity = await prisma.aiActivityLog.findFirst({
     where: { conversationId: id, status: "PENDING_APPROVAL" },

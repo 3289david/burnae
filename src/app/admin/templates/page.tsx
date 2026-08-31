@@ -59,6 +59,58 @@ export default function AdminTemplatesPage() {
   const [fetchingEgg, setFetchingEgg] = useState(false);
   const [advanced, setAdvanced] = useState(false);
 
+  // Pterodactyl에 아직 없는 완전히 새로운 Egg를 JSON(URL 또는 붙여넣기)으로 통째로 가져오기
+  const [importUrl, setImportUrl] = useState("");
+  const [importJsonText, setImportJsonText] = useState("");
+  const [importKey, setImportKey] = useState("");
+  const [importDisplayName, setImportDisplayName] = useState("");
+  const [importCategory, setImportCategory] = useState<ServerCategory>("GENERAL");
+  const [importNestId, setImportNestId] = useState("5");
+  const [importBusy, setImportBusy] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importDone, setImportDone] = useState<string | null>(null);
+
+  async function importEgg(e: React.FormEvent) {
+    e.preventDefault();
+    setImportBusy(true);
+    setImportError(null);
+    setImportDone(null);
+    try {
+      let eggJson: unknown;
+      if (importJsonText.trim()) {
+        try {
+          eggJson = JSON.parse(importJsonText);
+        } catch {
+          throw new Error("붙여넣은 내용이 올바른 JSON이 아니에요.");
+        }
+      }
+      const res = await fetch("/api/admin/templates/import-egg", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eggJsonUrl: eggJson ? undefined : importUrl || undefined,
+          eggJson,
+          nestId: Number(importNestId),
+          key: importKey,
+          displayName: importDisplayName || undefined,
+          category: importCategory,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setImportDone(`"${data.displayName}" 가져오기 완료!`);
+      setImportUrl("");
+      setImportJsonText("");
+      setImportKey("");
+      setImportDisplayName("");
+      await load();
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : "가져오기 실패");
+    } finally {
+      setImportBusy(false);
+    }
+  }
+
   async function load() {
     const res = await fetch("/api/admin/templates");
     setTemplates(await res.json());
@@ -188,8 +240,62 @@ export default function AdminTemplatesPage() {
         ))}
       </div>
 
+      <form onSubmit={importEgg} className="card-glow p-5 mt-6 space-y-3">
+        <h2 className="font-semibold">Egg JSON으로 완전히 새로 가져오기</h2>
+        <p className="text-xs text-text-dim">
+          Pterodactyl에 아직 없는 Egg를 JSON 파일 URL이나 내용 붙여넣기로 통째로 가져와요
+          (parkervcp/eggs 등 공개 저장소의 egg-*.json 파일을 그대로 쓸 수 있어요). 이 화면은
+          관리자 전용이에요 — 설치 스크립트가 포함된 만큼, 신뢰할 수 있는 출처의 egg만 가져오세요.
+        </p>
+        <input
+          type="url"
+          className="input w-full text-sm"
+          placeholder="egg JSON 파일의 raw URL (예: https://raw.githubusercontent.com/.../egg-x.json)"
+          value={importUrl}
+          onChange={(e) => setImportUrl(e.target.value)}
+        />
+        <textarea
+          className="input w-full text-xs font-mono"
+          rows={3}
+          placeholder="또는 여기에 egg JSON 내용을 직접 붙여넣기 (URL보다 우선함)"
+          value={importJsonText}
+          onChange={(e) => setImportJsonText(e.target.value)}
+        />
+        <div className="grid sm:grid-cols-4 gap-2">
+          <input
+            required
+            className="input text-sm"
+            placeholder="key (예: my-custom-egg)"
+            value={importKey}
+            onChange={(e) => setImportKey(e.target.value)}
+          />
+          <input
+            className="input text-sm"
+            placeholder="표시 이름 (비우면 egg 이름 사용)"
+            value={importDisplayName}
+            onChange={(e) => setImportDisplayName(e.target.value)}
+          />
+          <select className="input text-sm" value={importCategory} onChange={(e) => setImportCategory(e.target.value as ServerCategory)}>
+            {Object.entries(CATEGORY_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+          </select>
+          <input
+            required
+            type="number"
+            className="input text-sm"
+            placeholder="Nest ID"
+            value={importNestId}
+            onChange={(e) => setImportNestId(e.target.value)}
+          />
+        </div>
+        <button type="submit" disabled={importBusy || !importKey || (!importUrl && !importJsonText.trim())} className="btn-primary px-4 py-2 text-sm">
+          {importBusy ? "가져오는 중..." : "가져오기"}
+        </button>
+        {importDone && <p className="text-xs text-green">{importDone}</p>}
+        {importError && <p className="text-xs text-red">{importError}</p>}
+      </form>
+
       <form onSubmit={create} className="card-glow p-5 mt-6 space-y-4">
-        <h2 className="font-semibold">새 서버 종류 추가</h2>
+        <h2 className="font-semibold">서버 종류(Egg)에 이미 있는 종류 추가</h2>
 
         {nestsError && (
           <p className="text-xs text-red">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { KeyRound, Share2 } from "lucide-react";
+import { KeyRound, Share2, GitBranch, Download } from "lucide-react";
 import SuccessCheck from "@/components/SuccessCheck";
 
 interface StartupVariable {
@@ -67,6 +67,10 @@ export default function StartupVariablesCard({ serverId, templateId }: { serverI
   const [saved, setSaved] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const [installBusy, setInstallBusy] = useState(false);
+  const [installDone, setInstallDone] = useState(false);
+  const [installError, setInstallError] = useState<string | null>(null);
+
   const [sharing, setSharing] = useState(false);
   const [shareName, setShareName] = useState("");
   const [shareBlurb, setShareBlurb] = useState("");
@@ -103,6 +107,29 @@ export default function StartupVariablesCard({ serverId, templateId }: { serverI
     }
   }
 
+  async function installFromRepo() {
+    if (!confirm("이 저장소 코드로 설치할까요? 서버의 기존 파일 대부분이 사라지고 이 저장소 코드로 새로 설치돼요.")) return;
+    setInstallBusy(true);
+    setInstallError(null);
+    setInstallDone(false);
+    try {
+      const saveRes = await fetch(`/api/servers/${serverId}/startup`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: "GIT_ADDRESS", value: values["GIT_ADDRESS"] ?? "" }),
+      });
+      const saveData = await saveRes.json();
+      if (!saveRes.ok) throw new Error(saveData.error);
+      const reinstallRes = await fetch(`/api/servers/${serverId}/reinstall`, { method: "POST" });
+      if (!reinstallRes.ok) throw new Error((await reinstallRes.json().catch(() => ({}))).error ?? "설치 실패");
+      setInstallDone(true);
+    } catch (err) {
+      setInstallError(err instanceof Error ? err.message : "설치 실패");
+    } finally {
+      setInstallBusy(false);
+    }
+  }
+
   async function publishPreset(e: React.FormEvent) {
     e.preventDefault();
     setSharePosting(true);
@@ -127,6 +154,7 @@ export default function StartupVariablesCard({ serverId, templateId }: { serverI
   }
 
   const editable = variables?.filter((v) => v.isEditable) ?? [];
+  const gitVar = editable.find((v) => v.envVariable === "GIT_ADDRESS");
   if (variables !== null && editable.length === 0) return null;
 
   return (
@@ -143,8 +171,39 @@ export default function StartupVariablesCard({ serverId, templateId }: { serverI
 
       {variables === null && <p className="text-sm text-text-dim">불러오는 중...</p>}
 
+      {gitVar && (
+        <div className="rounded-xl border border-border bg-surface-2/50 p-3.5 space-y-2 animate-fade-up">
+          <p className="text-sm font-medium inline-flex items-center gap-1.5">
+            <GitBranch size={14} /> 저장소에서 설치하기
+          </p>
+          <p className="text-xs text-text-dim">
+            GitHub 등 코드 저장소 주소를 넣고 설치하면, 그 저장소 코드로 서버가 새로 설치돼요
+            (기존 파일 대부분은 사라져요).
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <input
+              type="text"
+              className="input flex-1 min-w-[200px] font-mono text-sm"
+              placeholder="https://github.com/아이디/저장소이름"
+              value={values["GIT_ADDRESS"] ?? ""}
+              onChange={(e) => setValues({ ...values, GIT_ADDRESS: e.target.value })}
+            />
+            <button
+              onClick={installFromRepo}
+              disabled={installBusy || !(values["GIT_ADDRESS"] ?? "").trim()}
+              className="btn-primary px-3.5 py-2 text-xs shrink-0 inline-flex items-center gap-1.5 active:scale-95 transition-transform"
+            >
+              <Download size={13} className={installBusy ? "animate-spin" : ""} />
+              {installBusy ? "설치하는 중..." : "설치하기"}
+            </button>
+          </div>
+          {installDone && <p className="text-xs text-green animate-toast-in">설치를 시작했어요! 콘솔 탭에서 진행 상황을 볼 수 있어요.</p>}
+          {installError && <p className="text-xs text-red">{installError}</p>}
+        </div>
+      )}
+
       <div className="space-y-3">
-        {editable.map((v, i) => {
+        {editable.filter((v) => v.envVariable !== "GIT_ADDRESS").map((v, i) => {
           const info = friendlyHelp(v.envVariable);
           return (
             <div key={v.envVariable} className="space-y-1 animate-fade-up" style={{ animationDelay: `${Math.min(i, 10) * 0.03}s` }}>

@@ -11,6 +11,7 @@ import { getBotSettings } from "@/lib/botSettings";
 import { addDiscordRole, sendDiscordChannelMessage } from "@/lib/discordNotify";
 import { FREE_SERVER_RENEWAL_DAYS } from "@/lib/serverRenewal";
 import { panelUsernameForUser } from "@/lib/pterodactylUser";
+import { syncAppProxyMap } from "@/lib/appProxy";
 import type { HostNode, Server } from "@/generated/prisma/client";
 
 export class ProvisioningError extends Error {}
@@ -316,6 +317,12 @@ export async function createServerForOrder(orderId: string) {
     console.error("[provisioning] Cloudflare DNS 생성 실패:", err);
   }
 
+  // name.app.krl.kr(포트 없는 접속 주소)를 바로 쓸 수 있게 즉시 시도 — 실패해도 크론이 10분마다
+  // 다시 동기화하니 서버 생성 자체를 막지 않는다
+  syncAppProxyMap(prisma).catch((err) => {
+    console.error("[provisioning] app.krl.kr 프록시 맵 동기화 실패(크론에서 재시도됨):", err);
+  });
+
   notifyServerCreated(server, order.userId, node.name).catch((err) => {
     console.error("[provisioning] 디스코드 알림/역할 부여 실패(서버 생성 자체는 정상):", err);
   });
@@ -449,6 +456,10 @@ export async function deleteServerFully(
       });
     })
     .catch((err) => console.error("[provisioning] 삭제 로그 알림 실패:", err));
+
+  syncAppProxyMap(prisma).catch((err) => {
+    console.error("[provisioning] app.krl.kr 프록시 맵 동기화 실패(크론에서 재시도됨):", err);
+  });
 
   return updated;
 }

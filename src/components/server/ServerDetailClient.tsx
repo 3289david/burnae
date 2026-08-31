@@ -83,7 +83,11 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
   const [nameInput, setNameInput] = useState(server.name);
   const [nameSaving, setNameSaving] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
-  const addresses = server.subdomains.map((s) => `${s.subdomain}.${server.subdomainZone}`);
+  const addresses = server.subdomains.map((s) =>
+    server.templateCategory !== "MINECRAFT" && server.allocationPort
+      ? `${s.subdomain}.app.${server.subdomainZone}`
+      : `${s.subdomain}.${server.subdomainZone}`
+  );
   const visibleTabs = TABS.filter((t) => server.templateCategory === "MINECRAFT" || !MINECRAFT_ONLY_TABS.has(t.key));
 
   // 토스식 슬라이딩 탭 인디케이터 — 활성 탭 뒤 배경이 색 전환 없이 실제로 미끄러져 이동한다
@@ -96,7 +100,7 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
   const primarySubdomain = server.subdomains.find((s) => s.isPrimary) ?? server.subdomains[0];
   const previewAddress =
     server.templateCategory !== "MINECRAFT" && primarySubdomain && server.allocationPort
-      ? `${primarySubdomain.subdomain}.${server.subdomainZone}:${server.allocationPort}`
+      ? `${primarySubdomain.subdomain}.app.${server.subdomainZone}`
       : null;
 
   async function saveName() {

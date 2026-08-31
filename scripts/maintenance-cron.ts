@@ -7,6 +7,7 @@ import { deleteServerFully } from "../src/lib/provisioning";
 import { getRecentDeposits, isValidDepositorName } from "../src/lib/hanabank";
 import { markOrderPaidAndFulfill, retryPreorderFulfillment } from "../src/lib/orderFulfillment";
 import { ProvisioningError } from "../src/lib/provisioning";
+import { syncAppProxyMap } from "../src/lib/appProxy";
 
 /**
  * 주기적으로(예: 5~10분마다) 실행하는 운영 크론.
@@ -465,6 +466,12 @@ async function handlePreorderRetries() {
 async function main() {
   console.log(`[cron] 시작 ${new Date().toISOString()}`);
   await handleServerStatusSync();
+  try {
+    const result = await syncAppProxyMap(prisma);
+    if (result.changed) console.log(`[cron] app.krl.kr 프록시 맵 갱신 (${result.count}개 서버)`);
+  } catch (err) {
+    console.error("[cron] app.krl.kr 프록시 맵 동기화 실패:", err);
+  }
   await handleRenewals();
   await handleResourceUpgradeExpiry();
   await handleScheduledBackups();

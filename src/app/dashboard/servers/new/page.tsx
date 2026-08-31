@@ -244,6 +244,11 @@ function NewServerPageInner() {
     if (!presetFormTemplate) return [];
     return Object.keys(presetFormTemplate.defaultEnvironment).filter((k) => !SECRET_ENV_KEYS.includes(k));
   }, [presetFormTemplate]);
+  // GIT_ADDRESS가 있는 종류(Node.js/Python/Deno/Rust/C# 봇, 제네릭 서버 등)는 "베이스 실행환경 +
+  // 내 코드 저장소"만 있으면 사실상 완전히 새로운 서버 종류를 등록하는 것과 같다 — 그래서 이 필드는
+  // 다른 부수 설정보다 훨씬 눈에 띄게 보여준다
+  const gitFieldKey = presetFormFields.includes("GIT_ADDRESS") ? "GIT_ADDRESS" : null;
+  const otherPresetFormFields = presetFormFields.filter((k) => k !== gitFieldKey);
 
   function pickCommunityEgg(p: CommunityPreset) {
     const t = allTemplates.find((x) => x.id === p.baseTemplateId);
@@ -649,8 +654,9 @@ function NewServerPageInner() {
               ) : (
               <div className="space-y-3">
                 <p className="text-xs text-text-dim">
-                  다른 유저가 만들어 공개한 서버 종류예요. 골라서 바로 시작하거나, 직접 만들어 공개하면
-                  포인트를 받아요.
+                  다른 유저가 만든 서버 종류예요 — 예: 자기 코드로 만든 디스코드 봇, 특정 설정으로
+                  튜닝된 마인크래프트 서버 등. 골라서 바로 시작하거나, 직접 만들어 공개하면 포인트를
+                  받아요.
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                   {filteredCommunityPresets.map((p, i) => {
@@ -718,9 +724,11 @@ function NewServerPageInner() {
                   <div className="card-glow p-4 space-y-3 animate-fade-up">
                     <h4 className="font-semibold text-sm">내 서버 종류(Egg) 공유하기</h4>
                     <p className="text-xs text-text-dim">
-                      기존 서버 종류 중 하나를 베이스로 골라, 시작 변수 값을 원하는 대로 채워서
-                      &ldquo;나만의 종류&rdquo;로 공개해요. 도커 이미지·설치 스크립트는 이미 검수된
-                      베이스 그대로 유지돼요.
+                      실행 환경(런타임)을 고르고, 코드 저장소 주소나 설정값을 채워서 완전히 새로운
+                      서버 종류로 공개해요 — 예를 들어 &ldquo;Node.js 봇&rdquo; 실행환경 + 내 디스코드
+                      봇 GitHub 주소를 합치면 그 자체로 &ldquo;내 디스코드 봇&rdquo;이라는 새 Egg가
+                      돼요. 도커 이미지·설치 스크립트 자체는 이미 검수된 실행환경 그대로 유지돼요
+                      (인프라 보안을 위해 임의 스크립트 업로드는 지원 안 함).
                     </p>
                     <select
                       className="input w-full text-sm"
@@ -730,14 +738,14 @@ function NewServerPageInner() {
                         setPresetFormEnv({});
                       }}
                     >
-                      <option value="">베이스 종류 선택</option>
+                      <option value="">실행 환경(런타임) 선택</option>
                       {allTemplates.map((t) => (
                         <option key={t.id} value={t.id}>{t.displayName}</option>
                       ))}
                     </select>
                     <input
                       className="input w-full text-sm"
-                      placeholder="이름 (예: 롤플레이용 기본 설정)"
+                      placeholder={gitFieldKey ? "이름 (예: 내 디스코드 봇)" : "이름 (예: 롤플레이용 기본 설정)"}
                       maxLength={40}
                       value={presetFormName}
                       onChange={(e) => setPresetFormName(e.target.value)}
@@ -749,9 +757,23 @@ function NewServerPageInner() {
                       value={presetFormBlurb}
                       onChange={(e) => setPresetFormBlurb(e.target.value)}
                     />
-                    {presetFormFields.length > 0 && (
+                    {gitFieldKey && (
+                      <div>
+                        <label className="text-xs font-medium">코드 저장소 주소 (GitHub 등)</label>
+                        <input
+                          className="input w-full text-sm font-mono mt-1"
+                          placeholder="https://github.com/아이디/저장소이름"
+                          value={presetFormEnv[gitFieldKey] ?? ""}
+                          onChange={(e) => setPresetFormEnv((v) => ({ ...v, [gitFieldKey]: e.target.value }))}
+                        />
+                        <p className="text-[11px] text-text-dim mt-1">
+                          이 저장소의 코드로 실행되는 서버가 만들어져요. 서버 생성 시 자동으로 clone돼요.
+                        </p>
+                      </div>
+                    )}
+                    {otherPresetFormFields.length > 0 && (
                       <div className="grid sm:grid-cols-2 gap-2">
-                        {presetFormFields.map((k) => (
+                        {otherPresetFormFields.map((k) => (
                           <div key={k}>
                             <label className="text-[11px] text-text-dim font-mono">{k}</label>
                             <input

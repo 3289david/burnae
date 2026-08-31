@@ -22,9 +22,15 @@ export default function ThemeToggle({ className = "" }: { className?: string }) 
     <button
       onClick={toggle}
       aria-label="화면 모드 전환"
-      className={`w-8 h-8 rounded-full flex items-center justify-center text-text-dim hover:text-text hover:bg-surface-2 transition-colors ${className}`}
+      className={`w-8 h-8 rounded-full flex items-center justify-center text-text-dim hover:text-text hover:bg-surface-2 transition-colors active:scale-90 ${className}`}
     >
-      {theme === "light" ? <Moon size={16} /> : theme === "dark" ? <Sun size={16} /> : <span className="w-4 h-4" />}
+      {theme === "light" ? (
+        <Moon size={16} key="moon" className="animate-star-pop" />
+      ) : theme === "dark" ? (
+        <Sun size={16} key="sun" className="animate-star-pop" />
+      ) : (
+        <span className="w-4 h-4" />
+      )}
     </button>
   );
 }

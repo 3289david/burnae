@@ -279,7 +279,7 @@ export default function FilesTab({ serverId }: { serverId: string }) {
 
   return (
     <div
-      className={`card p-0 overflow-hidden ${dragOver ? "border-accent" : ""}`}
+      className={`card p-0 overflow-hidden transition-colors duration-150 ${dragOver ? "border-accent bg-accent/[0.03]" : ""}`}
       onDragOver={(e) => {
         e.preventDefault();
         setDragOver(true);
@@ -338,7 +338,7 @@ export default function FilesTab({ serverId }: { serverId: string }) {
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="btn-secondary px-2.5 py-1 text-xs"
+            className="btn-secondary px-2.5 py-1 text-xs active:scale-95 transition-transform"
           >
             {uploading ? "업로드 중..." : "업로드"}
           </button>
@@ -346,17 +346,21 @@ export default function FilesTab({ serverId }: { serverId: string }) {
       </div>
 
       {dragOver && (
-        <div className="px-4 py-6 text-center text-sm text-accent border-b border-border">
+        <div className="px-4 py-6 text-center text-sm text-accent border-b border-border animate-toast-in">
           여기에 파일을 놓으세요
         </div>
       )}
       {error && <p className="p-4 text-sm text-red">{error}</p>}
 
       <div className="divide-y divide-border">
-        {filteredFiles.map((f) => {
+        {filteredFiles.map((f, i) => {
           const isArchive = f.is_file && ARCHIVE_EXT.test(f.name);
           return (
-            <div key={f.name} className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-surface-2">
+            <div
+              key={f.name}
+              className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-surface-2 transition-colors animate-fade-up"
+              style={{ animationDelay: `${Math.min(i, 12) * 0.02}s` }}
+            >
               <input
                 type="checkbox"
                 checked={selected.has(f.name)}
@@ -376,14 +380,14 @@ export default function FilesTab({ serverId }: { serverId: string }) {
               </button>
               {f.is_file && <span className="text-text-dim text-xs shrink-0">{(f.size / 1024).toFixed(1)}KB</span>}
               {f.is_file && (
-                <button onClick={() => download(f.name)} className="text-xs text-accent shrink-0">받기</button>
+                <button onClick={() => download(f.name)} className="text-xs text-accent shrink-0 hover:underline">받기</button>
               )}
               {isArchive && (
-                <button onClick={() => decompress(f.name)} className="text-xs text-accent shrink-0">압축해제</button>
+                <button onClick={() => decompress(f.name)} className="text-xs text-accent shrink-0 hover:underline">압축해제</button>
               )}
-              <button onClick={() => copyItem(f.name)} className="text-xs text-text-dim shrink-0">복사</button>
-              <button onClick={() => renameItem(f.name)} className="text-xs text-text-dim shrink-0">이름변경</button>
-              <button onClick={() => deleteFiles([f.name])} className="text-xs text-red shrink-0">
+              <button onClick={() => copyItem(f.name)} className="text-xs text-text-dim shrink-0 hover:text-text">복사</button>
+              <button onClick={() => renameItem(f.name)} className="text-xs text-text-dim shrink-0 hover:text-text">이름변경</button>
+              <button onClick={() => deleteFiles([f.name])} className="text-xs text-red shrink-0 hover:underline">
                 삭제
               </button>
             </div>

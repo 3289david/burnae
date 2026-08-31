@@ -89,7 +89,7 @@ export default function UpgradeCard({ serverId, currentProductId }: { serverId: 
 
   if (applied) {
     return (
-      <div className="card-glow p-5 flex items-center gap-3">
+      <div className="card-glow p-5 flex items-center gap-3 animate-fade-up">
         <SuccessCheck size={40} confetti className="shrink-0" />
         <p className="text-sm text-green">
           플랜이 변경됐어요{applied.pointsSpent ? ` (포인트 ${applied.pointsSpent.toLocaleString()}P 사용)` : ""}.
@@ -101,7 +101,7 @@ export default function UpgradeCard({ serverId, currentProductId }: { serverId: 
 
   if (payment) {
     return (
-      <div className="card-glow p-5 space-y-2">
+      <div className="card-glow p-5 space-y-2 animate-fade-up">
         <h3 className="font-semibold text-sm">차액 입금 안내</h3>
         {bank && (
           <p className="text-sm">{bank.bankName} {bank.accountNumber} ({bank.accountHolder})</p>
@@ -126,7 +126,7 @@ export default function UpgradeCard({ serverId, currentProductId }: { serverId: 
             </option>
           ))}
         </select>
-        <button onClick={() => submit(false)} disabled={busy || !selected} className="btn-primary px-4 py-2 text-sm shrink-0">
+        <button onClick={() => submit(false)} disabled={busy || !selected} className="btn-primary px-4 py-2 text-sm shrink-0 active:scale-95 transition-transform">
           변경
         </button>
       </div>
@@ -134,7 +134,7 @@ export default function UpgradeCard({ serverId, currentProductId }: { serverId: 
         <button
           onClick={() => submit(true)}
           disabled={busy || !canAffordPoints}
-          className="btn-secondary w-full py-2 text-sm"
+          className="btn-secondary w-full py-2 text-sm active:scale-[0.98] transition-transform"
         >
           {canAffordPoints
             ? `포인트로 변경하기 (${selectedProduct!.pointsCost!.toLocaleString()}P, 보유 ${points.toLocaleString()}P)`

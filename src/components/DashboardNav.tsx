@@ -26,12 +26,12 @@ export default function DashboardNav({ userName, showAdminLink }: Props) {
       <nav className="hidden sm:flex items-center gap-4">
         <span className="text-sm text-text-dim">{userName}님</span>
         {LINKS.map((l) => (
-          <Link key={l.href} href={l.href} className="text-sm text-text-dim hover:text-text">
+          <Link key={l.href} href={l.href} className="text-sm text-text-dim hover:text-text transition-colors">
             {l.label}
           </Link>
         ))}
         {showAdminLink && (
-          <Link href="/admin" className="text-sm text-accent">관리자</Link>
+          <Link href="/admin" className="text-sm text-accent hover:underline">관리자</Link>
         )}
         <ThemeToggle />
         <LogoutButton />
@@ -40,16 +40,22 @@ export default function DashboardNav({ userName, showAdminLink }: Props) {
       {/* 모바일: 햄버거 메뉴 */}
       <button
         onClick={() => setOpen((v) => !v)}
-        className="sm:hidden flex items-center gap-1.5 text-sm text-text-dim px-2 py-1"
+        className="sm:hidden flex items-center gap-1.5 text-sm text-text-dim px-2 py-1 active:scale-95 transition-transform"
         aria-label="메뉴"
       >
-        <Menu size={18} /> 메뉴
+        <Menu size={18} className={`transition-transform duration-200 ${open ? "rotate-90" : ""}`} /> 메뉴
       </button>
       {open && (
-        <div className="sm:hidden absolute top-full left-0 right-0 bg-surface border-b border-border px-6 py-3 space-y-3 z-10">
+        <div className="sm:hidden absolute top-full left-0 right-0 bg-surface border-b border-border px-6 py-3 space-y-3 z-10 animate-toast-in">
           <p className="text-sm text-text-dim">{userName}님</p>
-          {LINKS.map((l) => (
-            <Link key={l.href} href={l.href} className="block text-sm text-text" onClick={() => setOpen(false)}>
+          {LINKS.map((l, i) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className="block text-sm text-text animate-fade-up"
+              style={{ animationDelay: `${i * 0.03}s` }}
+              onClick={() => setOpen(false)}
+            >
               {l.label}
             </Link>
           ))}

@@ -94,7 +94,7 @@ export default function AiCreditsCard() {
             </p>
           </div>
         </div>
-        <button onClick={() => setOpen((v) => !v)} className="btn-secondary px-3.5 py-1.5 text-xs shrink-0">
+        <button onClick={() => setOpen((v) => !v)} className="btn-secondary px-3.5 py-1.5 text-xs shrink-0 active:scale-95 transition-transform">
           {open ? "닫기" : "충전하기"}
         </button>
       </div>
@@ -108,12 +108,13 @@ export default function AiCreditsCard() {
 
       {open && !payment && (
         <div className="mt-3 pt-3 border-t border-border grid grid-cols-3 gap-2">
-          {PACKAGES.map((pkg) => (
+          {PACKAGES.map((pkg, i) => (
             <button
               key={pkg.credits}
               onClick={() => buy(pkg)}
               disabled={busy}
-              className="rounded-xl border border-border bg-surface p-3 text-center hover:border-accent/40 hover:bg-surface-2 transition-all duration-150"
+              className="rounded-xl border border-border bg-surface p-3 text-center hover:border-accent/40 hover:bg-surface-2 transition-all duration-150 active:scale-95 animate-fade-up"
+              style={{ animationDelay: `${i * 0.04}s` }}
             >
               <p className="font-semibold text-sm">{pkg.credits.toLocaleString()}개</p>
               <p className="text-xs text-text-dim mt-0.5">{pkg.priceKrw.toLocaleString()}원</p>

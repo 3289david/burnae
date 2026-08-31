@@ -100,23 +100,30 @@ export default function ConsoleTab({
   return (
     <div className="card p-0 overflow-hidden">
       <div className="px-4 py-2 border-b border-border flex items-center justify-between">
-        <span className="text-sm text-text-dim">콘솔 {connected ? "· 연결됨" : "· 연결 중..."}</span>
+        <span className="text-sm text-text-dim inline-flex items-center gap-1.5">
+          <span className="relative inline-flex w-2 h-2">
+            {connected && <span className="absolute inset-0 rounded-full bg-green animate-ping" />}
+            <span className={`relative w-2 h-2 rounded-full ${connected ? "bg-green" : "bg-yellow"}`} />
+          </span>
+          콘솔 {connected ? "· 연결됨" : "· 연결 중..."}
+        </span>
         <button
           onClick={downloadLog}
           disabled={lines.length === 0}
-          className="text-xs text-text-dim hover:text-text inline-flex items-center gap-1 disabled:opacity-40"
+          className="text-xs text-text-dim hover:text-text inline-flex items-center gap-1 disabled:opacity-40 active:scale-95 transition-transform"
         >
           <Download size={13} /> 로그 다운로드
         </button>
       </div>
       {templateCategory === "MINECRAFT" && (
         <div className="px-4 py-2 border-b border-border flex flex-wrap gap-1.5">
-          {MINECRAFT_QUICK_COMMANDS.map((qc) => (
+          {MINECRAFT_QUICK_COMMANDS.map((qc, i) => (
             <button
               key={qc.command}
               onClick={() => runQuickCommand(qc.command)}
               disabled={!connected}
-              className="btn-secondary px-2.5 py-1 text-xs disabled:opacity-40"
+              className="btn-secondary px-2.5 py-1 text-xs disabled:opacity-40 active:scale-95 transition-transform animate-fade-up"
+              style={{ animationDelay: `${i * 0.03}s` }}
             >
               {qc.label}
             </button>
@@ -126,7 +133,12 @@ export default function ConsoleTab({
       <div ref={scrollRef} className="h-96 overflow-y-auto bg-black/30 px-4 py-3 font-mono text-xs leading-relaxed">
         {lines.length === 0 && <p className="text-text-dim">출력을 기다리는 중...</p>}
         {lines.map((line, i) => (
-          <div key={i} className="whitespace-pre-wrap break-all">{stripAnsi(line)}</div>
+          <div
+            key={i}
+            className={`whitespace-pre-wrap break-all ${i === lines.length - 1 ? "animate-toast-in" : ""}`}
+          >
+            {stripAnsi(line)}
+          </div>
         ))}
       </div>
       <form onSubmit={sendCommand} className="flex border-t border-border">
@@ -137,7 +149,7 @@ export default function ConsoleTab({
           placeholder="명령어 입력 (예: say 안녕하세요)"
           className="flex-1 bg-transparent px-2 py-3 text-sm outline-none"
         />
-        <button type="submit" className="px-4 text-accent font-medium">실행</button>
+        <button type="submit" className="px-4 text-accent font-medium active:scale-95 transition-transform">실행</button>
       </form>
     </div>
   );

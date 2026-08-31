@@ -11,7 +11,7 @@ export default function LogoutButton() {
         router.push("/");
         router.refresh();
       }}
-      className="text-sm text-text-dim hover:text-text"
+      className="text-sm text-text-dim hover:text-text active:scale-95 transition-transform inline-block"
     >
       로그아웃
     </button>

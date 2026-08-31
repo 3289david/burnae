@@ -186,6 +186,8 @@ function NewServerPageInner() {
   const searchParams = useSearchParams();
   const grantOrderId = searchParams.get("orderId");
   const prefillProductId = searchParams.get("productId");
+  const prefillTemplateId = searchParams.get("templateId");
+  const prefillPresetId = searchParams.get("presetId");
   const [step, setStep] = useState<Step>(grantOrderId ? "loading" : "form");
   const [products, setProducts] = useState<Product[]>([]);
   const [productId, setProductId] = useState("");
@@ -376,6 +378,18 @@ function NewServerPageInner() {
     setDockerImage(Object.values(t.availableDockerImages ?? {})[0] ?? "");
     setPresetId("");
   }
+
+  // /dashboard/community-eggs에서 "이 종류로 서버 만들기"로 넘어온 경우 — 결제 후 이 종류 선택
+  // 단계에 도착하면 그 템플릿/프리셋을 자동으로 골라준다
+  useEffect(() => {
+    if (step !== "choose" || !prefillTemplateId || templateId) return;
+    const t = selectedProduct?.allowedTemplates.find((x) => x.id === prefillTemplateId);
+    if (!t) return;
+    pickTier(t);
+    if (prefillPresetId) setPresetId(prefillPresetId);
+    setEggSource("community");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, selectedProduct, prefillTemplateId, prefillPresetId, templateId]);
 
   useEffect(() => {
     if (!templateId) {

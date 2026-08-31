@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Clock, Copy } from "lucide-react";
+import { CheckCircle2, Clock, Copy, Check } from "lucide-react";
 import type { ServerCustomDomainInfo } from "./ServerDetailClient";
 
 interface DnsInstructions {
@@ -105,10 +105,10 @@ export default function CustomDomainCard({
               </span>
               {isOwner && (
                 <div className="flex items-center gap-3 text-xs shrink-0">
-                  <button onClick={() => verify(d.id)} disabled={loading} className="text-accent">
+                  <button onClick={() => verify(d.id)} disabled={loading} className="text-accent hover:underline active:scale-95 transition-transform">
                     확인하기
                   </button>
-                  <button onClick={() => remove(d.id)} className="text-red">
+                  <button onClick={() => remove(d.id)} className="text-red hover:underline active:scale-95 transition-transform">
                     삭제
                   </button>
                 </div>
@@ -134,7 +134,7 @@ export default function CustomDomainCard({
             placeholder="예: play.mydomain.com"
             className="input flex-1 text-sm"
           />
-          <button type="submit" disabled={loading || !hostname} className="btn-secondary px-3 py-1.5 text-sm shrink-0">
+          <button type="submit" disabled={loading || !hostname} className="btn-secondary px-3 py-1.5 text-sm shrink-0 active:scale-95 transition-transform">
             연결하기
           </button>
         </form>
@@ -142,7 +142,7 @@ export default function CustomDomainCard({
       {error && <p className="text-xs text-red mt-2">{error}</p>}
 
       {instructions && (
-        <div className="mt-3 pt-3 border-t border-border space-y-2 text-xs font-mono">
+        <div className="mt-3 pt-3 border-t border-border space-y-2 text-xs font-mono animate-fade-up">
           <p className="text-text-dim font-sans">
             아래 두 레코드를 도메인 DNS 설정에 추가하세요 (A 레코드 먼저, SRV는 선택이지만 추천):
           </p>
@@ -165,13 +165,22 @@ export default function CustomDomainCard({
 }
 
 function Record({ label, row, onCopy }: { label: string; row: string; onCopy: () => void }) {
+  const [copied, setCopied] = useState(false);
   return (
     <div className="flex items-center justify-between gap-2 bg-surface-2 rounded-lg px-2.5 py-1.5">
       <span className="min-w-0 break-all">
         <span className="text-text-dim">{label}</span> {row}
       </span>
-      <button type="button" onClick={onCopy} className="text-text-dim hover:text-text shrink-0">
-        <Copy size={12} />
+      <button
+        type="button"
+        onClick={() => {
+          onCopy();
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        }}
+        className="text-text-dim hover:text-text shrink-0 active:scale-90 transition-transform"
+      >
+        {copied ? <Check size={12} className="text-green animate-toast-in" /> : <Copy size={12} />}
       </button>
     </div>
   );

@@ -69,10 +69,10 @@ export default function PlayersTab({ serverId }: { serverId: string }) {
           />
         </div>
         <div className="flex flex-wrap gap-2 mt-3">
-          <button disabled={busy || !name} onClick={() => act("whitelist_add", { name })} className="btn-secondary px-3 py-1.5 text-sm">화이트리스트 추가</button>
-          <button disabled={busy || !name} onClick={() => act("op", { name })} className="btn-secondary px-3 py-1.5 text-sm">OP 지정</button>
-          <button disabled={busy || !name} onClick={() => act("kick", { name, reason })} className="btn-secondary px-3 py-1.5 text-sm">킥</button>
-          <button disabled={busy || !name} onClick={() => act("ban", { name, reason })} className="btn-secondary px-3 py-1.5 text-sm text-red">밴</button>
+          <button disabled={busy || !name} onClick={() => act("whitelist_add", { name })} className="btn-secondary px-3 py-1.5 text-sm active:scale-95 transition-transform">화이트리스트 추가</button>
+          <button disabled={busy || !name} onClick={() => act("op", { name })} className="btn-secondary px-3 py-1.5 text-sm active:scale-95 transition-transform">OP 지정</button>
+          <button disabled={busy || !name} onClick={() => act("kick", { name, reason })} className="btn-secondary px-3 py-1.5 text-sm active:scale-95 transition-transform">킥</button>
+          <button disabled={busy || !name} onClick={() => act("ban", { name, reason })} className="btn-secondary px-3 py-1.5 text-sm text-red active:scale-95 transition-transform">밴</button>
         </div>
       </div>
 
@@ -80,7 +80,7 @@ export default function PlayersTab({ serverId }: { serverId: string }) {
         {data.online.length === 0 && <Empty>지금 접속한 플레이어가 없어요.</Empty>}
         {data.online.map((n) => (
           <Row key={n} label={n}>
-            <button disabled={busy} onClick={() => act("kick", { name: n })} className="text-xs text-text-dim">킥</button>
+            <button disabled={busy} onClick={() => act("kick", { name: n })} className="text-xs text-text-dim hover:text-text active:scale-95 transition-transform">킥</button>
           </Row>
         ))}
       </Section>
@@ -97,7 +97,7 @@ export default function PlayersTab({ serverId }: { serverId: string }) {
         {data.whitelist.length === 0 && <Empty>등록된 플레이어가 없어요.</Empty>}
         {data.whitelist.map((w) => (
           <Row key={w.uuid || w.name} label={w.name}>
-            <button disabled={busy} onClick={() => act("whitelist_remove", { name: w.name })} className="text-xs text-red">제거</button>
+            <button disabled={busy} onClick={() => act("whitelist_remove", { name: w.name })} className="text-xs text-red hover:underline active:scale-95 transition-transform">제거</button>
           </Row>
         ))}
       </Section>
@@ -106,7 +106,7 @@ export default function PlayersTab({ serverId }: { serverId: string }) {
         {data.ops.length === 0 && <Empty>OP가 없어요.</Empty>}
         {data.ops.map((o) => (
           <Row key={o.uuid || o.name} label={o.name}>
-            <button disabled={busy} onClick={() => act("deop", { name: o.name })} className="text-xs text-red">해제</button>
+            <button disabled={busy} onClick={() => act("deop", { name: o.name })} className="text-xs text-red hover:underline active:scale-95 transition-transform">해제</button>
           </Row>
         ))}
       </Section>
@@ -115,7 +115,7 @@ export default function PlayersTab({ serverId }: { serverId: string }) {
         {data.bans.length === 0 && <Empty>차단된 플레이어가 없어요.</Empty>}
         {data.bans.map((b) => (
           <Row key={b.name} label={`${b.name}${b.reason ? ` · ${b.reason}` : ""}`}>
-            <button disabled={busy} onClick={() => act("pardon", { name: b.name })} className="text-xs text-accent">해제</button>
+            <button disabled={busy} onClick={() => act("pardon", { name: b.name })} className="text-xs text-accent hover:underline active:scale-95 transition-transform">해제</button>
           </Row>
         ))}
       </Section>
@@ -125,7 +125,7 @@ export default function PlayersTab({ serverId }: { serverId: string }) {
 
 function Section({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="card-glow p-0 overflow-hidden">
+    <div className="card-glow p-0 overflow-hidden animate-fade-up">
       <div className="px-4 py-2.5 border-b border-border flex items-center justify-between">
         <h3 className="font-semibold text-sm">{title}</h3>
         {action}
@@ -137,7 +137,7 @@ function Section({ title, action, children }: { title: string; action?: React.Re
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm">
+    <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm hover:bg-surface-2 transition-colors">
       <span className="min-w-0 break-words">{label}</span>
       <span className="shrink-0">{children}</span>
     </div>

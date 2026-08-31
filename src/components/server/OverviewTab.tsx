@@ -146,7 +146,7 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
                   <><Clock size={16} className="text-yellow shrink-0" /> 다음 결제일이 {daysLeft}일 남았어요.</>
                 )}
               </p>
-              <button onClick={renew} disabled={renewing} className="btn-primary px-4 py-1.5 text-sm mt-2">
+              <button onClick={renew} disabled={renewing} className="btn-primary px-4 py-1.5 text-sm mt-2 active:scale-95 transition-transform">
                 {renewing ? "처리 중..." : server.isFreeServer ? "지금 7일 연장하기" : "지금 갱신하기"}
               </button>
               {renewError && <p className="text-xs text-red mt-1">{renewError}</p>}
@@ -159,21 +159,21 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
         <button
           disabled={actionLoading}
           onClick={() => power("start")}
-          className="flex-1 sm:flex-none rounded-2xl px-5 py-2.5 text-sm font-semibold inline-flex items-center justify-center gap-1.5 bg-green/15 text-green hover:bg-green/25 transition-colors disabled:opacity-50"
+          className="flex-1 sm:flex-none rounded-2xl px-5 py-2.5 text-sm font-semibold inline-flex items-center justify-center gap-1.5 bg-green/15 text-green hover:bg-green/25 transition-colors disabled:opacity-50 active:scale-95 transition-transform"
         >
           <Play size={15} /> 시작
         </button>
         <button
           disabled={actionLoading}
           onClick={() => power("restart")}
-          className="flex-1 sm:flex-none rounded-2xl px-5 py-2.5 text-sm font-semibold inline-flex items-center justify-center gap-1.5 bg-yellow/15 text-yellow hover:bg-yellow/25 transition-colors disabled:opacity-50"
+          className="flex-1 sm:flex-none rounded-2xl px-5 py-2.5 text-sm font-semibold inline-flex items-center justify-center gap-1.5 bg-yellow/15 text-yellow hover:bg-yellow/25 transition-colors disabled:opacity-50 active:scale-95 transition-transform"
         >
-          <RotateCw size={15} /> 재시작
+          <RotateCw size={15} className={actionLoading ? "animate-spin" : ""} /> 재시작
         </button>
         <button
           disabled={actionLoading}
           onClick={() => power("stop")}
-          className="flex-1 sm:flex-none rounded-2xl px-5 py-2.5 text-sm font-semibold inline-flex items-center justify-center gap-1.5 bg-red/15 text-red hover:bg-red/25 transition-colors disabled:opacity-50"
+          className="flex-1 sm:flex-none rounded-2xl px-5 py-2.5 text-sm font-semibold inline-flex items-center justify-center gap-1.5 bg-red/15 text-red hover:bg-red/25 transition-colors disabled:opacity-50 active:scale-95 transition-transform"
         >
           <Square size={15} /> 중지
         </button>
@@ -299,7 +299,7 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
                   }`}
                 />
                 {server.isOwner && (
-                  <button onClick={() => removeSubdomain(s.id)} className="text-red text-xs">삭제</button>
+                  <button onClick={() => removeSubdomain(s.id)} className="text-red text-xs hover:underline active:scale-95 transition-transform">삭제</button>
                 )}
               </div>
             </div>
@@ -315,7 +315,7 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
               placeholder="예: play"
               className="input flex-1 text-sm"
             />
-            <button type="submit" disabled={subLoading || !newName} className="btn-secondary px-3 py-1.5 text-sm">
+            <button type="submit" disabled={subLoading || !newName} className="btn-secondary px-3 py-1.5 text-sm active:scale-95 transition-transform">
               주소 추가
             </button>
           </form>

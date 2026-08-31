@@ -99,7 +99,7 @@ export default function ShopSection({ points }: { points: number }) {
                 <button
                   onClick={() => redeem(item)}
                   disabled={busy !== null || !affordable}
-                  className="btn-secondary px-3.5 py-1.5 text-xs"
+                  className="btn-secondary px-3.5 py-1.5 text-xs active:scale-95 transition-transform"
                 >
                   {busy === item.id ? "교환 중..." : affordable ? "교환하기" : "포인트 부족"}
                 </button>

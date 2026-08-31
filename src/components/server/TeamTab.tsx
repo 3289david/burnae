@@ -109,7 +109,7 @@ export default function TeamTab({ serverId, isOwner }: { serverId: string; isOwn
                       <option key={v} value={v}>{l}</option>
                     ))}
                   </select>
-                  <button onClick={() => remove(m.id)} className="text-xs text-red">제거</button>
+                  <button onClick={() => remove(m.id)} className="text-xs text-red hover:underline active:scale-95 transition-transform">제거</button>
                 </div>
               ) : (
                 <span className="text-xs text-text-dim">{ROLE_LABEL[m.role]}</span>
@@ -138,7 +138,7 @@ export default function TeamTab({ serverId, isOwner }: { serverId: string; isOwn
                 <option key={v} value={v}>{l}</option>
               ))}
             </select>
-            <button type="submit" disabled={busy} className="btn-primary px-4 py-2 text-sm">초대</button>
+            <button type="submit" disabled={busy} className="btn-primary px-4 py-2 text-sm active:scale-95 transition-transform">초대</button>
           </div>
           {error && <p className="text-sm text-red">{error}</p>}
         </form>

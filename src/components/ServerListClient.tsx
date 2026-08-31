@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { Search, X } from "lucide-react";
 import StatusDot from "@/components/StatusDot";
 import FavoriteButton from "@/components/FavoriteButton";
 
@@ -46,6 +47,8 @@ const STATUS_LABEL: Record<string, { text: string; dot: "green" | "yellow" | "re
 
 export default function ServerListClient({ servers }: { servers: DashboardServerItem[] }) {
   const [filter, setFilter] = useState<"ALL" | Category>("ALL");
+  const [query, setQuery] = useState("");
+  const [onlineOnly, setOnlineOnly] = useState(false);
 
   const availableCategories = useMemo(() => {
     const set = new Set<Category>();
@@ -53,15 +56,37 @@ export default function ServerListClient({ servers }: { servers: DashboardServer
     return Array.from(set);
   }, [servers]);
 
-  const filtered = useMemo(
-    () => (filter === "ALL" ? servers : servers.filter((s) => s.category === filter)),
-    [servers, filter]
-  );
+  const filtered = useMemo(() => {
+    let list = filter === "ALL" ? servers : servers.filter((s) => s.category === filter);
+    if (onlineOnly) list = list.filter((s) => s.status === "RUNNING");
+    if (query.trim()) list = list.filter((s) => s.name.toLowerCase().includes(query.trim().toLowerCase()));
+    return list;
+  }, [servers, filter, onlineOnly, query]);
 
   return (
     <div>
-      {availableCategories.length > 1 && (
-        <div className="mt-6 flex flex-wrap gap-2 animate-fade-up">
+      {servers.length > 4 && (
+        <div className="mt-6 relative animate-fade-up">
+          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-dim" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="서버 이름으로 검색"
+            className="input w-full pl-9 pr-9"
+          />
+          {query && (
+            <button
+              onClick={() => setQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-text-dim hover:text-text active:scale-90 transition-transform"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+      )}
+
+      {(availableCategories.length > 1 || servers.some((s) => s.status === "RUNNING")) && (
+        <div className="mt-3 flex flex-wrap gap-2 animate-fade-up">
           {(["ALL", ...availableCategories] as const).map((c, i) => (
             <button
               key={c}
@@ -76,6 +101,19 @@ export default function ServerListClient({ servers }: { servers: DashboardServer
               {CATEGORY_FILTER_LABEL[c]}
             </button>
           ))}
+          <button
+            onClick={() => setOnlineOnly((v) => !v)}
+            className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-all active:scale-95 animate-fade-up inline-flex items-center gap-1.5 ${
+              onlineOnly ? "bg-green/15 text-green" : "bg-surface-2 text-text-dim hover:text-text"
+            }`}
+            style={{ animationDelay: `${(availableCategories.length + 1) * 0.03}s` }}
+          >
+            <span className="relative inline-flex w-1.5 h-1.5">
+              {onlineOnly && <span className="absolute inset-0 rounded-full bg-green animate-ping" />}
+              <span className={`relative w-1.5 h-1.5 rounded-full ${onlineOnly ? "bg-green" : "bg-text-dim"}`} />
+            </span>
+            실행 중만
+          </button>
         </div>
       )}
 
@@ -116,7 +154,9 @@ export default function ServerListClient({ servers }: { servers: DashboardServer
       </div>
 
       {filtered.length === 0 && (
-        <p className="text-sm text-text-dim mt-6 animate-fade-up">이 종류의 서버가 없어요.</p>
+        <p className="text-sm text-text-dim mt-6 animate-fade-up">
+          {query ? "검색 결과가 없어요." : "이 조건에 맞는 서버가 없어요."}
+        </p>
       )}
     </div>
   );

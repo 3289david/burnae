@@ -211,6 +211,15 @@ const PROMOTION_TASKS = [
     repeatable: false,
     sortOrder: 22,
   },
+  {
+    key: "custom_preset_published",
+    title: "커뮤니티 프리셋 공개",
+    description: "내가 설정한 시작 변수 조합을 다른 유저도 쓸 수 있는 프리셋으로 공개하면 자동으로 지급돼요 (하루 최대 5건).",
+    pointsAwarded: 150,
+    verifyMethod: "CUSTOM_PRESET_PUBLISHED",
+    repeatable: true,
+    sortOrder: 23,
+  },
 ] as const;
 
 async function main() {

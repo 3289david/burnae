@@ -17,6 +17,10 @@ export class ProvisioningError extends Error {}
 
 export const MAX_SUBDOMAINS_PER_SERVER = 2;
 
+/// egg 자체 접속 비밀번호류 환경변수 키 — 모든 서버가 같은 기본값을 쓰면 안 되므로 서버 생성 시
+/// 항상 무작위로 새로 채워 넣는다. 커뮤니티 프리셋(UserPreset)도 이 키들은 절대 덮어쓸 수 없다.
+export const SECRET_ENV_KEYS = ["PASSWORD", "PGPASSWORD", "SERVER_PASSWORD", "MONGO_USER_PASS", "MEILI_MASTER_KEY"];
+
 /** Pterodactyl 관례상 CPU 퍼센트 100 = 코어 1개 */
 export const CPU_PERCENT_PER_CORE = 100;
 
@@ -206,9 +210,18 @@ export async function createServerForOrder(orderId: string) {
   // 기본값을 그대로 쓰면 남의 서버에 그 기본값으로 접속할 수 있는 심각한 보안 문제가 된다 —
   // 서버마다 무작위로 새로 생성해서 덮어쓰고 accessSecret에 저장해 소유자에게만 보여준다
   const defaultEnv = template.defaultEnvironment as Record<string, string | number | boolean>;
-  const SECRET_ENV_KEYS = ["PASSWORD", "PGPASSWORD", "SERVER_PASSWORD", "MONGO_USER_PASS", "MEILI_MASTER_KEY"];
   const secretEnvKey = SECRET_ENV_KEYS.find((key) => key in defaultEnv);
   const accessSecret = secretEnvKey ? crypto.randomBytes(9).toString("base64url") : null;
+
+  // 커뮤니티 프리셋을 골랐다면 그 값으로 defaultEnv를 덮어쓴다. 신고 누적으로 비공개(delisted)된
+  // 프리셋은 이미 결제 전에 걸러지긴 하지만, 결제와 적용 사이 시차를 노린 악용을 막기 위해 여기서도
+  // 다시 한번 delisted 여부와 baseTemplateId 일치 여부를 확인한다.
+  const preset = order.presetIdRequested
+    ? await prisma.userPreset.findFirst({
+        where: { id: order.presetIdRequested, baseTemplateId: template.id, delisted: false },
+      })
+    : null;
+  const presetEnv = (preset?.environment as Record<string, string | number | boolean> | undefined) ?? {};
 
   const dockerImage = order.dockerImageRequested ?? template.dockerImage;
 
@@ -223,6 +236,7 @@ export async function createServerForOrder(orderId: string) {
     startupCommand: template.startupCommand,
     environment: {
       ...defaultEnv,
+      ...presetEnv,
       ...(template.category === "MINECRAFT"
         ? { MINECRAFT_VERSION: order.minecraftVersionRequested ?? "latest" }
         : {}),

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { KeyRound } from "lucide-react";
+import { KeyRound, Share2 } from "lucide-react";
+import SuccessCheck from "@/components/SuccessCheck";
 
 interface StartupVariable {
   name: string;
@@ -59,12 +60,19 @@ function friendlyHelp(envVariable: string): HelpInfo | null {
   return null;
 }
 
-export default function StartupVariablesCard({ serverId }: { serverId: string }) {
+export default function StartupVariablesCard({ serverId, templateId }: { serverId: string; templateId: string }) {
   const [variables, setVariables] = useState<StartupVariable[] | null>(null);
   const [values, setValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const [sharing, setSharing] = useState(false);
+  const [shareName, setShareName] = useState("");
+  const [shareBlurb, setShareBlurb] = useState("");
+  const [sharePosting, setSharePosting] = useState(false);
+  const [shareResult, setShareResult] = useState<{ pointsAwarded: number } | null>(null);
+  const [shareError, setShareError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`/api/servers/${serverId}/startup`)
@@ -92,6 +100,29 @@ export default function StartupVariablesCard({ serverId }: { serverId: string })
       setError(err instanceof Error ? err.message : "저장 실패");
     } finally {
       setSaving(null);
+    }
+  }
+
+  async function publishPreset(e: React.FormEvent) {
+    e.preventDefault();
+    setSharePosting(true);
+    setShareError(null);
+    try {
+      const environment = Object.fromEntries(editable.map((v) => [v.envVariable, values[v.envVariable] ?? ""]));
+      const res = await fetch("/api/presets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ baseTemplateId: templateId, displayName: shareName, blurb: shareBlurb || undefined, environment }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setShareResult({ pointsAwarded: data.pointsAwarded });
+      setShareName("");
+      setShareBlurb("");
+    } catch (err) {
+      setShareError(err instanceof Error ? err.message : "공유 실패");
+    } finally {
+      setSharePosting(false);
     }
   }
 
@@ -150,6 +181,58 @@ export default function StartupVariablesCard({ serverId }: { serverId: string })
         })}
       </div>
       {error && <p className="text-xs text-red">{error}</p>}
+
+      {editable.length > 0 && (
+        <div className="pt-3 border-t border-border">
+          {shareResult ? (
+            <div className="flex items-center gap-2 animate-toast-in">
+              <SuccessCheck size={22} className="shrink-0" />
+              <p className="text-xs text-green">
+                프리셋으로 공유했어요{shareResult.pointsAwarded > 0 ? ` (포인트 ${shareResult.pointsAwarded}P 적립)` : ""}!
+                다른 유저가 서버 만들 때 이 설정을 바로 골라 쓸 수 있어요.
+              </p>
+            </div>
+          ) : !sharing ? (
+            <button
+              type="button"
+              onClick={() => setSharing(true)}
+              className="text-xs text-accent inline-flex items-center gap-1.5 hover:underline"
+            >
+              <Share2 size={13} /> 이 설정을 커뮤니티 프리셋으로 공유하기
+            </button>
+          ) : (
+            <form onSubmit={publishPreset} className="space-y-2 animate-fade-up">
+              <p className="text-xs text-text-dim">
+                지금 위에 저장된 값들이 그대로 다른 유저에게 공개돼요. 접속 비밀번호류 값은 공유되지 않아요.
+              </p>
+              <input
+                required
+                maxLength={40}
+                className="input w-full text-sm"
+                placeholder="프리셋 이름 (예: 롤플레이용 기본 설정)"
+                value={shareName}
+                onChange={(e) => setShareName(e.target.value)}
+              />
+              <input
+                maxLength={200}
+                className="input w-full text-sm"
+                placeholder="한 줄 설명 (선택)"
+                value={shareBlurb}
+                onChange={(e) => setShareBlurb(e.target.value)}
+              />
+              <div className="flex gap-2">
+                <button type="submit" disabled={sharePosting || !shareName} className="btn-primary px-3.5 py-1.5 text-xs">
+                  {sharePosting ? "공유하는 중..." : "공개하기"}
+                </button>
+                <button type="button" onClick={() => setSharing(false)} className="btn-secondary px-3.5 py-1.5 text-xs">
+                  취소
+                </button>
+              </div>
+              {shareError && <p className="text-xs text-red">{shareError}</p>}
+            </form>
+          )}
+        </div>
+      )}
     </div>
   );
 }

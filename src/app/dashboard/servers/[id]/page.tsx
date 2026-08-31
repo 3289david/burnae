@@ -58,6 +58,7 @@ export default async function ServerDetailPage({
         diskMb: server.diskMb,
         cpuPercent: server.cpuPercent,
         backupSlots: server.backupSlots,
+        templateId: server.template.id,
         templateName: server.template.displayName,
         templateCategory: server.template.category,
         minecraftVersion: server.minecraftVersion,

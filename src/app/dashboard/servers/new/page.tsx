@@ -32,6 +32,9 @@ import {
   Ghost,
   Mountain,
   Axe,
+  ShieldCheck,
+  Flag,
+  Users,
 } from "lucide-react";
 
 interface Template {
@@ -39,9 +42,17 @@ interface Template {
   key: string;
   displayName: string;
   minecraftVersions: string[];
-  category: "MINECRAFT" | "VPS" | "DISCORD_BOT" | "GENERAL";
+  category: "MINECRAFT" | "DISCORD_BOT" | "GENERAL";
   defaultEnvironment: Record<string, unknown>;
   availableDockerImages: Record<string, string> | null;
+}
+
+interface CommunityPreset {
+  id: string;
+  displayName: string;
+  blurb: string | null;
+  creatorName: string;
+  verified: boolean;
 }
 interface Product {
   id: string;
@@ -138,11 +149,10 @@ function loaderMeta(baseKey: string) {
 
 const TIER_ORDER: Record<string, number> = { 최신: 0, 중간: 1, 레거시: 2 };
 
-const CATEGORY_FILTER_LABEL: Record<"ALL" | "MINECRAFT" | "VPS" | "DISCORD_BOT" | "GENERAL", string> = {
+const CATEGORY_FILTER_LABEL: Record<"ALL" | "MINECRAFT" | "DISCORD_BOT" | "GENERAL", string> = {
   ALL: "전체",
   MINECRAFT: "마인크래프트",
   DISCORD_BOT: "디스코드 봇",
-  VPS: "VPS",
   GENERAL: "일반 서버",
 };
 
@@ -190,6 +200,9 @@ function NewServerPageInner() {
   const [gitRepo, setGitRepo] = useState("");
   const [dockerImage, setDockerImage] = useState("");
   const [choosing, setChoosing] = useState(false);
+  const [presets, setPresets] = useState<CommunityPreset[]>([]);
+  const [presetId, setPresetId] = useState("");
+  const [reportedPresetIds, setReportedPresetIds] = useState<string[]>([]);
 
   useEffect(() => {
     fetch("/api/catalog/products")
@@ -279,6 +292,24 @@ function NewServerPageInner() {
     setVersion(t.minecraftVersions[0] ?? "");
     setVersionQuery("");
     setDockerImage(Object.values(t.availableDockerImages ?? {})[0] ?? "");
+    setPresetId("");
+  }
+
+  useEffect(() => {
+    if (!templateId) {
+      setPresets([]);
+      return;
+    }
+    fetch(`/api/presets?templateId=${templateId}`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setPresets)
+      .catch(() => setPresets([]));
+  }, [templateId]);
+
+  async function reportPreset(id: string) {
+    if (!confirm("이 프리셋을 신고할까요? 여러 명이 신고하면 자동으로 목록에서 내려가요.")) return;
+    const res = await fetch(`/api/presets/${id}/report`, { method: "POST" });
+    if (res.ok) setReportedPresetIds((prev) => [...prev, id]);
   }
 
   const filteredVersions = useMemo(() => {
@@ -366,6 +397,7 @@ function NewServerPageInner() {
           minecraftVersion: version || undefined,
           gitRepo: gitRepo || undefined,
           dockerImage: dockerImage || undefined,
+          presetId: presetId || undefined,
         }),
       });
       const data = await res.json();
@@ -438,10 +470,11 @@ function NewServerPageInner() {
 
   // 서버 종류 선택 다음에 나오는 선택 섹션들(마인크래프트 버전/런타임 버전/시작 코드)은 템플릿에 따라
   // 있다 없다 하므로, 실제로 보이는 섹션 순서대로 번호를 다시 매겨서 2, 3, 4... 가 항상 이어지게 한다
-  const optionalSteps: ("minecraftVersion" | "dockerImage" | "gitRepo")[] = [];
+  const optionalSteps: ("minecraftVersion" | "dockerImage" | "gitRepo" | "presets")[] = [];
   if (selectedTemplate?.category === "MINECRAFT") optionalSteps.push("minecraftVersion");
   if (Object.keys(selectedTemplate?.availableDockerImages ?? {}).length > 1) optionalSteps.push("dockerImage");
   if (selectedTemplate && "GIT_ADDRESS" in selectedTemplate.defaultEnvironment) optionalSteps.push("gitRepo");
+  if (presets.length > 0) optionalSteps.push("presets");
   function stepFor(key: (typeof optionalSteps)[number]) {
     return 2 + optionalSteps.indexOf(key);
   }
@@ -605,6 +638,57 @@ function NewServerPageInner() {
                 value={gitRepo}
                 onChange={(e) => setGitRepo(e.target.value)}
               />
+            </Section>
+          )}
+
+          {presets.length > 0 && (
+            <Section step={stepFor("presets")} title="커뮤니티 프리셋 (선택)">
+              <p className="text-xs text-text-dim mb-2 flex items-center gap-1.5">
+                <Users size={13} /> 다른 유저가 공개한 설정을 그대로 가져와 시작할 수 있어요. 안 골라도 기본값으로 만들어져요.
+              </p>
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => setPresetId("")}
+                  className={`w-full text-left rounded-xl border p-3 transition-all duration-150 ${
+                    presetId === "" ? "border-accent bg-accent/[0.08]" : "border-border bg-surface hover:border-accent/40"
+                  }`}
+                >
+                  <span className="text-sm font-medium">기본값 사용</span>
+                </button>
+                {presets.map((p) => (
+                  <div
+                    key={p.id}
+                    className={`rounded-xl border p-3 transition-all duration-150 flex items-start gap-2 ${
+                      presetId === p.id ? "border-accent bg-accent/[0.08]" : "border-border bg-surface hover:border-accent/40"
+                    }`}
+                  >
+                    <button type="button" onClick={() => setPresetId(p.id)} className="flex-1 min-w-0 text-left">
+                      <span className="text-sm font-medium inline-flex items-center gap-1.5 flex-wrap">
+                        {p.displayName}
+                        {p.verified && (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-accent bg-accent/10 rounded-full px-1.5 py-0.5">
+                            <ShieldCheck size={10} /> 공식
+                          </span>
+                        )}
+                      </span>
+                      {p.blurb && <span className="block text-xs text-text-dim mt-0.5">{p.blurb}</span>}
+                      <span className="block text-[11px] text-text-dim mt-0.5">by {p.creatorName}</span>
+                    </button>
+                    {!p.verified && (
+                      <button
+                        type="button"
+                        onClick={() => reportPreset(p.id)}
+                        disabled={reportedPresetIds.includes(p.id)}
+                        title="신고"
+                        className="shrink-0 text-text-dim hover:text-red p-1 disabled:opacity-40"
+                      >
+                        <Flag size={13} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
             </Section>
           )}
 

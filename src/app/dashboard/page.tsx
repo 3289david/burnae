@@ -2,22 +2,10 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import EventsBanner from "@/components/EventsBanner";
-import StatusDot from "@/components/StatusDot";
 import EmptyServerIllustration from "@/components/EmptyServerIllustration";
-import FavoriteButton from "@/components/FavoriteButton";
 import CountUp from "@/components/CountUp";
+import ServerListClient, { type DashboardServerItem } from "@/components/ServerListClient";
 import { Plus, ArrowRight, Gift } from "lucide-react";
-
-const statusLabel: Record<string, { text: string; dot: "green" | "yellow" | "red" | "gray" }> = {
-  RUNNING: { text: "온라인", dot: "green" },
-  PROVISIONING: { text: "생성 중", dot: "yellow" },
-  STARTING: { text: "시작 중", dot: "yellow" },
-  STOPPING: { text: "정지 중", dot: "yellow" },
-  STOPPED: { text: "오프라인", dot: "red" },
-  SUSPENDED: { text: "정지됨(결제 필요)", dot: "red" },
-  ERROR: { text: "오류", dot: "red" },
-  DELETING: { text: "삭제 중", dot: "red" },
-};
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
@@ -27,7 +15,7 @@ export default async function DashboardPage() {
       OR: [{ ownerId: user!.id }, { members: { some: { userId: user!.id } } }],
     },
     orderBy: [{ isFavorite: "desc" }, { createdAt: "desc" }],
-    include: { subdomains: { orderBy: { isPrimary: "desc" } } },
+    include: { subdomains: { orderBy: { isPrimary: "desc" } }, template: { select: { category: true } } },
   });
 
   const settings = await prisma.hostingSettings.upsert({
@@ -101,40 +89,22 @@ export default async function DashboardPage() {
           </Link>
         </div>
       ) : (
-        <div className="mt-6 grid sm:grid-cols-2 gap-4">
-          {servers.map((s, i) => {
-            const label = statusLabel[s.status] ?? { text: s.status, dot: "gray" as const };
-            return (
-              <Link
-                key={s.id}
-                href={`/dashboard/servers/${s.id}`}
-                className="card-glow p-5 block animate-fade-up active:scale-[0.98] transition-transform"
-                style={{ animationDelay: `${0.1 + i * 0.05}s` }}
-              >
-                <div className="flex flex-wrap items-center justify-between gap-x-2">
-                  <span className="flex items-center gap-1.5 min-w-0">
-                    {s.ownerId === user!.id && <FavoriteButton serverId={s.id} initial={s.isFavorite} />}
-                    <span className="font-semibold truncate min-w-0">{s.name}</span>
-                  </span>
-                  <span className="text-sm shrink-0 inline-flex items-center gap-1.5">
-                    <StatusDot color={label.dot} /> {label.text}
-                  </span>
-                </div>
-                <p className="mt-1 text-sm text-text-dim font-mono truncate">
-                  {s.subdomains[0] ? `${s.subdomains[0].subdomain}.${settings.subdomainZone}` : "주소 준비 중"}
-                </p>
-                <div className="mt-4 flex gap-2 text-xs">
-                  <span className="rounded-full bg-surface-2 px-2.5 py-1 text-text-dim">
-                    RAM {(s.ramMb / 1024).toFixed(0)}GB
-                  </span>
-                  <span className="rounded-full bg-surface-2 px-2.5 py-1 text-text-dim">
-                    디스크 {(s.diskMb / 1024).toFixed(0)}GB
-                  </span>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
+        <ServerListClient
+          servers={servers.map(
+            (s): DashboardServerItem => ({
+              id: s.id,
+              name: s.name,
+              ownerId: s.ownerId,
+              isOwner: s.ownerId === user!.id,
+              isFavorite: s.isFavorite,
+              status: s.status,
+              ramMb: s.ramMb,
+              diskMb: s.diskMb,
+              category: s.template.category,
+              address: s.subdomains[0] ? `${s.subdomains[0].subdomain}.${settings.subdomainZone}` : "주소 준비 중",
+            })
+          )}
+        />
       )}
     </div>
   );

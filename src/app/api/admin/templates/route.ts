@@ -14,7 +14,7 @@ export async function GET() {
 const schema = z.object({
   key: z.string().min(1),
   displayName: z.string().min(1),
-  category: z.enum(["MINECRAFT", "VPS", "DISCORD_BOT", "GENERAL"]).default("MINECRAFT"),
+  category: z.enum(["MINECRAFT", "DISCORD_BOT", "GENERAL"]).default("MINECRAFT"),
   pterodactylNestId: z.number().int(),
   pterodactylEggId: z.number().int(),
   dockerImage: z.string().min(1),

@@ -50,6 +50,7 @@ const selectTemplateSchema = z.object({
   minecraftVersion: z.string().optional(),
   gitRepo: z.string().url().max(300).optional(),
   dockerImage: z.string().max(300).optional(),
+  presetId: z.string().optional(),
 });
 
 /**
@@ -96,6 +97,17 @@ export async function POST(
     return NextResponse.json({ error: "선택할 수 없는 런타임 버전입니다." }, { status: 422 });
   }
 
+  let presetId: string | undefined;
+  if (parsed.data.presetId) {
+    const preset = await prisma.userPreset.findFirst({
+      where: { id: parsed.data.presetId, baseTemplateId: selectedTemplate.id, delisted: false },
+    });
+    if (!preset) {
+      return NextResponse.json({ error: "선택할 수 없는 프리셋입니다." }, { status: 422 });
+    }
+    presetId = preset.id;
+  }
+
   await prisma.order.update({
     where: { id: order.id },
     data: {
@@ -103,6 +115,7 @@ export async function POST(
       minecraftVersionRequested: parsed.data.minecraftVersion,
       gitRepoRequested: templateSupportsGitRepo ? parsed.data.gitRepo : undefined,
       dockerImageRequested: availableImages ? dockerImage : undefined,
+      presetIdRequested: presetId,
     },
   });
 

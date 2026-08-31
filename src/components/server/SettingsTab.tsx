@@ -58,6 +58,7 @@ export default function SettingsTab({
   serverId,
   isOwner,
   productId,
+  templateId,
   templateCategory,
   autoBackupEnabled,
   autoBackupIntervalHours,
@@ -68,7 +69,8 @@ export default function SettingsTab({
   serverId: string;
   isOwner: boolean;
   productId: string | null;
-  templateCategory: "MINECRAFT" | "VPS" | "DISCORD_BOT" | "GENERAL";
+  templateId: string;
+  templateCategory: "MINECRAFT" | "DISCORD_BOT" | "GENERAL";
   autoBackupEnabled: boolean;
   autoBackupIntervalHours: number;
   autoRestartEnabled: boolean;
@@ -264,7 +266,7 @@ export default function SettingsTab({
       </div>
     )}
 
-    {isOwner && <StartupVariablesCard serverId={serverId} />}
+    {isOwner && <StartupVariablesCard serverId={serverId} templateId={templateId} />}
 
     {isOwner && templateCategory === "DISCORD_BOT" && <DiscordInviteCard serverId={serverId} />}
 

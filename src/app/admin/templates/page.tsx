@@ -2,13 +2,12 @@
 
 import { useEffect, useState } from "react";
 
-type ServerCategory = "MINECRAFT" | "VPS" | "DISCORD_BOT" | "GENERAL";
+type ServerCategory = "MINECRAFT" | "DISCORD_BOT" | "GENERAL";
 
 const CATEGORY_LABEL: Record<ServerCategory, string> = {
   MINECRAFT: "마인크래프트",
-  VPS: "VPS",
   DISCORD_BOT: "디스코드 봇 호스팅",
-  GENERAL: "일반 서버(기타)",
+  GENERAL: "일반 서버(VPS 포함)",
 };
 
 interface Template {

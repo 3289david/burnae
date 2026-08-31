@@ -10,6 +10,7 @@ const NAV = [
   { href: "/admin/servers", label: "서버" },
   { href: "/admin/products", label: "상품" },
   { href: "/admin/templates", label: "서버 종류" },
+  { href: "/admin/presets", label: "커뮤니티 프리셋" },
   { href: "/admin/nodes", label: "노드" },
   { href: "/admin/users", label: "유저" },
   { href: "/admin/events", label: "이벤트/쿠폰" },

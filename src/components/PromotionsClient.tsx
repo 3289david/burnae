@@ -12,7 +12,8 @@ type VerifyMethod =
   | "DISCORD_MEMBER"
   | "REFERRAL_SIGNUP"
   | "REFERRAL_FIRST_PAYMENT"
-  | "MANUAL_REVIEW";
+  | "MANUAL_REVIEW"
+  | "CUSTOM_PRESET_PUBLISHED";
 
 interface Task {
   id: string;
@@ -47,6 +48,7 @@ const AUTO_LABEL: Record<VerifyMethod, string> = {
   REFERRAL_SIGNUP: "친구 가입 시 자동 지급",
   REFERRAL_FIRST_PAYMENT: "친구 첫 결제 시 자동 지급",
   MANUAL_REVIEW: "관리자 확인 필요",
+  CUSTOM_PRESET_PUBLISHED: "프리셋 공개 시 자동 지급",
 };
 
 export default function PromotionsClient({

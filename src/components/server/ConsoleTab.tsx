@@ -21,7 +21,7 @@ export default function ConsoleTab({
   templateCategory,
 }: {
   serverId: string;
-  templateCategory?: "MINECRAFT" | "VPS" | "DISCORD_BOT" | "GENERAL";
+  templateCategory?: "MINECRAFT" | "DISCORD_BOT" | "GENERAL";
 }) {
   const [lines, setLines] = useState<string[]>([]);
   const [command, setCommand] = useState("");

@@ -47,8 +47,9 @@ export interface ServerInfo {
   diskMb: number;
   cpuPercent: number;
   backupSlots: number;
+  templateId: string;
   templateName: string;
-  templateCategory: "MINECRAFT" | "VPS" | "DISCORD_BOT" | "GENERAL";
+  templateCategory: "MINECRAFT" | "DISCORD_BOT" | "GENERAL";
   minecraftVersion: string | null;
   isOwner: boolean;
   isFreeServer: boolean;
@@ -218,6 +219,7 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
             serverId={server.id}
             isOwner={server.isOwner}
             productId={server.productId}
+            templateId={server.templateId}
             templateCategory={server.templateCategory}
             autoBackupEnabled={server.autoBackupEnabled}
             autoBackupIntervalHours={server.autoBackupIntervalHours}

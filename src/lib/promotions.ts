@@ -237,6 +237,47 @@ export async function rewardReferralSignup(referrerUserId: string, newUserId: st
   });
 }
 
+/// 하루 동안 이 항목으로 지급 가능한 최대 건수 — 프리셋을 무더기로 찍어내 포인트를 파밍하는 걸 막는다.
+/// 프리셋 자체는 이 한도와 무관하게 계속 등록/공개할 수 있고, 포인트만 하루 이 개수까지만 지급된다.
+const CUSTOM_PRESET_DAILY_REWARD_CAP = 5;
+
+/** 유저가 커뮤니티 프리셋을 새로 공개했을 때 포인트 지급 시도. 일일 한도 초과 시 조용히 지급 생략 */
+export async function rewardCustomPresetPublished(userId: string, presetId: string) {
+  const task = await prisma.promotionTask.findUnique({ where: { key: "custom_preset_published" } });
+  if (!task || !task.active) return null;
+
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const recentCount = await prisma.promotionCompletion.count({
+    where: { userId, taskId: task.id, createdAt: { gte: since } },
+  });
+  if (recentCount >= CUSTOM_PRESET_DAILY_REWARD_CAP) return null;
+
+  return awardPoints({
+    userId,
+    taskId: task.id,
+    pointsAwarded: task.pointsAwarded,
+    relatedUserId: presetId,
+  });
+}
+
+/** 신고 누적으로 프리셋이 자동 비공개될 때, 그 프리셋 등록으로 지급됐던 포인트를 회수한다 */
+export async function revokeCustomPresetPoints(presetId: string, creatorId: string) {
+  const task = await prisma.promotionTask.findUnique({ where: { key: "custom_preset_published" } });
+  if (!task) return;
+
+  await prisma.$transaction(async (tx) => {
+    const completion = await tx.promotionCompletion.findUnique({
+      where: { taskId_userId_relatedUserId: { taskId: task.id, userId: creatorId, relatedUserId: presetId } },
+    });
+    if (!completion || completion.status !== "APPROVED") return;
+
+    await tx.promotionCompletion.update({ where: { id: completion.id }, data: { status: "REJECTED" } });
+    const user = await tx.user.findUniqueOrThrow({ where: { id: creatorId } });
+    const newPoints = Math.max(0, user.promotionPoints - completion.pointsAwarded);
+    await tx.user.update({ where: { id: creatorId }, data: { promotionPoints: newPoints } });
+  });
+}
+
 /** 추천받은 친구가 첫 유료 서버를 만들었을 때, 추천인에게 REFERRAL_FIRST_PAYMENT 포인트 지급 */
 export async function rewardReferralFirstPayment(referrerUserId: string, referredUserId: string) {
   const task = await prisma.promotionTask.findUnique({ where: { key: "referral_first_payment" } });

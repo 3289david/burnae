@@ -29,20 +29,18 @@ const TOOL_LABEL: Record<string, string> = {
   generate_minecraft_plugin: "플러그인/모드 생성",
 };
 
-type Category = "MINECRAFT" | "VPS" | "DISCORD_BOT" | "GENERAL";
+type Category = "MINECRAFT" | "DISCORD_BOT" | "GENERAL";
 
 const CHAT_EXAMPLE_PROMPTS: Record<Category, string> = {
   MINECRAFT: '서버에 원하는 걸 말해보세요. 예) "커맨드 블럭 켜줘", "최대 인원 30명으로 바꿔줘"',
   DISCORD_BOT: '서버에 원하는 걸 말해보세요. 예) "봇 재시작해줘", "requirements.txt에 패키지 추가해줘"',
-  VPS: '서버에 원하는 걸 말해보세요. 예) "포트 열려있는지 확인해줘", "로그 파일 보여줘"',
-  GENERAL: '서버에 원하는 걸 말해보세요. 예) "설정 파일 고쳐줘", "서버 재시작해줘"',
+  GENERAL: '서버에 원하는 걸 말해보세요. 예) "포트 열려있는지 확인해줘", "로그 파일 보여줘", "설정 파일 고쳐줘"',
 };
 
 const MAKER_EXAMPLE_PROMPTS: Record<Category, string> = {
   MINECRAFT: '어떤 플러그인/모드를 만들고 싶으세요? 예) "커맨드 블럭 켜면 폭죽 터지는 플러그인 만들어줘". 나중에 "쿨다운도 추가해줘"처럼 이어서 업그레이드도 가능해요.',
   DISCORD_BOT: '어떤 봇을 만들고 싶으세요? 예) "/안녕 하면 인사하는 봇 만들어줘". 이미 만든 봇이 있다면 "슬래시 명령어 하나 더 추가해줘"처럼 이어서 업그레이드도 가능해요.',
-  VPS: '무엇을 만들고 싶으세요? 예) "심플한 방명록 웹사이트 만들어줘". 이어서 "디자인 좀 더 예쁘게 해줘"처럼 업그레이드도 가능해요.',
-  GENERAL: '무엇을 만들고 싶으세요? 예) "간단한 API 서버 만들어줘". 이어서 "엔드포인트 하나 추가해줘"처럼 업그레이드도 가능해요.',
+  GENERAL: '무엇을 만들고 싶으세요? 예) "심플한 방명록 웹사이트 만들어줘", "간단한 API 서버 만들어줘". 이어서 "디자인 좀 더 예쁘게 해줘"처럼 업그레이드도 가능해요.',
 };
 
 export default function AiTab({

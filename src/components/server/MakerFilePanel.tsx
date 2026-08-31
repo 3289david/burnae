@@ -53,9 +53,9 @@ export default function MakerFilePanel({ serverId, refreshKey }: { serverId: str
 
   if (preview) {
     return (
-      <div className="border-b border-border bg-surface-2/50">
+      <div className="border-b border-border bg-surface-2/50 animate-toast-in">
         <div className="px-3 py-1.5 flex items-center justify-between gap-2 border-b border-border">
-          <button onClick={() => setPreview(null)} className="text-xs text-accent inline-flex items-center gap-1 shrink-0">
+          <button onClick={() => setPreview(null)} className="text-xs text-accent inline-flex items-center gap-1 shrink-0 hover:underline active:scale-95 transition-transform">
             <ChevronLeft size={13} /> 뒤로
           </button>
           <span className="font-mono text-xs truncate">{preview.path}</span>
@@ -69,12 +69,12 @@ export default function MakerFilePanel({ serverId, refreshKey }: { serverId: str
     <div className="border-b border-border bg-surface-2/50">
       <div className="px-3 py-1.5 flex items-center gap-2 border-b border-border text-xs">
         {dir !== "/" && (
-          <button onClick={() => load(parentDir(dir))} className="text-accent shrink-0 inline-flex items-center gap-0.5">
+          <button onClick={() => load(parentDir(dir))} className="text-accent shrink-0 inline-flex items-center gap-0.5 hover:underline active:scale-95 transition-transform">
             <ChevronLeft size={13} /> 상위로
           </button>
         )}
         <span className="font-mono text-text-dim truncate flex-1">{dir}</span>
-        <button onClick={() => load(dir)} disabled={loading} className="text-text-dim shrink-0">
+        <button onClick={() => load(dir)} disabled={loading} className="text-text-dim shrink-0 active:scale-90 transition-transform">
           <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
         </button>
       </div>
@@ -83,11 +83,12 @@ export default function MakerFilePanel({ serverId, refreshKey }: { serverId: str
         {!error && files.length === 0 && !loading && (
           <p className="p-3 text-xs text-text-dim">아직 파일이 없어요. 채팅으로 뭔가 만들어보세요.</p>
         )}
-        {files.map((f) => (
+        {files.map((f, i) => (
           <button
             key={f.name}
             onClick={() => (f.is_file ? openFile(f.name) : load(dir.endsWith("/") ? `${dir}${f.name}` : `${dir}/${f.name}`))}
-            className="w-full flex items-center gap-1.5 px-3 py-1 text-xs hover:bg-surface-2 text-left"
+            className="w-full flex items-center gap-1.5 px-3 py-1 text-xs hover:bg-surface-2 text-left transition-colors animate-fade-up"
+            style={{ animationDelay: `${Math.min(i, 10) * 0.02}s` }}
           >
             {f.is_file ? (
               <FileText size={12} className="text-text-dim shrink-0" />

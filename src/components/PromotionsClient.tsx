@@ -109,8 +109,8 @@ export default function PromotionsClient({
           <p className="text-xs text-text-dim mb-1">내 추천 링크</p>
           <div className="flex items-center gap-2">
             <code className="text-xs bg-surface-2 rounded-lg px-2.5 py-1.5 truncate max-w-[220px]">{referralLink}</code>
-            <button onClick={copyReferralLink} className="text-text-dim hover:text-text shrink-0">
-              {copied ? <Check size={14} className="text-green" /> : <Copy size={14} />}
+            <button onClick={copyReferralLink} className="text-text-dim hover:text-text shrink-0 active:scale-90 transition-transform">
+              {copied ? <Check size={14} className="text-green animate-toast-in" /> : <Copy size={14} />}
             </button>
           </div>
         </div>
@@ -234,7 +234,7 @@ function TaskRow({
           <button
             onClick={submit}
             disabled={loading || (task.verifyMethod === "SERVER_MOTD_BRANDED" && !serverId) || (task.verifyMethod !== "SERVER_MOTD_BRANDED" && task.verifyMethod !== "DISCORD_MEMBER" && !url)}
-            className="btn-secondary px-4 py-1.5 text-sm shrink-0"
+            className="btn-secondary px-4 py-1.5 text-sm shrink-0 active:scale-95 transition-transform"
           >
             {loading ? "확인 중..." : "확인하기"}
           </button>
@@ -305,7 +305,7 @@ function RedeemCard({
             <button
               onClick={() => setOpen(true)}
               disabled={!canAfford}
-              className="btn-primary px-4 py-1.5 text-sm disabled:opacity-40"
+              className="btn-primary px-4 py-1.5 text-sm disabled:opacity-40 active:scale-95 transition-transform"
             >
               {canAfford ? "교환하기" : "포인트 부족"}
             </button>
@@ -314,7 +314,7 @@ function RedeemCard({
       </div>
 
       {open && !done && (
-        <div className="mt-3 pt-3 border-t border-border space-y-2">
+        <div className="mt-3 pt-3 border-t border-border space-y-2 animate-fade-up">
           <input
             className="input w-full text-sm"
             placeholder="서버 이름"
@@ -345,7 +345,7 @@ function RedeemCard({
           <button
             onClick={redeem}
             disabled={loading || serverName.length < 2}
-            className="btn-primary w-full py-2 text-sm"
+            className="btn-primary w-full py-2 text-sm active:scale-[0.98] transition-transform"
           >
             {loading ? "만드는 중..." : `${product.pointsCost.toLocaleString()}P로 교환하기`}
           </button>

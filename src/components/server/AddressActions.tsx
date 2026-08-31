@@ -34,7 +34,7 @@ export default function AddressActions({ address }: { address: string }) {
         type="button"
         onClick={copy}
         title="주소 복사"
-        className="text-text-dim hover:text-text shrink-0"
+        className="text-text-dim hover:text-text shrink-0 active:scale-90 transition-transform"
       >
         {copied ? <Check size={14} className="text-green animate-toast-in" /> : <Copy size={14} />}
       </button>
@@ -42,7 +42,7 @@ export default function AddressActions({ address }: { address: string }) {
         type="button"
         onClick={toggleQr}
         title="QR코드 보기"
-        className="text-text-dim hover:text-text shrink-0"
+        className="text-text-dim hover:text-text shrink-0 active:scale-90 transition-transform"
       >
         <QrCode size={14} />
       </button>

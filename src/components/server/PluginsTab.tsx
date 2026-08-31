@@ -108,10 +108,14 @@ export default function PluginsTab({ serverId }: { serverId: string }) {
           <h3 className="font-semibold text-sm">설치됨 ({installed.length})</h3>
         </div>
         <div className="divide-y divide-border">
-          {installed.map((f) => (
-            <div key={f.name} className="flex items-center justify-between px-4 py-2 text-sm">
+          {installed.map((f, i) => (
+            <div
+              key={f.name}
+              className="flex items-center justify-between px-4 py-2 text-sm hover:bg-surface-2 transition-colors animate-fade-up"
+              style={{ animationDelay: `${Math.min(i, 10) * 0.03}s` }}
+            >
               <span>{f.name}</span>
-              <button onClick={() => uninstall(f.name)} className="text-xs text-red">삭제</button>
+              <button onClick={() => uninstall(f.name)} className="text-xs text-red hover:underline active:scale-95 transition-transform">삭제</button>
             </div>
           ))}
           {installed.length === 0 && <p className="px-4 py-3 text-sm text-text-dim">아직 설치된 게 없어요.</p>}
@@ -125,14 +129,18 @@ export default function PluginsTab({ serverId }: { serverId: string }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
-        <button type="submit" disabled={busy} className="btn-primary px-4 py-2 text-sm">검색</button>
+        <button type="submit" disabled={busy} className="btn-primary px-4 py-2 text-sm active:scale-95 transition-transform">검색</button>
       </form>
       {error && <p className="text-sm text-red">{error}</p>}
       {loader && <p className="text-xs text-text-dim">&ldquo;{loader}&rdquo; 서버 기준으로 검색해요.</p>}
 
       <div className="space-y-2">
-        {results?.map((r) => (
-          <div key={r.projectId} className="card-glow p-4">
+        {results?.map((r, i) => (
+          <div
+            key={r.projectId}
+            className="card-glow p-4 animate-fade-up"
+            style={{ animationDelay: `${Math.min(i, 10) * 0.03}s` }}
+          >
             <div className="flex items-center gap-3">
               {r.iconUrl && (
                 <Image src={r.iconUrl} alt="" width={40} height={40} className="w-10 h-10 rounded" unoptimized />
@@ -143,13 +151,13 @@ export default function PluginsTab({ serverId }: { serverId: string }) {
               </div>
               <button
                 onClick={() => loadVersions(r.projectId)}
-                className="btn-secondary px-3 py-1.5 text-sm shrink-0"
+                className="btn-secondary px-3 py-1.5 text-sm shrink-0 active:scale-95 transition-transform"
               >
                 버전 보기
               </button>
             </div>
             {versions[r.projectId] && (
-              <div className="mt-3 pt-3 border-t border-border space-y-1.5">
+              <div className="mt-3 pt-3 border-t border-border space-y-1.5 animate-fade-up">
                 {versions[r.projectId].slice(0, 8).map((v) => (
                   <div key={v.id} className="flex items-center justify-between text-xs">
                     <span className="text-text-dim">
@@ -158,7 +166,7 @@ export default function PluginsTab({ serverId }: { serverId: string }) {
                     <button
                       disabled={busy || !v.primaryFile}
                       onClick={() => install(v.id)}
-                      className="text-accent font-medium"
+                      className="text-accent font-medium hover:underline active:scale-95 transition-transform"
                     >
                       설치
                     </button>

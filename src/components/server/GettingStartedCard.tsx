@@ -46,7 +46,7 @@ export default function GettingStartedCard({ server }: { server: ServerInfo }) {
   }
 
   return (
-    <div className="card-glow p-5 space-y-2.5 border-accent/40">
+    <div className="card-glow p-5 space-y-2.5 border-accent/40 animate-fade-up">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="w-8 h-8 rounded-lg bg-accent/15 flex items-center justify-center shrink-0">
@@ -54,7 +54,7 @@ export default function GettingStartedCard({ server }: { server: ServerInfo }) {
           </span>
           <h3 className="font-semibold text-sm">처음이신가요? 시작 가이드</h3>
         </div>
-        <button onClick={dismiss} className="text-text-dim hover:text-text p-1" aria-label="닫기">
+        <button onClick={dismiss} className="text-text-dim hover:text-text p-1 active:scale-90 transition-transform" aria-label="닫기">
           <X size={16} />
         </button>
       </div>

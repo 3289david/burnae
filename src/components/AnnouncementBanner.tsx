@@ -58,7 +58,7 @@ export default function AnnouncementBanner({ maxWidthClass = "max-w-5xl" }: { ma
               <p className="font-semibold">{a.title}</p>
               <p className="text-text-dim mt-0.5">{a.body}</p>
             </div>
-            <button onClick={() => dismiss(a.id)} className="text-text-dim hover:text-text shrink-0" aria-label="닫기">
+            <button onClick={() => dismiss(a.id)} className="text-text-dim hover:text-text shrink-0 active:scale-90 transition-transform" aria-label="닫기">
               <X size={16} />
             </button>
           </div>

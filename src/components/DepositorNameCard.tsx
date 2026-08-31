@@ -31,7 +31,7 @@ export default function DepositorNameCard({ initial }: { initial: string | null 
   }
 
   return (
-    <div className="card-glow p-5">
+    <div className="card-glow p-5 animate-fade-up">
       <h3 className="font-semibold">결제 입금자명</h3>
       <p className="text-sm text-text-dim mt-1">
         무통장입금 시 사용할 입금자명이에요. 공백 없이 1~5자여야 하고, 비워두면 이름 기반으로 자동
@@ -48,7 +48,7 @@ export default function DepositorNameCard({ initial }: { initial: string | null 
           placeholder="예: 홍길동"
           className="input flex-1 text-sm"
         />
-        <button type="submit" disabled={saving} className="btn-secondary px-4 py-1.5 text-sm shrink-0">
+        <button type="submit" disabled={saving} className="btn-secondary px-4 py-1.5 text-sm shrink-0 active:scale-95 transition-transform">
           {saving ? "저장 중..." : "저장"}
         </button>
       </form>

@@ -130,7 +130,7 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
           </span>
           <div>
             {editingName ? (
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 animate-toast-in">
                 <input
                   autoFocus
                   className="input py-1 text-lg font-bold font-display"
@@ -139,7 +139,7 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
                   onChange={(e) => setNameInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && saveName()}
                 />
-                <button onClick={saveName} disabled={nameSaving} className="text-green p-1" aria-label="저장">
+                <button onClick={saveName} disabled={nameSaving} className="text-green p-1 active:scale-90 transition-transform" aria-label="저장">
                   <Check size={18} />
                 </button>
                 <button
@@ -148,7 +148,7 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
                     setNameInput(name);
                     setNameError(null);
                   }}
-                  className="text-text-dim p-1"
+                  className="text-text-dim p-1 active:scale-90 transition-transform"
                   aria-label="취소"
                 >
                   <X size={18} />
@@ -160,7 +160,7 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
                 {server.isOwner && (
                   <button
                     onClick={() => setEditingName(true)}
-                    className="text-text-dim hover:text-accent"
+                    className="text-text-dim hover:text-accent active:scale-90 transition-transform"
                     aria-label="이름 바꾸기"
                   >
                     <Pencil size={15} />

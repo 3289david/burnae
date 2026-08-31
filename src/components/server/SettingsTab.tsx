@@ -224,10 +224,10 @@ export default function SettingsTab({
       ))}
 
       <div className="pt-3 border-t border-border flex items-center gap-3">
-        <button onClick={save} disabled={loading} className="btn-primary px-4 py-2 text-sm">
+        <button onClick={save} disabled={loading} className="btn-primary px-4 py-2 text-sm active:scale-95 transition-transform">
           {loading ? "저장 중..." : "저장"}
         </button>
-        <button onClick={restart} className="btn-secondary px-4 py-2 text-sm">저장 후 재시작</button>
+        <button onClick={restart} className="btn-secondary px-4 py-2 text-sm active:scale-95 transition-transform">저장 후 재시작</button>
         {saved && <span className="text-sm text-green">저장됐어요. 적용하려면 재시작하세요.</span>}
       </div>
     </div>
@@ -247,7 +247,7 @@ export default function SettingsTab({
           }}
           placeholder="메모를 입력하세요..."
         />
-        <button onClick={saveNote} disabled={noteSaving} className="btn-secondary px-4 py-2 text-sm">
+        <button onClick={saveNote} disabled={noteSaving} className="btn-secondary px-4 py-2 text-sm active:scale-95 transition-transform">
           {noteSaving ? "저장 중..." : noteSaved ? "저장됨" : "저장"}
         </button>
         {noteError && <p className="text-xs text-red">{noteError}</p>}
@@ -292,7 +292,7 @@ export default function SettingsTab({
             ? "서버 종류의 설치 스크립트를 다시 실행해 초기 상태로 되돌려요. 월드 등 대부분의 파일이 사라질 수 있어요."
             : "설치 스크립트를 다시 실행해 초기 상태로 되돌려요. GitHub repo에서 새로 배포하거나 꼬인 설치를 고칠 때 유용해요. 대부분의 파일이 사라질 수 있어요."}
         </p>
-        <button onClick={reinstall} disabled={reinstalling} className="btn-secondary px-4 py-2 text-sm">
+        <button onClick={reinstall} disabled={reinstalling} className="btn-secondary px-4 py-2 text-sm active:scale-95 transition-transform">
           {reinstalling ? "재설치 중..." : "재설치"}
         </button>
         {reinstallDone && <p className="text-sm text-green">재설치를 시작했어요. 콘솔에서 진행 상황을 확인하세요.</p>}
@@ -307,7 +307,7 @@ export default function SettingsTab({
           <Toggle checked={keepBackup} onChange={setKeepBackup} size="sm" />
           삭제 전 마지막 백업 생성
         </label>
-        <button onClick={deleteServer} disabled={deleting} className="btn-secondary text-red px-4 py-2 text-sm mt-3">
+        <button onClick={deleteServer} disabled={deleting} className="btn-secondary text-red px-4 py-2 text-sm mt-3 active:scale-95 transition-transform">
           {deleting ? "삭제 중..." : "서버 삭제"}
         </button>
       </div>

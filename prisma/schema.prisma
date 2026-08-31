@@ -63,6 +63,7 @@ model User {
   shopRedemptions      ShopRedemption[]
   extraFreeSlotGrants  ExtraFreeSlotGrant[]
   userPresets          UserPreset[]
+  resourceUpgradeGrants ResourceUpgradeGrant[]
 
   @@index([email])
   @@index([referralCode])
@@ -393,6 +394,7 @@ model Server {
   /// 서버당 최대 2개까지 (기본 1개 자동 생성 + 소유자가 1개 추가 가능)
   subdomains ServerSubdomain[]
   customDomains ServerCustomDomain[]
+  resourceUpgradeGrants ResourceUpgradeGrant[]
 
   whitelistEnabled Boolean   @default(false)
   suspendedReason  String?
@@ -630,7 +632,9 @@ enum ShopItemKind {
   /// 관리자가 수동으로 처리하는 기타 교환(예: 커스텀 도메인 지원 등) — 관리자 알림만 남김
   CUSTOM
   /// 아래 4개는 계정이 아니라 특정 서버를 대상으로 교환한다 (POST /api/servers/[id]/free-upgrade).
-  /// amount 단위: RAM_UPGRADE=MB, CPU_UPGRADE=%, DISK_UPGRADE=MB, BACKUP_SLOT_UPGRADE=슬롯 개수
+  /// amount 단위: RAM_UPGRADE=MB, CPU_UPGRADE=%, DISK_UPGRADE=MB, BACKUP_SLOT_UPGRADE=슬롯 개수.
+  /// RAM/CPU/DISK 세 종류는 ResourceUpgradeGrant로 30일 시한부 적용되고 안 갱신하면 자동으로
+  /// 줄어든다 — BACKUP_SLOT_UPGRADE만 예외로 영구 적용
   RAM_UPGRADE
   CPU_UPGRADE
   DISK_UPGRADE
@@ -657,8 +661,29 @@ model ShopItem {
   updatedAt   DateTime     @updatedAt
 
   redemptions ShopRedemption[]
+  resourceUpgradeGrants ResourceUpgradeGrant[]
 
   @@index([active])
+}
+
+/// RAM/CPU/DISK_UPGRADE 교환 1건마다 생기는 시한부 증설 기록. expiresAt이 지나면 크론이
+/// amount만큼 서버 자원을 원래대로 되돌린다(단, 그 사이 유료 플랜으로 전환됐다면 되돌리지 않고
+/// 그냥 소멸시킨다). 이용자는 만료 전 대시보드에서 "갱신"을 눌러 expiresAt을 30일 뒤로 다시 미룰 수 있다.
+model ResourceUpgradeGrant {
+  id        String       @id @default(cuid())
+  serverId  String
+  server    Server       @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User         @relation(fields: [userId], references: [id])
+  itemId    String?
+  item      ShopItem?    @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  kind      ShopItemKind
+  amount    Int
+  expiresAt DateTime
+  createdAt DateTime     @default(now())
+
+  @@index([serverId])
+  @@index([expiresAt])
 }
 
 model ShopRedemption {

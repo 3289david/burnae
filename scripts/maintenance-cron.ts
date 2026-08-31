@@ -42,6 +42,46 @@ async function notifyOwner(userId: string, message: string) {
   return sendDiscordDM(link.discordUserId, message);
 }
 
+function mapWingsState(state: string): "RUNNING" | "STARTING" | "STOPPING" | "STOPPED" | null {
+  switch (state) {
+    case "running": return "RUNNING";
+    case "starting": return "STARTING";
+    case "stopping": return "STOPPING";
+    case "offline": return "STOPPED";
+    default: return null;
+  }
+}
+
+/**
+ * Server.status는 생성 시 "PROVISIONING"으로 한 번 찍히고, 전원 조작(시작/재시작/정지) API는
+ * Wings에만 신호를 보낼 뿐 DB를 갱신하지 않는다 — 그래서 그냥 두면 서버가 실제로는 몇 시간째
+ * 잘 돌고 있어도 대시보드 목록엔 영원히 "생성 중"으로 보이고, 자동 백업(status:"RUNNING" 조건)도
+ * 절대 실행되지 않는다. 여기서 주기적으로 Wings의 실제 상태를 읽어와 DB에 동기화한다.
+ * SUSPENDED/DELETING/MIGRATING 상태는 다른 흐름이 명시적으로 관리하는 상태라 건드리지 않는다.
+ */
+async function handleServerStatusSync() {
+  const servers = await prisma.server.findMany({
+    where: {
+      deletedAt: null,
+      pterodactylIdentifier: { not: null },
+      status: { notIn: ["SUSPENDED", "DELETING", "MIGRATING"] },
+    },
+  });
+
+  for (const server of servers) {
+    try {
+      const resources = await PteroClient.getServerResources(server.pterodactylIdentifier!);
+      const mapped = mapWingsState(resources.current_state);
+      if (mapped && mapped !== server.status) {
+        await prisma.server.update({ where: { id: server.id }, data: { status: mapped } });
+        console.log(`[cron] ${server.name} — 상태 동기화 ${server.status} → ${mapped}`);
+      }
+    } catch (err) {
+      // Wings가 일시적으로 응답 없을 수 있음 — 조용히 스킵하고 다음 크론에서 재시도
+    }
+  }
+}
+
 async function handleRenewals() {
   const now = Date.now();
   const in3days = new Date(now + 3 * 24 * 60 * 60 * 1000);
@@ -119,6 +159,116 @@ async function handleRenewals() {
       console.log(`[cron] ${server.name} — 보관기간 만료로 삭제`);
     } catch (err) {
       console.error(`[cron] ${server.name} 삭제 실패:`, err);
+    }
+  }
+}
+
+const RESOURCE_KIND_LABEL: Record<string, string> = {
+  RAM_UPGRADE: "RAM",
+  CPU_UPGRADE: "CPU",
+  DISK_UPGRADE: "저장공간",
+};
+
+/**
+ * 포인트 상점 RAM/CPU/저장공간 증설(ResourceUpgradeGrant)은 30일 시한부다. 만료 임박(D-3/D-1)이면
+ * 알리고, 만료됐으면 서버별로 묶어서 한 번에 자원을 원래대로 되돌린다. 그 사이 유료 플랜으로
+ * 전환된 서버는 되돌리지 않고 그냥 소멸시킨다(유료 자원을 실수로 깎으면 안 되므로).
+ */
+async function handleResourceUpgradeExpiry() {
+  const now = Date.now();
+  const in3days = new Date(now + 3 * 24 * 60 * 60 * 1000);
+
+  const dueSoon = await prisma.resourceUpgradeGrant.findMany({
+    where: { expiresAt: { lte: in3days, gt: new Date(now) } },
+    include: { server: true },
+  });
+  for (const grant of dueSoon) {
+    if (!grant.server || grant.server.deletedAt) continue;
+    const daysLeft = Math.ceil((grant.expiresAt.getTime() - now) / (24 * 60 * 60 * 1000));
+    if (![3, 1].includes(daysLeft)) continue;
+
+    const action = `UPGRADE_GRANT_REMINDER_D${daysLeft}`;
+    if (await recentlyLogged(action, grant.id, REMINDER_COOLDOWN_HOURS)) continue;
+
+    const label = RESOURCE_KIND_LABEL[grant.kind] ?? grant.kind;
+    const sent = await notifyOwner(
+      grant.userId,
+      `⏰ **${grant.server.name}** 서버의 ${label} 증설이 ${daysLeft}일 뒤 만료돼요. 갱신하지 않으면 자동으로 줄어들어요 — 대시보드에서 갱신할 수 있어요.`,
+    );
+    await prisma.auditLog.create({
+      data: { action, targetType: "ResourceUpgradeGrant", targetId: grant.id, metadata: { daysLeft, discordNotified: sent } },
+    });
+  }
+
+  const expired = await prisma.resourceUpgradeGrant.findMany({
+    where: { expiresAt: { lt: new Date(now) } },
+    include: { server: { include: { product: true } } },
+  });
+  const byServer = new Map<string, typeof expired>();
+  for (const g of expired) {
+    if (!byServer.has(g.serverId)) byServer.set(g.serverId, []);
+    byServer.get(g.serverId)!.push(g);
+  }
+
+  for (const [, grants] of byServer) {
+    const server = grants[0].server;
+    const grantIds = grants.map((g) => g.id);
+
+    if (!server || server.deletedAt) {
+      await prisma.resourceUpgradeGrant.deleteMany({ where: { id: { in: grantIds } } });
+      continue;
+    }
+
+    const priceMonthlyKrw = server.priceMonthlyKrwSnapshot ?? server.product?.priceMonthlyKrw ?? 0;
+    if (priceMonthlyKrw !== 0) {
+      // 그 사이 유료 플랜으로 전환됨 — 되돌리지 않고 그냥 소멸 처리
+      await prisma.resourceUpgradeGrant.deleteMany({ where: { id: { in: grantIds } } });
+      console.log(`[cron] ${server.name} — 유료 전환됨, 만료된 증설 ${grantIds.length}건 소멸 처리(되돌리지 않음)`);
+      continue;
+    }
+    if (!server.pterodactylServerId) continue; // 아직 프로비저닝 전 — 다음 크론에서 재시도
+
+    let deltaRam = 0, deltaCpu = 0, deltaDisk = 0;
+    for (const g of grants) {
+      if (g.kind === "RAM_UPGRADE") deltaRam += g.amount;
+      if (g.kind === "CPU_UPGRADE") deltaCpu += g.amount;
+      if (g.kind === "DISK_UPGRADE") deltaDisk += g.amount;
+    }
+    const ramFloor = server.product?.ramMb ?? 128;
+    const cpuFloor = server.product?.cpuPercent ?? 10;
+    const diskFloor = server.product?.diskMb ?? 512;
+    const nextRamMb = Math.max(ramFloor, server.ramMb - deltaRam);
+    const nextCpuPercent = Math.max(cpuFloor, server.cpuPercent - deltaCpu);
+    const nextDiskMb = Math.max(diskFloor, server.diskMb - deltaDisk);
+
+    try {
+      await PteroApp.updateServerBuild(server.pterodactylServerId, {
+        memoryMb: nextRamMb,
+        diskMb: nextDiskMb,
+        cpuPercent: nextCpuPercent,
+        backupSlots: server.backupSlots,
+      });
+      await prisma.server.update({
+        where: { id: server.id },
+        data: { ramMb: nextRamMb, cpuPercent: nextCpuPercent, diskMb: nextDiskMb },
+      });
+      if (server.pterodactylIdentifier) await PteroClient.sendPowerAction(server.pterodactylIdentifier, "restart");
+      await prisma.resourceUpgradeGrant.deleteMany({ where: { id: { in: grantIds } } });
+      await notifyOwner(
+        server.ownerId,
+        `⬇️ **${server.name}** 서버의 포인트 증설(RAM/CPU/저장공간)이 만료돼 원래 크기로 줄었어요. 계속 유지하려면 만료 전에 대시보드에서 갱신해주세요.`,
+      );
+      await prisma.auditLog.create({
+        data: {
+          action: "RESOURCE_UPGRADE_EXPIRED",
+          targetType: "Server",
+          targetId: server.id,
+          metadata: { grantIds, deltaRam, deltaCpu, deltaDisk },
+        },
+      });
+      console.log(`[cron] ${server.name} — 증설 ${grantIds.length}건 만료로 자동 축소`);
+    } catch (err) {
+      console.error(`[cron] ${server.name} 증설 만료 처리 실패:`, err);
     }
   }
 }
@@ -314,7 +464,9 @@ async function handlePreorderRetries() {
 
 async function main() {
   console.log(`[cron] 시작 ${new Date().toISOString()}`);
+  await handleServerStatusSync();
   await handleRenewals();
+  await handleResourceUpgradeExpiry();
   await handleScheduledBackups();
   await handleScheduledRestarts();
   await handleNodeAlerts();

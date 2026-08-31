@@ -5,7 +5,8 @@ import EventsBanner from "@/components/EventsBanner";
 import EmptyServerIllustration from "@/components/EmptyServerIllustration";
 import CountUp from "@/components/CountUp";
 import ServerListClient, { type DashboardServerItem } from "@/components/ServerListClient";
-import { Plus, ArrowRight, Gift } from "lucide-react";
+import PendingGrantBanner from "@/components/PendingGrantBanner";
+import { Plus, ArrowRight } from "lucide-react";
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
@@ -34,6 +35,7 @@ export default async function DashboardPage() {
       templateIdRequested: null,
     },
     orderBy: { createdAt: "desc" },
+    select: { id: true, serverNameRequested: true },
   });
 
   return (
@@ -41,20 +43,7 @@ export default async function DashboardPage() {
       <div className="blob w-72 h-72 bg-flame-2 -top-32 -right-20 animate-float pointer-events-none" />
 
       {pendingGrants.map((o) => (
-        <Link
-          key={o.id}
-          href={`/dashboard/servers/new?orderId=${o.id}`}
-          className="relative card-glow mb-4 p-4 flex items-center gap-3 border-accent/40 bg-accent/[0.06] animate-fade-up"
-        >
-          <span className="w-9 h-9 rounded-xl bg-accent/15 flex items-center justify-center shrink-0">
-            <Gift size={17} className="text-accent" />
-          </span>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold">지급된 서버가 있어요!</p>
-            <p className="text-xs text-text-dim mt-0.5">서버 종류와 버전을 고르면 바로 만들어져요 — {o.serverNameRequested}</p>
-          </div>
-          <ArrowRight size={16} className="text-accent shrink-0" />
-        </Link>
+        <PendingGrantBanner key={o.id} grant={o} />
       ))}
 
       <EventsBanner />

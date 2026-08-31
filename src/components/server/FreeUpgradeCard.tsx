@@ -1,8 +1,24 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Cpu, MemoryStick, Archive, HardDrive } from "lucide-react";
+import { Cpu, MemoryStick, Archive, HardDrive, RefreshCw } from "lucide-react";
 import CountUp from "@/components/CountUp";
+
+interface Grant {
+  id: string;
+  kind: string;
+  amount: number;
+  expiresAt: string;
+}
+
+function grantLabel(g: Grant): string {
+  switch (g.kind) {
+    case "RAM_UPGRADE": return `RAM +${(g.amount / 1024).toFixed(1)}GB`;
+    case "CPU_UPGRADE": return `CPU +${g.amount}%`;
+    case "DISK_UPGRADE": return `저장공간 +${(g.amount / 1024).toFixed(1)}GB`;
+    default: return g.kind;
+  }
+}
 
 interface ShopItem {
   id: string;
@@ -39,6 +55,15 @@ export default function FreeUpgradeCard({ serverId }: { serverId: string }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
+  const [grants, setGrants] = useState<Grant[]>([]);
+  const [renewingId, setRenewingId] = useState<string | null>(null);
+
+  function loadGrants() {
+    fetch(`/api/servers/${serverId}/resource-upgrades`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setGrants)
+      .catch(() => {});
+  }
 
   useEffect(() => {
     fetch("/api/shop")
@@ -47,7 +72,9 @@ export default function FreeUpgradeCard({ serverId }: { serverId: string }) {
     fetch("/api/promotions")
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => data && setPoints(data.points));
-  }, []);
+    loadGrants();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serverId]);
 
   async function upgrade(item: ShopItem) {
     setBusy(item.id);
@@ -63,10 +90,21 @@ export default function FreeUpgradeCard({ serverId }: { serverId: string }) {
       if (!res.ok) throw new Error(data.error);
       setPoints((p) => p - data.pointsSpent);
       setDone(item.id);
+      loadGrants();
     } catch (err) {
       setError(err instanceof Error ? err.message : "증설 실패");
     } finally {
       setBusy(null);
+    }
+  }
+
+  async function renew(grantId: string) {
+    setRenewingId(grantId);
+    try {
+      const res = await fetch(`/api/servers/${serverId}/resource-upgrades/${grantId}/renew`, { method: "POST" });
+      if (res.ok) loadGrants();
+    } finally {
+      setRenewingId(null);
     }
   }
 
@@ -78,9 +116,38 @@ export default function FreeUpgradeCard({ serverId }: { serverId: string }) {
         <h3 className="font-semibold text-sm">포인트로 증설하기</h3>
         <p className="text-xs text-text-dim mt-0.5">
           무료 서버는 플랜을 통째로 바꾸지 않아도 포인트로 램/CPU/저장공간/백업 슬롯을 낱개로 늘릴 수
-          있어요. 보유 포인트 <span className="text-accent font-medium"><CountUp value={points} />P</span>
+          있어요. 램/CPU/저장공간 증설은 30일간만 유지되고, 만료 전 갱신하지 않으면 자동으로 원래
+          크기로 줄어들어요(백업 슬롯 증설은 영구 적용). 보유 포인트{" "}
+          <span className="text-accent font-medium"><CountUp value={points} />P</span>
         </p>
       </div>
+
+      {grants.length > 0 && (
+        <div className="space-y-1.5">
+          {grants.map((g, i) => {
+            const daysLeft = Math.max(0, Math.ceil((new Date(g.expiresAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000)));
+            const urgent = daysLeft <= 3;
+            return (
+              <div
+                key={g.id}
+                className="animate-fade-up flex items-center justify-between gap-2 rounded-lg bg-surface-2 px-3 py-1.5 text-xs"
+                style={{ animationDelay: `${i * 0.03}s` }}
+              >
+                <span className="text-text-dim">
+                  {grantLabel(g)} · <span className={urgent ? "text-yellow" : ""}>D-{daysLeft}</span>
+                </span>
+                <button
+                  onClick={() => renew(g.id)}
+                  disabled={renewingId !== null}
+                  className="text-accent inline-flex items-center gap-1 hover:underline active:scale-95 transition-transform shrink-0"
+                >
+                  <RefreshCw size={11} className={renewingId === g.id ? "animate-spin" : ""} /> 갱신
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
       <div className="grid sm:grid-cols-2 gap-2">
         {items.map((item, i) => {
           const Icon = KIND_ICON[item.kind] ?? Cpu;

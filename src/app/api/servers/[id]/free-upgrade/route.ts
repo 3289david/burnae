@@ -6,10 +6,14 @@ import { authorizeServerAccess } from "@/lib/serverAccess";
 import { PteroApp, PteroClient } from "@/lib/pterodactyl";
 import { getNodeFreeCapacity } from "@/lib/provisioning";
 import { withApiErrorHandling } from "@/lib/apiHandler";
+import { RESOURCE_UPGRADE_RENEWAL_DAYS } from "@/lib/resourceUpgrades";
 
 const schema = z.object({ shopItemId: z.string() });
 
 const RESOURCE_KINDS = ["RAM_UPGRADE", "CPU_UPGRADE", "DISK_UPGRADE", "BACKUP_SLOT_UPGRADE"] as const;
+/// 이 3개는 영구가 아니라 30일 시한부로 적용되고 ResourceUpgradeGrant로 추적된다.
+/// BACKUP_SLOT_UPGRADE만 예외로 영구 적용(백업 슬롯은 자원 점유가 크지 않아 굳이 회수하지 않음)
+const TIME_LIMITED_KINDS = ["RAM_UPGRADE", "CPU_UPGRADE", "DISK_UPGRADE"] as const;
 
 /**
  * 무료 서버 전용 — 플랜을 통째로 바꾸는 대신 램/CPU/디스크/백업 슬롯을 낱개로 포인트를 써서
@@ -103,6 +107,18 @@ export const POST = withApiErrorHandling(async (
   await prisma.shopRedemption.create({
     data: { userId: user.id, itemId: item.id, pointsSpent: item.pointsCost },
   });
+  if (TIME_LIMITED_KINDS.includes(item.kind as (typeof TIME_LIMITED_KINDS)[number])) {
+    await prisma.resourceUpgradeGrant.create({
+      data: {
+        serverId: server.id,
+        userId: user.id,
+        itemId: item.id,
+        kind: item.kind,
+        amount: item.amount,
+        expiresAt: new Date(Date.now() + RESOURCE_UPGRADE_RENEWAL_DAYS * 24 * 60 * 60 * 1000),
+      },
+    });
+  }
   await prisma.auditLog.create({
     data: {
       actorUserId: user.id,

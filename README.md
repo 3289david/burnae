@@ -11,11 +11,13 @@ API, 하나은행 Open API 결제, Cloudflare DNS, 디스코드 봇과 연동합
 - **호스팅 엔진**: Pterodactyl (Application API + Client API)
 - **결제**: [하나은행 Open API](https://apiportal.hanabank.com) 직접 연동 (계좌 비밀번호 불필요, 사업자번호 연결 계좌 전용)
 - **서브도메인**: Cloudflare API로 서버 생성 시 `이름.krl.kr` A/SRV 레코드 자동 생성, 유저가 이름 직접 지정(서버당 2개).
-  마인크래프트는 SRV 레코드 덕분에 포트 없이 바로 접속되고, VPS/디스코드봇/일반 서버(HTTP)는 별도의
-  `이름.app.krl.kr` 주소로도 포트 없이 접속 가능 — 이 노드의 nginx가 서브도메인별 컨테이너 포트로
-  리버스 프록시하고(`src/lib/appProxy.ts`, 크론이 10분마다 매핑 재동기화), `*.app.krl.kr`은
-  Cloudflare Universal SSL이 못 미치는 2단 와일드카드라 certbot dns-cloudflare로 직접 발급받은
-  진짜 와일드카드 인증서로 TLS 처리
+  마인크래프트는 SRV 레코드 덕분에 포트 없이 바로 접속되고, VPS/디스코드봇/일반 서버(HTTP)도 같은
+  `이름.krl.kr` 주소로 포트 없이 접속 가능 — `src/lib/appProxy.ts`가 "서브도메인 → 컨테이너 IP:포트"
+  매핑 파일을 관리하고(서버 생성/삭제 시 즉시 시도 + 크론이 10분마다 재동기화), 이 노드의 nginx가
+  그 매핑을 보고 리버스 프록시함. krl.kr 자체는 이 저장소와 무관한 별도 서비스라 그 nginx 설정에는
+  Burnae가 등록한 서브도메인이면 먼저 가로채고 아니면 원래 핸들러로 그대로 넘기는 짧은 분기만
+  추가돼 있음(이 저장소 밖 `/etc/nginx`에 있어 코드로 관리하지 않음). `*.app.krl.kr` 와일드카드도
+  자체 Let's Encrypt 인증서와 함께 폴백 경로로 남아있음
 - **커스텀 도메인**: 유저가 소유한 외부 도메인을 서버에 연결 — A/SRV 레코드 안내 후 DNS 조회로 자동 확인
 - **입금자명**: 계정에서 직접 지정 가능(공백 없이 1~5자), 미설정 시 이름 기반 자동 생성
 - **AI**: [OpenRouter](https://openrouter.ai) 기반 Tool-calling — 저렴한 오픈소스 모델(Qwen3), 실제 서버를

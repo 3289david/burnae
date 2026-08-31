@@ -13,7 +13,7 @@ export async function GET(request: Request) {
 
   const presets = await prisma.userPreset.findMany({
     where: { baseTemplateId: templateId ?? undefined, delisted: false },
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ useCount: "desc" }, { createdAt: "desc" }],
     take: templateId ? 30 : 100,
     select: {
       id: true,
@@ -21,6 +21,7 @@ export async function GET(request: Request) {
       blurb: true,
       environment: true,
       createdAt: true,
+      useCount: true,
       baseTemplateId: true,
       baseTemplate: { select: { displayName: true, category: true } },
       createdBy: { select: { id: true, name: true, role: true } },
@@ -34,6 +35,7 @@ export async function GET(request: Request) {
       blurb: p.blurb,
       environment: p.environment,
       createdAt: p.createdAt,
+      useCount: p.useCount,
       baseTemplateId: p.baseTemplateId,
       baseTemplateName: p.baseTemplate.displayName,
       baseTemplateCategory: p.baseTemplate.category,

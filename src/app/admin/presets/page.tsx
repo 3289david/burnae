@@ -9,6 +9,7 @@ interface Preset {
   blurb: string | null;
   environment: Record<string, unknown>;
   reportCount: number;
+  useCount: number;
   delisted: boolean;
   createdAt: string;
   createdBy: { id: string; name: string; email: string; role: string };
@@ -79,7 +80,7 @@ export default function AdminPresetsPage() {
                   )}
                 </p>
                 <p className="text-xs text-text-dim mt-0.5">
-                  {p.baseTemplate.displayName} · {p.createdBy.name} ({p.createdBy.email})
+                  {p.baseTemplate.displayName} · {p.createdBy.name} ({p.createdBy.email}) · {p.useCount}번 사용됨
                 </p>
                 {p.blurb && <p className="text-xs text-text-dim mt-1">{p.blurb}</p>}
                 <p className="text-[11px] font-mono text-text-dim mt-2 break-all">

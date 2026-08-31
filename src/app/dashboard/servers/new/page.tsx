@@ -53,6 +53,7 @@ interface CommunityPreset {
   blurb: string | null;
   creatorName: string;
   verified: boolean;
+  useCount: number;
   baseTemplateId: string;
   baseTemplateName: string;
   baseTemplateCategory: "MINECRAFT" | "DISCORD_BOT" | "GENERAL";
@@ -675,7 +676,9 @@ function NewServerPageInner() {
                           </span>
                           <span className="block text-text-dim text-[11px] mt-0.5">{p.baseTemplateName} 기반</span>
                           {p.blurb && <span className="block text-text-dim text-[11px] leading-tight mt-1">{p.blurb}</span>}
-                          <span className="block text-text-dim text-[10px] mt-1">by {p.creatorName}</span>
+                          <span className="block text-text-dim text-[10px] mt-1">
+                            by {p.creatorName}{p.useCount > 0 ? ` · ${p.useCount}번 사용됨` : ""}
+                          </span>
                         </button>
                         {!p.verified && (
                           <button
@@ -917,7 +920,9 @@ function NewServerPageInner() {
                         )}
                       </span>
                       {p.blurb && <span className="block text-xs text-text-dim mt-0.5">{p.blurb}</span>}
-                      <span className="block text-[11px] text-text-dim mt-0.5">by {p.creatorName}</span>
+                      <span className="block text-[11px] text-text-dim mt-0.5">
+                        by {p.creatorName}{p.useCount > 0 ? ` · ${p.useCount}번 사용됨` : ""}
+                      </span>
                     </button>
                     {!p.verified && (
                       <button

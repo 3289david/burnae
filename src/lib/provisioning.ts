@@ -327,6 +327,12 @@ export async function createServerForOrder(orderId: string) {
     console.error("[provisioning] 디스코드 알림/역할 부여 실패(서버 생성 자체는 정상):", err);
   });
 
+  if (preset) {
+    prisma.userPreset.update({ where: { id: preset.id }, data: { useCount: { increment: 1 } } }).catch((err) => {
+      console.error("[provisioning] 프리셋 사용 횟수 갱신 실패:", err);
+    });
+  }
+
   // 마인크래프트 EULA 자동 동의 — 이걸 안 하면 서버가 뜨자마자 "eula=false"로 바로 종료되고,
   // Wings 크래시 감지가 그 정상 종료를 크래시로 오인해서 무한 재시작 루프에 빠진다.
   // 설치가 끝나기 전엔 파일이 없을 수 있어 몇 번 재시도한다.

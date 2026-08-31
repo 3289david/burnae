@@ -1,0 +1,1 @@
+ALTER TABLE "UserPreset" ADD COLUMN     "useCount" INTEGER NOT NULL DEFAULT 0;

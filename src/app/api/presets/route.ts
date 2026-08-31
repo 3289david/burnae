@@ -10,20 +10,19 @@ const MAX_ACTIVE_PRESETS_PER_USER = 20;
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const templateId = searchParams.get("templateId");
-  if (!templateId) {
-    return NextResponse.json({ error: "templateId가 필요합니다." }, { status: 422 });
-  }
 
   const presets = await prisma.userPreset.findMany({
-    where: { baseTemplateId: templateId, delisted: false },
+    where: { baseTemplateId: templateId ?? undefined, delisted: false },
     orderBy: { createdAt: "desc" },
-    take: 30,
+    take: templateId ? 30 : 100,
     select: {
       id: true,
       displayName: true,
       blurb: true,
       environment: true,
       createdAt: true,
+      baseTemplateId: true,
+      baseTemplate: { select: { displayName: true, category: true } },
       createdBy: { select: { id: true, name: true, role: true } },
     },
   });
@@ -35,6 +34,9 @@ export async function GET(request: Request) {
       blurb: p.blurb,
       environment: p.environment,
       createdAt: p.createdAt,
+      baseTemplateId: p.baseTemplateId,
+      baseTemplateName: p.baseTemplate.displayName,
+      baseTemplateCategory: p.baseTemplate.category,
       creatorName: p.createdBy.name,
       verified: p.createdBy.role === "ADMIN",
     }))

@@ -53,7 +53,12 @@ interface CommunityPreset {
   blurb: string | null;
   creatorName: string;
   verified: boolean;
+  baseTemplateId: string;
+  baseTemplateName: string;
+  baseTemplateCategory: "MINECRAFT" | "DISCORD_BOT" | "GENERAL";
 }
+
+const SECRET_ENV_KEYS = ["PASSWORD", "PGPASSWORD", "SERVER_PASSWORD", "MONGO_USER_PASS", "MEILI_MASTER_KEY"];
 interface Product {
   id: string;
   name: string;
@@ -204,6 +209,77 @@ function NewServerPageInner() {
   const [presetId, setPresetId] = useState("");
   const [reportedPresetIds, setReportedPresetIds] = useState<string[]>([]);
 
+  // "공식 / 커뮤니티" Egg 탭 — 커뮤니티는 유저가 만든 서버 종류(베이스 egg 위에 자기 설정을 얹은 것)를
+  // 공식 종류와 나란히 고를 수 있는 탭
+  const [eggSource, setEggSource] = useState<"official" | "community">("official");
+  const [allPresets, setAllPresets] = useState<CommunityPreset[]>([]);
+  const [showPresetForm, setShowPresetForm] = useState(false);
+  const [presetFormTemplateId, setPresetFormTemplateId] = useState("");
+  const [presetFormName, setPresetFormName] = useState("");
+  const [presetFormBlurb, setPresetFormBlurb] = useState("");
+  const [presetFormEnv, setPresetFormEnv] = useState<Record<string, string>>({});
+  const [presetFormBusy, setPresetFormBusy] = useState(false);
+  const [presetFormError, setPresetFormError] = useState<string | null>(null);
+  const [presetFormDone, setPresetFormDone] = useState<number | null>(null);
+
+  function loadAllPresets() {
+    fetch("/api/presets")
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setAllPresets)
+      .catch(() => {});
+  }
+  useEffect(() => {
+    if (eggSource === "community") loadAllPresets();
+  }, [eggSource]);
+
+  const allTemplates = useMemo(() => {
+    const map = new Map<string, Template>();
+    for (const p of products) for (const t of p.allowedTemplates) map.set(t.id, t);
+    return [...map.values()];
+  }, [products]);
+
+  const presetFormTemplate = allTemplates.find((t) => t.id === presetFormTemplateId);
+  const presetFormFields = useMemo(() => {
+    if (!presetFormTemplate) return [];
+    return Object.keys(presetFormTemplate.defaultEnvironment).filter((k) => !SECRET_ENV_KEYS.includes(k));
+  }, [presetFormTemplate]);
+
+  function pickCommunityEgg(p: CommunityPreset) {
+    const t = allTemplates.find((x) => x.id === p.baseTemplateId);
+    if (t) pickTier(t);
+    setPresetId(p.id);
+  }
+
+  async function submitPresetForm() {
+    if (!presetFormTemplate) return;
+    setPresetFormBusy(true);
+    setPresetFormError(null);
+    try {
+      const environment = Object.fromEntries(presetFormFields.map((k) => [k, presetFormEnv[k] ?? ""]));
+      const res = await fetch("/api/presets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          baseTemplateId: presetFormTemplateId,
+          displayName: presetFormName,
+          blurb: presetFormBlurb || undefined,
+          environment,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setPresetFormDone(data.pointsAwarded ?? 0);
+      setPresetFormName("");
+      setPresetFormBlurb("");
+      setPresetFormEnv({});
+      loadAllPresets();
+    } catch (err) {
+      setPresetFormError(err instanceof Error ? err.message : "등록 실패");
+    } finally {
+      setPresetFormBusy(false);
+    }
+  }
+
   useEffect(() => {
     fetch("/api/catalog/products")
       .then((r) => r.json())
@@ -305,6 +381,14 @@ function NewServerPageInner() {
       .then(setPresets)
       .catch(() => setPresets([]));
   }, [templateId]);
+
+  const filteredCommunityPresets = useMemo(
+    () =>
+      categoryFilter === "ALL"
+        ? allPresets
+        : allPresets.filter((p) => p.baseTemplateCategory === categoryFilter),
+    [allPresets, categoryFilter],
+  );
 
   async function reportPreset(id: string) {
     if (!confirm("이 프리셋을 신고할까요? 여러 명이 신고하면 자동으로 목록에서 내려가요.")) return;
@@ -493,6 +577,27 @@ function NewServerPageInner() {
         <form onSubmit={submitTemplateChoice} className="mt-8 space-y-10">
           {selectedProduct && loaderGroups.length > 0 && (
             <Section step={1} title="서버 종류">
+              <div className="flex gap-1.5 mb-3 p-1 bg-surface-2 rounded-full w-fit">
+                <button
+                  type="button"
+                  onClick={() => setEggSource("official")}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-150 ${
+                    eggSource === "official" ? "bg-accent text-white shadow-sm" : "text-text-dim hover:text-text"
+                  }`}
+                >
+                  공식
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEggSource("community")}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-150 inline-flex items-center gap-1 ${
+                    eggSource === "community" ? "bg-accent text-white shadow-sm" : "text-text-dim hover:text-text"
+                  }`}
+                >
+                  <Users size={12} /> 커뮤니티
+                </button>
+              </div>
+
               {availableCategories.length > 1 && (
                 <div className="flex flex-wrap gap-1.5 mb-3 p-1 bg-surface-2 rounded-full w-fit">
                   {(["ALL", ...availableCategories] as const).map((c) => (
@@ -509,6 +614,8 @@ function NewServerPageInner() {
                   ))}
                 </div>
               )}
+
+              {eggSource === "official" ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                 {filteredLoaderGroups.map((g, i) => {
                   const meta = loaderMeta(g.base);
@@ -538,9 +645,146 @@ function NewServerPageInner() {
                   );
                 })}
               </div>
+              ) : (
+              <div className="space-y-3">
+                <p className="text-xs text-text-dim">
+                  다른 유저가 만들어 공개한 서버 종류예요. 골라서 바로 시작하거나, 직접 만들어 공개하면
+                  포인트를 받아요.
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                  {filteredCommunityPresets.map((p, i) => {
+                    const active = presetId === p.id;
+                    return (
+                      <div
+                        key={p.id}
+                        className={`animate-fade-up rounded-2xl border p-3.5 flex flex-col items-start gap-1.5 transition-all duration-150 relative ${
+                          active
+                            ? "border-accent bg-accent/[0.08] shadow-[0_0_0_1px_var(--accent)]"
+                            : "border-border bg-surface hover:border-accent/40 hover:bg-surface-2"
+                        }`}
+                        style={{ animationDelay: `${Math.min(i, 12) * 0.025}s` }}
+                      >
+                        <button type="button" onClick={() => pickCommunityEgg(p)} className="text-left w-full active:scale-[0.97] transition-transform">
+                          <span className="font-semibold text-sm inline-flex items-center gap-1 flex-wrap">
+                            {p.displayName}
+                            {p.verified && (
+                              <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-accent bg-accent/10 rounded-full px-1.5 py-0.5">
+                                <ShieldCheck size={9} /> 공식
+                              </span>
+                            )}
+                          </span>
+                          <span className="block text-text-dim text-[11px] mt-0.5">{p.baseTemplateName} 기반</span>
+                          {p.blurb && <span className="block text-text-dim text-[11px] leading-tight mt-1">{p.blurb}</span>}
+                          <span className="block text-text-dim text-[10px] mt-1">by {p.creatorName}</span>
+                        </button>
+                        {!p.verified && (
+                          <button
+                            type="button"
+                            onClick={() => reportPreset(p.id)}
+                            disabled={reportedPresetIds.includes(p.id)}
+                            title="신고"
+                            className="absolute top-2 right-2 text-text-dim hover:text-red p-0.5 disabled:opacity-40"
+                          >
+                            <Flag size={11} />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                {filteredCommunityPresets.length === 0 && (
+                  <p className="text-sm text-text-dim">아직 공개된 커뮤니티 Egg가 없어요. 첫 번째로 만들어보세요!</p>
+                )}
+
+                {!showPresetForm ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowPresetForm(true)}
+                    className="btn-secondary px-3.5 py-2 text-xs inline-flex items-center gap-1.5 active:scale-95 transition-transform"
+                  >
+                    + 내 서버 종류(Egg) 공유하기
+                  </button>
+                ) : presetFormDone !== null ? (
+                  <div className="card-glow p-4 flex items-center gap-3 animate-fade-up">
+                    <SuccessCheck size={32} confetti className="shrink-0" />
+                    <p className="text-sm text-green">
+                      공개했어요{presetFormDone > 0 ? ` (포인트 ${presetFormDone}P 적립)` : ""}! 목록에서 바로 골라 쓸 수 있어요.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="card-glow p-4 space-y-3 animate-fade-up">
+                    <h4 className="font-semibold text-sm">내 서버 종류(Egg) 공유하기</h4>
+                    <p className="text-xs text-text-dim">
+                      기존 서버 종류 중 하나를 베이스로 골라, 시작 변수 값을 원하는 대로 채워서
+                      &ldquo;나만의 종류&rdquo;로 공개해요. 도커 이미지·설치 스크립트는 이미 검수된
+                      베이스 그대로 유지돼요.
+                    </p>
+                    <select
+                      className="input w-full text-sm"
+                      value={presetFormTemplateId}
+                      onChange={(e) => {
+                        setPresetFormTemplateId(e.target.value);
+                        setPresetFormEnv({});
+                      }}
+                    >
+                      <option value="">베이스 종류 선택</option>
+                      {allTemplates.map((t) => (
+                        <option key={t.id} value={t.id}>{t.displayName}</option>
+                      ))}
+                    </select>
+                    <input
+                      className="input w-full text-sm"
+                      placeholder="이름 (예: 롤플레이용 기본 설정)"
+                      maxLength={40}
+                      value={presetFormName}
+                      onChange={(e) => setPresetFormName(e.target.value)}
+                    />
+                    <input
+                      className="input w-full text-sm"
+                      placeholder="한 줄 설명 (선택)"
+                      maxLength={200}
+                      value={presetFormBlurb}
+                      onChange={(e) => setPresetFormBlurb(e.target.value)}
+                    />
+                    {presetFormFields.length > 0 && (
+                      <div className="grid sm:grid-cols-2 gap-2">
+                        {presetFormFields.map((k) => (
+                          <div key={k}>
+                            <label className="text-[11px] text-text-dim font-mono">{k}</label>
+                            <input
+                              className="input w-full text-xs font-mono mt-0.5"
+                              value={presetFormEnv[k] ?? ""}
+                              onChange={(e) => setPresetFormEnv((v) => ({ ...v, [k]: e.target.value }))}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={submitPresetForm}
+                        disabled={presetFormBusy || !presetFormTemplateId || presetFormName.length < 1}
+                        className="btn-primary px-3.5 py-1.5 text-xs active:scale-95 transition-transform"
+                      >
+                        {presetFormBusy ? "공개하는 중..." : "공개하기"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowPresetForm(false)}
+                        className="btn-secondary px-3.5 py-1.5 text-xs active:scale-95 transition-transform"
+                      >
+                        취소
+                      </button>
+                    </div>
+                    {presetFormError && <p className="text-xs text-red">{presetFormError}</p>}
+                  </div>
+                )}
+              </div>
+              )}
 
               {/* 버전대(최신/중간/레거시) 탭 — 로더에 하나만 있으면 숨김 */}
-              {selectedGroup && selectedGroup.templates.length > 1 && (
+              {eggSource === "official" && selectedGroup && selectedGroup.templates.length > 1 && (
                 <div className="flex gap-1.5 mt-4 p-1 bg-surface-2 rounded-full w-fit">
                   {selectedGroup.templates.map((t) => {
                     const active = t.id === templateId;

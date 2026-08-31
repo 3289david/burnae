@@ -7,6 +7,7 @@ const schema = z.object({
   name: z.string().min(1).optional(),
   location: z.string().min(1).optional(),
   publicIp: z.string().min(1).optional(),
+  sftpFqdn: z.string().max(255).nullable().optional(),
   reservedRamMb: z.number().int().min(0).optional(),
   reservedDiskMb: z.number().int().min(0).optional(),
   cpuCores: z.number().int().min(1).optional(),

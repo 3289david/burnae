@@ -104,6 +104,9 @@ model HostNode {
   location          String
   pterodactylNodeId Int        @unique
   fqdn              String
+  /// 고객에게 SFTP 접속 주소로 보여줄 호스트명. 비워두면 fqdn을 그대로 쓴다.
+  /// fqdn은 Wings 데몬 자체(패널↔Wings 통신)용이라, 고객에게 보여줄 이름을 따로 관리할 수 있게 분리
+  sftpFqdn          String?
   publicIp          String
   totalRamMb        Int
   totalDiskMb       Int

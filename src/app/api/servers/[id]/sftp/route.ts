@@ -33,7 +33,7 @@ export const GET = withApiErrorHandling(async (
 
   const { owner, node } = await loadOwnerAndNode(server);
   return NextResponse.json({
-    host: node.publicIp,
+    host: node.sftpFqdn || node.fqdn,
     port: node.sftpPort,
     username: `${panelUsernameForUser(owner.id)}.${server.pterodactylIdentifier}`,
     hasPassword: !!owner.sftpPassword,

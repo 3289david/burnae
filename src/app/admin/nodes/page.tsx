@@ -8,6 +8,7 @@ interface Node {
   name: string;
   location: string;
   fqdn: string;
+  sftpFqdn: string | null;
   publicIp: string;
   totalRamMb: number;
   totalDiskMb: number;
@@ -78,7 +79,7 @@ export default function AdminNodesPage() {
     }
   }
 
-  async function toggle(id: string, field: "status" | "autoDeployEnabled", value: string | boolean) {
+  async function toggle(id: string, field: "status" | "autoDeployEnabled" | "sftpFqdn", value: string | boolean | null) {
     await fetch(`/api/admin/nodes/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -99,6 +100,18 @@ export default function AdminNodesPage() {
               <div className="min-w-0">
                 <p className="font-medium">{n.name} · {n.location}</p>
                 <p className="text-xs text-text-dim mt-0.5">{n.fqdn} ({n.publicIp})</p>
+                <label className="flex items-center gap-1.5 text-xs text-text-dim mt-1.5">
+                  SFTP 주소
+                  <input
+                    defaultValue={n.sftpFqdn ?? ""}
+                    placeholder={n.fqdn}
+                    onBlur={(e) => {
+                      const v = e.target.value.trim();
+                      if (v !== (n.sftpFqdn ?? "")) toggle(n.id, "sftpFqdn", v || null);
+                    }}
+                    className="input text-xs py-1 w-40"
+                  />
+                </label>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <select value={n.status} onChange={(e) => toggle(n.id, "status", e.target.value)} className="input text-sm">

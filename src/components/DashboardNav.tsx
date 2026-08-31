@@ -12,7 +12,7 @@ interface Props {
 }
 
 const LINKS = [
-  { href: "/dashboard/community-eggs", label: "커뮤니티 Egg" },
+  { href: "/dashboard/community-eggs", label: "커뮤니티 프리셋" },
   { href: "/dashboard/promotions", label: "홍보 포인트" },
   { href: "/dashboard/billing", label: "결제 내역" },
   { href: "/dashboard/account", label: "계정" },

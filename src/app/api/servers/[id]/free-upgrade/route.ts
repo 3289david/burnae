@@ -49,11 +49,12 @@ export const POST = withApiErrorHandling(async (
   if (!item || !RESOURCE_KINDS.includes(item.kind as (typeof RESOURCE_KINDS)[number]) || !item.amount) {
     return NextResponse.json({ error: "존재하지 않는 증설 항목입니다." }, { status: 404 });
   }
+  const amount = item.amount;
 
-  const nextRamMb = item.kind === "RAM_UPGRADE" ? server.ramMb + item.amount : server.ramMb;
-  const nextCpuPercent = item.kind === "CPU_UPGRADE" ? server.cpuPercent + item.amount : server.cpuPercent;
-  const nextDiskMb = item.kind === "DISK_UPGRADE" ? server.diskMb + item.amount : server.diskMb;
-  const nextBackupSlots = item.kind === "BACKUP_SLOT_UPGRADE" ? server.backupSlots + item.amount : server.backupSlots;
+  const nextRamMb = item.kind === "RAM_UPGRADE" ? server.ramMb + amount : server.ramMb;
+  const nextCpuPercent = item.kind === "CPU_UPGRADE" ? server.cpuPercent + amount : server.cpuPercent;
+  const nextDiskMb = item.kind === "DISK_UPGRADE" ? server.diskMb + amount : server.diskMb;
+  const nextBackupSlots = item.kind === "BACKUP_SLOT_UPGRADE" ? server.backupSlots + amount : server.backupSlots;
 
   const currentTotal = {
     RAM_UPGRADE: server.ramMb,
@@ -61,7 +62,7 @@ export const POST = withApiErrorHandling(async (
     DISK_UPGRADE: server.diskMb,
     BACKUP_SLOT_UPGRADE: server.backupSlots,
   }[item.kind as (typeof RESOURCE_KINDS)[number]];
-  if (item.maxTotal != null && currentTotal + item.amount > item.maxTotal) {
+  if (item.maxTotal != null && currentTotal + amount > item.maxTotal) {
     return NextResponse.json({ error: "이 항목은 이미 최대치까지 증설했어요." }, { status: 422 });
   }
 
@@ -87,46 +88,53 @@ export const POST = withApiErrorHandling(async (
     }
   }
 
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { promotionPoints: { decrement: item.pointsCost } },
-  });
-
+  // Pterodactyl 호출을 먼저 성공시킨 뒤에야 포인트를 차감한다 — 순서가 반대면 Pterodactyl API가
+  // 실패했을 때 포인트만 빠져나가고 아무 것도 증설되지 않는 상황이 생긴다
   await PteroApp.updateServerBuild(server.pterodactylServerId, {
     memoryMb: nextRamMb,
     diskMb: nextDiskMb,
     cpuPercent: nextCpuPercent,
     backupSlots: nextBackupSlots,
   });
-  await prisma.server.update({
-    where: { id: server.id },
-    data: { ramMb: nextRamMb, cpuPercent: nextCpuPercent, diskMb: nextDiskMb, backupSlots: nextBackupSlots },
-  });
-  await PteroClient.sendPowerAction(server.pterodactylIdentifier, "restart");
 
-  await prisma.shopRedemption.create({
-    data: { userId: user.id, itemId: item.id, pointsSpent: item.pointsCost },
-  });
-  if (TIME_LIMITED_KINDS.includes(item.kind as (typeof TIME_LIMITED_KINDS)[number])) {
-    await prisma.resourceUpgradeGrant.create({
+  await prisma.$transaction(async (tx) => {
+    await tx.user.update({
+      where: { id: user.id },
+      data: { promotionPoints: { decrement: item.pointsCost } },
+    });
+    await tx.server.update({
+      where: { id: server.id },
+      data: { ramMb: nextRamMb, cpuPercent: nextCpuPercent, diskMb: nextDiskMb, backupSlots: nextBackupSlots },
+    });
+    await tx.shopRedemption.create({
+      data: { userId: user.id, itemId: item.id, pointsSpent: item.pointsCost },
+    });
+    if (TIME_LIMITED_KINDS.includes(item.kind as (typeof TIME_LIMITED_KINDS)[number])) {
+      await tx.resourceUpgradeGrant.create({
+        data: {
+          serverId: server.id,
+          userId: user.id,
+          itemId: item.id,
+          kind: item.kind,
+          amount,
+          expiresAt: new Date(Date.now() + RESOURCE_UPGRADE_RENEWAL_DAYS * 24 * 60 * 60 * 1000),
+        },
+      });
+    }
+    await tx.auditLog.create({
       data: {
-        serverId: server.id,
-        userId: user.id,
-        itemId: item.id,
-        kind: item.kind,
-        amount: item.amount,
-        expiresAt: new Date(Date.now() + RESOURCE_UPGRADE_RENEWAL_DAYS * 24 * 60 * 60 * 1000),
+        actorUserId: user.id,
+        action: "SERVER_FREE_UPGRADE",
+        targetType: "Server",
+        targetId: server.id,
+        metadata: { itemId: item.id, kind: item.kind, pointsSpent: item.pointsCost },
       },
     });
-  }
-  await prisma.auditLog.create({
-    data: {
-      actorUserId: user.id,
-      action: "SERVER_FREE_UPGRADE",
-      targetType: "Server",
-      targetId: server.id,
-      metadata: { itemId: item.id, kind: item.kind, pointsSpent: item.pointsCost },
-    },
+  });
+
+  // 재시작은 부수적인 편의 동작 — 실패해도 이미 확정된 증설 자체를 되돌리지 않는다
+  await PteroClient.sendPowerAction(server.pterodactylIdentifier, "restart").catch((err) => {
+    console.error("[free-upgrade] 재시작 실패(증설 자체는 정상 적용됨):", err);
   });
 
   return NextResponse.json({

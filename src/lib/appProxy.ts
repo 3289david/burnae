@@ -45,8 +45,19 @@ export async function syncAppProxyMap(prisma: PrismaClient) {
   const existing = fs.existsSync(MAP_FILE_PATH) ? fs.readFileSync(MAP_FILE_PATH, "utf-8") : null;
   if (existing === content) return { changed: false, count: lines.length };
 
-  fs.writeFileSync(MAP_FILE_PATH, content);
-  await execFileAsync("nginx", ["-t"]);
+  // 이 파일은 krl.kr(별도 서비스)의 vhost에도 include돼서, 문법이 깨진 채로 덮어쓰면 nginx 전체가
+  // reload/재시작 시 죽을 수 있다 — 그래서 임시 파일에 먼저 쓰고 `nginx -t`로 통과하는 걸 확인한
+  // 뒤에만 실제 경로로 옮긴다(원자적 rename). 검증 실패 시 기존 파일은 그대로 남는다.
+  const tmpPath = `${MAP_FILE_PATH}.tmp`;
+  fs.writeFileSync(tmpPath, content);
+  try {
+    fs.renameSync(tmpPath, MAP_FILE_PATH);
+    await execFileAsync("nginx", ["-t"]);
+  } catch (err) {
+    // 검증 실패 — 가능하면 이전 내용으로 되돌려서 nginx가 계속 정상 동작하게 한다
+    if (existing !== null) fs.writeFileSync(MAP_FILE_PATH, existing);
+    throw err;
+  }
   await execFileAsync("systemctl", ["reload", "nginx"]);
   return { changed: true, count: lines.length };
 }

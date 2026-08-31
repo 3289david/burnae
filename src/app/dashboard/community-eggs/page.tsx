@@ -136,7 +136,7 @@ export default function CommunityEggsPage() {
   return (
     <div className="max-w-3xl mx-auto pb-16">
       <h1 className="text-2xl font-bold flex items-center gap-2">
-        <Users size={22} className="text-accent" /> 커뮤니티 Egg
+        <Users size={22} className="text-accent" /> 커뮤니티 프리셋
       </h1>
       <p className="text-sm text-text-dim mt-1">
         다른 유저가 만들어 공개한 서버 종류예요 — 예: 자기 코드로 만든 디스코드 봇, 특정 설정으로
@@ -199,7 +199,7 @@ export default function CommunityEggsPage() {
         ))}
       </div>
       {filteredPresets.length === 0 && (
-        <p className="text-sm text-text-dim mt-4">아직 공개된 커뮤니티 Egg가 없어요. 첫 번째로 만들어보세요!</p>
+        <p className="text-sm text-text-dim mt-4">아직 공개된 커뮤니티 프리셋이 없어요. 첫 번째로 만들어보세요!</p>
       )}
 
       <div className="mt-6">
@@ -209,7 +209,7 @@ export default function CommunityEggsPage() {
             onClick={() => setShowForm(true)}
             className="btn-secondary px-3.5 py-2 text-sm inline-flex items-center gap-1.5 active:scale-95 transition-transform"
           >
-            + 내 서버 종류(Egg) 공유하기
+            + 내 커뮤니티 프리셋 공유하기
           </button>
         ) : formDone !== null ? (
           <div className="card-glow p-4 flex items-center gap-3 animate-fade-up">
@@ -220,11 +220,12 @@ export default function CommunityEggsPage() {
           </div>
         ) : (
           <div className="card-glow p-4 space-y-3 animate-fade-up">
-            <h4 className="font-semibold text-sm">내 서버 종류(Egg) 공유하기</h4>
+            <h4 className="font-semibold text-sm">내 커뮤니티 프리셋 공유하기</h4>
             <p className="text-xs text-text-dim">
               실행 환경(런타임)을 고르고, 코드 저장소 주소나 설정값을 채워서 완전히 새로운 서버
               종류로 공개해요 — 예를 들어 &ldquo;Node.js 봇&rdquo; 실행환경 + 내 디스코드 봇 GitHub
-              주소를 합치면 그 자체로 &ldquo;내 디스코드 봇&rdquo;이라는 새 Egg가 돼요. 도커
+              주소를 합치면 그 자체로 &ldquo;내 디스코드 봇&rdquo;이라는 새 프리셋이 돼요. 값을
+              하나도 안 채워도 베이스 종류를 그대로 소개하는 프리셋으로 등록할 수 있어요. 도커
               이미지·설치 스크립트 자체는 이미 검수된 실행환경 그대로 유지돼요.
             </p>
             <select

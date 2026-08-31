@@ -84,9 +84,7 @@ export async function POST(request: Request) {
     }
     environment[key] = value;
   }
-  if (Object.keys(environment).length === 0) {
-    return NextResponse.json({ error: "설정값이 비어있어요." }, { status: 422 });
-  }
+  // 설정값이 하나도 없어도(=베이스 종류를 그대로 소개만 하는 프리셋) 등록할 수 있다
 
   const preset = await prisma.userPreset.create({
     data: {

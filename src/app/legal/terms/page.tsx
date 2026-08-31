@@ -16,7 +16,7 @@ export default function TermsPage() {
 
       <main className="max-w-3xl mx-auto px-6 py-12 prose-sm">
         <h1 className="text-3xl font-bold font-display">이용약관</h1>
-        <p className="text-sm text-text-dim mt-2">시행일: 2026년 8월 30일</p>
+        <p className="text-sm text-text-dim mt-2">시행일: 2026년 8월 31일</p>
 
         <Section title="제1조 (목적)">
           이 약관은 Burnae(이하 &ldquo;회사&rdquo;)가 제공하는 서버 호스팅(마인크래프트 등 게임 서버, VPS,
@@ -86,6 +86,24 @@ export default function TermsPage() {
               검토할 책임이 있습니다.</li>
             <li>AI 이용량은 요금제에 포함되거나 별도 구매한 크레딧 범위 내로 제한되며, 메시지 1건당 정해진
               크레딧이 차감됩니다.</li>
+          </ul>
+        </Section>
+
+        <Section title="제5조의2 (커뮤니티 Egg 이용에 관한 특칙)">
+          <ul className="list-disc pl-5 space-y-1">
+            <li>이용자는 회사가 제공하는 검수된 실행 환경(도커 이미지·설치 스크립트) 위에 코드 저장소
+              주소나 설정값을 채워 &ldquo;커뮤니티 Egg&rdquo;를 만들어 다른 이용자와 공유할 수 있습니다.
+              도커 이미지·설치 스크립트 자체는 이용자가 임의로 지정하거나 업로드할 수 없으며, 회사가
+              사전에 검수한 실행 환경만 기반으로 사용됩니다.</li>
+            <li>커뮤니티 Egg에 포함된 코드 저장소 주소, 설정값, 이름·설명 등 콘텐츠는 이를 등록한
+              이용자의 책임 하에 있으며, 회사는 그 내용의 정확성·안전성·적법성을 보장하지 않습니다.
+              다른 이용자가 공개한 커뮤니티 Egg를 선택해 발생하는 결과(예: 코드 오류, 원치 않는
+              동작)는 이를 선택한 이용자 본인이 검토·확인할 책임이 있습니다.</li>
+            <li>부적절하거나 문제가 있는 커뮤니티 Egg는 다른 이용자의 신고를 통해 일정 건수 누적 시
+              자동으로 비공개 처리되며, 등록자에게 지급됐던 포인트도 함께 회수될 수 있습니다. 회사는
+              관리자 권한으로 언제든 특정 커뮤니티 Egg를 비공개·삭제할 수 있습니다.</li>
+            <li>커뮤니티 Egg 공개 시 지급되는 포인트는 어뷰징 방지를 위해 계정당 일일 지급 한도가
+              적용될 수 있습니다.</li>
           </ul>
         </Section>
 

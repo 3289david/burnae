@@ -7,6 +7,7 @@ import { PteroApp, PteroClient } from "@/lib/pterodactyl";
 import { getNodeFreeCapacity } from "@/lib/provisioning";
 import { withApiErrorHandling } from "@/lib/apiHandler";
 import { RESOURCE_UPGRADE_RENEWAL_DAYS } from "@/lib/resourceUpgrades";
+import { logServerActivity } from "@/lib/serverActivityLog";
 
 const schema = z.object({ shopItemId: z.string() });
 
@@ -131,6 +132,8 @@ export const POST = withApiErrorHandling(async (
       },
     });
   });
+
+  await logServerActivity(server.id, user.id, "RESOURCE_UPGRADE", item.name);
 
   // 재시작은 부수적인 편의 동작 — 실패해도 이미 확정된 증설 자체를 되돌리지 않는다
   await PteroClient.sendPowerAction(server.pterodactylIdentifier, "restart").catch((err) => {

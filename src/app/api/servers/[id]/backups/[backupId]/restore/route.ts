@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth";
 import { authorizeServerAccess } from "@/lib/serverAccess";
 import { PteroClient } from "@/lib/pterodactyl";
 import { withApiErrorHandling } from "@/lib/apiHandler";
+import { logServerActivity } from "@/lib/serverActivityLog";
 
 export const POST = withApiErrorHandling(async (
   _request: Request,
@@ -19,5 +20,6 @@ export const POST = withApiErrorHandling(async (
 
   await PteroClient.sendPowerAction(server.pterodactylIdentifier, "stop");
   await PteroClient.restoreBackup(server.pterodactylIdentifier, backupId);
+  await logServerActivity(server.id, user.id, "BACKUP_RESTORE");
   return NextResponse.json({ ok: true });
 });

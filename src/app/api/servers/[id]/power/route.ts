@@ -4,6 +4,14 @@ import { requireUser } from "@/lib/auth";
 import { authorizeServerAccess } from "@/lib/serverAccess";
 import { PteroClient } from "@/lib/pterodactyl";
 import { withApiErrorHandling } from "@/lib/apiHandler";
+import { logServerActivity } from "@/lib/serverActivityLog";
+
+const POWER_ACTION_LOG = {
+  start: "POWER_START",
+  stop: "POWER_STOP",
+  restart: "POWER_RESTART",
+  kill: "POWER_KILL",
+} as const;
 
 const schema = z.object({ signal: z.enum(["start", "stop", "restart", "kill"]) });
 
@@ -27,5 +35,6 @@ export const POST = withApiErrorHandling(async (
   }
 
   await PteroClient.sendPowerAction(server.pterodactylIdentifier, parsed.data.signal);
+  await logServerActivity(server.id, user.id, POWER_ACTION_LOG[parsed.data.signal]);
   return NextResponse.json({ ok: true });
 });

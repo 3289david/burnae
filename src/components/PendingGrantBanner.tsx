@@ -37,7 +37,7 @@ export default function PendingGrantBanner({ grant }: { grant: PendingGrant }) {
   return (
     <Link
       href={`/dashboard/servers/new?orderId=${grant.id}`}
-      className="relative card-glow mb-4 p-4 flex items-center gap-3 border-accent/40 bg-accent/[0.06] animate-fade-up"
+      className="relative card-glow mb-4 p-4 flex items-center gap-3 border-accent/40 bg-accent/[0.06] animate-bounce-in"
     >
       <span className="w-9 h-9 rounded-xl bg-accent/15 flex items-center justify-center shrink-0">
         {grant.isAdminGrant ? <Gift size={17} className="text-accent" /> : <CheckCircle2 size={17} className="text-accent" />}

@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Search, X } from "lucide-react";
+import { Search, X, CheckSquare, Check, Play, Square as StopIcon, RotateCw } from "lucide-react";
 import StatusDot from "@/components/StatusDot";
 import FavoriteButton from "@/components/FavoriteButton";
 
@@ -46,9 +47,45 @@ const STATUS_LABEL: Record<string, { text: string; dot: "green" | "yellow" | "re
 };
 
 export default function ServerListClient({ servers }: { servers: DashboardServerItem[] }) {
+  const router = useRouter();
   const [filter, setFilter] = useState<"ALL" | Category>("ALL");
   const [query, setQuery] = useState("");
   const [onlineOnly, setOnlineOnly] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+
+  const ownedCount = useMemo(() => servers.filter((s) => s.isOwner).length, [servers]);
+
+  function toggleSelected(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function runBulkPower(signal: "start" | "stop" | "restart") {
+    if (selected.size === 0 || bulkBusy) return;
+    setBulkBusy(true);
+    try {
+      await Promise.allSettled(
+        Array.from(selected).map((id) =>
+          fetch(`/api/servers/${id}/power`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ signal }),
+          }),
+        ),
+      );
+      setSelected(new Set());
+      setSelectMode(false);
+      router.refresh();
+    } finally {
+      setBulkBusy(false);
+    }
+  }
 
   const availableCategories = useMemo(() => {
     const set = new Set<Category>();
@@ -85,8 +122,21 @@ export default function ServerListClient({ servers }: { servers: DashboardServer
         </div>
       )}
 
-      {(availableCategories.length > 1 || servers.some((s) => s.status === "RUNNING")) && (
+      {(availableCategories.length > 1 || servers.some((s) => s.status === "RUNNING") || ownedCount > 1) && (
         <div className="mt-3 flex flex-wrap gap-2 animate-fade-up">
+          {ownedCount > 1 && (
+            <button
+              onClick={() => {
+                setSelectMode((v) => !v);
+                setSelected(new Set());
+              }}
+              className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-all active:scale-95 inline-flex items-center gap-1.5 ${
+                selectMode ? "bg-accent text-white shadow-sm" : "bg-surface-2 text-text-dim hover:text-text"
+              }`}
+            >
+              <CheckSquare size={13} /> {selectMode ? "선택 취소" : "여러 개 선택"}
+            </button>
+          )}
           {(["ALL", ...availableCategories] as const).map((c, i) => (
             <button
               key={c}
@@ -117,19 +167,25 @@ export default function ServerListClient({ servers }: { servers: DashboardServer
         </div>
       )}
 
-      <div className="mt-4 grid sm:grid-cols-2 gap-4">
+      <div className={`mt-4 grid sm:grid-cols-2 gap-4 ${selected.size > 0 ? "pb-20" : ""}`}>
         {filtered.map((s, i) => {
           const label = STATUS_LABEL[s.status] ?? { text: s.status, dot: "gray" as const };
-          return (
-            <Link
-              key={s.id}
-              href={`/dashboard/servers/${s.id}`}
-              className="card-glow p-5 block animate-fade-up active:scale-[0.98] transition-transform"
-              style={{ animationDelay: `${0.1 + i * 0.05}s` }}
-            >
+          const checkable = selectMode && s.isOwner;
+          const isChecked = selected.has(s.id);
+          const cardContent = (
+            <>
               <div className="flex flex-wrap items-center justify-between gap-x-2">
                 <span className="flex items-center gap-1.5 min-w-0">
-                  {s.isOwner && <FavoriteButton serverId={s.id} initial={s.isFavorite} />}
+                  {checkable && (
+                    <span
+                      className={`w-4 h-4 rounded-md border shrink-0 flex items-center justify-center transition-colors ${
+                        isChecked ? "bg-accent border-accent" : "border-border"
+                      }`}
+                    >
+                      {isChecked && <Check size={11} className="text-white" strokeWidth={3} />}
+                    </span>
+                  )}
+                  {!selectMode && s.isOwner && <FavoriteButton serverId={s.id} initial={s.isFavorite} />}
                   <span className="font-semibold truncate min-w-0">{s.name}</span>
                 </span>
                 <span className="text-sm shrink-0 inline-flex items-center gap-1.5">
@@ -148,6 +204,35 @@ export default function ServerListClient({ servers }: { servers: DashboardServer
                   디스크 {(s.diskMb / 1024).toFixed(0)}GB
                 </span>
               </div>
+            </>
+          );
+
+          if (checkable) {
+            return (
+              <button
+                key={s.id}
+                onClick={() => toggleSelected(s.id)}
+                className={`card-glow p-5 text-left animate-fade-up hover-lift active:scale-[0.98] transition-transform ${
+                  isChecked ? "border-accent shadow-[0_0_0_1px_var(--accent)]" : ""
+                }`}
+                style={{ animationDelay: `${0.1 + i * 0.05}s` }}
+              >
+                {cardContent}
+              </button>
+            );
+          }
+
+          return (
+            <Link
+              key={s.id}
+              href={selectMode ? "#" : `/dashboard/servers/${s.id}`}
+              onClick={(e) => selectMode && e.preventDefault()}
+              className={`card-glow p-5 block animate-fade-up hover-lift active:scale-[0.98] transition-transform ${
+                selectMode ? "opacity-50" : ""
+              }`}
+              style={{ animationDelay: `${0.1 + i * 0.05}s` }}
+            >
+              {cardContent}
             </Link>
           );
         })}
@@ -157,6 +242,33 @@ export default function ServerListClient({ servers }: { servers: DashboardServer
         <p className="text-sm text-text-dim mt-6 animate-fade-up">
           {query ? "검색 결과가 없어요." : "이 조건에 맞는 서버가 없어요."}
         </p>
+      )}
+
+      {selected.size > 0 && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 card-glow px-4 py-3 flex items-center gap-3 animate-slide-in-bottom shadow-lg">
+          <span className="text-sm font-medium">{selected.size}개 선택됨</span>
+          <button
+            onClick={() => runBulkPower("start")}
+            disabled={bulkBusy}
+            className="btn-secondary px-3 py-1.5 text-xs inline-flex items-center gap-1 active:scale-95 transition-transform disabled:opacity-50"
+          >
+            <Play size={12} /> 시작
+          </button>
+          <button
+            onClick={() => runBulkPower("restart")}
+            disabled={bulkBusy}
+            className="btn-secondary px-3 py-1.5 text-xs inline-flex items-center gap-1 active:scale-95 transition-transform disabled:opacity-50"
+          >
+            <RotateCw size={12} /> 재시작
+          </button>
+          <button
+            onClick={() => runBulkPower("stop")}
+            disabled={bulkBusy}
+            className="btn-secondary px-3 py-1.5 text-xs inline-flex items-center gap-1 active:scale-95 transition-transform disabled:opacity-50"
+          >
+            <StopIcon size={12} /> 중지
+          </button>
+        </div>
       )}
     </div>
   );

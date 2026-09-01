@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { createServerForOrder, ProvisioningError } from "@/lib/provisioning";
 import { PteroApp, PteroClient } from "@/lib/pterodactyl";
 import { rewardReferralFirstPayment } from "@/lib/promotions";
+import { logServerActivity } from "@/lib/serverActivityLog";
 
 /**
  * Date.setMonth은 그 달에 없는 날짜(예: 1/31 + 1달 = 2/31)를 다음다음 달로 넘겨버린다(3/3 등) —
@@ -98,6 +99,7 @@ export async function markOrderPaidAndFulfill(orderId: string) {
       if (server.status === "SUSPENDED" && server.pterodactylServerId) {
         await PteroApp.unsuspendServer(server.pterodactylServerId);
       }
+      await logServerActivity(server.id, order.userId, "RENEW");
       if (order.product && order.product.aiCreditsPerMonth > 0) {
         await prisma.user.update({
           where: { id: order.userId },
@@ -127,6 +129,7 @@ export async function markOrderPaidAndFulfill(orderId: string) {
       if (server.pterodactylIdentifier) {
         await PteroClient.sendPowerAction(server.pterodactylIdentifier, "restart");
       }
+      await logServerActivity(server.id, order.userId, "RESOURCE_UPGRADE", order.product.name);
     }
   } catch (err) {
     await prisma.order.update({

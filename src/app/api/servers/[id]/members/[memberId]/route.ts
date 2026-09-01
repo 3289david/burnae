@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { authorizeServerAccess } from "@/lib/serverAccess";
+import { logServerActivity } from "@/lib/serverActivityLog";
 
 const schema = z.object({ role: z.enum(["ADMIN", "MODERATOR", "DEVELOPER", "VIEWER"]) });
 
@@ -46,7 +47,10 @@ export async function DELETE(
   const server = await authorizeServerAccess(user, id);
   if (!server) return NextResponse.json({ error: "서버를 찾을 수 없습니다." }, { status: 404 });
 
-  const member = await prisma.serverMember.findUnique({ where: { id: memberId } });
+  const member = await prisma.serverMember.findUnique({
+    where: { id: memberId },
+    include: { user: { select: { email: true } } },
+  });
   if (!member || member.serverId !== id) {
     return NextResponse.json({ error: "팀원을 찾을 수 없습니다." }, { status: 404 });
   }
@@ -58,5 +62,6 @@ export async function DELETE(
   }
 
   await prisma.serverMember.delete({ where: { id: memberId } });
+  await logServerActivity(id, user.id, "MEMBER_REMOVE", member.user.email);
   return NextResponse.json({ ok: true });
 }

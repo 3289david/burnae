@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth";
 import { authorizeServerAccess } from "@/lib/serverAccess";
 import { PteroClient } from "@/lib/pterodactyl";
 import { withApiErrorHandling } from "@/lib/apiHandler";
+import { logServerActivity } from "@/lib/serverActivityLog";
 
 export const POST = withApiErrorHandling(async (
   _request: Request,
@@ -21,5 +22,6 @@ export const POST = withApiErrorHandling(async (
   }
 
   await PteroClient.reinstallServer(server.pterodactylIdentifier);
+  await logServerActivity(server.id, user.id, "REINSTALL");
   return NextResponse.json({ ok: true });
 });

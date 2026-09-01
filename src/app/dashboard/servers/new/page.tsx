@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import SuccessCheck from "@/components/SuccessCheck";
+import FullScreenCelebration from "@/components/FullScreenCelebration";
 import {
   Check,
   Search,
@@ -35,6 +36,8 @@ import {
   ShieldCheck,
   Flag,
   Users,
+  PartyPopper,
+  Clock3,
 } from "lucide-react";
 
 interface Template {
@@ -155,11 +158,12 @@ function loaderMeta(baseKey: string) {
 
 const TIER_ORDER: Record<string, number> = { 최신: 0, 중간: 1, 레거시: 2 };
 
-const CATEGORY_FILTER_LABEL: Record<"ALL" | "MINECRAFT" | "DISCORD_BOT" | "GENERAL", string> = {
+const CATEGORY_FILTER_LABEL: Record<"ALL" | "MINECRAFT" | "DISCORD_BOT" | "GENERAL" | "COMMUNITY", string> = {
   ALL: "전체",
   MINECRAFT: "마인크래프트",
   DISCORD_BOT: "디스코드 봇",
   GENERAL: "일반 서버",
+  COMMUNITY: "커뮤니티",
 };
 
 const NAME_ADJECTIVES = ["즐거운", "든든한", "반짝이는", "포근한", "용감한", "느긋한", "은은한", "씩씩한", "신비한", "아늑한"];
@@ -189,6 +193,7 @@ function NewServerPageInner() {
   const prefillTemplateId = searchParams.get("templateId");
   const prefillPresetId = searchParams.get("presetId");
   const [step, setStep] = useState<Step>(grantOrderId ? "loading" : "form");
+  const [celebrationOpen, setCelebrationOpen] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
   const [productId, setProductId] = useState("");
   const [serverName, setServerName] = useState("");
@@ -212,9 +217,12 @@ function NewServerPageInner() {
   const [presetId, setPresetId] = useState("");
   const [reportedPresetIds, setReportedPresetIds] = useState<string[]>([]);
 
-  // "공식 / 커뮤니티" Egg 탭 — 커뮤니티는 유저가 만든 서버 종류(베이스 egg 위에 자기 설정을 얹은 것)를
-  // 공식 종류와 나란히 고를 수 있는 탭
-  const [eggSource, setEggSource] = useState<"official" | "community">("official");
+  // 서버 종류가 38개까지 늘어나서 한 화면에 다 보여주면 찾기 어려우니, 카테고리별로 걸러 볼 수 있게 한다.
+  // 소스(공식/커뮤니티)와 카테고리를 각자 다른 필터로 나누면 한 화면에 필터가 2개 생겨 복잡해지니,
+  // "커뮤니티"를 카테고리 필터의 선택지 중 하나로 합쳐서 필터를 하나로 유지한다
+  const [categoryFilter, setCategoryFilter] = useState<"ALL" | Template["category"] | "COMMUNITY">("ALL");
+  const eggSource: "official" | "community" = categoryFilter === "COMMUNITY" ? "community" : "official";
+
   const [allPresets, setAllPresets] = useState<CommunityPreset[]>([]);
   const [showPresetForm, setShowPresetForm] = useState(false);
   const [presetFormTemplateId, setPresetFormTemplateId] = useState("");
@@ -353,14 +361,15 @@ function NewServerPageInner() {
     [loaderGroups, templateId],
   );
 
-  // 서버 종류가 38개까지 늘어나서 한 화면에 다 보여주면 찾기 어려우니, 카테고리별로 걸러 볼 수 있게 한다
-  const [categoryFilter, setCategoryFilter] = useState<"ALL" | Template["category"]>("ALL");
   const availableCategories = useMemo(() => {
     const set = new Set(loaderGroups.map((g) => g.templates[0]?.category).filter(Boolean));
     return [...set] as Template["category"][];
   }, [loaderGroups]);
   const filteredLoaderGroups = useMemo(
-    () => (categoryFilter === "ALL" ? loaderGroups : loaderGroups.filter((g) => g.templates[0]?.category === categoryFilter)),
+    () =>
+      categoryFilter === "ALL" || categoryFilter === "COMMUNITY"
+        ? loaderGroups
+        : loaderGroups.filter((g) => g.templates[0]?.category === categoryFilter),
     [loaderGroups, categoryFilter],
   );
 
@@ -387,7 +396,7 @@ function NewServerPageInner() {
     if (!t) return;
     pickTier(t);
     if (prefillPresetId) setPresetId(prefillPresetId);
-    setEggSource("community");
+    setCategoryFilter("COMMUNITY");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, selectedProduct, prefillTemplateId, prefillPresetId, templateId]);
 
@@ -404,7 +413,7 @@ function NewServerPageInner() {
 
   const filteredCommunityPresets = useMemo(
     () =>
-      categoryFilter === "ALL"
+      categoryFilter === "ALL" || categoryFilter === "COMMUNITY"
         ? allPresets
         : allPresets.filter((p) => p.baseTemplateCategory === categoryFilter),
     [allPresets, categoryFilter],
@@ -426,15 +435,17 @@ function NewServerPageInner() {
   function goToOutcome(data: { serverId?: string | null; preorderWaiting?: boolean }) {
     if (!data.serverId && data.preorderWaiting) {
       setStillWaitingForNode(true);
+      setCelebrationOpen(true);
       setStep("done");
       setTimeout(() => router.push("/dashboard/billing"), 2500);
       return;
     }
+    setCelebrationOpen(true);
     setStep("done");
     setTimeout(() => {
       if (data.serverId) router.push(`/dashboard/servers/${data.serverId}`);
       else router.push("/dashboard");
-    }, 1500);
+    }, 2800);
   }
 
   async function submitOrder(e: React.FormEvent) {
@@ -556,19 +567,40 @@ function NewServerPageInner() {
 
   if (step === "done") {
     return (
-      <div className="max-w-md mx-auto">
-        <div className="card mt-6 p-6 text-center animate-[fadeIn_0.3s_ease]">
-          <SuccessCheck size={72} confetti={!stillWaitingForNode} className="mx-auto" />
-          <p className="mt-2 font-semibold">
-            {stillWaitingForNode ? "선주문으로 접수됐어요!" : "서버를 만들고 있어요!"}
-          </p>
-          <p className="text-sm text-text-dim mt-1">
-            {stillWaitingForNode
-              ? "지금은 배치할 노드 자리가 없어서 선주문으로 접수됐어요. 자리가 나는 대로 자동으로 서버가 생성돼요."
-              : "잠시 후 서버 페이지로 이동할게요..."}
-          </p>
+      <>
+        {celebrationOpen && (
+          <FullScreenCelebration
+            title={stillWaitingForNode ? "선주문으로 접수됐어요!" : "서버를 만들고 있어요!"}
+            subtitle={
+              stillWaitingForNode
+                ? "지금은 배치할 노드 자리가 없어서 선주문으로 접수됐어요. 자리가 나는 대로 자동으로 서버가 생성돼요."
+                : "잠시 후 서버 페이지로 이동할게요..."
+            }
+            icon={
+              stillWaitingForNode ? (
+                <Clock3 size={44} className="text-accent" />
+              ) : (
+                <PartyPopper size={44} className="text-accent" />
+              )
+            }
+            onClose={() => setCelebrationOpen(false)}
+            autoCloseMs={2400}
+          />
+        )}
+        <div className="max-w-md mx-auto">
+          <div className="card mt-6 p-6 text-center animate-[fadeIn_0.3s_ease]">
+            <SuccessCheck size={72} confetti={!stillWaitingForNode} className="mx-auto" />
+            <p className="mt-2 font-semibold">
+              {stillWaitingForNode ? "선주문으로 접수됐어요!" : "서버를 만들고 있어요!"}
+            </p>
+            <p className="text-sm text-text-dim mt-1">
+              {stillWaitingForNode
+                ? "지금은 배치할 노드 자리가 없어서 선주문으로 접수됐어요. 자리가 나는 대로 자동으로 서버가 생성돼요."
+                : "잠시 후 서버 페이지로 이동할게요..."}
+            </p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -597,43 +629,21 @@ function NewServerPageInner() {
         <form onSubmit={submitTemplateChoice} className="mt-8 space-y-10">
           {selectedProduct && loaderGroups.length > 0 && (
             <Section step={1} title="서버 종류">
-              <div className="flex gap-1.5 mb-3 p-1 bg-surface-2 rounded-full w-fit">
-                <button
-                  type="button"
-                  onClick={() => setEggSource("official")}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-150 ${
-                    eggSource === "official" ? "bg-accent text-white shadow-sm" : "text-text-dim hover:text-text"
-                  }`}
-                >
-                  공식
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEggSource("community")}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-150 inline-flex items-center gap-1 ${
-                    eggSource === "community" ? "bg-accent text-white shadow-sm" : "text-text-dim hover:text-text"
-                  }`}
-                >
-                  <Users size={12} /> 커뮤니티
-                </button>
+              <div className="flex flex-wrap gap-1.5 mb-3 p-1 bg-surface-2 rounded-full w-fit">
+                {(["ALL", ...availableCategories, "COMMUNITY"] as const).map((c) => (
+                  <button
+                    type="button"
+                    key={c}
+                    onClick={() => setCategoryFilter(c)}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-150 inline-flex items-center gap-1 ${
+                      categoryFilter === c ? "bg-accent text-white shadow-sm" : "text-text-dim hover:text-text"
+                    }`}
+                  >
+                    {c === "COMMUNITY" && <Users size={12} />}
+                    {CATEGORY_FILTER_LABEL[c]}
+                  </button>
+                ))}
               </div>
-
-              {availableCategories.length > 1 && (
-                <div className="flex flex-wrap gap-1.5 mb-3 p-1 bg-surface-2 rounded-full w-fit">
-                  {(["ALL", ...availableCategories] as const).map((c) => (
-                    <button
-                      type="button"
-                      key={c}
-                      onClick={() => setCategoryFilter(c)}
-                      className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-150 ${
-                        categoryFilter === c ? "bg-accent text-white shadow-sm" : "text-text-dim hover:text-text"
-                      }`}
-                    >
-                      {CATEGORY_FILTER_LABEL[c]}
-                    </button>
-                  ))}
-                </div>
-              )}
 
               {eggSource === "official" ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
@@ -659,7 +669,12 @@ function NewServerPageInner() {
                       >
                         <Icon size={18} style={{ color: meta.color }} />
                       </span>
-                      <span className="font-semibold text-sm capitalize">{g.base}</span>
+                      <span className="font-semibold text-sm capitalize inline-flex items-center gap-1 flex-wrap">
+                        {g.base}
+                        <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-accent bg-accent/10 rounded-full px-1.5 py-0.5">
+                          <ShieldCheck size={9} /> 공식
+                        </span>
+                      </span>
                       <span className="text-text-dim text-[11px] leading-tight -mt-1">{meta.blurb}</span>
                     </button>
                   );

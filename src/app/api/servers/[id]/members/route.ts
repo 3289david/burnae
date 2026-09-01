@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { authorizeServerAccess } from "@/lib/serverAccess";
+import { logServerActivity } from "@/lib/serverActivityLog";
 
 export async function GET(
   _request: Request,
@@ -77,6 +78,8 @@ export async function POST(
       metadata: { invitee: invitee.email, role: parsed.data.role },
     },
   });
+
+  await logServerActivity(id, user.id, "MEMBER_ADD", invitee.email);
 
   return NextResponse.json(member);
 }

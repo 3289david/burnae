@@ -64,6 +64,7 @@ model User {
   extraFreeSlotGrants  ExtraFreeSlotGrant[]
   userPresets          UserPreset[]
   resourceUpgradeGrants ResourceUpgradeGrant[]
+  serverActivityLogs   ServerActivityLog[]
 
   @@index([email])
   @@index([referralCode])
@@ -428,9 +429,40 @@ model Server {
   members         ServerMember[]
   aiConversations AiConversation[]
   aiActivityLogs  AiActivityLog[]
+  usageSnapshots  ServerUsageSnapshot[]
+  activityLogs    ServerActivityLog[]
 
   @@index([ownerId])
   @@index([status])
+}
+
+/// 10분마다 크론이 Wings에서 읽어오는 CPU/RAM/디스크 사용량 스냅샷 — 서버 상세 페이지의
+/// 사용량 그래프에 쓰인다. 오래된 기록은 유지비용 대비 가치가 없어 30일 지나면 정리한다.
+model ServerUsageSnapshot {
+  id         String   @id @default(cuid())
+  serverId   String
+  server     Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  cpuPercent Float
+  ramMb      Int
+  diskMb     Int
+  recordedAt DateTime @default(now())
+
+  @@index([serverId, recordedAt])
+}
+
+/// 전원 조작·백업 복원·재설치·갱신·팀원 변경 등 서버에서 일어난 주요 사건을 시간순으로 남긴다.
+/// 소유자/팀원이 "무슨 일이 있었는지" 바로 확인할 수 있게 하는 용도라 자잘한 파일 조작까지는 안 남긴다.
+model ServerActivityLog {
+  id        String   @id @default(cuid())
+  serverId  String
+  server    Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  actorId   String?
+  actor     User?    @relation(fields: [actorId], references: [id])
+  action    String
+  detail    String?
+  createdAt DateTime @default(now())
+
+  @@index([serverId, createdAt])
 }
 
 model ServerMember {

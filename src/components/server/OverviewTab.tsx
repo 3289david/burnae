@@ -12,6 +12,8 @@ import GoogleAdSense from "@/components/ads/GoogleAdSense";
 import GettingStartedCard from "./GettingStartedCard";
 import SuccessCheck from "@/components/SuccessCheck";
 import CountUp from "@/components/CountUp";
+import UsageHistoryChart from "./UsageHistoryChart";
+import ServerActivityFeed from "./ServerActivityFeed";
 
 interface Resources {
   current_state: string;
@@ -252,6 +254,9 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
           </div>
         </div>
       </div>
+
+      <UsageHistoryChart serverId={server.id} ramMbLimit={server.ramMb} cpuPercentLimit={server.cpuPercent} />
+      <ServerActivityFeed serverId={server.id} />
 
       <div className="card-glow p-5">
         <h3 className="font-semibold mb-3">서버 정보</h3>

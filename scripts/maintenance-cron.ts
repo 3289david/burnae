@@ -83,6 +83,35 @@ async function handleServerStatusSync() {
   }
 }
 
+/** RUNNING 서버의 CPU/RAM/디스크 사용량을 스냅샷으로 기록 — 서버 상세 페이지 사용량 그래프용 */
+async function handleUsageSnapshots() {
+  const servers = await prisma.server.findMany({
+    where: { deletedAt: null, status: "RUNNING", pterodactylIdentifier: { not: null } },
+    select: { id: true, pterodactylIdentifier: true },
+  });
+
+  for (const server of servers) {
+    try {
+      const { resources } = await PteroClient.getServerResources(server.pterodactylIdentifier!);
+      await prisma.serverUsageSnapshot.create({
+        data: {
+          serverId: server.id,
+          cpuPercent: resources.cpu_absolute,
+          ramMb: Math.round(resources.memory_bytes / 1024 / 1024),
+          diskMb: Math.round(resources.disk_bytes / 1024 / 1024),
+        },
+      });
+    } catch {
+      // Wings 일시 응답 없음 등 — 조용히 스킵하고 다음 크론에서 재시도
+    }
+  }
+
+  // 30일 지난 스냅샷은 그래프에 안 쓰이니 계속 쌓아둘 이유가 없다
+  await prisma.serverUsageSnapshot.deleteMany({
+    where: { recordedAt: { lt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } },
+  });
+}
+
 async function handleRenewals() {
   const now = Date.now();
   const in3days = new Date(now + 3 * 24 * 60 * 60 * 1000);
@@ -466,6 +495,7 @@ async function handlePreorderRetries() {
 async function main() {
   console.log(`[cron] 시작 ${new Date().toISOString()}`);
   await handleServerStatusSync();
+  await handleUsageSnapshots();
   try {
     const result = await syncAppProxyMap(prisma);
     if (result.changed) console.log(`[cron] app.krl.kr 프록시 맵 갱신 (${result.count}개 서버)`);

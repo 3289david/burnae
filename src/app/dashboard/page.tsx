@@ -35,7 +35,7 @@ export default async function DashboardPage() {
       templateIdRequested: null,
     },
     orderBy: { createdAt: "desc" },
-    select: { id: true, serverNameRequested: true },
+    select: { id: true, serverNameRequested: true, isAdminGrant: true },
   });
 
   return (

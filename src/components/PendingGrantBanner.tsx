@@ -3,11 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Gift, ArrowRight, X } from "lucide-react";
+import { Gift, CheckCircle2, ArrowRight, X } from "lucide-react";
 
 export interface PendingGrant {
   id: string;
   serverNameRequested: string | null;
+  isAdminGrant: boolean;
 }
 
 export default function PendingGrantBanner({ grant }: { grant: PendingGrant }) {
@@ -39,20 +40,24 @@ export default function PendingGrantBanner({ grant }: { grant: PendingGrant }) {
       className="relative card-glow mb-4 p-4 flex items-center gap-3 border-accent/40 bg-accent/[0.06] animate-fade-up"
     >
       <span className="w-9 h-9 rounded-xl bg-accent/15 flex items-center justify-center shrink-0">
-        <Gift size={17} className="text-accent" />
+        {grant.isAdminGrant ? <Gift size={17} className="text-accent" /> : <CheckCircle2 size={17} className="text-accent" />}
       </span>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold">지급된 서버가 있어요!</p>
+        <p className="text-sm font-semibold">
+          {grant.isAdminGrant ? "지급된 서버가 있어요!" : "결제가 완료됐어요!"}
+        </p>
         <p className="text-xs text-text-dim mt-0.5">서버 종류와 버전을 고르면 바로 만들어져요 — {grant.serverNameRequested}</p>
       </div>
-      <button
-        onClick={cancel}
-        disabled={cancelling}
-        title="취소하기"
-        className="text-text-dim hover:text-red shrink-0 p-1 active:scale-90 transition-transform"
-      >
-        <X size={16} />
-      </button>
+      {grant.isAdminGrant && (
+        <button
+          onClick={cancel}
+          disabled={cancelling}
+          title="취소하기"
+          className="text-text-dim hover:text-red shrink-0 p-1 active:scale-90 transition-transform"
+        >
+          <X size={16} />
+        </button>
+      )}
       <ArrowRight size={16} className="text-accent shrink-0" />
     </Link>
   );

@@ -91,6 +91,7 @@ export async function POST(
       depositorName: "관리자지급",
       status: "PAID",
       paidAt: new Date(),
+      isAdminGrant: true,
       serverNameRequested: input.serverName,
       // 서버 종류/버전은 여기서 정하지 않는다 — 유저가 로그인해서 직접 고르면
       // /api/orders/[id] (select-template)에서 provisionNewServerOrder가 호출된다

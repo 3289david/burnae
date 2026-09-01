@@ -316,6 +316,11 @@ model Order {
   presetIdRequested         String?
   /// type이 AI_CREDITS일 때 이 주문으로 충전되는 크레딧 수
   aiCreditsAmount           Int?
+  /// 관리자가 결제/포인트 차감 없이 지급한 주문인지 — true여야만 대시보드에서 "지급된 서버"로
+  /// 안내하고 안전하게 취소할 수 있다. false(=유저가 실제로 결제한 주문)인데 서버 종류를 아직
+  /// 안 고른 상태는 "지급"이 아니라 그냥 미완료 결제라서, 같은 배너로 잘못 안내하거나 실수로
+  /// 취소했다가 결제한 돈을 날리는 일이 없도록 이 필드로 명확히 구분한다
+  isAdminGrant              Boolean     @default(false)
   /// 결제(또는 포인트 교환)는 끝났지만 노드 여유 공간이 없어서 서버 생성을 대기 중인 "선주문" 상태
   preorderWaiting           Boolean     @default(false)
   /// 주문 시점부터 이미 "선주문"으로 안내되고 진행된 주문인지 (preorderPriceKrw 적용 여부 판단용).

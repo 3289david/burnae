@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import SuccessCheck from "@/components/SuccessCheck";
-import { ShieldCheck, Flag, Users, ArrowRight } from "lucide-react";
+import { ShieldCheck, Flag, Users, ArrowRight, Search, X } from "lucide-react";
 
 interface Template {
   id: string;
@@ -41,6 +41,7 @@ export default function CommunityEggsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [presets, setPresets] = useState<CommunityPreset[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<"ALL" | Template["category"]>("ALL");
+  const [query, setQuery] = useState("");
   const [reportedIds, setReportedIds] = useState<string[]>([]);
 
   const [showForm, setShowForm] = useState(false);
@@ -72,10 +73,20 @@ export default function CommunityEggsPage() {
     return [...map.values()];
   }, [products]);
 
-  const filteredPresets = useMemo(
-    () => (categoryFilter === "ALL" ? presets : presets.filter((p) => p.baseTemplateCategory === categoryFilter)),
-    [presets, categoryFilter],
-  );
+  const filteredPresets = useMemo(() => {
+    let list = categoryFilter === "ALL" ? presets : presets.filter((p) => p.baseTemplateCategory === categoryFilter);
+    const q = query.trim().toLowerCase();
+    if (q) {
+      list = list.filter(
+        (p) =>
+          p.displayName.toLowerCase().includes(q) ||
+          (p.blurb?.toLowerCase().includes(q) ?? false) ||
+          p.baseTemplateName.toLowerCase().includes(q) ||
+          p.creatorName.toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [presets, categoryFilter, query]);
 
   const formTemplate = allTemplates.find((t) => t.id === formTemplateId);
   const formFields = useMemo(() => {
@@ -143,8 +154,28 @@ export default function CommunityEggsPage() {
         튜닝된 마인크래프트 서버 등. 골라서 바로 서버를 만들거나, 직접 만들어 공개하면 포인트를 받아요.
       </p>
 
+      {presets.length > 4 && (
+        <div className="relative mt-4 animate-fade-up">
+          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-dim" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="이름, 설명, 만든 사람으로 검색"
+            className="input w-full pl-9 pr-9"
+          />
+          {query && (
+            <button
+              onClick={() => setQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-text-dim hover:text-text active:scale-90 transition-transform"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+      )}
+
       {availableCategories.length > 1 && (
-        <div className="flex flex-wrap gap-1.5 mt-4 p-1 bg-surface-2 rounded-full w-fit">
+        <div className="flex flex-wrap gap-1.5 mt-3 p-1 bg-surface-2 rounded-full w-fit">
           {(["ALL", ...availableCategories] as const).map((c) => (
             <button
               key={c}
@@ -199,7 +230,9 @@ export default function CommunityEggsPage() {
         ))}
       </div>
       {filteredPresets.length === 0 && (
-        <p className="text-sm text-text-dim mt-4">아직 공개된 커뮤니티 프리셋이 없어요. 첫 번째로 만들어보세요!</p>
+        <p className="text-sm text-text-dim mt-4">
+          {query || categoryFilter !== "ALL" ? "검색 결과가 없어요." : "아직 공개된 커뮤니티 프리셋이 없어요. 첫 번째로 만들어보세요!"}
+        </p>
       )}
 
       <div className="mt-6">

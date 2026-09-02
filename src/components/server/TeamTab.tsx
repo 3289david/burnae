@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Crown } from "lucide-react";
 
 interface Member {
   id: string;
@@ -21,12 +23,14 @@ const ROLE_LABEL: Record<Member["role"], string> = {
 };
 
 export default function TeamTab({ serverId, isOwner }: { serverId: string; isOwner: boolean }) {
+  const router = useRouter();
   const [owner, setOwner] = useState<Owner | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<Member["role"]>("VIEWER");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [transferring, setTransferring] = useState<string | null>(null);
 
   async function load() {
     const res = await fetch(`/api/servers/${serverId}/members`);
@@ -78,6 +82,26 @@ export default function TeamTab({ serverId, isOwner }: { serverId: string; isOwn
     await load();
   }
 
+  async function transferOwnership(memberId: string, memberName: string) {
+    if (!confirm(`정말로 ${memberName}님에게 이 서버의 소유권을 넘길까요?\n넘긴 뒤에는 나는 관리자 권한으로 바뀌어요.`)) return;
+    setTransferring(memberId);
+    try {
+      const res = await fetch(`/api/servers/${serverId}/transfer-ownership`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memberId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      await load();
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "소유권 이전 실패");
+    } finally {
+      setTransferring(null);
+    }
+  }
+
   return (
     <div className="space-y-6 animate-fade-up">
       <div className="card-glow p-0 overflow-hidden">
@@ -109,6 +133,14 @@ export default function TeamTab({ serverId, isOwner }: { serverId: string; isOwn
                       <option key={v} value={v}>{l}</option>
                     ))}
                   </select>
+                  <button
+                    onClick={() => transferOwnership(m.id, m.user.name)}
+                    disabled={transferring === m.id}
+                    title="소유권 이전"
+                    className="text-xs text-text-dim hover:text-accent inline-flex items-center gap-1 active:scale-95 transition-transform disabled:opacity-50"
+                  >
+                    <Crown size={12} /> 이전
+                  </button>
                   <button onClick={() => remove(m.id)} className="text-xs text-red hover:underline active:scale-95 transition-transform">제거</button>
                 </div>
               ) : (

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { History, Play, Square, RotateCw, Skull, RefreshCcw, Wrench, RotateCcw, UserPlus, UserMinus, ArrowUpCircle } from "lucide-react";
+import { History, Play, Square, RotateCw, Skull, RefreshCcw, Wrench, RotateCcw, UserPlus, UserMinus, ArrowUpCircle, Crown } from "lucide-react";
 import { SERVER_ACTIVITY_LABELS } from "@/lib/serverActivityLabels";
 
 interface ActivityLogEntry {
@@ -23,6 +23,7 @@ const ACTION_ICON: Record<string, typeof Play> = {
   MEMBER_ADD: UserPlus,
   MEMBER_REMOVE: UserMinus,
   RESOURCE_UPGRADE: ArrowUpCircle,
+  OWNER_TRANSFER: Crown,
 };
 
 function timeAgo(iso: string): string {

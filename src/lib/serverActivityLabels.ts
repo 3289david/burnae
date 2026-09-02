@@ -9,4 +9,5 @@ export const SERVER_ACTIVITY_LABELS: Record<string, string> = {
   MEMBER_ADD: "팀원 초대",
   MEMBER_REMOVE: "팀원 제거",
   RESOURCE_UPGRADE: "자원 업그레이드",
+  OWNER_TRANSFER: "소유권 이전",
 };

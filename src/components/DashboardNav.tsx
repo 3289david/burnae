@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Menu } from "lucide-react";
+import { Menu, Search } from "lucide-react";
 import LogoutButton from "@/components/LogoutButton";
 import ThemeToggle from "@/components/ThemeToggle";
+import { OPEN_COMMAND_PALETTE_EVENT } from "@/components/CommandPalette";
 
 interface Props {
   userName: string;
@@ -26,6 +27,13 @@ export default function DashboardNav({ userName, showAdminLink }: Props) {
       {/* 데스크톱: 한 줄 */}
       <nav className="hidden sm:flex items-center gap-4">
         <span className="text-sm text-text-dim">{userName}님</span>
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent(OPEN_COMMAND_PALETTE_EVENT))}
+          className="hidden md:inline-flex items-center gap-1.5 text-xs text-text-dim bg-surface-2 rounded-full px-2.5 py-1 hover:text-text active:scale-95 transition-transform"
+        >
+          <Search size={12} /> 검색
+          <kbd className="text-[10px] bg-surface rounded px-1 py-0.5 ml-1">⌘K</kbd>
+        </button>
         {LINKS.map((l) => (
           <Link key={l.href} href={l.href} className="text-sm text-text-dim hover:text-text transition-colors">
             {l.label}

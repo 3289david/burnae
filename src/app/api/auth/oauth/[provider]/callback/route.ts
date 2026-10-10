@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { createSessionCookie, getCurrentUser, resolveInitialRole, isAdminEmail } from "@/lib/auth";
 import { completeOAuthLogin, siteUrl, type OAuthProviderKey } from "@/lib/oauth";
 import { rewardReferralSignup } from "@/lib/promotions";
+import { extractClientIp } from "@/lib/altAccountDetection";
 
 const VALID_PROVIDERS: OAuthProviderKey[] = ["google", "github", "discord"];
 const PROVIDER_ENUM: Record<OAuthProviderKey, "GOOGLE" | "GITHUB" | "DISCORD"> = {
@@ -122,6 +123,7 @@ export async function GET(
           name: profile.name.slice(0, 20),
           role: resolveInitialRole(profile.email),
           referredByUserId: referrer?.id,
+          signupIp: extractClientIp(request),
           oauthAccounts: {
             create: { provider: providerEnum, providerAccountId: profile.providerAccountId },
           },

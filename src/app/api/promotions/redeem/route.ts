@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { markOrderPaidAndFulfill } from "@/lib/orderFulfillment";
 import { getFreeServerLimit } from "@/lib/freeServerLimit";
+import { findAltAccountsWithFreeServer } from "@/lib/altAccountDetection";
+import { withApiErrorHandling } from "@/lib/apiHandler";
 
 const schema = z.object({
   productId: z.string(),
@@ -13,7 +15,7 @@ const schema = z.object({
 });
 
 /** 홍보 포인트로 무료 서버(예: 1GB RAM / 0.5vCPU / 500MB) 등 포인트 교환 상품을 즉시 결제 없이 발급한다 */
-export async function POST(request: Request) {
+export const POST = withApiErrorHandling(async (request: Request) => {
   const user = await requireUser();
   if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
 
@@ -43,6 +45,23 @@ export async function POST(request: Request) {
   if (freeServerCount >= limit) {
     return NextResponse.json(
       { error: `무료 서버는 최대 ${limit}개까지만 만들 수 있어요. 포인트 상점에서 슬롯을 늘릴 수 있어요.` },
+      { status: 409 },
+    );
+  }
+
+  const altOwnerIds = await findAltAccountsWithFreeServer(user.id, user.signupIp);
+  if (altOwnerIds.length > 0) {
+    await prisma.auditLog.create({
+      data: {
+        actorUserId: user.id,
+        action: "SUSPECTED_ALT_ACCOUNT_FREE_SERVER_BLOCKED",
+        targetType: "User",
+        targetId: user.id,
+        metadata: { signupIp: user.signupIp, matchedOwnerIds: altOwnerIds },
+      },
+    });
+    return NextResponse.json(
+      { error: "같은 환경에서 가입한 다른 계정이 이미 무료 서버를 쓰고 있어서 만들 수 없어요. 오해라면 고객센터에 문의해주세요." },
       { status: 409 },
     );
   }
@@ -90,4 +109,4 @@ export async function POST(request: Request) {
 
   const order = await prisma.order.findUnique({ where: { id: orderId } });
   return NextResponse.json(order);
-}
+});

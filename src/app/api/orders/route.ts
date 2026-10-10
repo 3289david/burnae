@@ -6,6 +6,8 @@ import { resolveDepositorName, isValidDepositorName } from "@/lib/hanabank";
 import { hasNodeCapacity } from "@/lib/provisioning";
 import { markOrderPaidAndFulfill } from "@/lib/orderFulfillment";
 import { getFreeServerLimit } from "@/lib/freeServerLimit";
+import { withApiErrorHandling } from "@/lib/apiHandler";
+import { findAltAccountsWithFreeServer } from "@/lib/altAccountDetection";
 
 // 서버 종류/버전은 이제 결제가 끝난 뒤에 고른다 — 주문 생성 시점에는 필요 없음
 const schema = z.object({
@@ -15,7 +17,7 @@ const schema = z.object({
   depositorName: z.string().optional(),
 });
 
-export async function GET() {
+export const GET = withApiErrorHandling(async () => {
   const user = await requireUser();
   if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
 
@@ -28,9 +30,9 @@ export async function GET() {
     },
   });
   return NextResponse.json(orders);
-}
+});
 
-export async function POST(request: Request) {
+export const POST = withApiErrorHandling(async (request: Request) => {
   const user = await requireUser();
   if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
 
@@ -63,6 +65,23 @@ export async function POST(request: Request) {
     if (freeServerCount >= limit) {
       return NextResponse.json(
         { error: `무료 서버는 최대 ${limit}개까지만 만들 수 있어요. 포인트 상점에서 슬롯을 늘릴 수 있어요.` },
+        { status: 409 },
+      );
+    }
+
+    const altOwnerIds = await findAltAccountsWithFreeServer(user.id, user.signupIp);
+    if (altOwnerIds.length > 0) {
+      await prisma.auditLog.create({
+        data: {
+          actorUserId: user.id,
+          action: "SUSPECTED_ALT_ACCOUNT_FREE_SERVER_BLOCKED",
+          targetType: "User",
+          targetId: user.id,
+          metadata: { signupIp: user.signupIp, matchedOwnerIds: altOwnerIds },
+        },
+      });
+      return NextResponse.json(
+        { error: "같은 환경에서 가입한 다른 계정이 이미 무료 서버를 쓰고 있어서 만들 수 없어요. 오해라면 고객센터에 문의해주세요." },
         { status: 409 },
       );
     }
@@ -158,4 +177,4 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json(order);
-}
+});

@@ -45,3 +45,8 @@ next-env.d.ts
 
 # AI 플러그인 메이커가 캐싱하는 Paper API jar (빌드 산출물, 커밋 대상 아님)
 /.cache
+
+# 안드로이드 빌드 산출물/로컬 SDK 경로 (기기마다 다름, 커밋 대상 아님)
+android/*/.gradle/
+android/*/app/build/
+android/*/local.properties

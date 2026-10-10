@@ -3,11 +3,13 @@ import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { provisionNewServerOrder } from "@/lib/orderFulfillment";
+import { withApiErrorHandling } from "@/lib/apiHandler";
+import { getRequiredCustomVariables, type EggVariableSchemaEntry } from "@/lib/eggVariableSchema";
 
-export async function GET(
+export const GET = withApiErrorHandling(async (
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   const user = await requireUser();
   if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
 
@@ -35,7 +37,7 @@ export async function GET(
           description: true,
           allowedTemplates: {
             where: { active: true },
-            select: { id: true, key: true, displayName: true, minecraftVersions: true, category: true, defaultEnvironment: true, availableDockerImages: true },
+            select: { id: true, key: true, displayName: true, minecraftVersions: true, category: true, defaultEnvironment: true, availableDockerImages: true, variableSchema: true },
           },
         },
       },
@@ -43,7 +45,7 @@ export async function GET(
   });
   if (!order) return NextResponse.json({ error: "주문을 찾을 수 없습니다." }, { status: 404 });
   return NextResponse.json(order);
-}
+});
 
 const selectTemplateSchema = z.object({
   templateId: z.string(),
@@ -51,15 +53,19 @@ const selectTemplateSchema = z.object({
   gitRepo: z.string().url().max(300).optional(),
   dockerImage: z.string().max(300).optional(),
   presetId: z.string().optional(),
+  customVariables: z.record(z.string(), z.string().max(500)).optional(),
 });
 
 /**
- * 결제 후 서버 종류/버전 선택. 결제는 끝났지만 아직 어떤 서버를 만들지 안 고른 주문에서만 쓸 수 있다.
+ * 결제 후 서버 종류/버전 선택. 결제는 끝났지만 아직 서버가 안 만들어진 주문에서만 쓸 수 있다.
+ * (서버 종류를 고른 뒤 프로비저닝이 실패해도(예: egg 필수 변수 누락, Pterodactyl 연결 오류)
+ * order.serverId는 비어있으므로 templateIdRequested만으로 막지 않고 다시 시도할 수 있게 한다 —
+ * 전에는 한 번 실패하면 영원히 "이미 선택한 주문"으로 막혀서 재시도 자체가 불가능했다.)
  */
-export async function POST(
+export const POST = withApiErrorHandling(async (
   request: Request,
   { params }: { params: Promise<{ id: string }> },
-) {
+) => {
   const user = await requireUser();
   if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
 
@@ -72,8 +78,8 @@ export async function POST(
   if (order.status !== "PAID") {
     return NextResponse.json({ error: "아직 결제가 완료되지 않았어요." }, { status: 422 });
   }
-  if (order.serverId || order.templateIdRequested) {
-    return NextResponse.json({ error: "이미 서버 종류를 선택한 주문이에요." }, { status: 409 });
+  if (order.serverId) {
+    return NextResponse.json({ error: "이미 서버가 만들어진 주문이에요." }, { status: 409 });
   }
   if (!order.product) {
     return NextResponse.json({ error: "이 주문의 상품이 삭제되어 종류를 선택할 수 없어요. 관리자에게 문의해주세요." }, { status: 409 });
@@ -108,6 +114,23 @@ export async function POST(
     presetId = preset.id;
   }
 
+  const requiredVars = getRequiredCustomVariables(
+    selectedTemplate.variableSchema as EggVariableSchemaEntry[] | null,
+    selectedTemplate.defaultEnvironment as Record<string, unknown>,
+    selectedTemplate.category,
+  );
+  const customVariables: Record<string, string> = {};
+  for (const v of requiredVars) {
+    const value = parsed.data.customVariables?.[v.envVariable]?.trim();
+    if (!value) {
+      return NextResponse.json(
+        { error: `"${v.name}" 값을 입력해주세요.${v.description ? ` (${v.description})` : ""}` },
+        { status: 422 },
+      );
+    }
+    customVariables[v.envVariable] = value;
+  }
+
   await prisma.order.update({
     where: { id: order.id },
     data: {
@@ -116,6 +139,7 @@ export async function POST(
       gitRepoRequested: templateSupportsGitRepo ? parsed.data.gitRepo : undefined,
       dockerImageRequested: availableImages ? dockerImage : undefined,
       presetIdRequested: presetId,
+      customVariables: requiredVars.length > 0 ? customVariables : undefined,
     },
   });
 
@@ -126,4 +150,4 @@ export async function POST(
     select: { id: true, status: true, serverId: true, preorderWaiting: true },
   });
   return NextResponse.json(refreshed);
-}
+});

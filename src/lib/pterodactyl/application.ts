@@ -368,6 +368,8 @@ export interface PteroEggVariable {
   env_variable: string;
   default_value: string;
   user_editable: boolean;
+  /** Laravel 검증 규칙 문자열(예: "required|string|max:191") — "required" 포함 여부로 필수값인지 판단 */
+  rules: string;
 }
 
 export interface PteroEggDetail {

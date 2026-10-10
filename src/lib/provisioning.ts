@@ -22,6 +22,10 @@ export const MAX_SUBDOMAINS_PER_SERVER = 2;
 /// 항상 무작위로 새로 채워 넣는다. 커뮤니티 프리셋(UserPreset)도 이 키들은 절대 덮어쓸 수 없다.
 export const SECRET_ENV_KEYS = ["PASSWORD", "PGPASSWORD", "SERVER_PASSWORD", "MONGO_USER_PASS", "MEILI_MASTER_KEY"];
 
+/** 마인크래프트 버전 선택 드롭다운이 채워주는 키들 — egg마다 이름이 달라서 여러 개를 둔다.
+ * FABRIC_VERSION/LOADER_VERSION/빌드 번호류는 "로더/빌드 버전"이라는 별개 개념이라 포함하지 않음 */
+export const MINECRAFT_VERSION_ENV_ALIASES = ["MINECRAFT_VERSION", "MC_VERSION", "VANILLA_VERSION"];
+
 /** Pterodactyl 관례상 CPU 퍼센트 100 = 코어 1개 */
 export const CPU_PERCENT_PER_CORE = 100;
 
@@ -239,12 +243,22 @@ export async function createServerForOrder(orderId: string) {
     environment: {
       ...defaultEnv,
       ...presetEnv,
+      // 에그마다 버전 변수 이름이 달라서(MINECRAFT_VERSION/MC_VERSION/VANILLA_VERSION) 존재하는
+      // 키만 선택해서 덮어쓴다 — FABRIC_VERSION/LOADER_VERSION/빌드 번호류는 별개 개념이라 건드리지 않음
       ...(template.category === "MINECRAFT"
-        ? { MINECRAFT_VERSION: order.minecraftVersionRequested ?? "latest" }
+        ? Object.fromEntries(
+            MINECRAFT_VERSION_ENV_ALIASES.filter((key) => key in defaultEnv).map((key) => [
+              key,
+              order.minecraftVersionRequested ?? "latest",
+            ]),
+          )
         : {}),
       ...("GIT_ADDRESS" in defaultEnv && order.gitRepoRequested
         ? { GIT_ADDRESS: order.gitRepoRequested, USER_UPLOAD: "0" }
         : {}),
+      // 봇 토큰/API 키처럼 egg가 필수로 요구하지만 기본값으로 채울 수 없는 변수 — 주문 시점에
+      // 사용자가 직접 입력한 값(customVariables)이 프리셋 기본값보다 항상 우선해야 한다
+      ...((order.customVariables as Record<string, string> | null) ?? {}),
       ...(accessSecret && secretEnvKey ? { [secretEnvKey]: accessSecret } : {}),
       SERVER_MEMORY: product.ramMb,
     },

@@ -35,8 +35,15 @@ $file = new \\Illuminate\\Http\\UploadedFile($path, basename($path), 'applicatio
 $egg = $service->handle($file, $nestId);
 $egg = \\Pterodactyl\\Models\\Egg::with('variables')->findOrFail($egg->id);
 $env = [];
+$schema = [];
 foreach ($egg->variables as $v) {
     $env[$v->env_variable] = $v->default_value;
+    $schema[] = [
+        'envVariable' => $v->env_variable,
+        'name' => $v->name,
+        'description' => $v->description,
+        'rules' => $v->rules,
+    ];
 }
 echo "${RESULT_START}";
 echo json_encode([
@@ -45,6 +52,7 @@ echo json_encode([
     'dockerImages' => $egg->docker_images,
     'startup' => $egg->startup,
     'defaultEnvironment' => $env,
+    'variableSchema' => $schema,
 ]);
 echo "${RESULT_END}";
 `;
@@ -79,7 +87,14 @@ export async function POST(request: Request) {
   const tmpFile = path.join(os.tmpdir(), `burnae-egg-import-${Date.now()}-${Math.random().toString(36).slice(2)}.json`);
   await fs.writeFile(tmpFile, JSON.stringify(eggJson));
 
-  let result: { eggId: number; name: string; dockerImages: Record<string, string>; startup: string; defaultEnvironment: Record<string, string> };
+  let result: {
+    eggId: number;
+    name: string;
+    dockerImages: Record<string, string>;
+    startup: string;
+    defaultEnvironment: Record<string, string>;
+    variableSchema: { envVariable: string; name: string; description: string; rules: string }[];
+  };
   try {
     const { stdout } = await execFileAsync("php", ["artisan", "tinker", "--execute", TINKER_SCRIPT], {
       cwd: "/var/www/pterodactyl",
@@ -123,6 +138,7 @@ export async function POST(request: Request) {
       minecraftVersions: [],
       availableDockerImages: dockerImageValues.length > 1 ? dockerImages : undefined,
       defaultEnvironment: result.defaultEnvironment,
+      variableSchema: result.variableSchema,
       sortOrder: input.sortOrder ?? 0,
     },
   });

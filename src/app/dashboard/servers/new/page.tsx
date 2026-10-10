@@ -40,6 +40,13 @@ import {
   Clock3,
 } from "lucide-react";
 
+interface EggVariableSchemaEntry {
+  envVariable: string;
+  name: string;
+  description: string;
+  rules: string;
+}
+
 interface Template {
   id: string;
   key: string;
@@ -48,6 +55,27 @@ interface Template {
   category: "MINECRAFT" | "DISCORD_BOT" | "GENERAL";
   defaultEnvironment: Record<string, unknown>;
   availableDockerImages: Record<string, string> | null;
+  variableSchema: EggVariableSchemaEntry[] | null;
+}
+
+const MINECRAFT_VERSION_ENV_ALIASES = ["MINECRAFT_VERSION", "MC_VERSION", "VANILLA_VERSION"];
+
+/** defaultEnvironment가 빈 값("")인데 Pterodactyl이 required로 표시한 변수 — 봇 토큰/API 키처럼
+ * 서버마다 달라야 해서 기본값을 채워둘 수 없는 것들. 이게 있으면 주문 시 직접 입력받아야 한다.
+ * 마인크래프트 버전/GIT 저장소/자동생성 비밀번호처럼 이미 다른 전용 UI가 채워주는 키는 제외 */
+function requiredCustomVariables(template: Template | undefined): EggVariableSchemaEntry[] {
+  if (!template?.variableSchema) return [];
+  const handledElsewhere = new Set<string>([...SECRET_ENV_KEYS, "GIT_ADDRESS"]);
+  if (template.category === "MINECRAFT") {
+    for (const key of MINECRAFT_VERSION_ENV_ALIASES) handledElsewhere.add(key);
+  }
+  return template.variableSchema.filter((v) => {
+    if (handledElsewhere.has(v.envVariable)) return false;
+    const isRequired = v.rules?.split("|").includes("required");
+    const defaultValue = template.defaultEnvironment[v.envVariable];
+    const hasDefault = typeof defaultValue === "string" ? defaultValue.trim() !== "" : defaultValue != null;
+    return isRequired && !hasDefault;
+  });
 }
 
 interface CommunityPreset {
@@ -212,6 +240,7 @@ function NewServerPageInner() {
   const [versionQuery, setVersionQuery] = useState("");
   const [gitRepo, setGitRepo] = useState("");
   const [dockerImage, setDockerImage] = useState("");
+  const [customVariables, setCustomVariables] = useState<Record<string, string>>({});
   const [choosing, setChoosing] = useState(false);
   const [presets, setPresets] = useState<CommunityPreset[]>([]);
   const [presetId, setPresetId] = useState("");
@@ -252,7 +281,12 @@ function NewServerPageInner() {
   const presetFormTemplate = allTemplates.find((t) => t.id === presetFormTemplateId);
   const presetFormFields = useMemo(() => {
     if (!presetFormTemplate) return [];
-    return Object.keys(presetFormTemplate.defaultEnvironment).filter((k) => !SECRET_ENV_KEYS.includes(k));
+    // 필수 커스텀 변수(봇 토큰/API 키 등)는 사람마다 달라야 하는 개인 값이라 공개 프리셋에
+    // 박아넣으면 안 되므로 편집 가능 목록에서 뺀다
+    const requiredKeys = new Set(requiredCustomVariables(presetFormTemplate).map((v) => v.envVariable));
+    return Object.keys(presetFormTemplate.defaultEnvironment).filter(
+      (k) => !SECRET_ENV_KEYS.includes(k) && !requiredKeys.has(k),
+    );
   }, [presetFormTemplate]);
   // GIT_ADDRESS가 있는 종류(Node.js/Python/Deno/Rust/C# 봇, 제네릭 서버 등)는 "베이스 실행환경 +
   // 내 코드 저장소"만 있으면 사실상 완전히 새로운 서버 종류를 등록하는 것과 같다 — 그래서 이 필드는
@@ -513,6 +547,7 @@ function NewServerPageInner() {
           gitRepo: gitRepo || undefined,
           dockerImage: dockerImage || undefined,
           presetId: presetId || undefined,
+          customVariables: Object.keys(customVariables).length > 0 ? customVariables : undefined,
         }),
       });
       const data = await res.json();
@@ -606,10 +641,12 @@ function NewServerPageInner() {
 
   // 서버 종류 선택 다음에 나오는 선택 섹션들(마인크래프트 버전/런타임 버전/시작 코드)은 템플릿에 따라
   // 있다 없다 하므로, 실제로 보이는 섹션 순서대로 번호를 다시 매겨서 2, 3, 4... 가 항상 이어지게 한다
-  const optionalSteps: ("minecraftVersion" | "dockerImage" | "gitRepo" | "presets")[] = [];
+  const neededCustomVariables = requiredCustomVariables(selectedTemplate);
+  const optionalSteps: ("minecraftVersion" | "dockerImage" | "gitRepo" | "customVariables" | "presets")[] = [];
   if (selectedTemplate?.category === "MINECRAFT") optionalSteps.push("minecraftVersion");
   if (Object.keys(selectedTemplate?.availableDockerImages ?? {}).length > 1) optionalSteps.push("dockerImage");
   if (selectedTemplate && "GIT_ADDRESS" in selectedTemplate.defaultEnvironment) optionalSteps.push("gitRepo");
+  if (neededCustomVariables.length > 0) optionalSteps.push("customVariables");
   if (presets.length > 0) optionalSteps.push("presets");
   function stepFor(key: (typeof optionalSteps)[number]) {
     return 2 + optionalSteps.indexOf(key);
@@ -940,6 +977,32 @@ function NewServerPageInner() {
             </Section>
           )}
 
+          {neededCustomVariables.length > 0 && (
+            <Section step={stepFor("customVariables")} title="필수 설정값">
+              <p className="text-xs text-text-dim mb-3">
+                이 서버 종류는 아래 값을 직접 입력해야 만들 수 있어요(봇 토큰, API 키 등 — 서버마다
+                달라야 해서 미리 채워둘 수 없는 값들이에요).
+              </p>
+              <div className="space-y-3">
+                {neededCustomVariables.map((v) => (
+                  <div key={v.envVariable}>
+                    <label className="text-xs font-medium block mb-1">{v.name}</label>
+                    {v.description && <p className="text-xs text-text-dim mb-1.5">{v.description}</p>}
+                    <input
+                      type="text"
+                      className="input w-full"
+                      placeholder={v.envVariable}
+                      value={customVariables[v.envVariable] ?? ""}
+                      onChange={(e) =>
+                        setCustomVariables((prev) => ({ ...prev, [v.envVariable]: e.target.value }))
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+            </Section>
+          )}
+
           {presets.length > 0 && (
             <Section step={stepFor("presets")} title="커뮤니티 프리셋 (선택)">
               <p className="text-xs text-text-dim mb-2 flex items-center gap-1.5">
@@ -999,7 +1062,12 @@ function NewServerPageInner() {
 
           <button
             type="submit"
-            disabled={choosing || !templateId || (selectedTemplate?.category === "MINECRAFT" && !version)}
+            disabled={
+              choosing ||
+              !templateId ||
+              (selectedTemplate?.category === "MINECRAFT" && !version) ||
+              neededCustomVariables.some((v) => !customVariables[v.envVariable]?.trim())
+            }
             className="btn-primary w-full py-3.5 text-[15px]"
           >
             {choosing ? "만드는 중..." : "이 종류로 서버 만들기"}

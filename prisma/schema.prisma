@@ -37,6 +37,9 @@ model User {
   preferredDepositorName String?
   /// 서버 홍보 활동으로 모은 포인트 — 무료 서버 교환 등에 사용
   promotionPoints        Int        @default(0)
+  /// 가입(최초 계정 생성) 시점의 IP — 무료 서버 1인 1개 제한을 부계정으로 우회하는지 탐지하는 데 사용.
+  /// 가입 전부터 있던 계정은 null(소급 적용 안 함)
+  signupIp               String?
   /// Pterodactyl 패널 계정의 내부 유저 ID. 첫 서버 생성 시 채워짐 — SFTP 비밀번호 재발급 등에 사용
   pterodactylUserId      Int?       @unique
   /// SFTP 접속용으로 재발급한 패널 계정 비밀번호(평문) — 소유자에게만 노출. accessSecret과 동일한 이유로 평문 저장
@@ -68,6 +71,7 @@ model User {
 
   @@index([email])
   @@index([referralCode])
+  @@index([signupIp])
 }
 
 enum OAuthProvider {
@@ -149,6 +153,10 @@ model ServerTemplate {
   /// 런타임 버전 선택지가 여러 개인 egg(Node.js/Python/Java/C#/Rust 등)용. {"라벨": "도커이미지"} — null이면 dockerImage 하나뿐
   availableDockerImages Json?
   defaultEnvironment Json // Pterodactyl egg 기본 environment 변수
+  /// egg import 시 Pterodactyl에서 받아온 변수 메타데이터 — [{envVariable, name, description, rules}].
+  /// rules에 "required"가 있고 defaultEnvironment 값이 빈 문자열이면 주문 시 사용자가 직접 입력해야
+  /// 서버 생성이 가능하다(디스코드 봇 토큰, API 키 등). import-egg 이전에 만든 템플릿은 null일 수 있음.
+  variableSchema     Json?
   active             Boolean        @default(true)
   sortOrder          Int            @default(0)
 
@@ -317,6 +325,10 @@ model Order {
   dockerImageRequested      String?
   /// 서버 생성 시 적용할 커뮤니티 프리셋(UserPreset). 골라둔 환경변수 값을 defaultEnvironment 위에 덮어쓴다
   presetIdRequested         String?
+  /// 템플릿의 variableSchema 중 "필수인데 기본값이 빈 문자열"인 항목을 주문 시점에 사용자가 직접
+  /// 입력한 값 — {ENV_VAR: "값"}. 디스코드 봇 토큰, API 키처럼 서버마다 달라야 하는 값이라
+  /// defaultEnvironment로는 채울 수 없는 것들
+  customVariables           Json?
   /// type이 AI_CREDITS일 때 이 주문으로 충전되는 크레딧 수
   aiCreditsAmount           Int?
   /// type이 POINTS일 때 이 주문으로 충전되는 포인트 수 (4원 = 1포인트, amountKrw / 4)

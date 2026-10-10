@@ -43,10 +43,12 @@ export async function POST(
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "서브도메인 이름을 입력해주세요." }, { status: 422 });
 
+  // 포인트 상점(EXTRA_SUBDOMAIN)으로 슬롯을 샀으면 기본 한도보다 더 만들 수 있다
+  const effectiveMax = MAX_SUBDOMAINS_PER_SERVER + server.extraSubdomainSlots;
   const count = await prisma.serverSubdomain.count({ where: { serverId: id } });
-  if (count >= MAX_SUBDOMAINS_PER_SERVER) {
+  if (count >= effectiveMax) {
     return NextResponse.json(
-      { error: `서버당 서브도메인은 최대 ${MAX_SUBDOMAINS_PER_SERVER}개까지예요.` },
+      { error: `서버당 서브도메인은 최대 ${effectiveMax}개까지예요.` },
       { status: 409 },
     );
   }
@@ -59,6 +61,7 @@ export async function POST(
       node,
       desiredName: parsed.data.name,
       isPrimary: count === 0,
+      maxOverride: effectiveMax,
     });
     return NextResponse.json(created);
   } catch (err) {

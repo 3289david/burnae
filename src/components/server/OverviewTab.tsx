@@ -7,6 +7,7 @@ import StatusDot from "@/components/StatusDot";
 import AddressActions from "./AddressActions";
 import CustomDomainCard from "./CustomDomainCard";
 import FreeUpgradeCard from "./FreeUpgradeCard";
+import ExtraResourcesCard from "./ExtraResourcesCard";
 import FreeTierAd from "@/components/ads/FreeTierAd";
 import GoogleAdSense from "@/components/ads/GoogleAdSense";
 import GettingStartedCard from "./GettingStartedCard";
@@ -287,7 +288,7 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
       <div className="card-glow p-5">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold">접속 주소</h3>
-          <span className="text-xs text-text-dim">{subdomains.length} / 2</span>
+          <span className="text-xs text-text-dim">{subdomains.length} / {2 + server.extraSubdomainSlots}</span>
         </div>
         <div className="space-y-2">
           {subdomains.map((s) => (
@@ -307,7 +308,7 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
           {subdomains.length === 0 && <p className="text-sm text-text-dim">주소 준비 중이에요.</p>}
         </div>
 
-        {server.isOwner && subdomains.length < 2 && (
+        {server.isOwner && subdomains.length < 2 + server.extraSubdomainSlots && (
           <form onSubmit={addSubdomain} className="flex gap-2 mt-3 pt-3 border-t border-border">
             <input
               value={newName}
@@ -326,6 +327,7 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
       <CustomDomainCard serverId={server.id} isOwner={server.isOwner} initial={server.customDomains} />
 
       {server.isFreeServer && server.isOwner && <FreeUpgradeCard serverId={server.id} />}
+      {server.isOwner && <ExtraResourcesCard serverId={server.id} />}
       {server.isFreeServer && <FreeTierAd />}
       {server.isFreeServer && <GoogleAdSense />}
     </div>

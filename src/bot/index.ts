@@ -3,6 +3,8 @@ import { ActivityType, Client, GatewayIntentBits, Events } from "discord.js";
 import { handleCommand, handleAutocomplete, handleButton } from "./commands";
 import { startCrashWatcher } from "./watcher";
 import { startStatusBoard } from "./statusBoard";
+import { startActivityRewards } from "./activityRewards";
+import { startMentionGuard } from "./mentionGuard";
 import { prisma } from "./prismaClient";
 
 /**
@@ -23,8 +25,15 @@ if (!officialGuildId) {
   process.exit(1);
 }
 
+// GuildMessages/MessageContent는 채팅 1자당 포인트 지급에 필요 — Discord 개발자 포털의
+// Bot 설정에서 "MESSAGE CONTENT INTENT"를 켜둬야 실제로 메시지 내용을 받을 수 있다.
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+  ],
 });
 
 client.once(Events.ClientReady, (c) => {
@@ -32,6 +41,8 @@ client.once(Events.ClientReady, (c) => {
   c.user.setActivity("/도움말", { type: ActivityType.Listening });
   startCrashWatcher(client);
   startStatusBoard(client);
+  startActivityRewards(client, officialGuildId);
+  startMentionGuard(client, officialGuildId);
 });
 
 client.on(Events.GuildMemberAdd, async (member) => {

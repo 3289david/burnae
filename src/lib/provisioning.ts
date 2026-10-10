@@ -120,14 +120,15 @@ export async function provisionSubdomain(params: {
   node: HostNode;
   desiredName: string;
   isPrimary: boolean;
+  /** 포인트 상점(EXTRA_SUBDOMAIN)으로 슬롯을 늘린 서버는 기본값보다 높은 한도를 넘겨준다 */
+  maxOverride?: number;
 }) {
+  const max = params.maxOverride ?? MAX_SUBDOMAINS_PER_SERVER;
   const existingCount = await prisma.serverSubdomain.count({
     where: { serverId: params.server.id },
   });
-  if (existingCount >= MAX_SUBDOMAINS_PER_SERVER) {
-    throw new ProvisioningError(
-      `서버당 서브도메인은 최대 ${MAX_SUBDOMAINS_PER_SERVER}개까지만 만들 수 있어요.`,
-    );
+  if (existingCount >= max) {
+    throw new ProvisioningError(`서버당 서브도메인은 최대 ${max}개까지만 만들 수 있어요.`);
   }
   if (!params.server.allocationPort) {
     throw new ProvisioningError("서버에 할당된 포트가 없습니다.");
@@ -468,4 +469,39 @@ export async function deleteServerFully(
   });
 
   return updated;
+}
+
+/// 포인트 상점(EXTRA_PORT)으로 산 추가 포트는 기존 서버 포트/관리자 수동 할당 포트와 안 겹치게
+/// 9000번대(9000~9999)에서만 고른다 — 다른 용도 포트와 섞이지 않게 눈에 보이는 범위로 구분
+const EXTRA_PORT_RANGE_MIN = 9000;
+const EXTRA_PORT_RANGE_MAX = 9999;
+
+/**
+ * 노드에서 9000~9999번대 중 비어있는 포트를 하나 찾아 새 allocation을 만들고 그 id/ip/port를 반환한다.
+ * 동시 요청으로 충돌할 수 있어 생성 실패(이미 다른 요청이 같은 포트를 선점) 시 몇 번 재시도한다.
+ */
+export async function allocateExtraPort(node: HostNode): Promise<{ id: number; ip: string; port: number }> {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const allocations = await PteroApp.listNodeAllocations(node.pterodactylNodeId);
+    const used = new Set(
+      allocations.filter((a) => a.ip === node.publicIp).map((a) => a.port),
+    );
+    const candidates: number[] = [];
+    for (let p = EXTRA_PORT_RANGE_MIN; p <= EXTRA_PORT_RANGE_MAX; p++) {
+      if (!used.has(p)) candidates.push(p);
+    }
+    if (candidates.length === 0) {
+      throw new ProvisioningError("이 노드에는 추가로 할당할 수 있는 포트(9000~9999)가 남아있지 않아요.");
+    }
+    const port = candidates[Math.floor(Math.random() * candidates.length)];
+    try {
+      await PteroApp.createNodeAllocation(node.pterodactylNodeId, node.publicIp, port);
+    } catch {
+      continue; // 동시 요청 충돌 — 다시 목록을 가져와서 재시도
+    }
+    const refreshed = await PteroApp.listNodeAllocations(node.pterodactylNodeId);
+    const created = refreshed.find((a) => a.ip === node.publicIp && a.port === port);
+    if (created) return { id: created.id, ip: created.ip, port: created.port };
+  }
+  throw new ProvisioningError("포트 생성에 실패했습니다. 다시 시도해주세요.");
 }

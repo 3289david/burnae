@@ -24,6 +24,9 @@ export async function POST(request: Request) {
   if (item.kind === "RAM_UPGRADE" || item.kind === "CPU_UPGRADE" || item.kind === "DISK_UPGRADE" || item.kind === "BACKUP_SLOT_UPGRADE") {
     return NextResponse.json({ error: "이 항목은 서버 개요 화면의 \"포인트로 증설하기\"에서 교환해주세요." }, { status: 422 });
   }
+  if (item.kind === "EXTRA_PORT" || item.kind === "EXTRA_SUBDOMAIN") {
+    return NextResponse.json({ error: "이 항목은 서버 개요 화면의 \"추가 포트/서브도메인 구매\"에서 교환해주세요." }, { status: 422 });
+  }
 
   let result: { couponCode?: string };
   try {

@@ -42,6 +42,7 @@ export interface ServerInfo {
   allocationIp: string | null;
   allocationPort: number | null;
   extraPorts: { id: number; ip: string; port: number }[];
+  extraSubdomainSlots: number;
   ownerNote: string | null;
   ramMb: number;
   diskMb: number;

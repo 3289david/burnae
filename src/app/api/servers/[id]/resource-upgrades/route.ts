@@ -14,7 +14,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const grants = await prisma.resourceUpgradeGrant.findMany({
     where: { serverId: id },
     orderBy: { expiresAt: "asc" },
-    select: { id: true, kind: true, amount: true, expiresAt: true },
+    select: { id: true, kind: true, amount: true, expiresAt: true, metadata: true },
   });
   return NextResponse.json(grants);
 }

@@ -283,6 +283,8 @@ enum OrderType {
   UPGRADE
   /// 플랜에 딸려오는 게 아니라 AI 크레딧만 단독으로 결제해서 충전
   AI_CREDITS
+  /// 홍보 포인트를 돈으로 직접 충전 (4원 = 1포인트)
+  POINTS
 }
 
 model Order {
@@ -317,6 +319,8 @@ model Order {
   presetIdRequested         String?
   /// type이 AI_CREDITS일 때 이 주문으로 충전되는 크레딧 수
   aiCreditsAmount           Int?
+  /// type이 POINTS일 때 이 주문으로 충전되는 포인트 수 (4원 = 1포인트, amountKrw / 4)
+  pointsAmount              Int?
   /// 관리자가 결제/포인트 차감 없이 지급한 주문인지 — true여야만 대시보드에서 "지급된 서버"로
   /// 안내하고 안전하게 취소할 수 있다. false(=유저가 실제로 결제한 주문)인데 서버 종류를 아직
   /// 안 고른 상태는 "지급"이 아니라 그냥 미완료 결제라서, 같은 배너로 잘못 안내하거나 실수로
@@ -398,6 +402,9 @@ model Server {
   allocationPort Int?
   /// 기본 포트 외에 관리자가 추가로 할당해준 포트들. [{id(ptero allocation id), ip, port}]
   extraPorts Json @default("[]")
+  /// 포인트 상점에서 EXTRA_SUBDOMAIN을 교환해 기본 제공(MAX_SUBDOMAINS_PER_SERVER)보다 더 늘린
+  /// 서브도메인 슬롯 수 — 실제 서브도메인 생성은 이 슬롯이 있어야 기존 "주소 추가" 기능으로 가능
+  extraSubdomainSlots Int @default(0)
   /// VPS(code-server) 등 egg가 자체 웹/접속 비밀번호를 요구할 때 서버마다 무작위로 생성해서 저장
   /// (전 서버 공통 기본값을 그대로 쓰면 남의 서버에 접속할 수 있는 보안 문제가 생김)
   accessSecret String?
@@ -683,6 +690,13 @@ enum ShopItemKind {
   BACKUP_SLOT_UPGRADE
   /// 계정 단위 — durationDays 동안만 무료 서버를 1개 더 만들 수 있게 해준다 (ExtraFreeSlotGrant 생성)
   EXTRA_FREE_SLOT
+  /// 아래 2개도 특정 서버를 대상으로 교환한다 (POST /api/servers/[id]/extra-resources) — 무료/유료
+  /// 서버 모두 가능(위 4개의 free-upgrade와 달리 플랜 제한 없음). RAM/CPU/DISK처럼 시한부지만
+  /// 기간이 다름 — EXTRA_RESOURCE_RENEWAL_DAYS(120일)마다 갱신 필요, 안 갱신하면 크론이 회수.
+  /// amount=1 고정, maxTotal로 서버당 최대 "추가" 개수 제한(EXTRA_PORT는 server.extraPorts.length,
+  /// EXTRA_SUBDOMAIN은 server.extraSubdomainSlots 기준 — 기본 제공분과는 별도로 센다)
+  EXTRA_PORT
+  EXTRA_SUBDOMAIN
 }
 
 model ShopItem {
@@ -723,6 +737,8 @@ model ResourceUpgradeGrant {
   amount    Int
   expiresAt DateTime
   createdAt DateTime     @default(now())
+  /// EXTRA_PORT 전용 — 만료 시 정확히 이 allocation을 해제하기 위한 정보. {id, ip, port}
+  metadata  Json?
 
   @@index([serverId])
   @@index([expiresAt])

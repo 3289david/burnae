@@ -3,7 +3,7 @@ import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PteroApp, PteroClient } from "../src/lib/pterodactyl";
 import { sendDiscordDM } from "../src/lib/discordNotify";
-import { deleteServerFully } from "../src/lib/provisioning";
+import { deleteServerFully, removeSubdomain, MAX_SUBDOMAINS_PER_SERVER } from "../src/lib/provisioning";
 import { getRecentDeposits, isValidDepositorName } from "../src/lib/hanabank";
 import { markOrderPaidAndFulfill, retryPreorderFulfillment } from "../src/lib/orderFulfillment";
 import { ProvisioningError } from "../src/lib/provisioning";
@@ -197,7 +197,87 @@ const RESOURCE_KIND_LABEL: Record<string, string> = {
   RAM_UPGRADE: "RAM",
   CPU_UPGRADE: "CPU",
   DISK_UPGRADE: "저장공간",
+  EXTRA_PORT: "추가 포트",
+  EXTRA_SUBDOMAIN: "추가 서브도메인",
 };
+
+/**
+ * EXTRA_PORT/EXTRA_SUBDOMAIN은 RAM/CPU/저장공간과 달리 유료 플랜에서도 살 수 있으므로
+ * (무료 전용 제한 없음) 유료 전환 여부와 무관하게 항상 회수한다. 포트는 grant 생성 시
+ * metadata에 저장해둔 allocation을 그대로 해제하고, 서브도메인은 슬롯을 줄인 뒤 base
+ * 한도(MAX_SUBDOMAINS_PER_SERVER)를 넘긴 분량을 기본 주소(isPrimary)는 건너뛰고
+ * 최근 생성분부터 삭제한다.
+ */
+async function revertExtraResourceGrants(
+  server: { id: string; name: string; ownerId: string; pterodactylServerId: number | null },
+  grants: { id: string; kind: string; metadata: unknown }[],
+) {
+  const portGrants = grants.filter((g) => g.kind === "EXTRA_PORT");
+  const subdomainGrants = grants.filter((g) => g.kind === "EXTRA_SUBDOMAIN");
+
+  for (const g of portGrants) {
+    const meta = g.metadata as { id: number; ip: string; port: number } | null;
+    if (!meta || !server.pterodactylServerId) {
+      await prisma.resourceUpgradeGrant.delete({ where: { id: g.id } }).catch(() => {});
+      continue;
+    }
+    try {
+      await PteroApp.removeServerAllocation(server.pterodactylServerId, meta.id);
+      const fresh = await prisma.server.findUniqueOrThrow({ where: { id: server.id } });
+      const extraPorts = fresh.extraPorts as { id: number; ip: string; port: number }[];
+      await prisma.server.update({
+        where: { id: server.id },
+        data: { extraPorts: extraPorts.filter((p) => p.id !== meta.id) },
+      });
+      await prisma.resourceUpgradeGrant.delete({ where: { id: g.id } });
+      await notifyOwner(
+        server.ownerId,
+        `⬇️ **${server.name}** 서버의 추가 포트(${meta.port})가 만료돼 회수됐어요. 계속 쓰려면 만료 전에 대시보드에서 갱신해주세요.`,
+      );
+      await prisma.auditLog.create({
+        data: { action: "RESOURCE_UPGRADE_EXPIRED", targetType: "Server", targetId: server.id, metadata: { grantId: g.id, kind: g.kind, allocation: meta } },
+      });
+      console.log(`[cron] ${server.name} — 추가 포트(${meta.port}) 만료로 회수`);
+    } catch (err) {
+      console.error(`[cron] ${server.name} 추가 포트 회수 실패:`, err);
+    }
+  }
+
+  if (subdomainGrants.length === 0) return;
+  try {
+    const fresh = await prisma.server.findUniqueOrThrow({ where: { id: server.id }, include: { subdomains: true } });
+    const overflow = Math.min(subdomainGrants.length, fresh.extraSubdomainSlots);
+    if (overflow > 0) {
+      await prisma.server.update({ where: { id: server.id }, data: { extraSubdomainSlots: { decrement: overflow } } });
+    }
+    const nextMax = MAX_SUBDOMAINS_PER_SERVER + Math.max(0, fresh.extraSubdomainSlots - overflow);
+    const removable = fresh.subdomains
+      .filter((s) => !s.isPrimary)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    let excess = fresh.subdomains.length - nextMax;
+    for (const sub of removable) {
+      if (excess <= 0) break;
+      await removeSubdomain(sub.id);
+      excess -= 1;
+    }
+    await prisma.resourceUpgradeGrant.deleteMany({ where: { id: { in: subdomainGrants.map((g) => g.id) } } });
+    await notifyOwner(
+      server.ownerId,
+      `⬇️ **${server.name}** 서버의 추가 서브도메인 슬롯이 만료돼 회수됐어요. 한도를 넘긴 서브도메인은 삭제될 수 있어요 — 계속 쓰려면 만료 전에 대시보드에서 갱신해주세요.`,
+    );
+    await prisma.auditLog.create({
+      data: {
+        action: "RESOURCE_UPGRADE_EXPIRED",
+        targetType: "Server",
+        targetId: server.id,
+        metadata: { grantIds: subdomainGrants.map((g) => g.id), kind: "EXTRA_SUBDOMAIN", overflow },
+      },
+    });
+    console.log(`[cron] ${server.name} — 추가 서브도메인 슬롯 ${overflow}개 만료로 회수`);
+  } catch (err) {
+    console.error(`[cron] ${server.name} 추가 서브도메인 회수 실패:`, err);
+  }
+}
 
 /**
  * 포인트 상점 RAM/CPU/저장공간 증설(ResourceUpgradeGrant)은 30일 시한부다. 만료 임박(D-3/D-1)이면
@@ -249,17 +329,24 @@ async function handleResourceUpgradeExpiry() {
       continue;
     }
 
+    const extraGrants = grants.filter((g) => g.kind === "EXTRA_PORT" || g.kind === "EXTRA_SUBDOMAIN");
+    if (extraGrants.length > 0) await revertExtraResourceGrants(server, extraGrants);
+
+    const resourceGrants = grants.filter((g) => g.kind === "RAM_UPGRADE" || g.kind === "CPU_UPGRADE" || g.kind === "DISK_UPGRADE");
+    if (resourceGrants.length === 0) continue;
+    const resourceGrantIds = resourceGrants.map((g) => g.id);
+
     const priceMonthlyKrw = server.priceMonthlyKrwSnapshot ?? server.product?.priceMonthlyKrw ?? 0;
     if (priceMonthlyKrw !== 0) {
       // 그 사이 유료 플랜으로 전환됨 — 되돌리지 않고 그냥 소멸 처리
-      await prisma.resourceUpgradeGrant.deleteMany({ where: { id: { in: grantIds } } });
-      console.log(`[cron] ${server.name} — 유료 전환됨, 만료된 증설 ${grantIds.length}건 소멸 처리(되돌리지 않음)`);
+      await prisma.resourceUpgradeGrant.deleteMany({ where: { id: { in: resourceGrantIds } } });
+      console.log(`[cron] ${server.name} — 유료 전환됨, 만료된 증설 ${resourceGrantIds.length}건 소멸 처리(되돌리지 않음)`);
       continue;
     }
     if (!server.pterodactylServerId) continue; // 아직 프로비저닝 전 — 다음 크론에서 재시도
 
     let deltaRam = 0, deltaCpu = 0, deltaDisk = 0;
-    for (const g of grants) {
+    for (const g of resourceGrants) {
       if (g.kind === "RAM_UPGRADE") deltaRam += g.amount;
       if (g.kind === "CPU_UPGRADE") deltaCpu += g.amount;
       if (g.kind === "DISK_UPGRADE") deltaDisk += g.amount;
@@ -283,7 +370,7 @@ async function handleResourceUpgradeExpiry() {
         data: { ramMb: nextRamMb, cpuPercent: nextCpuPercent, diskMb: nextDiskMb },
       });
       if (server.pterodactylIdentifier) await PteroClient.sendPowerAction(server.pterodactylIdentifier, "restart");
-      await prisma.resourceUpgradeGrant.deleteMany({ where: { id: { in: grantIds } } });
+      await prisma.resourceUpgradeGrant.deleteMany({ where: { id: { in: resourceGrantIds } } });
       await notifyOwner(
         server.ownerId,
         `⬇️ **${server.name}** 서버의 포인트 증설(RAM/CPU/저장공간)이 만료돼 원래 크기로 줄었어요. 계속 유지하려면 만료 전에 대시보드에서 갱신해주세요.`,
@@ -293,10 +380,10 @@ async function handleResourceUpgradeExpiry() {
           action: "RESOURCE_UPGRADE_EXPIRED",
           targetType: "Server",
           targetId: server.id,
-          metadata: { grantIds, deltaRam, deltaCpu, deltaDisk },
+          metadata: { grantIds: resourceGrantIds, deltaRam, deltaCpu, deltaDisk },
         },
       });
-      console.log(`[cron] ${server.name} — 증설 ${grantIds.length}건 만료로 자동 축소`);
+      console.log(`[cron] ${server.name} — 증설 ${resourceGrantIds.length}건 만료로 자동 축소`);
     } catch (err) {
       console.error(`[cron] ${server.name} 증설 만료 처리 실패:`, err);
     }

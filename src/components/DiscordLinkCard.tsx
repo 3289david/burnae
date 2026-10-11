@@ -27,7 +27,7 @@ export default function DiscordLinkCard({
     <div className="card-glow p-5 animate-fade-up">
       <p className="font-semibold text-sm flex items-center gap-1.5"><Bot size={16} className="text-purple" /> 디스코드 연동</p>
       <p className="text-xs text-text-dim mt-1">
-        디스코드 계정으로 로그인하면 자동으로 연동돼요. Burnae 공식 디스코드 서버에서 봇으로 서버 상태 확인, 알림을 받을 수 있어요.
+        Google/GitHub/Discord 중 어떤 방법으로 로그인했든 아래 버튼으로 연동할 수 있어요. Burnae 공식 디스코드 서버에서 봇으로 서버 상태 확인, 알림을 받을 수 있어요.
       </p>
       {SERVER_INVITE_URL && (
         <a href={SERVER_INVITE_URL} target="_blank" rel="noreferrer" className="block text-xs text-accent mt-2 hover:underline">

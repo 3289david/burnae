@@ -310,14 +310,21 @@ async function handleSupport(interaction: ChatInputCommandInteraction) {
 }
 
 /**
- * burnae.kr 로그인 화면에서 "Discord로 계속하기"를 누르면(oauth/discord/start → callback)
- * 신규 가입이든 기존 계정 로그인이든 상관없이 DiscordLink가 자동으로 upsert된다 — 그래서
- * 연동은 디스코드 쪽에서 코드를 입력받을 필요 없이 로그인 페이지 링크 하나로 끝난다.
+ * Google/GitHub/Discord 중 아무 방법으로 로그인해도 /dashboard/account의 "디스코드 연동"
+ * 버튼(oauth/discord/start?mode=link → callback)으로 연동이 끝난다 — 로그인 방법과 무관하게
+ * 항상 이 계정 페이지 하나로 안내하면 되므로, 디스코드 쪽에서 코드를 입력받을 필요가 없다.
+ * (Discord로 직접 로그인한 경우엔 콜백에서 DiscordLink를 자동으로도 upsert해주지만,
+ * Google/GitHub로 로그인한 사람은 반드시 이 계정 페이지의 버튼을 눌러야 연동된다.)
  */
 function loginLinkContainer() {
   return panel()
-    .addTextDisplayComponents(text("burnae.kr에서 로그인하면 자동으로 연동돼요. 이미 가입했다면 \"Discord로 계속하기\"로 로그인해주세요."))
-    .addActionRowComponents(buttonRow(linkButton("burnae.kr 로그인", `${SITE_URL}/login`)));
+    .addTextDisplayComponents(
+      text(
+        "burnae.kr에 로그인해주세요 — Google/GitHub/Discord 중 아무 방법으로나 로그인해도 돼요. " +
+          "로그인한 뒤 \"계정\" 페이지에서 \"디스코드 연동\" 버튼을 누르면 연동이 끝나요.",
+      ),
+    )
+    .addActionRowComponents(buttonRow(linkButton("burnae.kr 로그인 / 연동하기", `${SITE_URL}/dashboard/account`)));
 }
 
 async function handleLink(interaction: PanelInteraction) {

@@ -6,6 +6,8 @@ import {
   ButtonStyle,
   MessageFlags,
   ChannelType,
+  EmbedBuilder,
+  PermissionFlagsBits,
 } from "discord.js";
 import { prisma } from "./prismaClient";
 import { PteroClient } from "../lib/pterodactyl";
@@ -21,8 +23,6 @@ import {
   actionButton,
   linkButton,
   buttonRow,
-  section,
-  thumbnail,
 } from "../lib/discordComponentsV2";
 import crypto from "node:crypto";
 
@@ -119,6 +119,10 @@ export const commandDefinitions = [
   new SlashCommandBuilder()
     .setName("포인트")
     .setDescription("보유 포인트와 최근 주문 상태를 패널로 봅니다."),
+  new SlashCommandBuilder()
+    .setName("패널")
+    .setDescription("[관리자] 이 채널에 유저 패널(내정보/서버관리/포인트 버튼) 임베드를 올립니다.")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
 ].map((c) => c.toJSON());
 
 async function findLinkedUser(discordUserId: string) {
@@ -198,6 +202,8 @@ export async function handleCommand(interaction: ChatInputCommandInteraction) {
       return handleServerManagementPanel(interaction);
     case "포인트":
       return handlePointsPanel(interaction);
+    case "패널":
+      return handlePanelCommand(interaction);
   }
 }
 
@@ -552,8 +558,13 @@ async function handleNotificationSettings(interaction: ChatInputCommandInteracti
   await interaction.reply(v2Reply(container));
 }
 
+/** /내정보, /서버관리, /포인트 둘 다 슬래시 명령으로 직접도 쓰고, /패널(관리자가 올리는 고정 임베드)의
+ * 버튼을 클릭했을 때도 같은 로직으로 "클릭한 사람 기준"으로 보여준다 — 그래서 이 세 함수는
+ * ChatInputCommandInteraction/ButtonInteraction 둘 다 받는다(둘 다 .user와 .reply()가 있음) */
+type PanelInteraction = ChatInputCommandInteraction | ButtonInteraction;
+
 /** /내정보 — 포인트/서버수/AI크레딧을 보여주는 계정 정보 패널 */
-async function handleMyInfo(interaction: ChatInputCommandInteraction) {
+async function handleMyInfo(interaction: PanelInteraction) {
   const user = await findLinkedUser(interaction.user.id);
   if (!user) {
     const container = panel()
@@ -567,13 +578,12 @@ async function handleMyInfo(interaction: ChatInputCommandInteraction) {
   const runningCount = servers.filter((s) => s.status === "RUNNING").length;
 
   const container = panel()
-    .addSectionComponents(
-      section(`### 👤 ${user.name}님의 Burnae 정보`, thumbnail(interaction.user.displayAvatarURL({ size: 128 }), "프로필 사진")),
+    .addTextDisplayComponents(heading(`👤 ${user.name}님의 Burnae 정보`))
+    .addTextDisplayComponents(
+      text(
+        `**보유 포인트**  ${user.promotionPoints.toLocaleString()}P\n**AI 크레딧**  ${user.aiCreditsRemaining.toLocaleString()}개\n**서버**  ${servers.length}개 (가동 ${runningCount}개)`,
+      ),
     )
-    .addSeparatorComponents(divider())
-    .addTextDisplayComponents(text(`**🪙 보유 포인트**\n${user.promotionPoints.toLocaleString()}P`))
-    .addTextDisplayComponents(text(`**✨ AI 크레딧**\n${user.aiCreditsRemaining.toLocaleString()}개`))
-    .addTextDisplayComponents(text(`**🖥️ 서버**\n${servers.length}개 (가동 ${runningCount}개)`))
     .addSeparatorComponents(divider())
     .addActionRowComponents(
       buttonRow(
@@ -603,7 +613,7 @@ function addServerManagementBlock(
 const SERVER_MANAGEMENT_PANEL_LIMIT = 5;
 
 /** /서버관리 — 서버마다 시작/정지/재시작(+무료면 연장) 버튼이 달린 패널. 서버가 많으면 앞 5개만 보여줌 */
-async function handleServerManagementPanel(interaction: ChatInputCommandInteraction) {
+async function handleServerManagementPanel(interaction: PanelInteraction) {
   const user = await findLinkedUser(interaction.user.id);
   if (!user) {
     await interaction.reply({
@@ -622,10 +632,7 @@ async function handleServerManagementPanel(interaction: ChatInputCommandInteract
     return;
   }
 
-  const container = panel().addSectionComponents(
-    section("### 🛠️ 서버 관리", thumbnail(interaction.user.displayAvatarURL({ size: 128 }), "프로필 사진")),
-  );
-  container.addSeparatorComponents(divider());
+  const container = panel().addTextDisplayComponents(heading("🛠️ 서버 관리"));
   const shown = servers.slice(0, SERVER_MANAGEMENT_PANEL_LIMIT);
   shown.forEach((s, i) => {
     if (i > 0) container.addSeparatorComponents(divider());
@@ -639,7 +646,7 @@ async function handleServerManagementPanel(interaction: ChatInputCommandInteract
 }
 
 /** /포인트 — 보유 포인트 + 최근 주문 상태 패널 */
-async function handlePointsPanel(interaction: ChatInputCommandInteraction) {
+async function handlePointsPanel(interaction: PanelInteraction) {
   const user = await findLinkedUser(interaction.user.id);
   if (!user) {
     await interaction.reply({
@@ -652,11 +659,8 @@ async function handlePointsPanel(interaction: ChatInputCommandInteraction) {
   const recentOrder = await prisma.order.findFirst({ where: { userId: user.id }, orderBy: { createdAt: "desc" } });
 
   const container = panel()
-    .addSectionComponents(
-      section("### 💰 내 포인트", thumbnail(interaction.user.displayAvatarURL({ size: 128 }), "프로필 사진")),
-    )
-    .addSeparatorComponents(divider())
-    .addTextDisplayComponents(text(`**🪙 보유 포인트**\n${user.promotionPoints.toLocaleString()}P`));
+    .addTextDisplayComponents(heading("💰 내 포인트"))
+    .addTextDisplayComponents(text(`**보유 포인트**  ${user.promotionPoints.toLocaleString()}P`));
 
   if (recentOrder) {
     container.addSeparatorComponents(divider());
@@ -668,7 +672,7 @@ async function handlePointsPanel(interaction: ChatInputCommandInteraction) {
     };
     container.addTextDisplayComponents(
       text(
-        `**📦 최근 주문**\n${recentOrder.amountKrw.toLocaleString()}원 — ${statusLabel[recentOrder.status] ?? recentOrder.status}`,
+        `**최근 주문**  ${recentOrder.amountKrw.toLocaleString()}원 — ${statusLabel[recentOrder.status] ?? recentOrder.status}`,
       ),
     );
   }
@@ -676,6 +680,58 @@ async function handlePointsPanel(interaction: ChatInputCommandInteraction) {
   container.addSeparatorComponents(divider());
   container.addActionRowComponents(buttonRow(linkButton("포인트 충전 / 포인트샵", `${SITE_URL}/dashboard/promotions`)));
   await interaction.reply(v2Reply(container));
+}
+
+/**
+ * /패널 — 관리자가 채널에 한 번 올려두는 고정 임베드. 유저 패널(내정보/서버관리/포인트)은 더 이상
+ * 각자 슬래시 명령으로만 쓰는 게 아니라, 이 임베드에 달린 버튼을 누르면 누른 사람 기준으로
+ * handleMyInfo 등이 그대로 실행된다(버튼 클릭도 interaction.user가 클릭한 사람이라 개인화됨).
+ * 길드 관리 권한(Administrator/ManageGuild)이 있는 사람만 올릴 수 있다.
+ */
+async function handlePanelCommand(interaction: ChatInputCommandInteraction) {
+  if (
+    !interaction.inGuild() ||
+    !(
+      interaction.memberPermissions?.has(PermissionFlagsBits.Administrator) ||
+      interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)
+    )
+  ) {
+    await interaction.reply({
+      components: [text("이 명령어는 서버 관리 권한이 있는 분만 사용할 수 있어요.")],
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+    });
+    return;
+  }
+  if (!interaction.channel || !("send" in interaction.channel)) {
+    await interaction.reply({ components: [text("이 채널에는 올릴 수 없어요.")], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+    return;
+  }
+
+  const embed = new EmbedBuilder()
+    .setTitle("🔥 Burnae 유저 패널")
+    .setColor(0xff6b35)
+    .setDescription(
+      [
+        "아래 버튼을 눌러 각자 자기 계정 기준으로 확인할 수 있어요.",
+        "",
+        "👤 **내 정보** — 포인트 / AI 크레딧 / 서버 수",
+        "🛠️ **서버 관리** — 서버 시작/정지/재시작/연장",
+        "💰 **포인트** — 보유 포인트 / 최근 주문 상태",
+        "",
+        "먼저 `/link` 로 Burnae 계정을 연동해야 내용이 보여요.",
+      ].join("\n"),
+    );
+  const row = buttonRow(
+    actionButton("panel_open_myinfo", "👤 내 정보"),
+    actionButton("panel_open_servers", "🛠️ 서버 관리"),
+    actionButton("panel_open_points", "💰 포인트"),
+  );
+
+  await interaction.channel.send({ embeds: [embed], components: [row] });
+  await interaction.reply({
+    components: [text("✅ 이 채널에 유저 패널을 올렸어요.")],
+    flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+  });
 }
 
 /** 규칙 인증 버튼 / 알림 구독 토글 버튼 / 서버관리 패널 버튼 — index.ts의 InteractionCreate에서 호출한다 */
@@ -686,6 +742,9 @@ export async function handleButton(interaction: ButtonInteraction) {
   if (interaction.customId.startsWith("survey_")) return handleSurveyVote(interaction);
   if (interaction.customId.startsWith("panel_power_")) return handlePanelPower(interaction);
   if (interaction.customId.startsWith("panel_renew_")) return handlePanelRenew(interaction);
+  if (interaction.customId === "panel_open_myinfo") return handleMyInfo(interaction);
+  if (interaction.customId === "panel_open_servers") return handleServerManagementPanel(interaction);
+  if (interaction.customId === "panel_open_points") return handlePointsPanel(interaction);
 }
 
 /** /서버관리 패널의 시작/정지/재시작 버튼 — customId: panel_power_<signal>_<serverId> */

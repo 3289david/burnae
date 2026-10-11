@@ -6,9 +6,9 @@ import SuccessCheck from "@/components/SuccessCheck";
 import CountUp from "@/components/CountUp";
 
 const PACKAGES = [
-  { credits: 100, priceKrw: 3000 },
-  { credits: 500, priceKrw: 12000 },
-  { credits: 1500, priceKrw: 30000 },
+  { credits: 100, priceKrw: 6000 },
+  { credits: 500, priceKrw: 24000 },
+  { credits: 1500, priceKrw: 60000 },
 ];
 
 interface BankAccount {

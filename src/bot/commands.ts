@@ -6,7 +6,6 @@ import {
   ButtonStyle,
   MessageFlags,
   ChannelType,
-  EmbedBuilder,
   PermissionFlagsBits,
 } from "discord.js";
 import { prisma } from "./prismaClient";
@@ -31,7 +30,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://burnae.kr";
 /**
  * 이 봇은 Burnae 공식 디스코드 서버 단 하나에서만 동작한다 (index.ts의 길드 검증 참고).
  * 고객뿐 아니라 서버 멤버라면 누구나 /요금제, /이벤트, /문의 같은 일반 명령어를 쓸 수 있고,
- * /link 로 계정을 연동한 사람만 /서버목록, /상태, /시작, /정지, /재시작, /내정보, /서버관리,
+ * /연동 으로 계정을 연동한 사람만 /서버목록, /상태, /시작, /정지, /재시작, /내정보, /서버관리,
  * /포인트 를 쓸 수 있다.
  *
  * 모든 응답은 Discord Components V2(Container/Section/TextDisplay/Separator)로 만든다 —
@@ -54,7 +53,7 @@ export const commandDefinitions = [
       opt.setName("내용").setDescription("문의 내용을 간단히 적어주세요").setRequired(true),
     ),
   new SlashCommandBuilder()
-    .setName("link")
+    .setName("연동")
     .setDescription("Burnae 계정과 디스코드를 연동합니다.")
     .addStringOption((opt) =>
       opt.setName("코드").setDescription("Burnae 대시보드에서 발급받은 6자리 코드").setRequired(true),
@@ -172,7 +171,7 @@ export async function handleCommand(interaction: ChatInputCommandInteraction) {
       return handleEvents(interaction);
     case "문의":
       return handleSupport(interaction);
-    case "link":
+    case "연동":
       return handleLink(interaction);
     case "서버목록":
       return handleListServers(interaction);
@@ -226,7 +225,7 @@ async function handleHelp(interaction: ChatInputCommandInteraction) {
         [
           "**서버가 있는 분들은 계정을 연동하면 더 쓸 수 있어요**",
           "**1.** burnae.kr 대시보드 → 계정 → 디스코드 연동 → 코드 발급",
-          "**2.** 여기서 `/link 코드` 입력",
+          "**2.** 여기서 `/연동 코드` 입력",
           "**3.** `/내정보` `/서버관리` `/포인트` `/서버목록` `/상태` `/시작` `/정지` `/재시작` 사용 가능",
         ].join("\n"),
       ),
@@ -359,7 +358,7 @@ async function handleListServers(interaction: ChatInputCommandInteraction) {
   const user = await findLinkedUser(interaction.user.id);
   if (!user) {
     await interaction.reply({
-      components: [text("먼저 `/link` 명령어로 계정을 연동해주세요.")],
+      components: [text("먼저 `/연동` 명령어로 계정을 연동해주세요.")],
       flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
     });
     return;
@@ -388,7 +387,7 @@ async function requireOwnedServer(interaction: ChatInputCommandInteraction) {
   const user = await findLinkedUser(interaction.user.id);
   if (!user) {
     await interaction.reply({
-      components: [text("먼저 `/link` 명령어로 계정을 연동해주세요.")],
+      components: [text("먼저 `/연동` 명령어로 계정을 연동해주세요.")],
       flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
     });
     return null;
@@ -456,7 +455,7 @@ async function handleRenewFree(interaction: ChatInputCommandInteraction) {
   const user = await findLinkedUser(interaction.user.id);
   if (!user) {
     await interaction.reply({
-      components: [text("먼저 `/link` 명령어로 계정을 연동해주세요.")],
+      components: [text("먼저 `/연동` 명령어로 계정을 연동해주세요.")],
       flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
     });
     return;
@@ -617,7 +616,7 @@ async function handleServerManagementPanel(interaction: PanelInteraction) {
   const user = await findLinkedUser(interaction.user.id);
   if (!user) {
     await interaction.reply({
-      components: [text("먼저 `/link` 명령어로 계정을 연동해주세요.")],
+      components: [text("먼저 `/연동` 명령어로 계정을 연동해주세요.")],
       flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
     });
     return;
@@ -650,7 +649,7 @@ async function handlePointsPanel(interaction: PanelInteraction) {
   const user = await findLinkedUser(interaction.user.id);
   if (!user) {
     await interaction.reply({
-      components: [text("먼저 `/link` 명령어로 계정을 연동해주세요.")],
+      components: [text("먼저 `/연동` 명령어로 계정을 연동해주세요.")],
       flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
     });
     return;
@@ -707,27 +706,30 @@ async function handlePanelCommand(interaction: ChatInputCommandInteraction) {
     return;
   }
 
-  const embed = new EmbedBuilder()
-    .setTitle("🔥 Burnae 유저 패널")
-    .setColor(0xff6b35)
-    .setDescription(
-      [
-        "아래 버튼을 눌러 각자 자기 계정 기준으로 확인할 수 있어요.",
-        "",
-        "👤 **내 정보** — 포인트 / AI 크레딧 / 서버 수",
-        "🛠️ **서버 관리** — 서버 시작/정지/재시작/연장",
-        "💰 **포인트** — 보유 포인트 / 최근 주문 상태",
-        "",
-        "먼저 `/link` 로 Burnae 계정을 연동해야 내용이 보여요.",
-      ].join("\n"),
+  const container = panel()
+    .addTextDisplayComponents(heading("🔥 Burnae 유저 패널"))
+    .addTextDisplayComponents(
+      text(
+        [
+          "아래 버튼을 눌러 각자 자기 계정 기준으로 확인할 수 있어요.",
+          "",
+          "👤 **내 정보** — 포인트 / AI 크레딧 / 서버 수",
+          "🛠️ **서버 관리** — 서버 시작/정지/재시작/연장",
+          "💰 **포인트** — 보유 포인트 / 최근 주문 상태",
+        ].join("\n"),
+      ),
+    )
+    .addSeparatorComponents(divider())
+    .addTextDisplayComponents(subtext("먼저 `/연동`으로 Burnae 계정을 연동해야 내용이 보여요."))
+    .addActionRowComponents(
+      buttonRow(
+        actionButton("panel_open_myinfo", "👤 내 정보"),
+        actionButton("panel_open_servers", "🛠️ 서버 관리"),
+        actionButton("panel_open_points", "💰 포인트"),
+      ),
     );
-  const row = buttonRow(
-    actionButton("panel_open_myinfo", "👤 내 정보"),
-    actionButton("panel_open_servers", "🛠️ 서버 관리"),
-    actionButton("panel_open_points", "💰 포인트"),
-  );
 
-  await interaction.channel.send({ embeds: [embed], components: [row] });
+  await interaction.channel.send({ components: [container], flags: MessageFlags.IsComponentsV2 });
   await interaction.reply({
     components: [text("✅ 이 채널에 유저 패널을 올렸어요.")],
     flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
@@ -757,7 +759,7 @@ async function handlePanelPower(interaction: ButtonInteraction) {
 
   const user = await findLinkedUser(interaction.user.id);
   if (!user) {
-    await interaction.reply({ components: [text("먼저 `/link`로 계정을 연동해주세요.")], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+    await interaction.reply({ components: [text("먼저 `/연동`로 계정을 연동해주세요.")], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
     return;
   }
   const server = await prisma.server.findFirst({ where: { id: serverId, ownerId: user.id, deletedAt: null } });
@@ -778,7 +780,7 @@ async function handlePanelRenew(interaction: ButtonInteraction) {
   const serverId = interaction.customId.slice("panel_renew_".length);
   const user = await findLinkedUser(interaction.user.id);
   if (!user) {
-    await interaction.reply({ components: [text("먼저 `/link`로 계정을 연동해주세요.")], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+    await interaction.reply({ components: [text("먼저 `/연동`로 계정을 연동해주세요.")], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
     return;
   }
   try {

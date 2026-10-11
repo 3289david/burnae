@@ -29,6 +29,7 @@ const RETENTION_DAYS = 7; // 정지 후 이 기간이 지나면 완전 삭제
 const REMINDER_COOLDOWN_HOURS = 20; // 같은 알림을 하루에 한 번만 보내기 위한 최소 간격
 const NODE_ALERT_THRESHOLD = 0.9; // RAM 판매율 90% 넘으면 경고
 const NODE_ALERT_COOLDOWN_HOURS = 20;
+const UTILIZATION_REPORT_INTERVAL_HOURS = 3; // 노드 점유율 정기 보고 주기
 
 async function recentlyLogged(action: string, targetId: string, withinHours: number) {
   const since = new Date(Date.now() - withinHours * 60 * 60 * 1000);
@@ -507,6 +508,44 @@ async function handleNodeAlerts() {
   }
 }
 
+/** 3시간마다 전체 노드의 RAM/CPU/저장공간 판매(점유)율을 관리자 DM으로 정기 보고한다 */
+async function handleUtilizationReport() {
+  const action = "NODE_UTILIZATION_REPORT";
+  if (await recentlyLogged(action, "all-nodes", UTILIZATION_REPORT_INTERVAL_HOURS)) return;
+
+  const admin = await prisma.user.findFirst({ where: { role: "ADMIN" } });
+  if (!admin) return;
+
+  const nodes = await prisma.hostNode.findMany();
+  const usage = await prisma.server.groupBy({
+    by: ["nodeId"],
+    where: { deletedAt: null },
+    _sum: { ramMb: true, cpuPercent: true, diskMb: true },
+    _count: true,
+  });
+  const usageMap = new Map(usage.map((u) => [u.nodeId, u]));
+
+  const lines = nodes.map((node) => {
+    const u = usageMap.get(node.id);
+    const sellableRam = node.totalRamMb - node.reservedRamMb;
+    const sellableDisk = node.totalDiskMb - node.reservedDiskMb;
+    const sellableCpu = node.cpuCores * 100;
+    const ramPct = sellableRam > 0 ? ((u?._sum.ramMb ?? 0) / sellableRam) * 100 : 0;
+    const cpuPct = sellableCpu > 0 ? ((u?._sum.cpuPercent ?? 0) / sellableCpu) * 100 : 0;
+    const diskPct = sellableDisk > 0 ? ((u?._sum.diskMb ?? 0) / sellableDisk) * 100 : 0;
+    return (
+      `**${node.name}**(${node.location}) — 서버 ${u?._count ?? 0}개\n` +
+      `RAM ${ramPct.toFixed(1)}% · CPU ${cpuPct.toFixed(1)}% · 저장공간 ${diskPct.toFixed(1)}%`
+    );
+  });
+
+  const sent = await notifyOwner(admin.id, `📊 노드 점유율 (3시간 주기)\n\n${lines.join("\n\n")}`);
+  await prisma.auditLog.create({
+    data: { action, targetType: "HostNode", targetId: "all-nodes", metadata: { discordNotified: sent } },
+  });
+  console.log(`[cron] 노드 점유율 정기 보고 ${sent ? "발송" : "스킵(관리자 디스코드 미연동)"}`);
+}
+
 const STUCK_PROVISIONING_MINUTES = 20;
 const STUCK_PROVISIONING_COOLDOWN_HOURS = 6;
 
@@ -638,6 +677,7 @@ async function main() {
   await handleScheduledBackups();
   await handleScheduledRestarts();
   await handleNodeAlerts();
+  await handleUtilizationReport();
   await handleHanaBankMatching();
   await handlePreorderRetries();
   console.log(`[cron] 종료 ${new Date().toISOString()}`);

@@ -54,10 +54,7 @@ export const commandDefinitions = [
     ),
   new SlashCommandBuilder()
     .setName("연동")
-    .setDescription("Burnae 계정과 디스코드를 연동합니다.")
-    .addStringOption((opt) =>
-      opt.setName("코드").setDescription("Burnae 대시보드에서 발급받은 6자리 코드").setRequired(true),
-    ),
+    .setDescription("Burnae 계정과 디스코드를 연동합니다."),
   new SlashCommandBuilder()
     .setName("서버목록")
     .setDescription("내 Burnae 서버 목록을 봅니다."),
@@ -224,9 +221,8 @@ async function handleHelp(interaction: ChatInputCommandInteraction) {
       text(
         [
           "**서버가 있는 분들은 계정을 연동하면 더 쓸 수 있어요**",
-          "**1.** burnae.kr 대시보드 → 계정 → 디스코드 연동 → 코드 발급",
-          "**2.** 여기서 `/연동 코드` 입력",
-          "**3.** `/내정보` `/서버관리` `/포인트` `/서버목록` `/상태` `/시작` `/정지` `/재시작` 사용 가능",
+          "**1.** `/연동` 입력 → burnae.kr 로그인 화면에서 \"Discord로 계속하기\"로 로그인",
+          "**2.** `/내정보` `/서버관리` `/포인트` `/서버목록` `/상태` `/시작` `/정지` `/재시작` 사용 가능",
         ].join("\n"),
       ),
     )
@@ -313,38 +309,16 @@ async function handleSupport(interaction: ChatInputCommandInteraction) {
   }
 }
 
+/**
+ * burnae.kr 로그인 화면에서 "Discord로 계속하기"를 누르면(oauth/discord/start → callback)
+ * 신규 가입이든 기존 계정 로그인이든 상관없이 DiscordLink가 자동으로 upsert된다 — 그래서
+ * 연동은 디스코드 쪽에서 코드를 입력받을 필요 없이 로그인 페이지 링크 하나로 끝난다.
+ */
 async function handleLink(interaction: ChatInputCommandInteraction) {
-  const code = interaction.options.getString("코드", true).toUpperCase();
-  const record = await prisma.discordLinkCode.findUnique({ where: { code } });
-
-  if (!record || record.expiresAt < new Date()) {
-    await interaction.reply({
-      components: [text("코드가 올바르지 않거나 만료되었습니다. 대시보드에서 새로 발급받아주세요.")],
-      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
-    });
-    return;
-  }
-
-  await prisma.$transaction([
-    prisma.discordLink.create({ data: { userId: record.userId, discordUserId: interaction.user.id } }),
-    prisma.discordLinkCode.delete({ where: { id: record.id } }),
-  ]);
-
-  // 공식 서버 안에서 "고객" 역할을 자동으로 부여 (설정된 경우)
-  const customerRoleId = process.env.DISCORD_CUSTOMER_ROLE_ID;
-  if (customerRoleId && interaction.inGuild()) {
-    try {
-      const member = await interaction.guild!.members.fetch(interaction.user.id);
-      await member.roles.add(customerRoleId);
-    } catch (err) {
-      console.error("[bot] 고객 역할 부여 실패:", err);
-    }
-  }
-
-  await interaction.reply({
-    components: [text("✅ Burnae 계정이 연동되었습니다! 이제 `/내정보`로 내 계정을 확인할 수 있어요.")],
-    flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
-  });
+  const container = panel()
+    .addTextDisplayComponents(text("burnae.kr에서 로그인하면 자동으로 연동돼요. 이미 가입했다면 \"Discord로 계속하기\"로 로그인해주세요."))
+    .addActionRowComponents(buttonRow(linkButton("burnae.kr 로그인", `${SITE_URL}/login`)));
+  await interaction.reply(v2Reply(container));
 }
 
 function statusEmoji(status: string) {

@@ -5,6 +5,7 @@ import { createSessionCookie, getCurrentUser, resolveInitialRole, isAdminEmail }
 import { completeOAuthLogin, siteUrl, type OAuthProviderKey } from "@/lib/oauth";
 import { rewardReferralSignup } from "@/lib/promotions";
 import { extractClientIp } from "@/lib/altAccountDetection";
+import { addDiscordRole } from "@/lib/discordNotify";
 
 const VALID_PROVIDERS: OAuthProviderKey[] = ["google", "github", "discord"];
 const PROVIDER_ENUM: Record<OAuthProviderKey, "GOOGLE" | "GITHUB" | "DISCORD"> = {
@@ -141,17 +142,25 @@ export async function GET(
       return loginError("정지된 계정입니다. 고객센터에 문의해주세요.");
     }
 
-    // 디스코드로 로그인했다면 봇 연동(/link)도 자동으로 처리해준다
+    // 디스코드로 로그인했다면 봇 연동(/연동)도 자동으로 처리해준다 — 디스코드에서 코드를 입력받는
+    // 대신 로그인 자체가 연동이 되게 한 것(/연동 명령어는 이 로그인 페이지로 안내만 함)
     if (provider === "discord") {
-      await prisma.discordLink
+      const linked = await prisma.discordLink
         .upsert({
           where: { userId: user.id },
           update: { discordUserId: profile.providerAccountId },
           create: { userId: user.id, discordUserId: profile.providerAccountId },
         })
-        .catch(() => {
-          // 이 디스코드 계정이 이미 다른 Burnae 유저에 연결돼 있으면 무시 (로그인 자체는 계속 진행)
+        .catch(() => null);
+      // 이 디스코드 계정이 이미 다른 Burnae 유저에 연결돼 있으면 upsert가 실패하지만(unique
+      // discordUserId) 로그인 자체는 계속 진행한다
+
+      const customerRoleId = process.env.DISCORD_CUSTOMER_ROLE_ID;
+      if (linked && customerRoleId) {
+        await addDiscordRole(profile.providerAccountId, customerRoleId).catch((err) => {
+          console.error("[oauth:discord] 고객 역할 부여 실패:", err);
         });
+      }
     }
 
     await createSessionCookie({ sub: user.id, role: user.role, email: user.email });

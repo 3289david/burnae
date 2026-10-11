@@ -19,6 +19,7 @@ import { syncAppProxyMap } from "../src/lib/appProxy";
  *   3. 노드 RAM/CPU 판매율 과부하 시 관리자에게 알림
  *   4. 하나은행 거래내역 폴링으로 입금 자동 매칭 (실시간 웹훅이 없어서 주기적으로 조회해야 함)
  *   5. 선주문(결제는 됐지만 노드 자리가 없었던 주문) 재배치 시도
+ *   6. 생성이 중간에 멈춰서 PROVISIONING 상태로 오래 남은 서버를 관리자에게 알림
  */
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
@@ -506,6 +507,48 @@ async function handleNodeAlerts() {
   }
 }
 
+const STUCK_PROVISIONING_MINUTES = 20;
+const STUCK_PROVISIONING_COOLDOWN_HOURS = 6;
+
+/**
+ * 서버 생성이 Wings 쪽 문제(데몬 다운, 노드에 없는 도커 이미지 등)로 중간에 멈추면 PROVISIONING
+ * 상태로 영원히 남는다 — 예전엔 고객이 직접 신고하기 전까지(최악의 경우 하루 넘게) 아무도
+ * 몰랐다. 생성 후 일정 시간이 지나도 PROVISIONING이면 관리자에게 바로 알려서 고객이 발견하기
+ * 전에 먼저 고칠 수 있게 한다(자동 재시도는 원인이 매번 달라서 하지 않고, 알림만 보낸다).
+ */
+async function handleStuckProvisioning() {
+  const threshold = new Date(Date.now() - STUCK_PROVISIONING_MINUTES * 60 * 1000);
+  const stuck = await prisma.server.findMany({
+    where: { status: "PROVISIONING", deletedAt: null, createdAt: { lte: threshold } },
+    include: { owner: { select: { email: true, name: true } } },
+  });
+  if (stuck.length === 0) return;
+
+  const admin = await prisma.user.findFirst({ where: { role: "ADMIN" } });
+  if (!admin) return;
+
+  for (const server of stuck) {
+    const action = "STUCK_PROVISIONING_ALERT";
+    if (await recentlyLogged(action, server.id, STUCK_PROVISIONING_COOLDOWN_HOURS)) continue;
+
+    const stuckMinutes = Math.round((Date.now() - server.createdAt.getTime()) / 60000);
+    const sent = await notifyOwner(
+      admin.id,
+      `⚠️ **${server.name}**(${server.owner.name}, ${server.owner.email})가 ${stuckMinutes}분째 "생성 중" 상태에서 안 움직여요. ` +
+        `pterodactylServerId=${server.pterodactylServerId ?? "없음"}, identifier=${server.pterodactylIdentifier ?? "없음"} — 패널/Wings 로그를 확인해주세요.`,
+    );
+    await prisma.auditLog.create({
+      data: {
+        action,
+        targetType: "Server",
+        targetId: server.id,
+        metadata: { stuckMinutes, discordNotified: sent },
+      },
+    });
+    console.log(`[cron] ${server.name} — ${stuckMinutes}분째 생성 중, 관리자 알림 ${sent ? "발송" : "스킵(관리자 디스코드 미연동)"}`);
+  }
+}
+
 /**
  * 하나은행 API는 payaction/paysync 같은 SMS 대행 서비스와 달리 입금 발생 시 실시간으로
  * 알려주는 웹훅이 없다. 그래서 마지막으로 확인한 시각(lastCheckedAt) 이후의 거래내역을
@@ -582,6 +625,7 @@ async function handlePreorderRetries() {
 async function main() {
   console.log(`[cron] 시작 ${new Date().toISOString()}`);
   await handleServerStatusSync();
+  await handleStuckProvisioning();
   await handleUsageSnapshots();
   try {
     const result = await syncAppProxyMap(prisma);

@@ -720,7 +720,7 @@ async function handlePanelCommand(interaction: ChatInputCommandInteraction) {
       ),
     )
     .addSeparatorComponents(divider())
-    .addTextDisplayComponents(subtext("먼저 `/연동`으로 Burnae 계정을 연동해야 내용이 보여요."))
+    .addTextDisplayComponents(subtext("먼저 `/연동` 명령어로 계정을 연동해주세요."))
     .addActionRowComponents(
       buttonRow(
         actionButton("panel_open_myinfo", "👤 내 정보"),
@@ -759,7 +759,7 @@ async function handlePanelPower(interaction: ButtonInteraction) {
 
   const user = await findLinkedUser(interaction.user.id);
   if (!user) {
-    await interaction.reply({ components: [text("먼저 `/연동`으로 계정을 연동해주세요.")], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+    await interaction.reply({ components: [text("먼저 `/연동` 명령어로 계정을 연동해주세요.")], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
     return;
   }
   const server = await prisma.server.findFirst({ where: { id: serverId, ownerId: user.id, deletedAt: null } });
@@ -780,7 +780,7 @@ async function handlePanelRenew(interaction: ButtonInteraction) {
   const serverId = interaction.customId.slice("panel_renew_".length);
   const user = await findLinkedUser(interaction.user.id);
   if (!user) {
-    await interaction.reply({ components: [text("먼저 `/연동`으로 계정을 연동해주세요.")], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+    await interaction.reply({ components: [text("먼저 `/연동` 명령어로 계정을 연동해주세요.")], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
     return;
   }
   try {

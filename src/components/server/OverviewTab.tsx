@@ -13,6 +13,7 @@ import GoogleAdSense from "@/components/ads/GoogleAdSense";
 import GettingStartedCard from "./GettingStartedCard";
 import SuccessCheck from "@/components/SuccessCheck";
 import CountUp from "@/components/CountUp";
+import { formatMb } from "@/lib/formatSize";
 import UsageHistoryChart from "./UsageHistoryChart";
 import ServerActivityFeed from "./ServerActivityFeed";
 
@@ -206,7 +207,7 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
             resources ? (
               <>
                 <CountUp value={resources.resources.memory_bytes / 1024 / 1024} format={(n) => Math.round(n).toString()} duration={600} />
-                MB / {(server.ramMb / 1024).toFixed(0)}GB
+                MB / {formatMb(server.ramMb)}
               </>
             ) : (
               "-"
@@ -265,7 +266,7 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
           <span className="text-text-dim">종류</span>
           <span>{server.templateName}{server.minecraftVersion && ` · ${server.minecraftVersion}`}</span>
           <span className="text-text-dim">RAM / 디스크</span>
-          <span>{(server.ramMb / 1024).toFixed(0)}GB / {(server.diskMb / 1024).toFixed(0)}GB</span>
+          <span>{formatMb(server.ramMb)} / {formatMb(server.diskMb)}</span>
           <span className="text-text-dim">백업 슬롯</span>
           <span>{server.backupSlots}개</span>
           {server.extraPorts.length > 0 && (

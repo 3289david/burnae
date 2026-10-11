@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import SuccessCheck from "@/components/SuccessCheck";
 import FullScreenCelebration from "@/components/FullScreenCelebration";
+import { formatMb } from "@/lib/formatSize";
 import {
   Check,
   Search,
@@ -1128,7 +1129,7 @@ function NewServerPageInner() {
                     <div className="min-w-0">
                       <div className="font-semibold">{p.name}</div>
                       <div className="text-text-dim text-xs mt-0.5">
-                        RAM {(p.ramMb / 1024).toFixed(0)}GB
+                        RAM {formatMb(p.ramMb)}
                       </div>
                     </div>
                   </div>

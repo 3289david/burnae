@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import SuccessCheck from "@/components/SuccessCheck";
+import { formatMb } from "@/lib/formatSize";
 
 interface Product {
   id: string;
@@ -121,7 +122,7 @@ export default function UpgradeCard({ serverId, currentProductId }: { serverId: 
           <option value="">플랜 선택</option>
           {products.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.name} — RAM {(p.ramMb / 1024).toFixed(0)}GB · {p.priceMonthlyKrw.toLocaleString()}원/월
+              {p.name} — RAM {formatMb(p.ramMb)} · {p.priceMonthlyKrw.toLocaleString()}원/월
               {p.pointsRedeemable && p.pointsCost != null ? ` (포인트 ${p.pointsCost.toLocaleString()}P 가능)` : ""}
             </option>
           ))}

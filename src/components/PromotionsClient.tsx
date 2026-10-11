@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Copy, Check, CheckCircle2, Clock, Gift } from "lucide-react";
 import SuccessCheck from "@/components/SuccessCheck";
 import CountUp from "@/components/CountUp";
+import { formatMb } from "@/lib/formatSize";
 
 type VerifyMethod =
   | "URL_CONTAINS_LINK"
@@ -296,7 +297,7 @@ function RedeemCard({
         <div>
           <p className="font-medium text-sm">{product.name}</p>
           <p className="text-xs text-text-dim mt-0.5">
-            RAM {(product.ramMb / 1024).toFixed(1)}GB · CPU {product.cpuPercent}% · 디스크 {(product.diskMb / 1024).toFixed(1)}GB
+            RAM {formatMb(product.ramMb)} · CPU {product.cpuPercent}% · 디스크 {formatMb(product.diskMb)}
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Cpu, MemoryStick, Archive, HardDrive, RefreshCw } from "lucide-react";
 import CountUp from "@/components/CountUp";
+import { formatMb } from "@/lib/formatSize";
 
 interface Grant {
   id: string;
@@ -13,9 +14,9 @@ interface Grant {
 
 function grantLabel(g: Grant): string {
   switch (g.kind) {
-    case "RAM_UPGRADE": return `RAM +${(g.amount / 1024).toFixed(1)}GB`;
+    case "RAM_UPGRADE": return `RAM +${formatMb(g.amount)}`;
     case "CPU_UPGRADE": return `CPU +${g.amount}%`;
-    case "DISK_UPGRADE": return `저장공간 +${(g.amount / 1024).toFixed(1)}GB`;
+    case "DISK_UPGRADE": return `저장공간 +${formatMb(g.amount)}`;
     default: return g.kind;
   }
 }
@@ -41,9 +42,9 @@ const KIND_ICON: Record<string, typeof Cpu> = {
 function defaultLabel(item: ShopItem): string {
   if (!item.amount) return item.name;
   switch (item.kind) {
-    case "RAM_UPGRADE": return `RAM +${(item.amount / 1024).toFixed(1)}GB`;
+    case "RAM_UPGRADE": return `RAM +${formatMb(item.amount)}`;
     case "CPU_UPGRADE": return `CPU +${item.amount}%`;
-    case "DISK_UPGRADE": return `저장공간 +${(item.amount / 1024).toFixed(1)}GB`;
+    case "DISK_UPGRADE": return `저장공간 +${formatMb(item.amount)}`;
     case "BACKUP_SLOT_UPGRADE": return `백업 슬롯 +${item.amount}개`;
     default: return item.name;
   }

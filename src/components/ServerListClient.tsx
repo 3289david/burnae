@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Search, X, CheckSquare, Check, Play, Square as StopIcon, RotateCw } from "lucide-react";
 import StatusDot from "@/components/StatusDot";
+import { formatMb } from "@/lib/formatSize";
 import FavoriteButton from "@/components/FavoriteButton";
 
 type Category = "MINECRAFT" | "DISCORD_BOT" | "GENERAL";
@@ -198,10 +199,10 @@ export default function ServerListClient({ servers }: { servers: DashboardServer
                   {CATEGORY_BADGE_LABEL[s.category]}
                 </span>
                 <span className="rounded-full bg-surface-2 px-2.5 py-1 text-text-dim">
-                  RAM {(s.ramMb / 1024).toFixed(0)}GB
+                  RAM {formatMb(s.ramMb)}
                 </span>
                 <span className="rounded-full bg-surface-2 px-2.5 py-1 text-text-dim">
-                  디스크 {(s.diskMb / 1024).toFixed(0)}GB
+                  디스크 {formatMb(s.diskMb)}
                 </span>
               </div>
             </>

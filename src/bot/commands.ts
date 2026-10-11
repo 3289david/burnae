@@ -13,6 +13,7 @@ import { prisma } from "./prismaClient";
 import { PteroClient } from "../lib/pterodactyl";
 import { renewFreeServer, ServerRenewalError } from "../lib/serverRenewal";
 import { postOrRefreshSurvey } from "../lib/discordBoards";
+import { formatMb } from "../lib/formatSize";
 import crypto from "node:crypto";
 
 /**
@@ -200,7 +201,7 @@ async function handlePlans(interaction: ChatInputCommandInteraction) {
       products
         .map(
           (p) =>
-            `**${p.name}** — ${p.priceMonthlyKrw.toLocaleString()}원/월\nRAM ${(p.ramMb / 1024).toFixed(0)}GB · 디스크 ${(p.diskMb / 1024).toFixed(0)}GB · 백업 ${p.backupSlots}개`,
+            `**${p.name}** — ${p.priceMonthlyKrw.toLocaleString()}원/월\nRAM ${formatMb(p.ramMb)} · 디스크 ${formatMb(p.diskMb)} · 백업 ${p.backupSlots}개`,
         )
         .join("\n\n"),
     )

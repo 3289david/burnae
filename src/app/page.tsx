@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { formatMb } from "@/lib/formatSize";
 import BrandMark from "@/components/BrandMark";
 import Footer from "@/components/Footer";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
@@ -270,9 +271,9 @@ export default async function HomePage() {
                     <CountUp value={p.priceMonthlyKrw} duration={900} /><span className="text-base font-normal text-text-dim">원/월</span>
                   </p>
                   <ul className="mt-5 space-y-2 text-sm flex-1">
-                    <SpecRow label={`RAM ${(p.ramMb / 1024).toFixed(0)}GB`} />
+                    <SpecRow label={`RAM ${formatMb(p.ramMb)}`} />
                     <SpecRow label={`CPU ${p.cpuPercent}%`} />
-                    <SpecRow label={`디스크 ${(p.diskMb / 1024).toFixed(0)}GB`} />
+                    <SpecRow label={`디스크 ${formatMb(p.diskMb)}`} />
                     <SpecRow label={`백업 ${p.backupSlots}개`} />
                   </ul>
                   <Link href="/register" className="btn-primary w-full py-2.5 text-sm text-center mt-6">

@@ -15,7 +15,7 @@ import CountUp from "@/components/CountUp";
 import { allowedCategoriesForSiteMode, type SiteMode } from "@/lib/siteMode";
 
 const SHARED_FEATURES = [
-  { icon: Zap, color: "var(--accent)", title: "1분 서버 생성", desc: "결제 즉시 자동으로 Docker 컨테이너가 만들어지고 접속 주소까지 연결돼요." },
+  { icon: Zap, color: "var(--accent)", title: "1분 서버 생성", desc: "결제하면 바로 서버가 자동으로 만들어지고 접속 주소까지 연결돼요." },
   { icon: Terminal, color: "var(--cyan)", title: "실시간 콘솔", desc: "웹에서 바로 명령어를 입력하고 로그를 실시간으로 확인해요." },
   { icon: RefreshCw, color: "var(--lime)", title: "자동 백업", desc: "주기를 정해두면 알아서 백업하고, 위험한 작업 전엔 자동으로 스냅샷을 남겨요." },
   { icon: Globe, color: "var(--flame-2)", title: "서브도메인 자동 연결", desc: "서버를 만들면 이름.krl.kr 주소가 자동으로 생겨요." },
@@ -24,13 +24,13 @@ const SHARED_FEATURES = [
 
 const MINECRAFT_FEATURES = [
   { icon: Bot, color: "var(--purple)", title: "AI 서버 관리", desc: "\"커맨드 블럭 켜줘\" 라고 채팅하면 AI가 실제 설정을 확인하고 바꿔줘요." },
-  { icon: Users, color: "var(--blue)", title: "플레이어 관리", desc: "화이트리스트·OP·밴·킥을 버튼 하나로. RCON 설정 필요 없어요." },
+  { icon: Users, color: "var(--blue)", title: "플레이어 관리", desc: "화이트리스트·OP·밴·킥을 버튼 하나로. 복잡한 설정 필요 없어요." },
   { icon: Puzzle, color: "var(--pink)", title: "플러그인·모드 마켓", desc: "Modrinth 검색부터 설치까지 클릭 몇 번, AI에게 부탁해도 돼요." },
 ];
 
 const GENERAL_FEATURES = [
   { icon: Bot, color: "var(--purple)", title: "AI 서버 관리", desc: "\"봇 재시작해줘\" 라고 채팅하면 AI가 실제 콘솔과 파일을 확인하고 바꿔줘요." },
-  { icon: KeyRound, color: "var(--blue)", title: "시작 변수 편집", desc: "봇 토큰·API 키 같은 환경변수를 웹에서 바로 수정해요." },
+  { icon: KeyRound, color: "var(--blue)", title: "시작 변수 편집", desc: "봇 토큰 같은 설정값을 웹에서 바로 입력하고 수정해요." },
   { icon: FolderGit2, color: "var(--pink)", title: "GitHub repo 배포", desc: "Red, Muse, Uptime Kuma 등 20여 개 인기 프리셋 또는 원하는 GitHub repo로 바로 시작해요." },
 ];
 
@@ -50,7 +50,7 @@ function stepsForMode(mode: SiteMode) {
   return [
     { n: 1, title: "플랜 선택", desc: planDesc },
     { n: 2, title: "계좌 입금", desc: "입금자명과 금액만 맞으면 자동으로 확인돼요." },
-    { n: 3, title: "자동 생성", desc: "노드 배치부터 Docker 설치, 주소 연결까지 전부 자동이에요." },
+    { n: 3, title: "자동 생성", desc: "서버 설치부터 주소 연결까지 전부 자동이에요." },
     { n: 4, title: "바로 접속", desc: "생성된 주소를 바로 공유하고 사용하세요." },
   ];
 }
@@ -189,7 +189,7 @@ export default async function HomePage() {
         <section className="max-w-6xl mx-auto px-6 py-20">
           <div className="text-center max-w-xl mx-auto">
             <h2 className="text-3xl font-bold font-display">호스팅에 필요한 모든 것</h2>
-            <p className="mt-3 text-text-dim">Pterodactyl의 복잡함은 저희가 대신 다뤄요. 보이는 건 심플한 버튼뿐이에요.</p>
+            <p className="mt-3 text-text-dim">복잡한 서버 관리는 저희가 대신 다뤄요. 보이는 건 심플한 버튼뿐이에요.</p>
           </div>
           <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {FEATURES.map((f) => (

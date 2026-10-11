@@ -21,6 +21,8 @@ import {
   actionButton,
   linkButton,
   buttonRow,
+  section,
+  thumbnail,
 } from "../lib/discordComponentsV2";
 import crypto from "node:crypto";
 
@@ -565,12 +567,13 @@ async function handleMyInfo(interaction: ChatInputCommandInteraction) {
   const runningCount = servers.filter((s) => s.status === "RUNNING").length;
 
   const container = panel()
-    .addTextDisplayComponents(heading(`👤 ${user.name}님의 Burnae 정보`))
-    .addTextDisplayComponents(
-      text(
-        `**보유 포인트**  ${user.promotionPoints.toLocaleString()}P\n**AI 크레딧**  ${user.aiCreditsRemaining.toLocaleString()}개\n**서버**  ${servers.length}개 (가동 ${runningCount}개)`,
-      ),
+    .addSectionComponents(
+      section(`### 👤 ${user.name}님의 Burnae 정보`, thumbnail(interaction.user.displayAvatarURL({ size: 128 }), "프로필 사진")),
     )
+    .addSeparatorComponents(divider())
+    .addTextDisplayComponents(text(`**🪙 보유 포인트**\n${user.promotionPoints.toLocaleString()}P`))
+    .addTextDisplayComponents(text(`**✨ AI 크레딧**\n${user.aiCreditsRemaining.toLocaleString()}개`))
+    .addTextDisplayComponents(text(`**🖥️ 서버**\n${servers.length}개 (가동 ${runningCount}개)`))
     .addSeparatorComponents(divider())
     .addActionRowComponents(
       buttonRow(
@@ -619,7 +622,10 @@ async function handleServerManagementPanel(interaction: ChatInputCommandInteract
     return;
   }
 
-  const container = panel().addTextDisplayComponents(heading("🛠️ 서버 관리"));
+  const container = panel().addSectionComponents(
+    section("### 🛠️ 서버 관리", thumbnail(interaction.user.displayAvatarURL({ size: 128 }), "프로필 사진")),
+  );
+  container.addSeparatorComponents(divider());
   const shown = servers.slice(0, SERVER_MANAGEMENT_PANEL_LIMIT);
   shown.forEach((s, i) => {
     if (i > 0) container.addSeparatorComponents(divider());
@@ -646,8 +652,11 @@ async function handlePointsPanel(interaction: ChatInputCommandInteraction) {
   const recentOrder = await prisma.order.findFirst({ where: { userId: user.id }, orderBy: { createdAt: "desc" } });
 
   const container = panel()
-    .addTextDisplayComponents(heading("💰 내 포인트"))
-    .addTextDisplayComponents(text(`**보유 포인트**  ${user.promotionPoints.toLocaleString()}P`));
+    .addSectionComponents(
+      section("### 💰 내 포인트", thumbnail(interaction.user.displayAvatarURL({ size: 128 }), "프로필 사진")),
+    )
+    .addSeparatorComponents(divider())
+    .addTextDisplayComponents(text(`**🪙 보유 포인트**\n${user.promotionPoints.toLocaleString()}P`));
 
   if (recentOrder) {
     container.addSeparatorComponents(divider());
@@ -659,7 +668,7 @@ async function handlePointsPanel(interaction: ChatInputCommandInteraction) {
     };
     container.addTextDisplayComponents(
       text(
-        `**최근 주문**  ${recentOrder.amountKrw.toLocaleString()}원 — ${statusLabel[recentOrder.status] ?? recentOrder.status}`,
+        `**📦 최근 주문**\n${recentOrder.amountKrw.toLocaleString()}원 — ${statusLabel[recentOrder.status] ?? recentOrder.status}`,
       ),
     );
   }

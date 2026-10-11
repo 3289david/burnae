@@ -64,6 +64,12 @@ export function buttonRow(...buttons: ButtonBuilder[]): ActionRowBuilder<ButtonB
   return new ActionRowBuilder<ButtonBuilder>().addComponents(buttons);
 }
 
+export function thumbnail(url: string, description?: string): ThumbnailBuilder {
+  const t = new ThumbnailBuilder().setURL(url);
+  if (description) t.setDescription(description);
+  return t;
+}
+
 /** 텍스트 한 줄(들) + 오른쪽에 버튼(또는 썸네일) 하나를 붙이는 "Section" — 임베드의 inline field 대용 */
 export function section(lines: string | string[], accessory: ButtonBuilder | ThumbnailBuilder): SectionBuilder {
   const arr = Array.isArray(lines) ? lines : [lines];

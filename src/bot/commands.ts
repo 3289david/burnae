@@ -314,10 +314,46 @@ async function handleSupport(interaction: ChatInputCommandInteraction) {
  * 신규 가입이든 기존 계정 로그인이든 상관없이 DiscordLink가 자동으로 upsert된다 — 그래서
  * 연동은 디스코드 쪽에서 코드를 입력받을 필요 없이 로그인 페이지 링크 하나로 끝난다.
  */
-async function handleLink(interaction: ChatInputCommandInteraction) {
-  const container = panel()
+function loginLinkContainer() {
+  return panel()
     .addTextDisplayComponents(text("burnae.kr에서 로그인하면 자동으로 연동돼요. 이미 가입했다면 \"Discord로 계속하기\"로 로그인해주세요."))
     .addActionRowComponents(buttonRow(linkButton("burnae.kr 로그인", `${SITE_URL}/login`)));
+}
+
+async function handleLink(interaction: PanelInteraction) {
+  const existing = await findLinkedUser(interaction.user.id);
+  if (existing) {
+    await interaction.reply({
+      components: [text(`✅ 이미 **${existing.name}** 계정으로 연동되어 있어요!`)],
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+    });
+    return;
+  }
+  await interaction.reply(v2Reply(loginLinkContainer()));
+}
+
+/**
+ * /패널의 유일한 진입 버튼. 연동 안 한 사람에게는 내정보/서버관리/포인트 버튼을 아예 안 보여주고
+ * (디스코드는 같은 메시지를 사람마다 다르게 보여줄 수 없어서, 패널 자체엔 이 버튼 하나만 두고
+ * 클릭했을 때 개인화된 ephemeral 응답으로 분기한다) 로그인 링크만 준다.
+ * 이미 연동된 사람에게는 그제서야 세 기능 버튼이 담긴 개인 메뉴를 보여준다.
+ */
+async function handlePanelEntry(interaction: ButtonInteraction) {
+  const existing = await findLinkedUser(interaction.user.id);
+  if (!existing) {
+    await interaction.reply(v2Reply(loginLinkContainer()));
+    return;
+  }
+
+  const container = panel()
+    .addTextDisplayComponents(text(`👋 **${existing.name}**님, 아래에서 확인할 기능을 골라주세요.`))
+    .addActionRowComponents(
+      buttonRow(
+        actionButton("panel_open_myinfo", "👤 내 정보"),
+        actionButton("panel_open_servers", "🛠️ 서버 관리"),
+        actionButton("panel_open_points", "💰 포인트"),
+      ),
+    );
   await interaction.reply(v2Reply(container));
 }
 
@@ -684,24 +720,10 @@ async function handlePanelCommand(interaction: ChatInputCommandInteraction) {
     .addTextDisplayComponents(heading("🔥 Burnae 유저 패널"))
     .addTextDisplayComponents(
       text(
-        [
-          "아래 버튼을 눌러 각자 자기 계정 기준으로 확인할 수 있어요.",
-          "",
-          "👤 **내 정보** — 포인트 / AI 크레딧 / 서버 수",
-          "🛠️ **서버 관리** — 서버 시작/정지/재시작/연장",
-          "💰 **포인트** — 보유 포인트 / 최근 주문 상태",
-        ].join("\n"),
+        "아래 버튼을 눌러주세요 — 아직 연동 안 했으면 로그인 링크를 드리고, 이미 연동했으면 내 정보/서버 관리/포인트 메뉴가 바로 나와요.",
       ),
     )
-    .addSeparatorComponents(divider())
-    .addTextDisplayComponents(subtext("먼저 `/연동` 명령어로 계정을 연동해주세요."))
-    .addActionRowComponents(
-      buttonRow(
-        actionButton("panel_open_myinfo", "👤 내 정보"),
-        actionButton("panel_open_servers", "🛠️ 서버 관리"),
-        actionButton("panel_open_points", "💰 포인트"),
-      ),
-    );
+    .addActionRowComponents(buttonRow(actionButton("panel_open_link", "🔗 내 계정 / 연동")));
 
   await interaction.channel.send({ components: [container], flags: MessageFlags.IsComponentsV2 });
   await interaction.reply({
@@ -718,6 +740,7 @@ export async function handleButton(interaction: ButtonInteraction) {
   if (interaction.customId.startsWith("survey_")) return handleSurveyVote(interaction);
   if (interaction.customId.startsWith("panel_power_")) return handlePanelPower(interaction);
   if (interaction.customId.startsWith("panel_renew_")) return handlePanelRenew(interaction);
+  if (interaction.customId === "panel_open_link") return handlePanelEntry(interaction);
   if (interaction.customId === "panel_open_myinfo") return handleMyInfo(interaction);
   if (interaction.customId === "panel_open_servers") return handleServerManagementPanel(interaction);
   if (interaction.customId === "panel_open_points") return handlePointsPanel(interaction);

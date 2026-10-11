@@ -9,6 +9,7 @@ import {
 } from "@/lib/cloudflare";
 import { getBotSettings } from "@/lib/botSettings";
 import { addDiscordRole, sendDiscordChannelMessage } from "@/lib/discordNotify";
+import { panel, text, COMPONENTS_V2_FLAG } from "@/lib/discordComponentsV2";
 import { FREE_SERVER_RENEWAL_DAYS } from "@/lib/serverRenewal";
 import { panelUsernameForUser } from "@/lib/pterodactylUser";
 import { syncAppProxyMap } from "@/lib/appProxy";
@@ -370,13 +371,8 @@ async function notifyServerCreated(server: Server, ownerId: string, nodeName: st
 
   if (settings.logChannelId) {
     await sendDiscordChannelMessage(settings.logChannelId, {
-      embeds: [
-        {
-          title: "🆕 서버 생성",
-          description: `**${server.name}** — ${nodeName}`,
-          color: 0x22c55e,
-        },
-      ],
+      components: [panel(0x22c55e).addTextDisplayComponents(text(`### 🆕 서버 생성\n**${server.name}** — ${nodeName}`)).toJSON()],
+      flags: COMPONENTS_V2_FLAG,
     });
   }
 }
@@ -473,7 +469,8 @@ export async function deleteServerFully(
     .then((settings) => {
       if (!settings?.logChannelId) return;
       return sendDiscordChannelMessage(settings.logChannelId, {
-        embeds: [{ title: "🗑️ 서버 삭제", description: `**${server.name}**`, color: 0xef4444 }],
+        components: [panel(0xef4444).addTextDisplayComponents(text(`### 🗑️ 서버 삭제\n**${server.name}**`)).toJSON()],
+        flags: COMPONENTS_V2_FLAG,
       });
     })
     .catch((err) => console.error("[provisioning] 삭제 로그 알림 실패:", err));

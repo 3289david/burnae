@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { getBotSettings } from "@/lib/botSettings";
 import { sendDiscordChannelMessage } from "@/lib/discordNotify";
+import { panel, text, COMPONENTS_V2_FLAG } from "@/lib/discordComponentsV2";
 
 const LEVEL_COLOR = { INFO: 0x3b82f6, WARNING: 0xf59e0b, CRITICAL: 0xef4444 } as const;
 
@@ -55,13 +56,12 @@ export async function POST(request: Request) {
     .then((settings) => {
       if (!settings?.announcementChannelId) return;
       return sendDiscordChannelMessage(settings.announcementChannelId, {
-        embeds: [
-          {
-            title: `📢 ${announcement.title}`,
-            description: announcement.body,
-            color: LEVEL_COLOR[announcement.level],
-          },
+        components: [
+          panel(LEVEL_COLOR[announcement.level])
+            .addTextDisplayComponents(text(`### 📢 ${announcement.title}\n${announcement.body}`))
+            .toJSON(),
         ],
+        flags: COMPONENTS_V2_FLAG,
       });
     })
     .catch((err) => console.error("[announcements] 디스코드 알림 실패:", err));

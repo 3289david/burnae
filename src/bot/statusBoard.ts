@@ -1,6 +1,7 @@
-import { EmbedBuilder, TextChannel } from "discord.js";
+import { TextChannel, MessageFlags } from "discord.js";
 import type { Client } from "discord.js";
 import { prisma } from "./prismaClient";
+import { panel, heading, text, subtext } from "../lib/discordComponentsV2";
 
 const UPDATE_INTERVAL_MS = 60_000;
 
@@ -28,15 +29,14 @@ async function updateStatusBoard(client: Client) {
   ]);
   const onlineNodes = nodes.filter((n) => n.status === "ONLINE").length;
 
-  const embed = new EmbedBuilder()
-    .setTitle("🖥️ Burnae 실시간 현황")
-    .setColor(0xff6b35)
-    .addFields(
-      { name: "가동 중인 서버", value: `${runningCount}개`, inline: true },
-      { name: "전체 등록 서버", value: `${totalCount}개`, inline: true },
-      { name: "노드 상태", value: `${onlineNodes}/${nodes.length} 온라인`, inline: true },
+  const container = panel()
+    .addTextDisplayComponents(heading("🖥️ Burnae 실시간 현황"))
+    .addTextDisplayComponents(
+      text(
+        `**가동 중인 서버**  ${runningCount}개\n**전체 등록 서버**  ${totalCount}개\n**노드 상태**  ${onlineNodes}/${nodes.length} 온라인`,
+      ),
     )
-    .setFooter({ text: `${new Date().toLocaleTimeString("ko-KR")} 기준 · 1분마다 자동 갱신` });
+    .addTextDisplayComponents(subtext(`${new Date().toLocaleTimeString("ko-KR")} 기준 · 1분마다 자동 갱신`));
 
   try {
     const channel = await client.channels.fetch(settings.statusBoardChannelId);
@@ -45,14 +45,14 @@ async function updateStatusBoard(client: Client) {
     if (settings.statusBoardMessageId) {
       try {
         const message = await channel.messages.fetch(settings.statusBoardMessageId);
-        await message.edit({ embeds: [embed] });
+        await message.edit({ components: [container], flags: MessageFlags.IsComponentsV2 });
         return;
       } catch {
         // 메시지가 지워졌으면 새로 올린다
       }
     }
 
-    const sent = await channel.send({ embeds: [embed] });
+    const sent = await channel.send({ components: [container], flags: MessageFlags.IsComponentsV2 });
     await prisma.botSettings.update({ where: { id: 1 }, data: { statusBoardMessageId: sent.id } });
   } catch (err) {
     console.error("[statusBoard] 채널 접근 실패:", err);

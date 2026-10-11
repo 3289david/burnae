@@ -10,6 +10,7 @@ import { updateServerDnsRecords } from "@/lib/cloudflare";
 import { getBotSettings } from "@/lib/botSettings";
 import { panelUsernameForUser } from "@/lib/pterodactylUser";
 import { sendDiscordChannelMessage } from "@/lib/discordNotify";
+import { panel, text, COMPONENTS_V2_FLAG } from "@/lib/discordComponentsV2";
 import type { Server, ServerStatus } from "@/generated/prisma/client";
 
 export class ServerMigrationError extends Error {}
@@ -213,13 +214,12 @@ export async function migrateServerToNode(
       .then((settings) => {
         if (!settings?.logChannelId) return;
         return sendDiscordChannelMessage(settings.logChannelId, {
-          embeds: [
-            {
-              title: "🚚 서버 이전",
-              description: `**${server.name}** — ${server.node.name} → ${targetNode.name}`,
-              color: 0x3b82f6,
-            },
+          components: [
+            panel(0x3b82f6)
+              .addTextDisplayComponents(text(`### 🚚 서버 이전\n**${server.name}** — ${server.node.name} → ${targetNode.name}`))
+              .toJSON(),
           ],
+          flags: COMPONENTS_V2_FLAG,
         });
       })
       .catch((err) => console.error("[serverMigration] 이전 로그 알림 실패:", err));

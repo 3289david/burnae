@@ -57,7 +57,11 @@ export interface DiscordButton {
 interface ChannelMessagePayload {
   content?: string;
   embeds?: DiscordEmbed[];
-  components?: { type: 1; components: DiscordButton[] }[];
+  /// 레거시 액션로우({type:1, components:버튼[]})나 Components V2 JSON(discordComponentsV2.ts의
+  /// .toJSON() 결과) 둘 다 올 수 있어서 구체적인 타입을 강제하지 않는다
+  components?: unknown[];
+  /// Components V2 메시지면 COMPONENTS_V2_FLAG(discordComponentsV2.ts)를 여기 넣어야 한다
+  flags?: number;
 }
 
 /** 채널에 새 메시지를 올리고, 만든 메시지의 id를 돌려준다 (다음에 편집할 수 있도록) */

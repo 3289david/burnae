@@ -97,8 +97,11 @@ interface Product {
   name: string;
   description: string | null;
   ramMb: number;
+  cpuPercent: number;
   diskMb: number;
+  backupSlots: number;
   priceMonthlyKrw: number;
+  aiCreditsPerMonth: number;
   allowedTemplates: Template[];
 }
 interface BankAccount {
@@ -1129,7 +1132,9 @@ function NewServerPageInner() {
                     <div className="min-w-0">
                       <div className="font-semibold">{p.name}</div>
                       <div className="text-text-dim text-xs mt-0.5">
-                        RAM {formatMb(p.ramMb)}
+                        RAM {formatMb(p.ramMb)} · CPU {p.cpuPercent}% · 디스크 {formatMb(p.diskMb)}
+                        {p.backupSlots > 0 && <> · 백업 {p.backupSlots}개</>}
+                        {p.aiCreditsPerMonth > 0 && <> · AI 크레딧 매달 {p.aiCreditsPerMonth.toLocaleString()}개 지급</>}
                       </div>
                     </div>
                   </div>

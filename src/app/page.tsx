@@ -275,6 +275,7 @@ export default async function HomePage() {
                     <SpecRow label={`CPU ${p.cpuPercent}%`} />
                     <SpecRow label={`디스크 ${formatMb(p.diskMb)}`} />
                     <SpecRow label={`백업 ${p.backupSlots}개`} />
+                    {p.aiCreditsPerMonth > 0 && <SpecRow label={`AI 크레딧 매달 ${p.aiCreditsPerMonth.toLocaleString()}개 지급`} />}
                   </ul>
                   <Link href="/register" className="btn-primary w-full py-2.5 text-sm text-center mt-6">
                     이 플랜으로 시작

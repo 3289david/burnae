@@ -117,7 +117,7 @@ export default function FreeUpgradeCard({ serverId }: { serverId: string }) {
         <h3 className="font-semibold text-sm">포인트로 증설하기</h3>
         <p className="text-xs text-text-dim mt-0.5">
           무료 서버는 플랜을 통째로 바꾸지 않아도 포인트로 램/CPU/저장공간/백업 슬롯을 낱개로 늘릴 수
-          있어요(최대 RAM 2GB · CPU 1코어 · 저장공간 5GB까지). 램/CPU/저장공간 증설은 30일간만
+          있어요(최대 RAM 1GB · CPU 1코어 · 저장공간 5GB까지). 램/CPU/저장공간 증설은 60일간만
           유지되고, 만료 전 갱신하지 않으면 자동으로 원래 크기로 줄어들어요(백업 슬롯 증설은 영구
           적용). 보유 포인트{" "}
           <span className="text-accent font-medium"><CountUp value={points} />P</span>

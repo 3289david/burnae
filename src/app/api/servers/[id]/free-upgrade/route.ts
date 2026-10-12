@@ -12,7 +12,7 @@ import { logServerActivity } from "@/lib/serverActivityLog";
 const schema = z.object({ shopItemId: z.string() });
 
 const RESOURCE_KINDS = ["RAM_UPGRADE", "CPU_UPGRADE", "DISK_UPGRADE", "BACKUP_SLOT_UPGRADE"] as const;
-/// 이 3개는 영구가 아니라 30일 시한부로 적용되고 ResourceUpgradeGrant로 추적된다.
+/// 이 3개는 영구가 아니라 60일 시한부로 적용되고 ResourceUpgradeGrant로 추적된다.
 /// BACKUP_SLOT_UPGRADE만 예외로 영구 적용(백업 슬롯은 자원 점유가 크지 않아 굳이 회수하지 않음)
 const TIME_LIMITED_KINDS = ["RAM_UPGRADE", "CPU_UPGRADE", "DISK_UPGRADE"] as const;
 

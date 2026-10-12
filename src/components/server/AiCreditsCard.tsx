@@ -5,10 +5,11 @@ import { Sparkles } from "lucide-react";
 import SuccessCheck from "@/components/SuccessCheck";
 import CountUp from "@/components/CountUp";
 
+/** 1원 = 1크레딧 */
 const PACKAGES = [
-  { credits: 100, priceKrw: 6000 },
-  { credits: 500, priceKrw: 24000 },
-  { credits: 1500, priceKrw: 60000 },
+  { credits: 100, priceKrw: 100 },
+  { credits: 500, priceKrw: 500 },
+  { credits: 1500, priceKrw: 1500 },
 ];
 
 interface BankAccount {

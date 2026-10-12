@@ -5,9 +5,9 @@ import { Coins } from "lucide-react";
 import SuccessCheck from "@/components/SuccessCheck";
 
 const PACKAGES = [
-  { points: 500, priceKrw: 1000 },
-  { points: 2500, priceKrw: 5000 },
-  { points: 10000, priceKrw: 20000 },
+  { points: 500, priceKrw: 500 },
+  { points: 2500, priceKrw: 2500 },
+  { points: 10000, priceKrw: 10000 },
 ];
 
 interface BankAccount {
@@ -78,7 +78,7 @@ export default function PointsPurchaseCard() {
           </span>
           <div>
             <p className="text-sm font-medium">포인트 충전</p>
-            <p className="text-xs text-text-dim">2원 = 1포인트 · 입금 확인 후 자동 충전</p>
+            <p className="text-xs text-text-dim">1원 = 1포인트 · 입금 확인 후 자동 충전</p>
           </div>
         </div>
         <button onClick={() => setOpen((v) => !v)} className="btn-secondary px-3.5 py-1.5 text-xs shrink-0 active:scale-95 transition-transform">

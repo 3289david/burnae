@@ -6,11 +6,11 @@ import { resolveDepositorName, isValidDepositorName } from "@/lib/hanabank";
 import { markOrderPaidAndFulfill } from "@/lib/orderFulfillment";
 
 /** 크레딧 패키지 — 결제 없이 플랜에 딸려오는 게 아니라 단독으로 충전할 때 고를 수 있는 옵션들
- * (1원 = 1크레딧) */
+ * (40원 = 1크레딧) */
 export const AI_CREDIT_PACKAGES = [
-  { credits: 100, priceKrw: 100 },
-  { credits: 500, priceKrw: 500 },
-  { credits: 1500, priceKrw: 1500 },
+  { credits: 100, priceKrw: 4000 },
+  { credits: 500, priceKrw: 20000 },
+  { credits: 1500, priceKrw: 60000 },
 ] as const;
 
 const schema = z.object({

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { runAiTurn } from "@/lib/ai/engine";
+import { runAiTurn, InsufficientCreditsError } from "@/lib/ai/engine";
 
 const schema = z.object({ message: z.string().min(1).max(2000) });
 
@@ -35,27 +35,19 @@ export async function POST(
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "메시지를 입력해주세요." }, { status: 422 });
 
-  // 메시지 1건당 크레딧 1개 소모. 상품 구매/갱신 시 aiCreditsPerMonth만큼 충전됨.
-  const decremented = await prisma.user.updateMany({
-    where: { id: user.id, aiCreditsRemaining: { gt: 0 } },
-    data: { aiCreditsRemaining: { decrement: 1 } },
-  });
-  if (decremented.count === 0) {
-    return NextResponse.json(
-      { error: "이번 달 AI 사용 크레딧을 모두 썼어요. 다음 결제 갱신 때 다시 충전돼요." },
-      { status: 402 },
-    );
-  }
-
   await prisma.aiMessage.create({
     data: { conversationId: id, role: "USER", content: parsed.data.message },
   });
   await prisma.aiConversation.update({ where: { id }, data: { updatedAt: new Date() } });
 
   try {
+    // 실제 사용한 토큰량에 따라 턴이 끝난 뒤 크레딧이 과금된다 (runAiTurn 내부, src/lib/ai/pricing.ts).
     const result = await runAiTurn(id, conversation.server, user.id);
     return NextResponse.json(result);
   } catch (err) {
+    if (err instanceof InsufficientCreditsError) {
+      return NextResponse.json({ error: err.message }, { status: 402 });
+    }
     console.error("[ai chat] 처리 실패:", err);
     return NextResponse.json(
       { error: "AI 응답 처리 중 오류가 발생했습니다." },

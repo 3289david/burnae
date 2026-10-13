@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { recordUsage } from "@/lib/ai/usageTracking";
 
 /**
  * 컴파일된 자바 플러그인은 고객의 실제 서버에서 실행되므로, 컴파일 전에 AI가 코드를 읽고
@@ -42,6 +43,7 @@ export async function reviewJavaSourceSafety(javaSource: string): Promise<{ safe
         { role: "user", content: javaSource },
       ],
     });
+    recordUsage(res.usage);
     const raw = res.choices[0]?.message?.content;
     if (!raw) return { safe: false, reasons: ["안전성 검사 응답을 받지 못했어요."] };
     const parsed = JSON.parse(raw) as { safe?: boolean; reasons?: string[] };

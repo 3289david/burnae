@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { reviewJavaSourceSafety } from "@/lib/ai/javaSafety";
 import { hasBukkitApi } from "@/lib/minecraftLoaders";
+import { recordUsage } from "@/lib/ai/usageTracking";
 
 /**
  * "AI 플러그인/모드 메이커".
@@ -118,6 +119,7 @@ export async function generatePluginContent(params: {
       },
     ],
   });
+  recordUsage(res.usage);
 
   const raw = res.choices[0]?.message?.content;
   if (!raw) throw new Error("AI가 응답하지 않았어요. 잠시 후 다시 시도해주세요.");

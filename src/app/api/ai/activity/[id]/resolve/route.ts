@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { resolveAiActivity } from "@/lib/ai/engine";
+import { resolveAiActivity, InsufficientCreditsError } from "@/lib/ai/engine";
 
 const schema = z.object({ decision: z.enum(["APPROVE", "REJECT"]) });
 
@@ -22,6 +22,13 @@ export async function POST(
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "잘못된 요청" }, { status: 422 });
 
-  const result = await resolveAiActivity(id, parsed.data.decision);
-  return NextResponse.json(result);
+  try {
+    const result = await resolveAiActivity(id, parsed.data.decision);
+    return NextResponse.json(result);
+  } catch (err) {
+    if (err instanceof InsufficientCreditsError) {
+      return NextResponse.json({ error: err.message }, { status: 402 });
+    }
+    throw err;
+  }
 }

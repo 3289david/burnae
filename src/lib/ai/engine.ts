@@ -1,9 +1,13 @@
 import OpenAI from "openai";
 import { prisma } from "@/lib/prisma";
 import { AI_TOOLS, openAiToolList } from "@/lib/ai/tools";
+import { recordUsage, withUsageTracking } from "@/lib/ai/usageTracking";
+import { creditsForUsage, InsufficientCreditsError } from "@/lib/ai/pricing";
 import type { Server } from "@/generated/prisma/client";
 import type { AiMessage } from "@/generated/prisma/client";
 import type { ServerCategory } from "@/generated/prisma/enums";
+
+export { InsufficientCreditsError };
 
 /**
  * OpenRouter(OpenAI 호환 API)를 통해 저렴한 오픈소스 모델을 사용한다.
@@ -176,16 +180,33 @@ export interface AiTurnResult {
   pendingActivityLogId?: string;
 }
 
+/** usage에 쌓인 실제 토큰 사용량만큼 사용자 크레딧을 깎는다 (0 아래로는 내려가지 않음). */
+async function chargeForUsage(userId: string, usage: { promptTokens: number; completionTokens: number }) {
+  if (usage.promptTokens === 0 && usage.completionTokens === 0) return;
+  const credits = creditsForUsage(usage.promptTokens, usage.completionTokens);
+  await prisma.$executeRaw`UPDATE "User" SET "aiCreditsRemaining" = GREATEST(0, "aiCreditsRemaining" - ${credits}) WHERE id = ${userId}`;
+}
+
 /**
  * 한 번의 모델 호출 사이클을 실행한다. SAFE 도구(그리고 메이커 대화의 MAKER_AUTO_EXECUTE_TOOLS)는
  * 즉시 실행하며 다음 스텝으로 진행하고, 그 외 CONFIRM/DANGEROUS 도구를 모델이 요청하면 실행하지
- * 않고 승인 대기 상태로 멈춘다.
+ * 않고 승인 대기 상태로 멈춘다. 크레딧은 1건당 고정이 아니라 이 턴에서 실제로 쓴 토큰량 기준으로
+ * 끝난 뒤 한 번에 과금한다 (src/lib/ai/pricing.ts) — 가벼운 메시지는 최소 1크레딧, 스텝이 많거나
+ * 긴 생성이 끼면 더 많이 청구된다.
  */
 export async function runAiTurn(
   conversationId: string,
   server: Server,
   userId: string,
 ): Promise<AiTurnResult> {
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { id: userId },
+    select: { aiCreditsRemaining: true },
+  });
+  if (user.aiCreditsRemaining <= 0) {
+    throw new InsufficientCreditsError();
+  }
+
   const [template, conversation] = await Promise.all([
     prisma.serverTemplate.findUniqueOrThrow({
       where: { id: server.templateId },
@@ -199,126 +220,133 @@ export async function runAiTurn(
   const kind = conversation.kind;
   const maxSteps = kind === "MAKER" ? MAX_STEPS_MAKER : MAX_STEPS_CHAT;
 
-  for (let step = 0; step < maxSteps; step++) {
-    const rows = await prisma.aiMessage.findMany({
-      where: { conversationId },
-      orderBy: { createdAt: "asc" },
-    });
+  const { result, usage } = await withUsageTracking(() => runAiTurnLoop());
+  await chargeForUsage(userId, usage);
+  return result;
 
-    const response = await getClient().chat.completions.create({
-      model: MODEL,
-      messages: toOpenAiMessages(rows, template.category, kind),
-      tools: openAiToolList(template.category),
-      tool_choice: "auto",
-      parallel_tool_calls: false,
-    });
+  async function runAiTurnLoop(): Promise<AiTurnResult> {
+    for (let step = 0; step < maxSteps; step++) {
+      const rows = await prisma.aiMessage.findMany({
+        where: { conversationId },
+        orderBy: { createdAt: "asc" },
+      });
 
-    const message = response.choices[0]?.message;
-    if (!message) {
-      return { status: "DONE", assistantText: "응답을 받지 못했어요. 잠시 후 다시 시도해주세요." };
-    }
+      const response = await getClient().chat.completions.create({
+        model: MODEL,
+        messages: toOpenAiMessages(rows, template.category, kind),
+        tools: openAiToolList(template.category),
+        tool_choice: "auto",
+        parallel_tool_calls: false,
+      });
+      recordUsage(response.usage);
 
-    // parallel_tool_calls:false 는 힌트일 뿐 모든 모델/프로바이더가 지키진 않으므로,
-    // 저장/실행 단계에서도 항상 한 스텝당 도구 호출 1개만 다루도록 강제한다.
-    // (여러 개를 섞어서 저장하면 SAFE 도구는 즉시 실행되고 승인 필요 도구만 대기하게 되어,
-    //  나중에 승인해도 SAFE 쪽 tool_call_id에 대한 응답이 영영 없는 상태가 되어 대화가 깨짐 — OpenAI 프로토콜 위반)
-    const toolCalls = (message.tool_calls ?? []).slice(0, 1);
-    const assistantText = message.content?.trim() || "";
+      const message = response.choices[0]?.message;
+      if (!message) {
+        return { status: "DONE", assistantText: "응답을 받지 못했어요. 잠시 후 다시 시도해주세요." };
+      }
 
-    await prisma.aiMessage.create({
-      data: {
-        conversationId,
-        role: "ASSISTANT",
-        content: assistantText || "(도구 호출)",
-        toolCalls: toolCalls.length > 0 ? (toolCalls as unknown as object) : undefined,
-      },
-    });
+      // parallel_tool_calls:false 는 힌트일 뿐 모든 모델/프로바이더가 지키진 않으므로,
+      // 저장/실행 단계에서도 항상 한 스텝당 도구 호출 1개만 다루도록 강제한다.
+      // (여러 개를 섞어서 저장하면 SAFE 도구는 즉시 실행되고 승인 필요 도구만 대기하게 되어,
+      //  나중에 승인해도 SAFE 쪽 tool_call_id에 대한 응답이 영영 없는 상태가 되어 대화가 깨짐 — OpenAI 프로토콜 위반)
+      const toolCalls = (message.tool_calls ?? []).slice(0, 1);
+      const assistantText = message.content?.trim() || "";
 
-    if (toolCalls.length === 0) {
-      return { status: "DONE", assistantText: assistantText || null };
-    }
+      await prisma.aiMessage.create({
+        data: {
+          conversationId,
+          role: "ASSISTANT",
+          content: assistantText || "(도구 호출)",
+          toolCalls: toolCalls.length > 0 ? (toolCalls as unknown as object) : undefined,
+        },
+      });
 
-    // toolCalls는 항상 0~1개 (위에서 강제로 잘라둠). 승인이 필요한 도구면 실행하지 않고 멈춘다.
-    // (SAFE 도구이거나, 메이커 대화에서 MAKER_AUTO_EXECUTE_TOOLS에 속하면 승인 없이 바로 실행)
-    for (const call of toolCalls) {
-      if (call.type !== "function") continue;
-      const tool = AI_TOOLS[call.function.name];
-      if (!tool) continue;
+      if (toolCalls.length === 0) {
+        return { status: "DONE", assistantText: assistantText || null };
+      }
 
-      const autoExecuted = tool.riskLevel === "SAFE" || (kind === "MAKER" && MAKER_AUTO_EXECUTE_TOOLS.has(tool.name));
-      if (!autoExecuted) {
+      // toolCalls는 항상 0~1개 (위에서 강제로 잘라둠). 승인이 필요한 도구면 실행하지 않고 멈춘다.
+      // (SAFE 도구이거나, 메이커 대화에서 MAKER_AUTO_EXECUTE_TOOLS에 속하면 승인 없이 바로 실행)
+      for (const call of toolCalls) {
+        if (call.type !== "function") continue;
+        const tool = AI_TOOLS[call.function.name];
+        if (!tool) continue;
+
+        const autoExecuted = tool.riskLevel === "SAFE" || (kind === "MAKER" && MAKER_AUTO_EXECUTE_TOOLS.has(tool.name));
+        if (!autoExecuted) {
+          let input: Record<string, unknown> = {};
+          try {
+            input = JSON.parse(call.function.arguments || "{}");
+          } catch {
+            // 파싱 실패 시 빈 입력으로 승인 요청 (사용자가 취소할 수 있음)
+          }
+          const activity = await prisma.aiActivityLog.create({
+            data: {
+              userId,
+              serverId: server.id,
+              conversationId,
+              toolUseId: call.id,
+              toolName: call.function.name,
+              riskLevel: tool.riskLevel,
+              status: "PENDING_APPROVAL",
+              input: input as object,
+            },
+          });
+          return { status: "PENDING_APPROVAL", assistantText: assistantText || null, pendingActivityLogId: activity.id };
+        }
+      }
+
+      // 이 스텝의 도구가 전부 자동 실행 대상이었다면 실행하고 결과를 대화에 이어붙인 뒤 다시 모델을 호출한다.
+      const toolResults: StoredToolResult[] = [];
+      for (const call of toolCalls) {
+        if (call.type !== "function") continue;
+        const tool = AI_TOOLS[call.function.name];
+        let resultContent: string;
         let input: Record<string, unknown> = {};
         try {
           input = JSON.parse(call.function.arguments || "{}");
         } catch {
-          // 파싱 실패 시 빈 입력으로 승인 요청 (사용자가 취소할 수 있음)
+          // 무시하고 빈 입력으로 진행
         }
-        const activity = await prisma.aiActivityLog.create({
-          data: {
-            userId,
-            serverId: server.id,
-            conversationId,
-            toolUseId: call.id,
-            toolName: call.function.name,
-            riskLevel: tool.riskLevel,
-            status: "PENDING_APPROVAL",
-            input: input as object,
-          },
-        });
-        return { status: "PENDING_APPROVAL", assistantText: assistantText || null, pendingActivityLogId: activity.id };
+        try {
+          const result = await tool.run(server, input);
+          resultContent = JSON.stringify(result);
+          await prisma.aiActivityLog.create({
+            data: {
+              userId,
+              serverId: server.id,
+              conversationId,
+              toolUseId: call.id,
+              toolName: call.function.name,
+              riskLevel: tool.riskLevel,
+              status: "EXECUTED",
+              input: input as object,
+              result: result as object,
+              resolvedAt: new Date(),
+            },
+          });
+        } catch (err) {
+          resultContent = `오류: ${err instanceof Error ? err.message : "알 수 없는 오류"}`;
+        }
+        toolResults.push({ tool_call_id: call.id, content: resultContent });
       }
+
+      await prisma.aiMessage.create({
+        data: {
+          conversationId,
+          role: "TOOL",
+          content: toolCalls.map((c) => (c.type === "function" ? describeToolCall(c) : c.type)).join(", "),
+          toolCalls: toolResults as unknown as object,
+        },
+      });
+      // 루프 계속 — 다음 스텝에서 모델이 결과를 보고 이어서 응답
     }
 
-    // 이 스텝의 도구가 전부 자동 실행 대상이었다면 실행하고 결과를 대화에 이어붙인 뒤 다시 모델을 호출한다.
-    const toolResults: StoredToolResult[] = [];
-    for (const call of toolCalls) {
-      if (call.type !== "function") continue;
-      const tool = AI_TOOLS[call.function.name];
-      let resultContent: string;
-      let input: Record<string, unknown> = {};
-      try {
-        input = JSON.parse(call.function.arguments || "{}");
-      } catch {
-        // 무시하고 빈 입력으로 진행
-      }
-      try {
-        const result = await tool.run(server, input);
-        resultContent = JSON.stringify(result);
-        await prisma.aiActivityLog.create({
-          data: {
-            userId,
-            serverId: server.id,
-            conversationId,
-            toolUseId: call.id,
-            toolName: call.function.name,
-            riskLevel: tool.riskLevel,
-            status: "EXECUTED",
-            input: input as object,
-            result: result as object,
-            resolvedAt: new Date(),
-          },
-        });
-      } catch (err) {
-        resultContent = `오류: ${err instanceof Error ? err.message : "알 수 없는 오류"}`;
-      }
-      toolResults.push({ tool_call_id: call.id, content: resultContent });
-    }
-
-    await prisma.aiMessage.create({
-      data: {
-        conversationId,
-        role: "TOOL",
-        content: toolCalls.map((c) => (c.type === "function" ? describeToolCall(c) : c.type)).join(", "),
-        toolCalls: toolResults as unknown as object,
-      },
-    });
-    // 루프 계속 — 다음 스텝에서 모델이 결과를 보고 이어서 응답
+    return {
+      status: "DONE",
+      assistantText: "요청이 복잡해서 여기까지만 처리했어요. 이어서 다시 말씀해주시면 계속 진행할게요.",
+    };
   }
-
-  return {
-    status: "DONE",
-    assistantText: "요청이 복잡해서 여기까지만 처리했어요. 이어서 다시 말씀해주시면 계속 진행할게요.",
-  };
 }
 
 /** 승인/거절 처리 후 대화를 이어간다 */
@@ -372,26 +400,31 @@ export async function resolveAiActivity(
     }
   }
 
-  let resultContent: string;
+  // 승인된 도구 자체가 내부적으로 OpenRouter를 또 호출할 수 있다 (예: generate_minecraft_plugin).
+  // 그 사용량도 빠짐없이 과금해야 하므로 실행을 추적 범위로 감싼다.
+  let resultContent = "";
   let ok = true;
-  try {
-    const result = await tool.run(
-      activity.server,
-      activity.input as Record<string, unknown>,
-    );
-    resultContent = JSON.stringify(result);
-    await prisma.aiActivityLog.update({
-      where: { id: activityId },
-      data: { status: "EXECUTED", result: result as object, resolvedAt: new Date(), backupId },
-    });
-  } catch (err) {
-    ok = false;
-    resultContent = `오류: ${err instanceof Error ? err.message : "알 수 없는 오류"}`;
-    await prisma.aiActivityLog.update({
-      where: { id: activityId },
-      data: { status: "FAILED", resolvedAt: new Date(), backupId },
-    });
-  }
+  const { usage } = await withUsageTracking(async () => {
+    try {
+      const result = await tool.run(
+        activity.server,
+        activity.input as Record<string, unknown>,
+      );
+      resultContent = JSON.stringify(result);
+      await prisma.aiActivityLog.update({
+        where: { id: activityId },
+        data: { status: "EXECUTED", result: result as object, resolvedAt: new Date(), backupId },
+      });
+    } catch (err) {
+      ok = false;
+      resultContent = `오류: ${err instanceof Error ? err.message : "알 수 없는 오류"}`;
+      await prisma.aiActivityLog.update({
+        where: { id: activityId },
+        data: { status: "FAILED", resolvedAt: new Date(), backupId },
+      });
+    }
+  });
+  await chargeForUsage(activity.userId, usage);
 
   await prisma.aiMessage.create({
     data: {

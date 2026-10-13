@@ -48,6 +48,16 @@ model User {
   pterodactylUserId      Int?       @unique
   /// SFTP 접속용으로 재발급한 패널 계정 비밀번호(평문) — 소유자에게만 노출. accessSecret과 동일한 이유로 평문 저장
   sftpPassword           String?
+  /// 이메일/비밀번호 로그인용 비밀번호 해시(scrypt). 소셜 로그인만 쓰는 계정은 null
+  passwordHash           String?
+  /// 이메일/비밀번호로 가입한 계정이 인증 메일의 링크를 클릭한 시점. 소셜 로그인 계정은 그 자체로
+  /// 인증된 것으로 간주해 가입 시점에 바로 채워짐. null이면 로그인이 막힌다(가입 시 1회만 인증)
+  emailVerifiedAt        DateTime?
+  twoFactorEnabled       Boolean    @default(false)
+  /// TOTP 비밀키(base32). 평문 저장 — sftpPassword와 같은 이유(복구 불가능한 해시로는 재사용 불가)
+  twoFactorSecret        String?
+  /// 2FA 기기를 잃어버렸을 때 쓰는 1회용 복구 코드 — scrypt로 해시해서 저장, 쓸 때마다 하나씩 제거
+  twoFactorBackupCodes   String[]   @default([])
   /// 친구 추천용 코드. 가입 링크에 ?ref=코드 로 붙여서 공유
   referralCode            String     @unique @default(cuid())
   referredByUserId        String?
@@ -73,6 +83,7 @@ model User {
   resourceUpgradeGrants ResourceUpgradeGrant[]
   serverActivityLogs   ServerActivityLog[]
   phoneVerificationRequest PhoneVerificationRequest?
+  emailVerificationToken EmailVerificationToken?
 
   @@index([email])
   @@index([referralCode])
@@ -89,6 +100,16 @@ model PhoneVerificationRequest {
   code        String
   createdAt   DateTime @default(now())
   expiresAt   DateTime
+}
+
+/// 이메일/비밀번호 가입 시 보내는 인증 메일의 토큰 1건(유저당 최대 1개 — 재발송하면 덮어씀)
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  createdAt DateTime @default(now())
+  expiresAt DateTime
 }
 
 enum OAuthProvider {

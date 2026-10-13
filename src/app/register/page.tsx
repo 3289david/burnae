@@ -1,5 +1,6 @@
 import Link from "next/link";
 import OAuthButtons from "@/components/OAuthButtons";
+import EmailRegisterForm from "@/components/EmailRegisterForm";
 import BrandMark from "@/components/BrandMark";
 
 export default async function RegisterPage({
@@ -26,6 +27,12 @@ export default async function RegisterPage({
         <div className="mt-6">
           <OAuthButtons referralCode={ref} />
         </div>
+
+        <div className="my-5 flex items-center gap-3 text-xs text-text-dim">
+          <span className="flex-1 h-px bg-border" /> 또는 <span className="flex-1 h-px bg-border" />
+        </div>
+
+        <EmailRegisterForm referralCode={ref} />
 
         <p className="mt-6 text-xs text-text-dim">
           계속 진행하면 <Link href="/legal/terms" className="text-accent">이용약관</Link> 및{" "}

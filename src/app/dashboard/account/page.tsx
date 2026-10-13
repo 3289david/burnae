@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import DiscordLinkCard from "@/components/DiscordLinkCard";
 import DepositorNameCard from "@/components/DepositorNameCard";
 import PhoneVerificationCard from "@/components/PhoneVerificationCard";
+import TwoFactorCard from "@/components/TwoFactorCard";
 import { UserCircle2 } from "lucide-react";
 
 export default async function AccountPage({
@@ -38,6 +39,10 @@ export default async function AccountPage({
 
       <div className="mt-4 animate-fade-up" style={{ animationDelay: "0.15s" }}>
         <DiscordLinkCard linked={!!link} error={params.discordError} justLinked={params.discordLinked === "1"} />
+      </div>
+
+      <div className="mt-4 animate-fade-up" style={{ animationDelay: "0.18s" }}>
+        <TwoFactorCard enabled={user!.twoFactorEnabled} />
       </div>
     </div>
   );

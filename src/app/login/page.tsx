@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import OAuthButtons from "@/components/OAuthButtons";
+import EmailLoginForm from "@/components/EmailLoginForm";
 import BrandMark from "@/components/BrandMark";
 
 export default function LoginPage() {
@@ -25,6 +26,14 @@ export default function LoginPage() {
 
         <div className="mt-6 animate-fade-up" style={{ animationDelay: "0.1s" }}>
           <OAuthButtons />
+        </div>
+
+        <div className="my-5 flex items-center gap-3 text-xs text-text-dim animate-fade-up" style={{ animationDelay: "0.12s" }}>
+          <span className="flex-1 h-px bg-border" /> 또는 <span className="flex-1 h-px bg-border" />
+        </div>
+
+        <div className="animate-fade-up" style={{ animationDelay: "0.14s" }}>
+          <EmailLoginForm />
         </div>
 
         {error && <p className="animate-toast-in mt-4 text-sm text-red">{error}</p>}

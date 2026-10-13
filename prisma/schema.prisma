@@ -40,6 +40,10 @@ model User {
   /// 가입(최초 계정 생성) 시점의 IP — 무료 서버 1인 1개 제한을 부계정으로 우회하는지 탐지하는 데 사용.
   /// 가입 전부터 있던 계정은 null(소급 적용 안 함)
   signupIp               String?
+  /// OCTOMO(문자 발신 인증)로 확인된 휴대폰 번호 — 계정 하나당 번호 하나만 허용(unique)해서
+  /// 같은 번호로 여러 계정을 인증해 무료 서버 제한을 우회하는 걸 막는다. 무료 서버 생성 전 필수.
+  verifiedPhoneNumber    String?    @unique
+  phoneVerifiedAt        DateTime?
   /// Pterodactyl 패널 계정의 내부 유저 ID. 첫 서버 생성 시 채워짐 — SFTP 비밀번호 재발급 등에 사용
   pterodactylUserId      Int?       @unique
   /// SFTP 접속용으로 재발급한 패널 계정 비밀번호(평문) — 소유자에게만 노출. accessSecret과 동일한 이유로 평문 저장
@@ -68,10 +72,23 @@ model User {
   userPresets          UserPreset[]
   resourceUpgradeGrants ResourceUpgradeGrant[]
   serverActivityLogs   ServerActivityLog[]
+  phoneVerificationRequest PhoneVerificationRequest?
 
   @@index([email])
   @@index([referralCode])
   @@index([signupIp])
+}
+
+/// OCTOMO 문자 인증 진행 중인 요청 1건(유저당 최대 1개 — 새로 시작하면 덮어씀).
+/// "code" 문자를 1666-3538로 보내달라고 안내한 뒤, 확인 시점에 OCTOMO API로 수신 여부를 조회한다.
+model PhoneVerificationRequest {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phoneNumber String
+  code        String
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime
 }
 
 enum OAuthProvider {

@@ -56,6 +56,13 @@ export const POST = withApiErrorHandling(async (request: Request) => {
     );
   }
   if (product.priceMonthlyKrw === 0) {
+    if (!user.verifiedPhoneNumber) {
+      return NextResponse.json(
+        { error: "무료 서버는 휴대폰 인증 후에 만들 수 있어요. 계정 페이지에서 인증해주세요.", code: "PHONE_VERIFICATION_REQUIRED" },
+        { status: 403 },
+      );
+    }
+
     const [freeServerCount, limit] = await Promise.all([
       prisma.server.count({
         where: { ownerId: user.id, deletedAt: null, product: { priceMonthlyKrw: 0 } },

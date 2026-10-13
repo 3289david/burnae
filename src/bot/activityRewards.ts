@@ -14,7 +14,7 @@ const MIN_MESSAGE_LENGTH = 5;
 /** 같은 유저가 연속으로 포인트를 받을 수 있는 최소 간격 */
 const CHAT_REWARD_COOLDOWN_MS = 60_000;
 /** 쿨다운을 우회해도(예: 재시작) 하루에 받을 수 있는 채팅 포인트 총액을 이 이상 못 넘게 막는다 */
-const CHAT_DAILY_CAP = 30;
+const CHAT_DAILY_CAP = 200;
 
 /** 서버 태그(프로필 꾸미기) 착용 1시간당 지급 포인트 — 가만히 켜두기만 하면 되는 활동이라 낮게 유지 */
 const POINTS_PER_TAG_HOUR = 2;

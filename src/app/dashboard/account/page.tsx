@@ -2,6 +2,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import DiscordLinkCard from "@/components/DiscordLinkCard";
 import DepositorNameCard from "@/components/DepositorNameCard";
+import PhoneVerificationCard from "@/components/PhoneVerificationCard";
 import { UserCircle2 } from "lucide-react";
 
 export default async function AccountPage({
@@ -29,6 +30,10 @@ export default async function AccountPage({
 
       <div className="mt-4 animate-fade-up" style={{ animationDelay: "0.1s" }}>
         <DepositorNameCard initial={user!.preferredDepositorName} />
+      </div>
+
+      <div className="mt-4 animate-fade-up" style={{ animationDelay: "0.13s" }}>
+        <PhoneVerificationCard verified={!!user!.verifiedPhoneNumber} />
       </div>
 
       <div className="mt-4 animate-fade-up" style={{ animationDelay: "0.15s" }}>

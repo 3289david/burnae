@@ -1,16 +1,55 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MessageCircle } from "lucide-react";
 
-export default function SupportCard({ discordLinked }: { discordLinked: boolean }) {
+interface SupportMessage {
+  id: string;
+  senderRole: "USER" | "ADMIN";
+  content: string;
+  createdAt: string;
+}
+interface SupportThread {
+  id: string;
+  status: "OPEN" | "CLOSED";
+  messages: SupportMessage[];
+}
+
+const POLL_MS = 8000;
+
+export default function SupportCard() {
+  const [thread, setThread] = useState<SupportThread | null>(null);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [sent, setSent] = useState(false);
+  const [open, setOpen] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  function load() {
+    fetch("/api/support")
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setThread)
+      .catch(() => {});
+  }
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    load();
+    const timer = setInterval(load, POLL_MS);
+    return () => clearInterval(timer);
+  }, [open]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [thread?.messages.length]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (!message.trim()) return;
     setBusy(true);
     setError(null);
     try {
@@ -21,7 +60,7 @@ export default function SupportCard({ discordLinked }: { discordLinked: boolean 
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setSent(true);
+      setThread(data);
       setMessage("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "전송 실패");
@@ -31,37 +70,58 @@ export default function SupportCard({ discordLinked }: { discordLinked: boolean 
   }
 
   return (
-    <div className="card-glow p-5 space-y-2 animate-fade-up">
-      <p className="font-semibold text-sm flex items-center gap-1.5">
-        <MessageCircle size={16} className="text-accent" /> 고객지원
-      </p>
+    <div className="card-glow p-5 space-y-3 animate-fade-up">
+      <button onClick={() => setOpen((v) => !v)} className="w-full flex items-center justify-between">
+        <span className="font-semibold text-sm flex items-center gap-1.5">
+          <MessageCircle size={16} className="text-accent" /> 고객지원
+        </span>
+        <span className="text-xs text-text-dim">{open ? "접기" : "문의하기"}</span>
+      </button>
 
-      {!discordLinked ? (
+      {!open && (
         <p className="text-xs text-text-dim">
-          관리자와 1:1로 대화하려면 먼저 디스코드 연동이 필요해요 — 위 디스코드 연동 카드에서 진행해주세요.
+          궁금한 점을 적으면 관리자가 여기서 바로 답장해줘요. 급하면 문자 상담 070-8970-6766로도 연락할 수 있어요.
         </p>
-      ) : sent ? (
-        <p className="text-xs text-green">✅ 보냈어요! 디스코드에 비공개 채널이 열렸어요 — 거기서 이어서 대화해주세요.</p>
-      ) : (
-        <form onSubmit={submit} className="space-y-2">
-          <p className="text-xs text-text-dim">궁금한 점을 적어서 보내면 관리자와 1:1로 대화할 수 있는 디스코드 비공개 채널이 열려요.</p>
-          <textarea
-            className="input w-full text-sm min-h-20"
-            placeholder="문의 내용을 입력해주세요"
-            maxLength={2000}
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            required
-          />
-          <button
-            type="submit"
-            disabled={busy || !message.trim()}
-            className="btn-primary px-3.5 py-1.5 text-sm active:scale-95 transition-transform disabled:opacity-40"
-          >
-            {busy ? "보내는 중..." : "관리자에게 보내기"}
-          </button>
+      )}
+
+      {open && (
+        <>
+          <div className="max-h-72 overflow-y-auto space-y-2 border border-border rounded-lg p-3">
+            {(thread?.messages.length ?? 0) === 0 && (
+              <p className="text-xs text-text-dim text-center py-4">아직 대화가 없어요. 아래에 메시지를 보내보세요.</p>
+            )}
+            {thread?.messages.map((m) => (
+              <div key={m.id} className={`flex ${m.senderRole === "USER" ? "justify-end" : "justify-start"}`}>
+                <div
+                  className={`max-w-[80%] rounded-xl px-3 py-2 text-xs whitespace-pre-wrap break-words ${
+                    m.senderRole === "USER" ? "bg-accent text-white" : "bg-surface-2 text-text"
+                  }`}
+                >
+                  {m.content}
+                </div>
+              </div>
+            ))}
+            <div ref={bottomRef} />
+          </div>
+
+          <form onSubmit={submit} className="flex gap-2">
+            <input
+              className="input flex-1 text-sm"
+              placeholder="메시지를 입력해주세요"
+              maxLength={2000}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+            />
+            <button
+              type="submit"
+              disabled={busy || !message.trim()}
+              className="btn-primary px-3.5 py-1.5 text-sm shrink-0 active:scale-95 transition-transform disabled:opacity-40"
+            >
+              전송
+            </button>
+          </form>
           {error && <p className="text-xs text-red">{error}</p>}
-        </form>
+        </>
       )}
     </div>
   );

@@ -61,9 +61,8 @@ export default function RefundPage() {
         </Section>
 
         <Section title="5. 환불 방법 및 처리 기간">
-          환불은 결제 시 사용한 계좌로 돌려드리며, 디스코드 공식 서버의 <code>/문의</code> 명령어 또는
-          대시보드 내 문의를 통해 신청할 수 있습니다. 신청이 접수되면 확인 후 영업일 기준 3~5일 이내에
-          처리합니다.
+          환불은 결제 시 사용한 계좌로 돌려드리며, 대시보드의 &ldquo;고객지원&rdquo;을 통해 신청할 수
+          있습니다. 신청이 접수되면 확인 후 영업일 기준 3~5일 이내에 처리합니다.
         </Section>
 
         <Section title="6. 환불 거부 또는 제한">
@@ -72,7 +71,7 @@ export default function RefundPage() {
         </Section>
 
         <Section title="7. 문의">
-          환불과 관련해 궁금한 점은 디스코드 공식 서버의 <code>/문의</code> 명령어로 언제든 문의해주세요.
+          환불과 관련해 궁금한 점은 대시보드의 "고객지원"으로 언제든 문의해주세요.
         </Section>
       </main>
     </div>

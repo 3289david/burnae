@@ -28,7 +28,7 @@ export async function POST(
   }
   if (!order.isAdminGrant) {
     return NextResponse.json(
-      { error: "결제한 주문은 여기서 취소할 수 없어요. 환불이 필요하면 디스코드 /문의로 연락해주세요." },
+      { error: "결제한 주문은 여기서 취소할 수 없어요. 환불이 필요하면 대시보드의 \"고객지원\"으로 연락해주세요." },
       { status: 409 },
     );
   }

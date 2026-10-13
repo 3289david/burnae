@@ -85,6 +85,7 @@ model User {
   phoneVerificationRequest PhoneVerificationRequest?
   emailVerificationToken EmailVerificationToken?
   dedicatedNode            HostNode?              @relation("DedicatedNode")
+  supportThreads           SupportThread[]
 
   @@index([email])
   @@index([referralCode])
@@ -933,6 +934,45 @@ model AiActivityLog {
   @@index([userId])
   @@index([serverId])
   @@index([conversationId])
+}
+
+// ────────────────────────────────
+// 고객지원(웹 대시보드 1:1 문의)
+// ────────────────────────────────
+
+enum SupportThreadStatus {
+  OPEN
+  CLOSED
+}
+
+enum SupportSenderRole {
+  USER
+  ADMIN
+}
+
+/// 유저 1명당 여러 건 가능하지만, 보통 OPEN은 최대 1개만 유지한다(새 문의는 열려있는 걸 이어씀)
+model SupportThread {
+  id        String              @id @default(cuid())
+  userId    String
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status    SupportThreadStatus @default(OPEN)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+  messages  SupportMessage[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model SupportMessage {
+  id         String            @id @default(cuid())
+  threadId   String
+  thread     SupportThread     @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  senderRole SupportSenderRole
+  content    String
+  createdAt  DateTime          @default(now())
+
+  @@index([threadId])
 }
 
 // ────────────────────────────────

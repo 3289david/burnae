@@ -80,7 +80,7 @@ export default function PrivacyPage() {
         </Section>
 
         <Section title="6. 개인정보 보호책임자">
-          개인정보 관련 문의는 디스코드 공식 서버의 /문의 명령어 또는 별도 안내되는 이메일로 접수할 수
+          개인정보 관련 문의는 대시보드의 "고객지원" 또는 별도 안내되는 이메일로 접수할 수
           있습니다.
         </Section>
 

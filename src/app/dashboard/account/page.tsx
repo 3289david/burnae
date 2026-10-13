@@ -47,7 +47,7 @@ export default async function AccountPage({
       </div>
 
       <div className="mt-4 animate-fade-up" style={{ animationDelay: "0.21s" }}>
-        <SupportCard discordLinked={!!link} />
+        <SupportCard />
       </div>
     </div>
   );

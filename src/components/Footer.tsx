@@ -16,8 +16,9 @@ export default function Footer() {
           <Link href="/register" className="hover:text-text">시작하기</Link>
         </nav>
       </div>
-      <div className="max-w-6xl mx-auto px-6 pb-8 text-xs text-text-dim">
-        © {new Date().getFullYear()} Burnae · burnae.kr · 이 서비스는 특정 은행/결제사와 제휴 관계가 없는 독립 서비스입니다.
+      <div className="max-w-6xl mx-auto px-6 pb-8 text-xs text-text-dim space-y-1">
+        <p>© {new Date().getFullYear()} Burnae · burnae.kr · 이 서비스는 특정 은행/결제사와 제휴 관계가 없는 독립 서비스입니다.</p>
+        <p>문자 상담 070-8970-6766 · 팩스 0504-417-2275</p>
       </div>
     </footer>
   );

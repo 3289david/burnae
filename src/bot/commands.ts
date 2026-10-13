@@ -3,6 +3,11 @@ import {
   ChatInputCommandInteraction,
   AutocompleteInteraction,
   ButtonInteraction,
+  ModalSubmitInteraction,
+  ModalBuilder,
+  ActionRowBuilder,
+  TextInputBuilder,
+  TextInputStyle,
   ButtonStyle,
   MessageFlags,
   ChannelType,
@@ -326,21 +331,20 @@ async function handleSupport(interaction: ChatInputCommandInteraction) {
 }
 
 /**
- * Google/GitHub/Discord 중 아무 방법으로 로그인해도 /dashboard/account의 "디스코드 연동"
- * 버튼(oauth/discord/start?mode=link → callback)으로 연동이 끝난다 — 로그인 방법과 무관하게
- * 항상 이 계정 페이지 하나로 안내하면 되므로, 디스코드 쪽에서 코드를 입력받을 필요가 없다.
- * (Discord로 직접 로그인한 경우엔 콜백에서 DiscordLink를 자동으로도 upsert해주지만,
- * Google/GitHub로 로그인한 사람은 반드시 이 계정 페이지의 버튼을 눌러야 연동된다.)
+ * Discord로 로그인하면 콜백(oauth/[provider]/callback)에서 DiscordLink를 바로 upsert해주므로
+ * 계정 페이지를 들렀다 올 필요 없이 이 버튼 하나로 로그인+연동이 한 번에 끝난다.
+ * 이미 Google/GitHub로 가입해둔 사람만 예외적으로 계정 페이지의 "디스코드 연동" 버튼
+ * (oauth/discord/start?mode=link)이 필요하므로, 그 경로는 보조 안내로만 남겨둔다.
  */
 function loginLinkContainer() {
   return panel()
     .addTextDisplayComponents(
-      text(
-        "burnae.kr에 로그인해주세요 — Google/GitHub/Discord 중 아무 방법으로나 로그인해도 돼요. " +
-          "로그인한 뒤 \"계정\" 페이지에서 \"디스코드 연동\" 버튼을 누르면 연동이 끝나요.",
-      ),
+      text("아래 버튼으로 Discord 로그인만 하면 바로 연동까지 끝나요 — 계정 페이지를 따로 들를 필요 없어요."),
     )
-    .addActionRowComponents(buttonRow(linkButton("burnae.kr 로그인 / 연동하기", `${SITE_URL}/dashboard/account`)));
+    .addActionRowComponents(buttonRow(linkButton("🔗 Discord로 로그인하고 연동하기", `${SITE_URL}/api/auth/oauth/discord/start`)))
+    .addTextDisplayComponents(
+      subtext("이미 Google/GitHub로 가입한 계정이 있다면, 로그인 후 \"계정\" 페이지에서도 연동할 수 있어요."),
+    );
 }
 
 async function handleLink(interaction: PanelInteraction) {
@@ -364,23 +368,67 @@ async function handlePhoneVerification(interaction: ChatInputCommandInteraction)
   }
 
   const phoneNumber = interaction.options.getString("번호", true);
+  await interaction.reply(await buildPhoneVerificationStartReply(user.id, phoneNumber));
+}
+
+/** /휴대폰인증 슬래시 명령어와 패널의 모달 제출 둘 다에서 쓰는 "인증 코드 발급" 응답 생성기 */
+async function buildPhoneVerificationStartReply(userId: string, phoneNumber: string) {
   try {
-    const { code, targetNumber, expiresInMinutes } = await startPhoneVerification(prisma, user.id, phoneNumber);
-    await interaction.reply(
-      v2Reply(
-        panel()
-          .addTextDisplayComponents(
-            heading("휴대폰 인증"),
-            text(`**${targetNumber}**로 아래 코드를 문자로 보내주세요. (문자 요금이 발생해요, ${expiresInMinutes}분 내에 보내야 해요)`),
-            text(`\`\`\`${code}\`\`\``),
-          )
-          .addActionRowComponents(buttonRow(actionButton("phoneverify_confirm", "✅ 문자 보냈어요 - 확인하기", ButtonStyle.Success))),
-      ),
+    const { code, targetNumber, expiresInMinutes } = await startPhoneVerification(prisma, userId, phoneNumber);
+    return v2Reply(
+      panel()
+        .addTextDisplayComponents(
+          heading("휴대폰 인증"),
+          text(`**${targetNumber}**로 아래 코드를 문자로 보내주세요. (문자 요금이 발생해요, ${expiresInMinutes}분 내에 보내야 해요)`),
+          text(`\`\`\`${code}\`\`\``),
+        )
+        .addActionRowComponents(buttonRow(actionButton("phoneverify_confirm", "✅ 문자 보냈어요 - 확인하기", ButtonStyle.Success))),
     );
   } catch (err) {
     const message = err instanceof PhoneVerificationError ? err.message : "인증 요청에 실패했어요.";
-    await interaction.reply(v2Reply(panel().addTextDisplayComponents(text(message))));
+    return v2Reply(panel().addTextDisplayComponents(text(message)));
   }
+}
+
+/** 유저 패널의 "📱 휴대폰 인증" 버튼 — 번호를 입력받는 모달을 띄운다 */
+async function handlePhoneVerifyPanelButton(interaction: ButtonInteraction) {
+  const user = await findLinkedUser(interaction.user.id);
+  if (!user) {
+    await interaction.reply({ components: [text("먼저 `/연동` 명령어로 계정을 연동해주세요.")], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+    return;
+  }
+  if (user.verifiedPhoneNumber) {
+    await interaction.reply({ components: [text("✅ 이미 휴대폰 인증이 완료된 계정이에요.")], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+    return;
+  }
+
+  const phoneInput = new TextInputBuilder()
+    .setCustomId("번호")
+    .setLabel("휴대폰 번호 (010으로 시작하는 11자리)")
+    .setStyle(TextInputStyle.Short)
+    .setMinLength(10)
+    .setMaxLength(11)
+    .setPlaceholder("01012345678")
+    .setRequired(true);
+  const modal = new ModalBuilder()
+    .setCustomId("phoneverify_modal")
+    .setTitle("휴대폰 인증")
+    .addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(phoneInput));
+  await interaction.showModal(modal);
+}
+
+/** 위 모달 제출 처리 — index.ts의 InteractionCreate에서 호출한다 */
+export async function handleModalSubmit(interaction: ModalSubmitInteraction) {
+  if (interaction.customId !== "phoneverify_modal") return;
+
+  const user = await findLinkedUser(interaction.user.id);
+  if (!user) {
+    await interaction.reply({ components: [text("먼저 `/연동` 명령어로 계정을 연동해주세요.")], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+    return;
+  }
+
+  const phoneNumber = interaction.fields.getTextInputValue("번호");
+  await interaction.reply(await buildPhoneVerificationStartReply(user.id, phoneNumber));
 }
 
 /** /휴대폰인증의 "문자 보냈어요" 버튼 */
@@ -790,10 +838,16 @@ async function handlePanelCommand(interaction: ChatInputCommandInteraction) {
     .addTextDisplayComponents(heading("🔥 Burnae 유저 패널"))
     .addTextDisplayComponents(
       text(
-        "아래 버튼을 눌러주세요 — 아직 연동 안 했으면 로그인 링크를 드리고, 이미 연동했으면 내 정보/서버 관리/포인트 메뉴가 바로 나와요.",
+        "아래 버튼을 눌러주세요 — 아직 연동 안 했으면 로그인 링크를 드리고, 이미 연동했으면 내 정보/서버 관리/포인트 메뉴가 바로 나와요.\n" +
+          "무료 서버를 만들려면 휴대폰 인증도 필요해요 — 📱 버튼으로 여기서 바로 할 수 있어요.",
       ),
     )
-    .addActionRowComponents(buttonRow(actionButton("panel_open_link", "🔗 내 계정 / 연동")));
+    .addActionRowComponents(
+      buttonRow(
+        actionButton("panel_open_link", "🔗 내 계정 / 연동"),
+        actionButton("panel_open_phoneverify", "📱 휴대폰 인증"),
+      ),
+    );
 
   await interaction.channel.send({ components: [container], flags: MessageFlags.IsComponentsV2 });
   await interaction.reply({
@@ -851,6 +905,7 @@ export async function handleButton(interaction: ButtonInteraction) {
   if (interaction.customId === "panel_open_servers") return handleServerManagementPanel(interaction);
   if (interaction.customId === "panel_open_points") return handlePointsPanel(interaction);
   if (interaction.customId === "phoneverify_confirm") return handlePhoneVerifyConfirmButton(interaction);
+  if (interaction.customId === "panel_open_phoneverify") return handlePhoneVerifyPanelButton(interaction);
 }
 
 /** /서버관리 패널의 시작/정지/재시작 버튼 — customId: panel_power_<signal>_<serverId> */

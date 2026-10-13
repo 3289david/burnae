@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { ActivityType, Client, GatewayIntentBits, Events } from "discord.js";
-import { handleCommand, handleAutocomplete, handleButton } from "./commands";
+import { handleCommand, handleAutocomplete, handleButton, handleModalSubmit } from "./commands";
 import { startCrashWatcher } from "./watcher";
 import { startStatusBoard } from "./statusBoard";
 import { startNodeStatusBoard } from "./nodeStatusBoard";
@@ -79,6 +79,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
       await handleAutocomplete(interaction);
     } else if (interaction.isButton()) {
       await handleButton(interaction);
+    } else if (interaction.isModalSubmit()) {
+      await handleModalSubmit(interaction);
     }
   } catch (err) {
     console.error("[bot] 인터랙션 처리 오류:", err);

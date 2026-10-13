@@ -83,6 +83,7 @@ interface CommunityPreset {
   id: string;
   displayName: string;
   blurb: string | null;
+  gitRepoUrl: string;
   creatorName: string;
   verified: boolean;
   useCount: number;
@@ -261,10 +262,11 @@ function NewServerPageInner() {
   const [presetFormTemplateId, setPresetFormTemplateId] = useState("");
   const [presetFormName, setPresetFormName] = useState("");
   const [presetFormBlurb, setPresetFormBlurb] = useState("");
-  const [presetFormEnv, setPresetFormEnv] = useState<Record<string, string>>({});
+  const [presetFormGitRepoUrl, setPresetFormGitRepoUrl] = useState("");
   const [presetFormBusy, setPresetFormBusy] = useState(false);
   const [presetFormError, setPresetFormError] = useState<string | null>(null);
-  const [presetFormDone, setPresetFormDone] = useState<number | null>(null);
+  const [presetFormDone, setPresetFormDone] = useState(false);
+  const [selectedPreset, setSelectedPreset] = useState<CommunityPreset | null>(null);
 
   function loadAllPresets() {
     fetch("/api/presets")
@@ -282,34 +284,25 @@ function NewServerPageInner() {
     return [...map.values()];
   }, [products]);
 
-  const presetFormTemplate = allTemplates.find((t) => t.id === presetFormTemplateId);
-  const presetFormFields = useMemo(() => {
-    if (!presetFormTemplate) return [];
-    // 필수 커스텀 변수(봇 토큰/API 키 등)는 사람마다 달라야 하는 개인 값이라 공개 프리셋에
-    // 박아넣으면 안 되므로 편집 가능 목록에서 뺀다
-    const requiredKeys = new Set(requiredCustomVariables(presetFormTemplate).map((v) => v.envVariable));
-    return Object.keys(presetFormTemplate.defaultEnvironment).filter(
-      (k) => !SECRET_ENV_KEYS.includes(k) && !requiredKeys.has(k),
-    );
-  }, [presetFormTemplate]);
-  // GIT_ADDRESS가 있는 종류(Node.js/Python/Deno/Rust/C# 봇, 제네릭 서버 등)는 "베이스 실행환경 +
-  // 내 코드 저장소"만 있으면 사실상 완전히 새로운 서버 종류를 등록하는 것과 같다 — 그래서 이 필드는
-  // 다른 부수 설정보다 훨씬 눈에 띄게 보여준다
-  const gitFieldKey = presetFormFields.includes("GIT_ADDRESS") ? "GIT_ADDRESS" : null;
-  const otherPresetFormFields = presetFormFields.filter((k) => k !== gitFieldKey);
+  // 커뮤니티 프리셋은 "일반 런타임(Node.js/Python 등 직접 코드를 올리는 종류)"에만 깃허브
+  // 저장소를 붙일 수 있다 — 음악봇처럼 egg 자체가 이미 완성된 프로그램인 종류는 고를 수 없다
+  const gitRuntimeTemplates = useMemo(
+    () => allTemplates.filter((t) => "GIT_ADDRESS" in t.defaultEnvironment),
+    [allTemplates],
+  );
 
   function pickCommunityEgg(p: CommunityPreset) {
     const t = allTemplates.find((x) => x.id === p.baseTemplateId);
     if (t) pickTier(t);
     setPresetId(p.id);
+    setSelectedPreset(p);
   }
 
   async function submitPresetForm() {
-    if (!presetFormTemplate) return;
+    if (!presetFormTemplateId || !presetFormGitRepoUrl) return;
     setPresetFormBusy(true);
     setPresetFormError(null);
     try {
-      const environment = Object.fromEntries(presetFormFields.map((k) => [k, presetFormEnv[k] ?? ""]));
       const res = await fetch("/api/presets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -317,15 +310,15 @@ function NewServerPageInner() {
           baseTemplateId: presetFormTemplateId,
           displayName: presetFormName,
           blurb: presetFormBlurb || undefined,
-          environment,
+          gitRepoUrl: presetFormGitRepoUrl,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setPresetFormDone(data.pointsAwarded ?? 0);
+      setPresetFormDone(true);
       setPresetFormName("");
       setPresetFormBlurb("");
-      setPresetFormEnv({});
+      setPresetFormGitRepoUrl("");
       loadAllPresets();
     } catch (err) {
       setPresetFormError(err instanceof Error ? err.message : "등록 실패");
@@ -424,6 +417,7 @@ function NewServerPageInner() {
     setVersionQuery("");
     setDockerImage(Object.values(t.availableDockerImages ?? {})[0] ?? "");
     setPresetId("");
+    setSelectedPreset(null);
   }
 
   // /dashboard/community-eggs에서 "이 종류로 서버 만들기"로 넘어온 경우 — 결제 후 이 종류 선택
@@ -445,9 +439,17 @@ function NewServerPageInner() {
     }
     fetch(`/api/presets?templateId=${templateId}`)
       .then((r) => (r.ok ? r.json() : []))
-      .then(setPresets)
+      .then((list: CommunityPreset[]) => {
+        setPresets(list);
+        // community-eggs에서 넘어온 presetId가 있으면 이 템플릿의 프리셋 목록이 로드된 뒤
+        // selectedPreset도 맞춰 채운다(깃허브 주소를 "시작 코드" 단계에 보여주기 위함)
+        setSelectedPreset((prev) => {
+          if (prev?.id === presetId) return prev;
+          return list.find((p) => p.id === presetId) ?? prev;
+        });
+      })
       .catch(() => setPresets([]));
-  }, [templateId]);
+  }, [templateId, presetId]);
 
   const filteredCommunityPresets = useMemo(
     () =>
@@ -783,40 +785,35 @@ function NewServerPageInner() {
                   >
                     + 내 커뮤니티 프리셋 공유하기
                   </button>
-                ) : presetFormDone !== null ? (
+                ) : presetFormDone ? (
                   <div className="card-glow p-4 flex items-center gap-3 animate-fade-up">
                     <SuccessCheck size={32} confetti className="shrink-0" />
                     <p className="text-sm text-green">
-                      공개했어요{presetFormDone > 0 ? ` (포인트 ${presetFormDone}P 적립)` : ""}! 목록에서 바로 골라 쓸 수 있어요.
+                      공개했어요! 다른 사람이 이 프리셋으로 서버를 만들 때마다 포인트가 쌓여요.
                     </p>
                   </div>
                 ) : (
                   <div className="card-glow p-4 space-y-3 animate-fade-up">
                     <h4 className="font-semibold text-sm">내 커뮤니티 프리셋 공유하기</h4>
                     <p className="text-xs text-text-dim">
-                      실행 환경(런타임)을 고르고, 코드 저장소 주소나 설정값을 채워서 완전히 새로운
-                      서버 종류로 공개해요 — 예를 들어 &ldquo;Node.js 봇&rdquo; 실행환경 + 내 디스코드
-                      봇 GitHub 주소를 합치면 그 자체로 &ldquo;내 디스코드 봇&rdquo;이라는 새 프리셋이
-                      돼요. 값을 하나도 안 채워도 베이스 종류를 그대로 소개하는 프리셋으로 등록할 수
-                      있어요. 도커 이미지·설치 스크립트 자체는 이미 검수된 실행환경 그대로 유지돼요
-                      (인프라 보안을 위해 임의 스크립트 업로드는 지원 안 함).
+                      일반 실행 환경(Node.js/Python 등 — 음악봇처럼 이미 완성된 종류는 고를 수 없어요)을
+                      고르고 내 코드가 있는 GitHub 저장소 주소를 붙여서 공개해요. 환경변수(봇 토큰 등)는
+                      여기서 넣지 않아요 — 이 프리셋으로 서버를 만드는 사람이 직접 입력해요. 다른 사람이
+                      이 프리셋으로 서버를 만들 때마다 포인트가 쌓여요.
                     </p>
                     <select
                       className="input w-full text-sm"
                       value={presetFormTemplateId}
-                      onChange={(e) => {
-                        setPresetFormTemplateId(e.target.value);
-                        setPresetFormEnv({});
-                      }}
+                      onChange={(e) => setPresetFormTemplateId(e.target.value)}
                     >
                       <option value="">실행 환경(런타임) 선택</option>
-                      {allTemplates.map((t) => (
+                      {gitRuntimeTemplates.map((t) => (
                         <option key={t.id} value={t.id}>{t.displayName}</option>
                       ))}
                     </select>
                     <input
                       className="input w-full text-sm"
-                      placeholder={gitFieldKey ? "이름 (예: 내 디스코드 봇)" : "이름 (예: 롤플레이용 기본 설정)"}
+                      placeholder="이름 (예: 내 디스코드 봇)"
                       maxLength={40}
                       value={presetFormName}
                       onChange={(e) => setPresetFormName(e.target.value)}
@@ -828,39 +825,24 @@ function NewServerPageInner() {
                       value={presetFormBlurb}
                       onChange={(e) => setPresetFormBlurb(e.target.value)}
                     />
-                    {gitFieldKey && (
-                      <div>
-                        <label className="text-xs font-medium">코드 저장소 주소 (GitHub 등)</label>
-                        <input
-                          className="input w-full text-sm font-mono mt-1"
-                          placeholder="https://github.com/아이디/저장소이름"
-                          value={presetFormEnv[gitFieldKey] ?? ""}
-                          onChange={(e) => setPresetFormEnv((v) => ({ ...v, [gitFieldKey]: e.target.value }))}
-                        />
-                        <p className="text-[11px] text-text-dim mt-1">
-                          이 저장소의 코드로 실행되는 서버가 만들어져요. 서버 생성 시 자동으로 clone돼요.
-                        </p>
-                      </div>
-                    )}
-                    {otherPresetFormFields.length > 0 && (
-                      <div className="grid sm:grid-cols-2 gap-2">
-                        {otherPresetFormFields.map((k) => (
-                          <div key={k}>
-                            <label className="text-[11px] text-text-dim font-mono">{k}</label>
-                            <input
-                              className="input w-full text-xs font-mono mt-0.5"
-                              value={presetFormEnv[k] ?? ""}
-                              onChange={(e) => setPresetFormEnv((v) => ({ ...v, [k]: e.target.value }))}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    <div>
+                      <label className="text-xs font-medium">코드 저장소 주소 (GitHub 등)</label>
+                      <input
+                        type="url"
+                        className="input w-full text-sm font-mono mt-1"
+                        placeholder="https://github.com/아이디/저장소이름"
+                        value={presetFormGitRepoUrl}
+                        onChange={(e) => setPresetFormGitRepoUrl(e.target.value)}
+                      />
+                      <p className="text-[11px] text-text-dim mt-1">
+                        이 저장소의 코드로 실행되는 서버가 만들어져요. 서버 생성 시 자동으로 clone돼요.
+                      </p>
+                    </div>
                     <div className="flex gap-2">
                       <button
                         type="button"
                         onClick={submitPresetForm}
-                        disabled={presetFormBusy || !presetFormTemplateId || presetFormName.length < 1}
+                        disabled={presetFormBusy || !presetFormTemplateId || !presetFormGitRepoUrl || presetFormName.length < 1}
                         className="btn-primary px-3.5 py-1.5 text-xs active:scale-95 transition-transform"
                       >
                         {presetFormBusy ? "공개하는 중..." : "공개하기"}
@@ -966,18 +948,30 @@ function NewServerPageInner() {
           )}
 
           {selectedTemplate && "GIT_ADDRESS" in selectedTemplate.defaultEnvironment && (
-            <Section step={stepFor("gitRepo")} title="시작 코드 (선택)">
-              <p className="text-xs text-text-dim mb-2">
-                비워두면 빈 서버로 시작해요 — 파일 탭이나 SFTP로 직접 코드를 올리면 돼요. GitHub
-                저장소에 코드가 있다면 주소를 넣어주세요 — 서버 생성 시 자동으로 clone해서 시작해요.
-              </p>
-              <input
-                type="url"
-                className="input w-full"
-                placeholder="https://github.com/아이디/저장소이름"
-                value={gitRepo}
-                onChange={(e) => setGitRepo(e.target.value)}
-              />
+            <Section step={stepFor("gitRepo")} title="시작 코드">
+              {selectedPreset ? (
+                <>
+                  <p className="text-xs text-text-dim mb-2">
+                    커뮤니티 프리셋 <strong>{selectedPreset.displayName}</strong>의 저장소로 시작해요 — 서버 종류
+                    선택 단계에서 다른 프리셋을 고르거나 "빈 서버로 시작"을 선택하면 바꿀 수 있어요.
+                  </p>
+                  <p className="input w-full text-text-dim truncate">{selectedPreset.gitRepoUrl}</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-xs text-text-dim mb-2">
+                    비워두면 빈 서버로 시작해요 — 파일 탭이나 SFTP로 직접 코드를 올리면 돼요. GitHub
+                    저장소에 코드가 있다면 주소를 넣어주세요 — 서버 생성 시 자동으로 clone해서 시작해요.
+                  </p>
+                  <input
+                    type="url"
+                    className="input w-full"
+                    placeholder="https://github.com/아이디/저장소이름"
+                    value={gitRepo}
+                    onChange={(e) => setGitRepo(e.target.value)}
+                  />
+                </>
+              )}
             </Section>
           )}
 
@@ -1015,12 +1009,12 @@ function NewServerPageInner() {
               <div className="space-y-2">
                 <button
                   type="button"
-                  onClick={() => setPresetId("")}
+                  onClick={() => { setPresetId(""); setSelectedPreset(null); }}
                   className={`w-full text-left rounded-xl border p-3 transition-all duration-150 ${
                     presetId === "" ? "border-accent bg-accent/[0.08]" : "border-border bg-surface hover:border-accent/40"
                   }`}
                 >
-                  <span className="text-sm font-medium">기본값 사용</span>
+                  <span className="text-sm font-medium">빈 서버로 시작 (내 코드 직접 업로드)</span>
                 </button>
                 {presets.map((p) => (
                   <div
@@ -1029,7 +1023,7 @@ function NewServerPageInner() {
                       presetId === p.id ? "border-accent bg-accent/[0.08]" : "border-border bg-surface hover:border-accent/40"
                     }`}
                   >
-                    <button type="button" onClick={() => setPresetId(p.id)} className="flex-1 min-w-0 text-left">
+                    <button type="button" onClick={() => { setPresetId(p.id); setSelectedPreset(p); }} className="flex-1 min-w-0 text-left">
                       <span className="text-sm font-medium inline-flex items-center gap-1.5 flex-wrap">
                         {p.displayName}
                         {p.verified && (
@@ -1039,6 +1033,7 @@ function NewServerPageInner() {
                         )}
                       </span>
                       {p.blurb && <span className="block text-xs text-text-dim mt-0.5">{p.blurb}</span>}
+                      <span className="block text-[11px] text-text-dim mt-0.5 truncate">{p.gitRepoUrl}</span>
                       <span className="block text-[11px] text-text-dim mt-0.5">
                         by {p.creatorName}{p.useCount > 0 ? ` · ${p.useCount}번 사용됨` : ""}
                       </span>

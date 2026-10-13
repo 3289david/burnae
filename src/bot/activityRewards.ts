@@ -2,21 +2,33 @@ import type { Client, GuildMember, Message, PartialGuildMember } from "discord.j
 import { Events } from "discord.js";
 import { prisma } from "./prismaClient";
 
-/** 채팅 1자당 지급 포인트 */
-const POINTS_PER_CHAT_CHAR = 1;
-/** 메시지 하나로 노려볼 수 있는 최대 글자 수 — 긴 글 복붙 한 번으로 포인트를 몰아 받는 걸 막음 */
-const MAX_CHARS_PER_MESSAGE = 300;
-/** 같은 유저가 연속으로 포인트를 받을 수 있는 최소 간격(초) — 짧은 메시지 스팸 매크로 방지 */
-const CHAT_REWARD_COOLDOWN_MS = 5_000;
+/**
+ * 포인트가 1원=1포인트로 현금과 그대로 맞바꿔지는 값이 됐기 때문에(지난 글자수 기반 보상은
+ * 이론상 "스팸 → 시간당 수십만 포인트" 수준으로 현금을 그냥 찍어내는 구멍이었다), 채팅 보상은
+ * 메시지당 소액 고정 지급 + 느슨한 쿨다운 + 일일 상한 3중으로 묶어서 적은 금액만 안정적으로
+ * 흘러나가게 한다.
+ */
+const POINTS_PER_MESSAGE = 1;
+/** 너무 짧은 메시지("ㅇㅇ", 이모지 하나)로는 보상을 노리지 못하게 최소 글자 수를 요구한다 */
+const MIN_MESSAGE_LENGTH = 5;
+/** 같은 유저가 연속으로 포인트를 받을 수 있는 최소 간격 */
+const CHAT_REWARD_COOLDOWN_MS = 60_000;
+/** 쿨다운을 우회해도(예: 재시작) 하루에 받을 수 있는 채팅 포인트 총액을 이 이상 못 넘게 막는다 */
+const CHAT_DAILY_CAP = 30;
 
 /** 서버 태그(프로필 꾸미기) 착용 1시간당 지급 포인트 — 가만히 켜두기만 하면 되는 활동이라 낮게 유지 */
-const POINTS_PER_TAG_HOUR = 5;
+const POINTS_PER_TAG_HOUR = 2;
 const TAG_CHECK_INTERVAL_MS = 60 * 60 * 1000;
 
-/** 서버 부스트 시작 1회당 지급 포인트 */
+/** 서버 부스트 시작 1회당 지급 포인트 — 부스트 자체가 실제 돈이 드는 행동이라 예외적으로 높게 유지 */
 const POINTS_PER_BOOST = 2000;
 
 const lastChatRewardAt = new Map<string, number>();
+const chatDailyTotal = new Map<string, { day: string; points: number }>();
+
+function todayKey(): string {
+  return new Date().toISOString().slice(0, 10);
+}
 
 async function awardToDiscordUser(discordUserId: string, points: number, reason: string) {
   const link = await prisma.discordLink.findUnique({ where: { discordUserId } });
@@ -30,15 +42,21 @@ function handleMessageCreate(message: Message, officialGuildId: string) {
   if (message.author.bot) return;
 
   const content = message.content.trim();
-  if (content.length === 0) return;
+  if (content.length < MIN_MESSAGE_LENGTH) return;
 
   const now = Date.now();
   const last = lastChatRewardAt.get(message.author.id) ?? 0;
   if (now - last < CHAT_REWARD_COOLDOWN_MS) return;
-  lastChatRewardAt.set(message.author.id, now);
 
-  const points = Math.min(content.length, MAX_CHARS_PER_MESSAGE) * POINTS_PER_CHAT_CHAR;
-  awardToDiscordUser(message.author.id, points, "채팅").catch((err) => console.error("[activityRewards] 채팅 지급 실패:", err));
+  const today = todayKey();
+  const record = chatDailyTotal.get(message.author.id);
+  const soFar = record?.day === today ? record.points : 0;
+  if (soFar >= CHAT_DAILY_CAP) return;
+
+  lastChatRewardAt.set(message.author.id, now);
+  chatDailyTotal.set(message.author.id, { day: today, points: soFar + POINTS_PER_MESSAGE });
+
+  awardToDiscordUser(message.author.id, POINTS_PER_MESSAGE, "채팅").catch((err) => console.error("[activityRewards] 채팅 지급 실패:", err));
 }
 
 function handleGuildMemberUpdate(oldMember: GuildMember | PartialGuildMember, newMember: GuildMember, officialGuildId: string) {

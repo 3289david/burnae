@@ -7,6 +7,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatMb } from "@/lib/formatSize";
 import BrandMark from "@/components/BrandMark";
+import { DiscordLogo } from "@/components/ProviderIcons";
 import Footer from "@/components/Footer";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -101,6 +102,7 @@ async function loadLandingData() {
 export default async function HomePage() {
   const user = await getCurrentUser().catch(() => null);
   const { products, events, siteMode } = await loadLandingData();
+  const discordInviteUrl = process.env.NEXT_PUBLIC_DISCORD_SERVER_INVITE_URL;
   const heroTitle = siteMode === "MINECRAFT_ONLY" ? "마인크래프트 서버" : siteMode === "GENERAL_ONLY" ? "서버 호스팅" : "마인크래프트·서버 호스팅";
   const heroDesc =
     siteMode === "MINECRAFT_ONLY"
@@ -175,6 +177,16 @@ export default async function HomePage() {
               <Link href="#pricing" className="btn-secondary px-7 py-3.5 text-base">
                 가격 보기
               </Link>
+              {discordInviteUrl && (
+                <a
+                  href={discordInviteUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn-secondary px-7 py-3.5 text-base inline-flex items-center gap-2 border-purple/40 text-purple hover:bg-purple/10"
+                >
+                  <DiscordLogo size={18} /> 공식 디스코드 참여
+                </a>
+              )}
             </div>
 
             <div className="mt-16 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-text-dim animate-fade-up" style={{ animationDelay: "0.3s" }}>

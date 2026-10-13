@@ -4,6 +4,7 @@ import { getCurrentUser, isAdminEmail } from "@/lib/auth";
 import DashboardNav from "@/components/DashboardNav";
 import BrandMark from "@/components/BrandMark";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
+import DiscordPromoBanner from "@/components/DiscordPromoBanner";
 import CommandPalette from "@/components/CommandPalette";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -23,6 +24,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <DashboardNav userName={user.name} showAdminLink={showAdminLink} />
         </div>
       </header>
+      <DiscordPromoBanner />
       <AnnouncementBanner />
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-8">{children}</main>
     </div>

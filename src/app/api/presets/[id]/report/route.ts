@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { revokeCustomPresetPoints } from "@/lib/promotions";
 
-/// 서로 다른 유저 이 숫자만큼 신고하면 자동으로 목록에서 내려가고 지급된 포인트도 회수된다.
+/// 서로 다른 유저가 이 숫자만큼 신고하면 자동으로 목록에서 내려간다(이미 설치된 서버들에
+/// 지급된 설치당 포인트는 실제로 일어난 설치라 회수하지 않음 — 이후 설치만 막힌다).
 const REPORT_DELIST_THRESHOLD = 3;
 
 const reportSchema = z.object({ reason: z.string().trim().max(200).optional() });
@@ -44,7 +44,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   if (updated.reportCount >= REPORT_DELIST_THRESHOLD && !updated.delisted) {
     await prisma.userPreset.update({ where: { id }, data: { delisted: true } });
-    await revokeCustomPresetPoints(id, updated.createdById);
   }
 
   return NextResponse.json({ ok: true });

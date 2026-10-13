@@ -1,11 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Copy, Check, CheckCircle2, Clock, Gift } from "lucide-react";
 import SuccessCheck from "@/components/SuccessCheck";
 import CountUp from "@/components/CountUp";
-import { formatMb } from "@/lib/formatSize";
 
 type VerifyMethod =
   | "URL_CONTAINS_LINK"
@@ -32,16 +30,6 @@ interface ServerOption {
   name: string;
 }
 
-interface RedeemableProduct {
-  id: string;
-  name: string;
-  ramMb: number;
-  cpuPercent: number;
-  diskMb: number;
-  pointsCost: number;
-  allowedTemplates: { id: string; displayName: string; minecraftVersions: string[] }[];
-}
-
 const AUTO_LABEL: Record<VerifyMethod, string> = {
   URL_CONTAINS_LINK: "URL 제출 → 자동 확인",
   SERVER_MOTD_BRANDED: "내 서버 확인 → 자동 확인",
@@ -56,13 +44,11 @@ export default function PromotionsClient({
   points,
   referralLink,
   servers,
-  redeemableProducts,
   tasks,
 }: {
   points: number;
   referralLink: string;
   servers: ServerOption[];
-  redeemableProducts: RedeemableProduct[];
   tasks: Task[];
 }) {
   const [currentPoints, setCurrentPoints] = useState(points);
@@ -131,22 +117,6 @@ export default function PromotionsClient({
         ))}
       </div>
 
-      {redeemableProducts.length > 0 && (
-        <>
-          <h2 className="font-semibold mt-8 mb-3 flex items-center gap-1.5 animate-fade-up"><Gift size={16} /> 포인트로 교환하기</h2>
-          <div className="space-y-3">
-            {redeemableProducts.map((p, i) => (
-              <RedeemCard
-                key={p.id}
-                product={p}
-                points={currentPoints}
-                delay={Math.min(i, 8) * 0.04}
-                onRedeemed={(cost) => setCurrentPoints((c) => c - cost)}
-              />
-            ))}
-          </div>
-        </>
-      )}
     </div>
   );
 }
@@ -243,121 +213,6 @@ function TaskRow({
       )}
       {error && <p className="text-xs text-red mt-2">{error}</p>}
       {task.pending && <p className="text-xs text-yellow mt-2">관리자 확인을 기다리고 있어요.</p>}
-    </div>
-  );
-}
-
-function RedeemCard({
-  product,
-  points,
-  delay = 0,
-  onRedeemed,
-}: {
-  product: RedeemableProduct;
-  points: number;
-  delay?: number;
-  onRedeemed: (cost: number) => void;
-}) {
-  const router = useRouter();
-  const [open, setOpen] = useState(false);
-  const [serverName, setServerName] = useState("");
-  const [templateId, setTemplateId] = useState(product.allowedTemplates[0]?.id ?? "");
-  const template = product.allowedTemplates.find((t) => t.id === templateId);
-  const [version, setVersion] = useState(template?.minecraftVersions[0] ?? "");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
-
-  const canAfford = points >= product.pointsCost;
-
-  async function redeem() {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/promotions/redeem", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productId: product.id, templateId, minecraftVersion: version, serverName }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      onRedeemed(product.pointsCost);
-      setDone(true);
-      setTimeout(() => router.push("/dashboard"), 1200);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "교환 실패");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <div className="card-glow p-4 animate-fade-up" style={{ animationDelay: `${delay}s` }}>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <p className="font-medium text-sm">{product.name}</p>
-          <p className="text-xs text-text-dim mt-0.5">
-            RAM {formatMb(product.ramMb)} · CPU {product.cpuPercent}% · 디스크 {formatMb(product.diskMb)}
-          </p>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <span className="text-sm font-semibold">{product.pointsCost.toLocaleString()}P</span>
-          {!open && (
-            <button
-              onClick={() => setOpen(true)}
-              disabled={!canAfford}
-              className="btn-primary px-4 py-1.5 text-sm disabled:opacity-40 active:scale-95 transition-transform"
-            >
-              {canAfford ? "교환하기" : "포인트 부족"}
-            </button>
-          )}
-        </div>
-      </div>
-
-      {open && !done && (
-        <div className="mt-3 pt-3 border-t border-border space-y-2 animate-fade-up">
-          <input
-            className="input w-full text-sm"
-            placeholder="서버 이름"
-            maxLength={24}
-            value={serverName}
-            onChange={(e) => setServerName(e.target.value)}
-          />
-          <div className="flex flex-wrap gap-2">
-            <select
-              className="input flex-1 text-sm"
-              value={templateId}
-              onChange={(e) => {
-                setTemplateId(e.target.value);
-                const t = product.allowedTemplates.find((x) => x.id === e.target.value);
-                setVersion(t?.minecraftVersions[0] ?? "");
-              }}
-            >
-              {product.allowedTemplates.map((t) => (
-                <option key={t.id} value={t.id}>{t.displayName}</option>
-              ))}
-            </select>
-            <select className="input flex-1 text-sm" value={version} onChange={(e) => setVersion(e.target.value)}>
-              {template?.minecraftVersions.map((v) => (
-                <option key={v} value={v}>{v}</option>
-              ))}
-            </select>
-          </div>
-          <button
-            onClick={redeem}
-            disabled={loading || serverName.length < 2}
-            className="btn-primary w-full py-2 text-sm active:scale-[0.98] transition-transform"
-          >
-            {loading ? "만드는 중..." : `${product.pointsCost.toLocaleString()}P로 교환하기`}
-          </button>
-          {error && <p className="text-xs text-red">{error}</p>}
-        </div>
-      )}
-      {done && (
-        <p className="animate-toast-in text-xs text-green mt-2 flex items-center gap-1">
-          <SuccessCheck size={16} confetti /> 교환 완료! 대시보드로 이동할게요.
-        </p>
-      )}
     </div>
   );
 }

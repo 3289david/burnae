@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { SECRET_ENV_KEYS } from "@/lib/provisioning";
-import { rewardCustomPresetPublished } from "@/lib/promotions";
 
 const MAX_ACTIVE_PRESETS_PER_USER = 20;
 
@@ -19,7 +17,7 @@ export async function GET(request: Request) {
       id: true,
       displayName: true,
       blurb: true,
-      environment: true,
+      gitRepoUrl: true,
       createdAt: true,
       useCount: true,
       baseTemplateId: true,
@@ -33,7 +31,7 @@ export async function GET(request: Request) {
       id: p.id,
       displayName: p.displayName,
       blurb: p.blurb,
-      environment: p.environment,
+      gitRepoUrl: p.gitRepoUrl,
       createdAt: p.createdAt,
       useCount: p.useCount,
       baseTemplateId: p.baseTemplateId,
@@ -49,9 +47,15 @@ const createPresetSchema = z.object({
   baseTemplateId: z.string(),
   displayName: z.string().trim().min(1).max(40),
   blurb: z.string().trim().max(200).optional(),
-  environment: z.record(z.string(), z.union([z.string().max(500), z.number(), z.boolean()])),
+  gitRepoUrl: z.string().trim().url().max(300),
 });
 
+/**
+ * 커뮤니티 프리셋 = "일반 런타임 + 내 깃허브 저장소" 조합. 음악봇처럼 egg 자체가 이미 완성된
+ * 프로그램인 종류는 고를 수 없고, GIT_ADDRESS를 지원하는(직접 코드를 올려서 돌리는) 런타임
+ * 종류만 베이스로 쓸 수 있다. 환경변수(봇 토큰 등)는 여기서 받지 않는다 — 이 프리셋으로 서버를
+ * 만드는 사람이 주문 시점에 직접 입력한다(provisioning.ts의 customVariables로 처리).
+ */
 export async function POST(request: Request) {
   const user = await requireUser();
   if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
@@ -67,24 +71,15 @@ export async function POST(request: Request) {
   if (!template) {
     return NextResponse.json({ error: "존재하지 않는 서버 종류입니다." }, { status: 404 });
   }
+  const defaultEnv = template.defaultEnvironment as Record<string, unknown>;
+  if (!("GIT_ADDRESS" in defaultEnv)) {
+    return NextResponse.json({ error: "이 서버 종류는 깃허브 저장소를 지원하지 않아요. 일반 런타임(Node.js, Python 등)을 골라주세요." }, { status: 422 });
+  }
 
   const activeCount = await prisma.userPreset.count({ where: { createdById: user.id, delisted: false } });
   if (activeCount >= MAX_ACTIVE_PRESETS_PER_USER) {
     return NextResponse.json({ error: `프리셋은 유저당 최대 ${MAX_ACTIVE_PRESETS_PER_USER}개까지 공개할 수 있어요.` }, { status: 422 });
   }
-
-  // egg가 이미 갖고 있는 환경변수 키의 "값"만 덮어쓸 수 있다 — 새 키를 추가하거나 접속
-  // 비밀번호류 키(egg가 서버 생성 시 매번 무작위로 새로 채우는 값)를 지정하는 건 금지한다.
-  const defaultEnv = template.defaultEnvironment as Record<string, unknown>;
-  const allowedKeys = new Set(Object.keys(defaultEnv).filter((k) => !SECRET_ENV_KEYS.includes(k)));
-  const environment: Record<string, string | number | boolean> = {};
-  for (const [key, value] of Object.entries(parsed.data.environment)) {
-    if (!allowedKeys.has(key)) {
-      return NextResponse.json({ error: `"${key}"는 이 서버 종류에서 설정할 수 없는 값이에요.` }, { status: 422 });
-    }
-    environment[key] = value;
-  }
-  // 설정값이 하나도 없어도(=베이스 종류를 그대로 소개만 하는 프리셋) 등록할 수 있다
 
   const preset = await prisma.userPreset.create({
     data: {
@@ -92,11 +87,9 @@ export async function POST(request: Request) {
       createdById: user.id,
       displayName: parsed.data.displayName,
       blurb: parsed.data.blurb || null,
-      environment,
+      gitRepoUrl: parsed.data.gitRepoUrl,
     },
   });
 
-  const reward = await rewardCustomPresetPublished(user.id, preset.id);
-
-  return NextResponse.json({ id: preset.id, pointsAwarded: reward?.pointsAwarded ?? 0 }, { status: 201 });
+  return NextResponse.json({ id: preset.id }, { status: 201 });
 }

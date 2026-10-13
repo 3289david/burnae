@@ -6,17 +6,13 @@ import PointsPurchaseCard from "@/components/PointsPurchaseCard";
 
 export default async function PromotionsPage() {
   const user = await getCurrentUser();
-  const [tasks, completions, servers, redeemableProducts] = await Promise.all([
+  const [tasks, completions, servers] = await Promise.all([
     prisma.promotionTask.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }),
     prisma.promotionCompletion.findMany({ where: { userId: user!.id } }),
     prisma.server.findMany({
       where: { ownerId: user!.id, deletedAt: null },
       select: { id: true, name: true },
       orderBy: { createdAt: "desc" },
-    }),
-    prisma.product.findMany({
-      where: { active: true, pointsRedeemable: true, allowedTemplates: { some: { active: true } } },
-      include: { allowedTemplates: { where: { active: true } } },
     }),
   ]);
 
@@ -29,19 +25,6 @@ export default async function PromotionsPage() {
       points={user!.promotionPoints}
       referralLink={`${siteUrl}/register?ref=${user!.referralCode}`}
       servers={servers}
-      redeemableProducts={redeemableProducts.map((p) => ({
-        id: p.id,
-        name: p.name,
-        ramMb: p.ramMb,
-        cpuPercent: p.cpuPercent,
-        diskMb: p.diskMb,
-        pointsCost: p.pointsCost ?? 0,
-        allowedTemplates: p.allowedTemplates.map((t) => ({
-          id: t.id,
-          displayName: t.displayName,
-          minecraftVersions: t.minecraftVersions,
-        })),
-      }))}
       tasks={tasks.map((t) => {
         const taskCompletions = completions.filter((c) => c.taskId === t.id);
         const approvedCount = taskCompletions.filter((c) => c.status === "APPROVED").length;

@@ -168,10 +168,10 @@ model ServerTemplate {
   @@index([category])
 }
 
-/// 유저가 기존 서버 종류(ServerTemplate) 위에 자기 시작 변수 조합을 공개 등록한 "커뮤니티 프리셋".
-/// 도커 이미지·설치 스크립트는 건드릴 수 없고(이미 관리자가 검수한 Pterodactyl egg 그대로),
-/// 오직 그 egg가 이미 갖고 있는 환경변수 키의 값만 미리 채워서 공유하는 개념 — 즉시 공개되고,
-/// 다른 유저의 신고가 일정 수 쌓이면 자동으로 목록에서 내려가고 지급된 포인트도 회수된다.
+/// 유저가 일반 런타임(Node.js/Python 등 생성형 종류 — 특정 음악봇처럼 미리 다 만들어진 종류는
+/// 해당 없음) 위에 자기 깃허브 저장소를 올려서 공개한 "커뮤니티 프리셋". 환경변수(봇 토큰 등)는
+/// 프리셋에 담지 않는다 — 이 프리셋으로 서버를 만드는 사람이 직접 입력한다. 즉시 공개되고,
+/// 다른 유저의 신고가 일정 수 쌓이면 자동으로 목록에서 내려간다.
 model UserPreset {
   id             String   @id @default(cuid())
   baseTemplateId String
@@ -180,10 +180,10 @@ model UserPreset {
   createdBy      User     @relation(fields: [createdById], references: [id], onDelete: Cascade)
   displayName    String
   blurb          String?
-  /// baseTemplate.defaultEnvironment의 키만 값으로 덮어쓸 수 있다 (새 키 추가 불가, 비밀번호류 키 제외)
-  environment    Json
+  /// 서버 생성 시 GIT_ADDRESS로 그대로 적용되는 깃 저장소 주소
+  gitRepoUrl     String
   reportCount    Int      @default(0)
-  /// 이 프리셋으로 실제 서버가 만들어진 횟수 — 인기순 정렬에 사용
+  /// 이 프리셋으로 실제 서버가 만들어진 횟수 — 인기순 정렬 + 설치 1회당 포인트 지급에 사용
   useCount       Int      @default(0)
   /// 신고 누적으로 자동 비공개된 프리셋. 관리자가 /admin/logs 등에서 확인 가능
   delisted       Boolean  @default(false)

@@ -13,6 +13,7 @@ import { panel, text, COMPONENTS_V2_FLAG } from "@/lib/discordComponentsV2";
 import { FREE_SERVER_RENEWAL_DAYS } from "@/lib/serverRenewal";
 import { panelUsernameForUser } from "@/lib/pterodactylUser";
 import { syncAppProxyMap } from "@/lib/appProxy";
+import { rewardPresetInstalled } from "@/lib/promotions";
 import type { HostNode, Server } from "@/generated/prisma/client";
 
 export class ProvisioningError extends Error {}
@@ -220,15 +221,15 @@ export async function createServerForOrder(orderId: string) {
   const secretEnvKey = SECRET_ENV_KEYS.find((key) => key in defaultEnv);
   const accessSecret = secretEnvKey ? crypto.randomBytes(9).toString("base64url") : null;
 
-  // 커뮤니티 프리셋을 골랐다면 그 값으로 defaultEnv를 덮어쓴다. 신고 누적으로 비공개(delisted)된
-  // 프리셋은 이미 결제 전에 걸러지긴 하지만, 결제와 적용 사이 시차를 노린 악용을 막기 위해 여기서도
-  // 다시 한번 delisted 여부와 baseTemplateId 일치 여부를 확인한다.
+  // 커뮤니티 프리셋을 골랐다면 그 저장소 주소를 GIT_ADDRESS로 적용한다. 신고 누적으로
+  // 비공개(delisted)된 프리셋은 이미 결제 전에 걸러지긴 하지만, 결제와 적용 사이 시차를 노린
+  // 악용을 막기 위해 여기서도 다시 한번 delisted 여부와 baseTemplateId 일치 여부를 확인한다.
   const preset = order.presetIdRequested
     ? await prisma.userPreset.findFirst({
         where: { id: order.presetIdRequested, baseTemplateId: template.id, delisted: false },
       })
     : null;
-  const presetEnv = (preset?.environment as Record<string, string | number | boolean> | undefined) ?? {};
+  const gitAddressToApply = preset?.gitRepoUrl ?? order.gitRepoRequested;
 
   const dockerImage = order.dockerImageRequested ?? template.dockerImage;
 
@@ -243,7 +244,6 @@ export async function createServerForOrder(orderId: string) {
     startupCommand: template.startupCommand,
     environment: {
       ...defaultEnv,
-      ...presetEnv,
       // 에그마다 버전 변수 이름이 달라서(MINECRAFT_VERSION/MC_VERSION/VANILLA_VERSION) 존재하는
       // 키만 선택해서 덮어쓴다 — FABRIC_VERSION/LOADER_VERSION/빌드 번호류는 별개 개념이라 건드리지 않음
       ...(template.category === "MINECRAFT"
@@ -254,8 +254,8 @@ export async function createServerForOrder(orderId: string) {
             ]),
           )
         : {}),
-      ...("GIT_ADDRESS" in defaultEnv && order.gitRepoRequested
-        ? { GIT_ADDRESS: order.gitRepoRequested, USER_UPLOAD: "0" }
+      ...("GIT_ADDRESS" in defaultEnv && gitAddressToApply
+        ? { GIT_ADDRESS: gitAddressToApply, USER_UPLOAD: "0" }
         : {}),
       // 봇 토큰/API 키처럼 egg가 필수로 요구하지만 기본값으로 채울 수 없는 변수 — 주문 시점에
       // 사용자가 직접 입력한 값(customVariables)이 프리셋 기본값보다 항상 우선해야 한다
@@ -347,6 +347,12 @@ export async function createServerForOrder(orderId: string) {
     prisma.userPreset.update({ where: { id: preset.id }, data: { useCount: { increment: 1 } } }).catch((err) => {
       console.error("[provisioning] 프리셋 사용 횟수 갱신 실패:", err);
     });
+    // 프리셋 만든 사람이 자기 프리셋으로 직접 서버를 만든 경우는 포인트 파밍 방지를 위해 지급 제외
+    if (preset.createdById !== order.userId) {
+      rewardPresetInstalled(preset.createdById).catch((err) => {
+        console.error("[provisioning] 프리셋 설치 포인트 지급 실패:", err);
+      });
+    }
   }
 
   // 마인크래프트 EULA 자동 동의 — 이걸 안 하면 서버가 뜨자마자 "eula=false"로 바로 종료되고,

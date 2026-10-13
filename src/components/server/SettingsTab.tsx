@@ -8,7 +8,6 @@ import Toggle from "@/components/Toggle";
 import UpgradeCard from "./UpgradeCard";
 import AutomationCard from "./AutomationCard";
 import StartupVariablesCard from "./StartupVariablesCard";
-import SaveAsPresetCard from "./SaveAsPresetCard";
 import SftpCard from "./SftpCard";
 import DiscordInviteCard from "./DiscordInviteCard";
 
@@ -268,8 +267,6 @@ export default function SettingsTab({
     )}
 
     {isOwner && <StartupVariablesCard serverId={serverId} templateId={templateId} />}
-
-    {isOwner && <SaveAsPresetCard serverId={serverId} />}
 
     {isOwner && templateCategory === "DISCORD_BOT" && <DiscordInviteCard serverId={serverId} />}
 

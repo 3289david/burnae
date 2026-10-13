@@ -33,9 +33,16 @@ export const POST = withApiErrorHandling(async (
     return NextResponse.json({ error: "서버 소유자만 구매할 수 있어요." }, { status: 403 });
   }
 
-  const server = await prisma.server.findUniqueOrThrow({ where: { id } });
+  const server = await prisma.server.findUniqueOrThrow({ where: { id }, include: { product: true } });
   if (!server.pterodactylServerId || !server.pterodactylIdentifier) {
     return NextResponse.json({ error: "서버가 아직 준비 중입니다." }, { status: 409 });
+  }
+  const priceMonthlyKrw = server.priceMonthlyKrwSnapshot ?? server.product?.priceMonthlyKrw ?? 0;
+  if (priceMonthlyKrw !== 0) {
+    return NextResponse.json(
+      { error: "포인트로 추가 포트/서브도메인을 사는 건 무료 서버만 가능해요. 유료 플랜은 기본으로 더 넉넉하게 제공돼요." },
+      { status: 422 },
+    );
   }
 
   const parsed = schema.safeParse(await request.json().catch(() => null));

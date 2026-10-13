@@ -18,7 +18,10 @@ import type { HostNode, Server } from "@/generated/prisma/client";
 
 export class ProvisioningError extends Error {}
 
-export const MAX_SUBDOMAINS_PER_SERVER = 2;
+/** 무료 서버는 자동 생성되는 주소 1개뿐 — 더 필요하면 포인트로 EXTRA_SUBDOMAIN을 사야 한다 */
+export const MAX_SUBDOMAINS_PER_SERVER = 1;
+/** 유료 플랜은 포인트 없이도 기본으로 주소를 여러 개 쓸 수 있다 (유료 플랜 특장점) */
+export const MAX_SUBDOMAINS_PER_SERVER_PAID = 3;
 
 /// egg 자체 접속 비밀번호류 환경변수 키 — 모든 서버가 같은 기본값을 쓰면 안 되므로 서버 생성 시
 /// 항상 무작위로 새로 채워 넣는다. 커뮤니티 프리셋(UserPreset)도 이 키들은 절대 덮어쓸 수 없다.

@@ -3,7 +3,12 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { authorizeServerAccess } from "@/lib/serverAccess";
-import { provisionSubdomain, MAX_SUBDOMAINS_PER_SERVER, ProvisioningError } from "@/lib/provisioning";
+import {
+  provisionSubdomain,
+  MAX_SUBDOMAINS_PER_SERVER,
+  MAX_SUBDOMAINS_PER_SERVER_PAID,
+  ProvisioningError,
+} from "@/lib/provisioning";
 
 export async function GET(
   _request: Request,
@@ -39,15 +44,14 @@ export async function POST(
   if (server.ownerId !== user.id && user.role !== "ADMIN") {
     return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
   }
-  if (!server.priceMonthlyKrwSnapshot && user.role !== "ADMIN") {
-    return NextResponse.json({ error: "주소를 추가로 더 만드는 건 유료 플랜에서만 쓸 수 있어요." }, { status: 403 });
-  }
 
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "서브도메인 이름을 입력해주세요." }, { status: 422 });
 
-  // 포인트 상점(EXTRA_SUBDOMAIN)으로 슬롯을 샀으면 기본 한도보다 더 만들 수 있다
-  const effectiveMax = MAX_SUBDOMAINS_PER_SERVER + server.extraSubdomainSlots;
+  // 유료 플랜은 기본으로 더 넉넉한 한도를 받고(특장점), 무료 서버는 기본 1개 + 포인트 상점
+  // (EXTRA_SUBDOMAIN)으로 산 슬롯만큼만 더 만들 수 있다
+  const baseMax = server.priceMonthlyKrwSnapshot ? MAX_SUBDOMAINS_PER_SERVER_PAID : MAX_SUBDOMAINS_PER_SERVER;
+  const effectiveMax = baseMax + server.extraSubdomainSlots;
   const count = await prisma.serverSubdomain.count({ where: { serverId: id } });
   if (count >= effectiveMax) {
     return NextResponse.json(

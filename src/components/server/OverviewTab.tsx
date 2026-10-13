@@ -328,7 +328,7 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
       <CustomDomainCard serverId={server.id} isOwner={server.isOwner} initial={server.customDomains} />
 
       {server.isFreeServer && server.isOwner && <FreeUpgradeCard serverId={server.id} />}
-      {server.isOwner && <ExtraResourcesCard serverId={server.id} />}
+      {server.isFreeServer && server.isOwner && <ExtraResourcesCard serverId={server.id} />}
       {server.isFreeServer && <FreeTierAd />}
       {server.isFreeServer && <GoogleAdSense />}
     </div>

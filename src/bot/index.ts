@@ -3,6 +3,7 @@ import { ActivityType, Client, GatewayIntentBits, Events } from "discord.js";
 import { handleCommand, handleAutocomplete, handleButton } from "./commands";
 import { startCrashWatcher } from "./watcher";
 import { startStatusBoard } from "./statusBoard";
+import { startNodeStatusBoard } from "./nodeStatusBoard";
 import { startActivityRewards } from "./activityRewards";
 import { startMentionGuard } from "./mentionGuard";
 import { prisma } from "./prismaClient";
@@ -41,6 +42,7 @@ client.once(Events.ClientReady, (c) => {
   c.user.setActivity("/도움말", { type: ActivityType.Listening });
   startCrashWatcher(client);
   startStatusBoard(client);
+  startNodeStatusBoard(client);
   startActivityRewards(client, officialGuildId);
   startMentionGuard(client, officialGuildId);
 });

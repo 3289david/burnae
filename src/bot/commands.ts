@@ -13,6 +13,8 @@ import { PteroClient } from "../lib/pterodactyl";
 import { renewFreeServer, ServerRenewalError } from "../lib/serverRenewal";
 import { postOrRefreshSurvey } from "../lib/discordBoards";
 import { formatMb } from "../lib/formatSize";
+import { startPhoneVerification, confirmPhoneVerification, PhoneVerificationError } from "../lib/phoneVerification";
+import { updateNodeStatusBoard } from "./nodeStatusBoard";
 import {
   panel,
   heading,
@@ -55,6 +57,12 @@ export const commandDefinitions = [
   new SlashCommandBuilder()
     .setName("연동")
     .setDescription("Burnae 계정과 디스코드를 연동합니다."),
+  new SlashCommandBuilder()
+    .setName("휴대폰인증")
+    .setDescription("무료 서버를 만들 때 필요한 휴대폰 인증을 진행합니다.")
+    .addStringOption((opt) =>
+      opt.setName("번호").setDescription("010으로 시작하는 11자리 번호").setRequired(true),
+    ),
   new SlashCommandBuilder()
     .setName("서버목록")
     .setDescription("내 Burnae 서버 목록을 봅니다."),
@@ -119,6 +127,10 @@ export const commandDefinitions = [
     .setName("패널")
     .setDescription("[관리자] 이 채널에 유저 패널(내정보/서버관리/포인트 버튼) 임베드를 올립니다.")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+  new SlashCommandBuilder()
+    .setName("노드상태패널")
+    .setDescription("[관리자] 이 채널에 노드별 RAM/CPU/저장공간 점유율 현황판을 설치합니다 (5분마다 자동 갱신).")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
 ].map((c) => c.toJSON());
 
 async function findLinkedUser(discordUserId: string) {
@@ -170,6 +182,8 @@ export async function handleCommand(interaction: ChatInputCommandInteraction) {
       return handleSupport(interaction);
     case "연동":
       return handleLink(interaction);
+    case "휴대폰인증":
+      return handlePhoneVerification(interaction);
     case "서버목록":
       return handleListServers(interaction);
     case "상태":
@@ -200,6 +214,8 @@ export async function handleCommand(interaction: ChatInputCommandInteraction) {
       return handlePointsPanel(interaction);
     case "패널":
       return handlePanelCommand(interaction);
+    case "노드상태패널":
+      return handleNodeStatusPanelCommand(interaction);
   }
 }
 
@@ -337,6 +353,53 @@ async function handleLink(interaction: PanelInteraction) {
     return;
   }
   await interaction.reply(v2Reply(loginLinkContainer()));
+}
+
+/** /휴대폰인증 — 웹 대시보드(계정 페이지)와 똑같은 OCTOMO 문자 발신 인증을 디스코드에서 진행한다 */
+async function handlePhoneVerification(interaction: ChatInputCommandInteraction) {
+  const user = await findLinkedUser(interaction.user.id);
+  if (!user) {
+    await interaction.reply(v2Reply(panel().addTextDisplayComponents(text("먼저 `/연동` 명령어로 계정을 연동해주세요."))));
+    return;
+  }
+
+  const phoneNumber = interaction.options.getString("번호", true);
+  try {
+    const { code, targetNumber, expiresInMinutes } = await startPhoneVerification(prisma, user.id, phoneNumber);
+    await interaction.reply(
+      v2Reply(
+        panel()
+          .addTextDisplayComponents(
+            heading("휴대폰 인증"),
+            text(`**${targetNumber}**로 아래 코드를 문자로 보내주세요. (문자 요금이 발생해요, ${expiresInMinutes}분 내에 보내야 해요)`),
+            text(`\`\`\`${code}\`\`\``),
+          )
+          .addActionRowComponents(buttonRow(actionButton("phoneverify_confirm", "✅ 문자 보냈어요 - 확인하기", ButtonStyle.Success))),
+      ),
+    );
+  } catch (err) {
+    const message = err instanceof PhoneVerificationError ? err.message : "인증 요청에 실패했어요.";
+    await interaction.reply(v2Reply(panel().addTextDisplayComponents(text(message))));
+  }
+}
+
+/** /휴대폰인증의 "문자 보냈어요" 버튼 */
+async function handlePhoneVerifyConfirmButton(interaction: ButtonInteraction) {
+  const user = await findLinkedUser(interaction.user.id);
+  if (!user) {
+    await interaction.reply({ components: [text("먼저 `/연동` 명령어로 계정을 연동해주세요.")], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+    return;
+  }
+  try {
+    const verified = await confirmPhoneVerification(prisma, user.id);
+    const message = verified
+      ? "✅ 휴대폰 인증이 완료됐어요! 이제 무료 서버를 만들 수 있어요."
+      : "아직 문자가 확인되지 않았어요. 보낸 뒤 몇 초 기다렸다가 다시 눌러주세요.";
+    await interaction.reply({ components: [text(message)], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+  } catch (err) {
+    const message = err instanceof PhoneVerificationError ? err.message : "확인 중 오류가 발생했어요.";
+    await interaction.reply({ components: [text(message)], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+  }
 }
 
 /**
@@ -739,6 +802,42 @@ async function handlePanelCommand(interaction: ChatInputCommandInteraction) {
   });
 }
 
+/**
+ * /노드상태패널 — 관리자 DM으로 3시간마다 보내던 노드 점유율 보고를 대체한다. 이 채널을
+ * nodeStatusChannelId로 저장해두면 봇이 5분마다 같은 메시지를 고쳐가며 최신 점유율을 보여준다.
+ */
+async function handleNodeStatusPanelCommand(interaction: ChatInputCommandInteraction) {
+  if (
+    !interaction.inGuild() ||
+    !(
+      interaction.memberPermissions?.has(PermissionFlagsBits.Administrator) ||
+      interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)
+    )
+  ) {
+    await interaction.reply({
+      components: [text("이 명령어는 서버 관리 권한이 있는 분만 사용할 수 있어요.")],
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+    });
+    return;
+  }
+  if (!interaction.channel || !("send" in interaction.channel)) {
+    await interaction.reply({ components: [text("이 채널에는 올릴 수 없어요.")], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+    return;
+  }
+
+  await prisma.botSettings.upsert({
+    where: { id: 1 },
+    update: { nodeStatusChannelId: interaction.channel.id, nodeStatusMessageId: null },
+    create: { id: 1, nodeStatusChannelId: interaction.channel.id },
+  });
+  await updateNodeStatusBoard(interaction.client);
+
+  await interaction.reply({
+    components: [text("✅ 이 채널에 노드 점유율 현황판을 설치했어요. 5분마다 자동으로 갱신돼요.")],
+    flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+  });
+}
+
 /** 규칙 인증 버튼 / 알림 구독 토글 버튼 / 서버관리 패널 버튼 — index.ts의 InteractionCreate에서 호출한다 */
 export async function handleButton(interaction: ButtonInteraction) {
   if (interaction.customId === "verify_rules") return handleVerifyButton(interaction);
@@ -751,6 +850,7 @@ export async function handleButton(interaction: ButtonInteraction) {
   if (interaction.customId === "panel_open_myinfo") return handleMyInfo(interaction);
   if (interaction.customId === "panel_open_servers") return handleServerManagementPanel(interaction);
   if (interaction.customId === "panel_open_points") return handlePointsPanel(interaction);
+  if (interaction.customId === "phoneverify_confirm") return handlePhoneVerifyConfirmButton(interaction);
 }
 
 /** /서버관리 패널의 시작/정지/재시작 버튼 — customId: panel_power_<signal>_<serverId> */

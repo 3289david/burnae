@@ -945,6 +945,9 @@ model BotSettings {
   /// 실시간 집계 현황판이 올라갈 채널 — 개별 고객 서버 정보는 노출하지 않고 전체 통계만 보여준다
   statusBoardChannelId  String?
   statusBoardMessageId  String?
+  /// 노드별 RAM/CPU/저장공간 점유율 현황판(관리자용)이 올라갈 채널
+  nodeStatusChannelId   String?
+  nodeStatusMessageId   String?
   /// 관리자가 공지를 등록하면 자동으로 임베드를 올릴 채널
   announcementChannelId String?
   /// 서버 생성/삭제/이전 같은 이벤트를 기록으로 남길 채널

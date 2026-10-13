@@ -3,6 +3,40 @@ import { createServerForOrder, ProvisioningError } from "@/lib/provisioning";
 import { PteroApp, PteroClient } from "@/lib/pterodactyl";
 import { rewardReferralFirstPayment } from "@/lib/promotions";
 import { logServerActivity } from "@/lib/serverActivityLog";
+import { sendDiscordDM, createPrivateThreadWithMember } from "@/lib/discordNotify";
+import { getBotSettings } from "@/lib/botSettings";
+import type { Order, User } from "@/generated/prisma/client";
+
+/**
+ * "전용서버"류(requiresDedicatedNode) 상품은 실제 물리/가상 장비를 새로 들여야 해서 자동으로
+ * 끝낼 수 없다 — 관리자에게 전용 노드를 배정해달라고 알리고, 고객과는 세부 요구사항을 조율할
+ * 1:1 비공개 채널을 열어준다. dedicatedNodeAlertSent로 주문당 한 번만 보낸다.
+ */
+async function notifyDedicatedNodeNeeded(order: Order & { user: User }) {
+  const admin = await prisma.user.findFirst({ where: { role: "ADMIN" } });
+  if (admin) {
+    const adminLink = await prisma.discordLink.findUnique({ where: { userId: admin.id } });
+    if (adminLink) {
+      await sendDiscordDM(
+        adminLink.discordUserId,
+        `🖥️ 전용서버 주문이 들어왔어요 — **${order.user.name}**(${order.user.email})님에게 전용 노드를 배정해주세요.\n관리자 페이지 > 노드에서 이 유저 이메일로 지정하면 바로 서버가 만들어져요.`,
+      ).catch(() => {});
+    }
+  }
+
+  const customerLink = await prisma.discordLink.findUnique({ where: { userId: order.userId } });
+  const settings = await getBotSettings();
+  if (customerLink && settings?.logChannelId) {
+    await createPrivateThreadWithMember(
+      settings.logChannelId,
+      `전용서버-${order.user.name}`,
+      customerLink.discordUserId,
+      "전용서버 주문 감사해요! 전용 장비를 준비하는 동안 원하시는 사양(용도, 예상 동시 접속/트래픽, 필요한 서버 종류 등)을 여기서 편하게 알려주세요.",
+    ).catch((err) => console.error("[orderFulfillment] 전용서버 상담 채널 개설 실패:", err));
+  }
+
+  await prisma.order.update({ where: { id: order.id }, data: { dedicatedNodeAlertSent: true } });
+}
 
 /**
  * Date.setMonth은 그 달에 없는 날짜(예: 1/31 + 1달 = 2/31)를 다음다음 달로 넘겨버린다(3/3 등) —
@@ -24,7 +58,10 @@ function addOneMonthClamped(date: Date): Date {
  * /api/orders/[id] (select-template)에서 호출한다.
  */
 export async function provisionNewServerOrder(orderId: string) {
-  const order = await prisma.order.findUniqueOrThrow({ where: { id: orderId }, include: { user: true } });
+  const order = await prisma.order.findUniqueOrThrow({
+    where: { id: orderId },
+    include: { user: true, product: true },
+  });
 
   try {
     await createServerForOrder(order.id);
@@ -34,6 +71,11 @@ export async function provisionNewServerOrder(orderId: string) {
       // 크론이 주기적으로 재시도하게 한다 (handlePreorderRetries)
       await prisma.order.update({ where: { id: order.id }, data: { preorderWaiting: true } });
       console.error(`[orderFulfillment] 주문 ${order.id} 노드 자리 없음 — 선주문 대기로 전환:`, err.message);
+      if (order.product?.requiresDedicatedNode && !order.dedicatedNodeAlertSent) {
+        await notifyDedicatedNodeNeeded(order).catch((e) =>
+          console.error("[orderFulfillment] 전용서버 안내 실패:", e),
+        );
+      }
       return;
     }
     throw err;

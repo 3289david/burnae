@@ -18,6 +18,7 @@ interface Node {
   usedCpuPercent: number;
   status: string;
   autoDeployEnabled: boolean;
+  dedicatedToUser: { email: string; name: string } | null;
 }
 
 const empty = {
@@ -79,7 +80,7 @@ export default function AdminNodesPage() {
     }
   }
 
-  async function toggle(id: string, field: "status" | "autoDeployEnabled" | "sftpFqdn", value: string | boolean | null) {
+  async function toggle(id: string, field: "status" | "autoDeployEnabled" | "sftpFqdn" | "dedicatedToUserEmail", value: string | boolean | null) {
     await fetch(`/api/admin/nodes/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -111,6 +112,19 @@ export default function AdminNodesPage() {
                     }}
                     className="input text-xs py-1 w-40"
                   />
+                </label>
+                <label className="flex items-center gap-1.5 text-xs text-text-dim mt-1.5">
+                  전용 배정(이메일)
+                  <input
+                    defaultValue={n.dedicatedToUser?.email ?? ""}
+                    placeholder="비워두면 일반 배치"
+                    onBlur={(e) => {
+                      const v = e.target.value.trim();
+                      if (v !== (n.dedicatedToUser?.email ?? "")) toggle(n.id, "dedicatedToUserEmail", v || null);
+                    }}
+                    className="input text-xs py-1 w-48"
+                  />
+                  {n.dedicatedToUser && <span className="text-accent">({n.dedicatedToUser.name})</span>}
                 </label>
               </div>
               <div className="flex flex-wrap items-center gap-2">

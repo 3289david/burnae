@@ -39,6 +39,9 @@ export async function POST(
   if (server.ownerId !== user.id && user.role !== "ADMIN") {
     return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
   }
+  if (!server.priceMonthlyKrwSnapshot && user.role !== "ADMIN") {
+    return NextResponse.json({ error: "주소를 추가로 더 만드는 건 유료 플랜에서만 쓸 수 있어요." }, { status: 403 });
+  }
 
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "서브도메인 이름을 입력해주세요." }, { status: 422 });

@@ -39,6 +39,9 @@ export async function POST(
   if (server.ownerId !== user.id && user.role !== "ADMIN") {
     return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
   }
+  if (!server.priceMonthlyKrwSnapshot && user.role !== "ADMIN") {
+    return NextResponse.json({ error: "커스텀 도메인 연결은 유료 플랜에서만 쓸 수 있어요." }, { status: 403 });
+  }
   if (!server.allocationIp || !server.allocationPort) {
     return NextResponse.json({ error: "서버가 아직 준비 중입니다." }, { status: 409 });
   }

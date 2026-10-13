@@ -17,6 +17,7 @@ interface Product {
   pointsCost: number | null;
   preorderPriceKrw: number | null;
   aiCreditsPerMonth: number;
+  requiresDedicatedNode: boolean;
   allowedTemplates: Template[];
 }
 
@@ -93,6 +94,15 @@ export default function AdminProductsPage() {
     await load();
   }
 
+  async function toggleDedicatedNode(id: string, requiresDedicatedNode: boolean) {
+    await fetch(`/api/admin/products/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ requiresDedicatedNode }),
+    });
+    await load();
+  }
+
   async function updatePreorderPrice(id: string, value: string) {
     await fetch(`/api/admin/products/${id}`, {
       method: "PUT",
@@ -164,6 +174,10 @@ export default function AdminProductsPage() {
               <label className="text-xs text-text-dim flex items-center gap-1.5">
                 활성
                 <Toggle checked={p.active} onChange={() => toggleActive(p.id, !p.active)} size="sm" />
+              </label>
+              <label className="text-xs text-text-dim flex items-center gap-1.5" title="켜면 일반 배치 풀을 쓰지 않고, 노드 페이지에서 전용 배정한 노드에만 서버를 만들어요">
+                전용 노드
+                <Toggle checked={p.requiresDedicatedNode} onChange={() => toggleDedicatedNode(p.id, !p.requiresDedicatedNode)} size="sm" />
               </label>
               <button
                 onClick={() => deleteProduct(p.id, p.name)}

@@ -34,11 +34,23 @@ export const CPU_PERCENT_PER_CORE = 100;
 /**
  * 요청한 RAM/디스크/CPU를 배치할 수 있는 노드 후보를 여유 RAM이 많은 순으로 정렬해 반환한다.
  * 온라인 + 자동배치 켜진 노드만 대상으로 한다.
+ *
+ * forUserId가 있으면("전용서버"류 상품) 그 유저에게 전용 배정된 노드(HostNode.dedicatedToUserId)만
+ * 대상으로 한다 — 아직 배정 전이면 후보가 0개라 선주문으로 빠진다. forUserId가 없으면(일반 상품)
+ * 전용 배정된 노드는 전부 제외해서, 전용 고객의 자리를 다른 고객이 차지하지 못하게 한다.
  */
-async function findCapacityCandidates(ramMb: number, diskMb: number, cpuPercent: number) {
-  const nodes = await prisma.hostNode.findMany({
+async function findCapacityCandidates(
+  ramMb: number,
+  diskMb: number,
+  cpuPercent: number,
+  forUserId?: string,
+) {
+  const allNodes = await prisma.hostNode.findMany({
     where: { status: "ONLINE", autoDeployEnabled: true },
   });
+  const nodes = forUserId
+    ? allNodes.filter((n) => n.dedicatedToUserId === forUserId)
+    : allNodes.filter((n) => n.dedicatedToUserId === null);
 
   const usage = await prisma.server.groupBy({
     by: ["nodeId"],
@@ -69,19 +81,26 @@ async function findCapacityCandidates(ramMb: number, diskMb: number, cpuPercent:
  * 여러 노드가 등록돼 있으면 RAM/디스크/CPU 여유를 모두 감안해 배치 가능한 노드 중
  * RAM 여유가 가장 큰 곳을 고른다 — 노드 하나가 꽉 차면 자동으로 다음 노드로 넘어간다.
  */
-async function selectNode(ramMb: number, diskMb: number, cpuPercent: number) {
-  const candidates = await findCapacityCandidates(ramMb, diskMb, cpuPercent);
+async function selectNode(ramMb: number, diskMb: number, cpuPercent: number, forUserId?: string) {
+  const candidates = await findCapacityCandidates(ramMb, diskMb, cpuPercent, forUserId);
   if (candidates.length === 0) {
     throw new ProvisioningError(
-      "현재 요청한 리소스를 배치할 수 있는 노드가 없습니다. 관리자에게 문의해주세요.",
+      forUserId
+        ? "아직 전용 노드가 배정되지 않았어요. 관리자가 확인 후 상담 채널로 안내드려요."
+        : "현재 요청한 리소스를 배치할 수 있는 노드가 없습니다. 관리자에게 문의해주세요.",
     );
   }
   return candidates[0].node;
 }
 
 /** 지금 이 리소스를 배치할 수 있는 노드가 하나라도 있는지만 확인 (주문 생성 시 선주문 여부 판단용) */
-export async function hasNodeCapacity(ramMb: number, diskMb: number, cpuPercent: number): Promise<boolean> {
-  const candidates = await findCapacityCandidates(ramMb, diskMb, cpuPercent);
+export async function hasNodeCapacity(
+  ramMb: number,
+  diskMb: number,
+  cpuPercent: number,
+  forUserId?: string,
+): Promise<boolean> {
+  const candidates = await findCapacityCandidates(ramMb, diskMb, cpuPercent, forUserId);
   return candidates.length > 0;
 }
 
@@ -198,7 +217,12 @@ export async function createServerForOrder(orderId: string) {
 
   const settings = await prisma.hostingSettings.findUniqueOrThrow({ where: { id: 1 } });
 
-  const node = await selectNode(product.ramMb, product.diskMb, product.cpuPercent);
+  const node = await selectNode(
+    product.ramMb,
+    product.diskMb,
+    product.cpuPercent,
+    product.requiresDedicatedNode ? order.userId : undefined,
+  );
 
   const [firstName, ...rest] = order.user.name.split(" ");
   const pteroUser = await PteroApp.findOrCreateUser({

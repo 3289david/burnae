@@ -19,6 +19,7 @@ const schema = z.object({
   pointsRedeemable: z.boolean().optional(),
   pointsCost: z.number().int().min(0).optional(),
   preorderPriceKrw: z.number().int().min(0).nullable().optional(),
+  requiresDedicatedNode: z.boolean().optional(),
 });
 
 export const PUT = withApiErrorHandling(async (

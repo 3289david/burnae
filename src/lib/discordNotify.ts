@@ -126,6 +126,49 @@ export async function upsertDiscordChannelMessage(
   return sendDiscordChannelMessage(channelId, payload);
 }
 
+/**
+ * 지정한 채널 밑에 비공개 스레드를 만들고, 그 유저를 멤버로 추가한 뒤 첫 메시지를 보낸다.
+ * (봇의 라이브 게이트웨이 연결 없이 REST만으로 — /문의 명령어의 interaction.channel.threads.create와
+ * 같은 동작이지만, 여기선 Next.js 앱에서 결제 확인 직후처럼 상호작용 없이 서버 쪽에서 직접 트리거한다)
+ * 비공개 스레드는 길드가 Community 기능(부스트 레벨 2)을 갖춰야 생성할 수 있다.
+ */
+export async function createPrivateThreadWithMember(
+  parentChannelId: string,
+  name: string,
+  discordUserId: string,
+  firstMessage: string,
+): Promise<string | null> {
+  const headers = botHeaders();
+  if (!headers) return null;
+  try {
+    const threadRes = await fetch(`${DISCORD_API}/channels/${parentChannelId}/threads`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ name: name.slice(0, 90), type: 12, invitable: false, auto_archive_duration: 10080 }),
+    });
+    if (!threadRes.ok) {
+      console.error("[discordNotify] 비공개 스레드 생성 실패:", threadRes.status, await threadRes.text().catch(() => ""));
+      return null;
+    }
+    const thread = await threadRes.json();
+
+    await fetch(`${DISCORD_API}/channels/${thread.id}/thread-members/${discordUserId}`, {
+      method: "PUT",
+      headers,
+    });
+    await fetch(`${DISCORD_API}/channels/${thread.id}/messages`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ content: `<@${discordUserId}> ${firstMessage}` }),
+    });
+
+    return thread.id as string;
+  } catch (err) {
+    console.error("[discordNotify] 비공개 스레드 생성 실패:", err);
+    return null;
+  }
+}
+
 /** 길드 멤버에게 역할을 부여한다. 연동 안 된 유저이거나 실패해도 예외를 던지지 않고 false만 돌려준다 */
 export async function addDiscordRole(discordUserId: string, roleId: string): Promise<boolean> {
   const headers = botHeaders();

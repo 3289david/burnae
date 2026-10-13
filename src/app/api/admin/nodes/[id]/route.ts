@@ -14,6 +14,8 @@ const schema = z.object({
   sftpPort: z.number().int().min(1).max(65535).optional(),
   status: z.enum(["ONLINE", "OFFLINE", "MAINTENANCE"]).optional(),
   autoDeployEnabled: z.boolean().optional(),
+  /// 이 이메일의 유저에게 노드를 통째로 전용 배정한다. 빈 문자열/null이면 배정 해제
+  dedicatedToUserEmail: z.string().nullable().optional(),
 });
 
 export async function PUT(
@@ -28,8 +30,23 @@ export async function PUT(
   if (!parsed.success) {
     return NextResponse.json({ error: "입력값이 올바르지 않습니다." }, { status: 422 });
   }
+  const { dedicatedToUserEmail, ...data } = parsed.data;
 
-  const node = await prisma.hostNode.update({ where: { id }, data: parsed.data });
+  let dedicatedToUserId: string | null | undefined = undefined;
+  if (dedicatedToUserEmail !== undefined) {
+    if (!dedicatedToUserEmail) {
+      dedicatedToUserId = null;
+    } else {
+      const target = await prisma.user.findUnique({ where: { email: dedicatedToUserEmail.toLowerCase() } });
+      if (!target) return NextResponse.json({ error: "해당 이메일의 유저를 찾을 수 없어요." }, { status: 404 });
+      dedicatedToUserId = target.id;
+    }
+  }
+
+  const node = await prisma.hostNode.update({
+    where: { id },
+    data: { ...data, ...(dedicatedToUserId !== undefined ? { dedicatedToUserId } : {}) },
+  });
   return NextResponse.json(node);
 }
 

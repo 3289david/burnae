@@ -11,7 +11,10 @@ export async function GET() {
 
   const nodes = await prisma.hostNode.findMany({
     orderBy: { createdAt: "asc" },
-    include: { _count: { select: { servers: { where: { deletedAt: null } } } } },
+    include: {
+      _count: { select: { servers: { where: { deletedAt: null } } } },
+      dedicatedToUser: { select: { email: true, name: true } },
+    },
   });
 
   const usage = await prisma.server.groupBy({

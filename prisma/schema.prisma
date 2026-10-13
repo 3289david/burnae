@@ -84,6 +84,7 @@ model User {
   serverActivityLogs   ServerActivityLog[]
   phoneVerificationRequest PhoneVerificationRequest?
   emailVerificationToken EmailVerificationToken?
+  dedicatedNode            HostNode?              @relation("DedicatedNode")
 
   @@index([email])
   @@index([referralCode])
@@ -160,6 +161,10 @@ model HostNode {
   sftpPort          Int        @default(2022)
   status            NodeStatus @default(ONLINE)
   autoDeployEnabled Boolean    @default(true)
+  /// 이 노드를 유저 한 명에게 통째로 전용 배정했으면 채워진다. 채워진 노드는 일반 배치
+  /// 풀에서 제외되고, 오직 이 유저의 "전용서버"류 상품 주문만 여기로 배치된다
+  dedicatedToUserId String?    @unique
+  dedicatedToUser   User?      @relation("DedicatedNode", fields: [dedicatedToUserId], references: [id])
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
 
@@ -301,6 +306,9 @@ model Product {
   pointsCost        Int?
   /// 주문 시점에 자리가 없어 "선주문"이 되는 경우 적용할 가격. null이면 priceMonthlyKrw 그대로 사용
   preorderPriceKrw  Int?
+  /// true면 일반 배치 풀이 아니라 그 유저에게 전용 배정된 노드(HostNode.dedicatedToUserId)에만
+  /// 배치한다. 아직 전용 노드가 없으면 선주문으로 대기하고 관리자에게 배정을 요청하는 알림이 간다
+  requiresDedicatedNode Boolean @default(false)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -381,6 +389,9 @@ model Order {
   /// 주문 시점부터 이미 "선주문"으로 안내되고 진행된 주문인지 (preorderPriceKrw 적용 여부 판단용).
   /// preorderWaiting은 이후 자리가 나면 false로 풀리지만, isPreorder는 기록으로 계속 남는다
   isPreorder                Boolean     @default(false)
+  /// 전용 노드가 아직 배정되지 않아 선주문 대기 중일 때, 관리자 알림+고객 상담 채널 개설을
+  /// 한 번만 보내기 위한 중복 방지 플래그
+  dedicatedNodeAlertSent    Boolean     @default(false)
   createdAt                 DateTime    @default(now())
 
   @@index([userId])

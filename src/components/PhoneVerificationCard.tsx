@@ -1,9 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Smartphone, Copy, Check } from "lucide-react";
+import { Smartphone, Copy, Check, MessageSquareText } from "lucide-react";
 
 type Step = "idle" | "waiting" | "done";
+
+/** sms: 링크를 누르면 휴대폰의 문자 앱이 수신번호+내용까지 채워진 채로 바로 열린다 (iOS/Android 구분자가 달라서 분기) */
+function smsLink(number: string, body: string) {
+  const digits = number.replace(/[^0-9]/g, "");
+  const isIOS = typeof navigator !== "undefined" && /iPad|iPhone|iPod/.test(navigator.userAgent);
+  return `sms:${digits}${isIOS ? "&" : "?"}body=${encodeURIComponent(body)}`;
+}
 
 /**
  * OCTOMO 문자 발신(MO) 인증 — 번호를 입력하면 보낼 코드를 발급해주고, 유저가 자기 휴대폰으로
@@ -123,11 +130,17 @@ export default function PhoneVerificationCard({ verified: initialVerified }: { v
               {copied ? <Check size={14} /> : <Copy size={14} />}
             </button>
           </div>
-          <p className="text-xs text-text-dim">보낸 뒤 아래 버튼을 눌러주세요 (문자 요금이 발생해요).</p>
+          <a
+            href={smsLink(targetNumber, code)}
+            className="btn-primary w-full py-2 text-sm flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
+          >
+            <MessageSquareText size={14} /> 문자 바로 보내기
+          </a>
+          <p className="text-xs text-text-dim">누르면 문자 앱이 내용까지 채워진 채로 열려요 — 보내기만 누르면 돼요 (문자 요금이 발생해요).</p>
           <button
             onClick={confirmVerification}
             disabled={busy}
-            className="btn-primary w-full py-2 text-sm active:scale-95 transition-transform disabled:opacity-40"
+            className="btn-secondary w-full py-2 text-sm active:scale-95 transition-transform disabled:opacity-40"
           >
             {busy ? "확인 중..." : "문자 보냈어요 - 확인하기"}
           </button>

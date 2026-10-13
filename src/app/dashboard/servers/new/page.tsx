@@ -157,8 +157,8 @@ const LOADER_META: Record<string, { icon: typeof Package; color: string; blurb: 
   "java-generic": { icon: Code2, color: "var(--flame-2)", blurb: "Java(.jar) 직접 업로드" },
   "csharp-generic": { icon: Code2, color: "var(--purple)", blurb: "C#/.NET 직접 업로드" },
   "rust-generic": { icon: Code2, color: "var(--flame-2)", blurb: "Rust 코드 직접 업로드" },
-  "deno-generic": { icon: Code2, color: "var(--blue)", blurb: "Deno 런타임 코드 직접 업로드" },
-  "bun-generic": { icon: Code2, color: "var(--yellow)", blurb: "Bun 런타임 코드 직접 업로드" },
+  "deno-generic": { icon: Code2, color: "var(--blue)", blurb: "Deno 코드 직접 업로드" },
+  "bun-generic": { icon: Code2, color: "var(--yellow)", blurb: "Bun 코드 직접 업로드" },
   "uptime-kuma": { icon: Activity, color: "var(--green)", blurb: "서버·사이트 다운타임 모니터링" },
   gitea: { icon: Box, color: "var(--lime)", blurb: "가벼운 자체 호스팅 깃 서버" },
   "postgres-16": { icon: Database, color: "var(--blue)", blurb: "관계형 DB 서버" },
@@ -614,7 +614,7 @@ function NewServerPageInner() {
             title={stillWaitingForNode ? "선주문으로 접수됐어요!" : "서버를 만들고 있어요!"}
             subtitle={
               stillWaitingForNode
-                ? "지금은 배치할 노드 자리가 없어서 선주문으로 접수됐어요. 자리가 나는 대로 자동으로 서버가 생성돼요."
+                ? "지금은 배치할 자리가 없어서 선주문으로 접수됐어요. 자리가 나는 대로 자동으로 서버가 생성돼요."
                 : "잠시 후 서버 페이지로 이동할게요..."
             }
             icon={
@@ -636,7 +636,7 @@ function NewServerPageInner() {
             </p>
             <p className="text-sm text-text-dim mt-1">
               {stillWaitingForNode
-                ? "지금은 배치할 노드 자리가 없어서 선주문으로 접수됐어요. 자리가 나는 대로 자동으로 서버가 생성돼요."
+                ? "지금은 배치할 자리가 없어서 선주문으로 접수됐어요. 자리가 나는 대로 자동으로 서버가 생성돼요."
                 : "잠시 후 서버 페이지로 이동할게요..."}
             </p>
           </div>
@@ -797,7 +797,7 @@ function NewServerPageInner() {
                     <h4 className="font-semibold text-sm">내 커뮤니티 프리셋 공유하기</h4>
                     <p className="text-xs text-text-dim">
                       일반 실행 환경(Node.js/Python 등 — 음악봇처럼 이미 완성된 종류는 고를 수 없어요)을
-                      고르고 내 코드가 있는 GitHub 저장소 주소를 붙여서 공개해요. 환경변수(봇 토큰 등)는
+                      고르고 내 코드가 있는 GitHub 저장소 주소를 붙여서 공개해요. 설정값(봇 토큰 등)는
                       여기서 넣지 않아요 — 이 프리셋으로 서버를 만드는 사람이 직접 입력해요. 다른 사람이
                       이 프리셋으로 서버를 만들 때마다 포인트가 쌓여요.
                     </p>
@@ -806,7 +806,7 @@ function NewServerPageInner() {
                       value={presetFormTemplateId}
                       onChange={(e) => setPresetFormTemplateId(e.target.value)}
                     >
-                      <option value="">실행 환경(런타임) 선택</option>
+                      <option value="">실행 환경 선택</option>
                       {gitRuntimeTemplates.map((t) => (
                         <option key={t.id} value={t.id}>{t.displayName}</option>
                       ))}
@@ -924,7 +924,7 @@ function NewServerPageInner() {
           )}
 
           {selectedTemplate && Object.keys(selectedTemplate.availableDockerImages ?? {}).length > 1 && (
-            <Section step={stepFor("dockerImage")} title="런타임 버전">
+            <Section step={stepFor("dockerImage")} title="버전">
               <div className="flex flex-wrap gap-2">
                 {Object.entries(selectedTemplate.availableDockerImages!).map(([label, image]) => {
                   const active = image === dockerImage;

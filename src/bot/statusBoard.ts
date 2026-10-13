@@ -33,7 +33,7 @@ async function updateStatusBoard(client: Client) {
     .addTextDisplayComponents(heading("🖥️ Burnae 실시간 현황"))
     .addTextDisplayComponents(
       text(
-        `**가동 중인 서버**  ${runningCount}개\n**전체 등록 서버**  ${totalCount}개\n**노드 상태**  ${onlineNodes}/${nodes.length} 온라인`,
+        `**가동 중인 서버**  ${runningCount}개\n**전체 등록 서버**  ${totalCount}개\n**운영 상태**  ${onlineNodes}/${nodes.length} 정상`,
       ),
     )
     .addTextDisplayComponents(subtext(`${new Date().toLocaleTimeString("ko-KR")} 기준 · 1분마다 자동 갱신`));

@@ -174,9 +174,6 @@ export default async function HomePage() {
               <Link href="/register" className="btn-primary px-7 py-3.5 text-base inline-flex items-center gap-2">
                 무료로 시작하기 <ArrowRight size={18} />
               </Link>
-              <Link href="#pricing" className="btn-secondary px-7 py-3.5 text-base">
-                가격 보기
-              </Link>
               {discordInviteUrl && (
                 <a
                   href={discordInviteUrl}

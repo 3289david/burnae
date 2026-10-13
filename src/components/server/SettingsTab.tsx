@@ -289,8 +289,8 @@ export default function SettingsTab({
         <h3 className="font-semibold text-sm">서버 재설치</h3>
         <p className="text-xs text-text-dim">
           {isMinecraft
-            ? "서버 종류의 설치 스크립트를 다시 실행해 초기 상태로 되돌려요. 월드 등 대부분의 파일이 사라질 수 있어요."
-            : "설치 스크립트를 다시 실행해 초기 상태로 되돌려요. GitHub repo에서 새로 배포하거나 꼬인 설치를 고칠 때 유용해요. 대부분의 파일이 사라질 수 있어요."}
+            ? "서버를 처음 만들 때 상태로 다시 설치해요. 월드 등 대부분의 파일이 사라질 수 있어요."
+            : "서버를 처음 만들 때 상태로 다시 설치해요. GitHub 저장소를 새로 연결하거나 설치가 꼬였을 때 유용해요. 대부분의 파일이 사라질 수 있어요."}
         </p>
         <button onClick={reinstall} disabled={reinstalling} className="btn-secondary px-4 py-2 text-sm active:scale-95 transition-transform">
           {reinstalling ? "재설치 중..." : "재설치"}

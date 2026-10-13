@@ -56,8 +56,8 @@ export default function SftpCard({ serverId }: { serverId: string }) {
           <HardDriveDownload size={15} className="text-accent" />
         </span>
         <div>
-          <h3 className="font-semibold text-sm">SFTP 접속</h3>
-          <p className="text-xs text-text-dim">에디터·rsync·git으로 파일에 직접 접근할 수 있어요.</p>
+          <h3 className="font-semibold text-sm">파일 전송 접속 정보</h3>
+          <p className="text-xs text-text-dim">내 컴퓨터의 파일 전송 프로그램(FTP 클라이언트)에 아래 정보를 입력하면 서버 파일을 직접 다룰 수 있어요.</p>
         </div>
       </div>
 

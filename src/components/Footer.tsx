@@ -12,6 +12,7 @@ export default function Footer() {
         <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-text-dim">
           <Link href="/legal/terms" className="hover:text-text">이용약관</Link>
           <Link href="/legal/privacy" className="hover:text-text">개인정보처리방침</Link>
+          <Link href="/legal/refund" className="hover:text-text">환불정책</Link>
           <Link href="/register" className="hover:text-text">시작하기</Link>
         </nav>
       </div>

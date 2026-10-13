@@ -136,6 +136,10 @@ export const commandDefinitions = [
     .setName("노드상태패널")
     .setDescription("[관리자] 이 채널에 노드별 RAM/CPU/저장공간 점유율 현황판을 설치합니다 (5분마다 자동 갱신).")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+  new SlashCommandBuilder()
+    .setName("알림받기패널")
+    .setDescription("[관리자] 이 채널에 공지 알림 받기 버튼 패널을 설치합니다.")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
 ].map((c) => c.toJSON());
 
 async function findLinkedUser(discordUserId: string) {
@@ -221,6 +225,8 @@ export async function handleCommand(interaction: ChatInputCommandInteraction) {
       return handlePanelCommand(interaction);
     case "노드상태패널":
       return handleNodeStatusPanelCommand(interaction);
+    case "알림받기패널":
+      return handleNotificationPanelCommand(interaction);
   }
 }
 
@@ -888,6 +894,41 @@ async function handleNodeStatusPanelCommand(interaction: ChatInputCommandInterac
 
   await interaction.reply({
     components: [text("✅ 이 채널에 노드 점유율 현황판을 설치했어요. 5분마다 자동으로 갱신돼요.")],
+    flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+  });
+}
+
+/**
+ * /알림받기패널 — 관리자가 채널에 한 번 올려두는 고정 패널. 버튼은 기존 /알림설정과 같은
+ * toggle_subscriber를 그대로 쓴다(누른 사람 기준으로 역할이 켜지거나 꺼짐).
+ */
+async function handleNotificationPanelCommand(interaction: ChatInputCommandInteraction) {
+  if (
+    !interaction.inGuild() ||
+    !(
+      interaction.memberPermissions?.has(PermissionFlagsBits.Administrator) ||
+      interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)
+    )
+  ) {
+    await interaction.reply({
+      components: [text("이 명령어는 서버 관리 권한이 있는 분만 사용할 수 있어요.")],
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+    });
+    return;
+  }
+  if (!interaction.channel || !("send" in interaction.channel)) {
+    await interaction.reply({ components: [text("이 채널에는 올릴 수 없어요.")], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+    return;
+  }
+
+  const container = panel()
+    .addTextDisplayComponents(heading("🔔 공지 알림 받기"))
+    .addTextDisplayComponents(text("아래 버튼을 누르면 공지 알림 받기가 켜져요. 다시 누르면 꺼져요."))
+    .addActionRowComponents(buttonRow(actionButton("toggle_subscriber", "🔔 공지 알림 켜기/끄기")));
+
+  await interaction.channel.send({ components: [container], flags: MessageFlags.IsComponentsV2 });
+  await interaction.reply({
+    components: [text("✅ 이 채널에 알림받기 패널을 올렸어요.")],
     flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
   });
 }

@@ -63,7 +63,7 @@ export default function SftpCard({ serverId }: { serverId: string }) {
 
       <div className="grid grid-cols-2 gap-y-1.5 text-sm items-center">
         <span className="text-text-dim">호스트</span>
-        <button onClick={() => copy("host", info.host)} className="font-mono text-left inline-flex items-center gap-1.5 hover:text-accent active:scale-95 transition-transform w-fit">
+        <button onClick={() => copy("host", `sftp://${info.host}`)} className="font-mono text-left inline-flex items-center gap-1.5 hover:text-accent active:scale-95 transition-transform w-fit">
           {info.host} {copied === "host" ? <Check size={12} className="text-green animate-toast-in" /> : <Copy size={11} className="text-text-dim" />}
         </button>
         <span className="text-text-dim">포트</span>

@@ -32,10 +32,18 @@ export const GET = withApiErrorHandling(async (
   }
 
   const { owner, node } = await loadOwnerAndNode(server);
+
+  // 패널 유저명은 항상 panelUsernameForUser 규칙대로 만들어지는 게 아니다(가입 전부터 있던 패널 계정을
+  // findOrCreateUser가 이메일로 찾아 그대로 재사용하는 경우 유저명이 다를 수 있음) — 실제 패널 유저명을
+  // 조회해서 써야 SFTP 로그인이 틀어지지 않는다.
+  const panelUsername = owner.pterodactylUserId
+    ? (await PteroApp.getUser(owner.pterodactylUserId)).username
+    : panelUsernameForUser(owner.id);
+
   return NextResponse.json({
     host: node.sftpFqdn || node.fqdn,
     port: node.sftpPort,
-    username: `${panelUsernameForUser(owner.id)}.${server.pterodactylIdentifier}`,
+    username: `${panelUsername}.${server.pterodactylIdentifier}`,
     hasPassword: !!owner.sftpPassword,
   });
 });

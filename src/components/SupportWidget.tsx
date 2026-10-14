@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, X } from "lucide-react";
+import { DiscordLogo } from "@/components/ProviderIcons";
+
+const DISCORD_INVITE_URL = process.env.NEXT_PUBLIC_DISCORD_SERVER_INVITE_URL;
 
 interface SupportMessage {
   id: string;
@@ -17,7 +20,8 @@ interface SupportThread {
 
 const POLL_MS = 8000;
 
-export default function SupportCard() {
+/** 화면 우측 하단에 떠 있는 상담 버튼 — 누르면 패널이 열리고, 대시보드 어디서나 떠 있다 */
+export default function SupportWidget() {
   const [thread, setThread] = useState<SupportThread | null>(null);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -31,10 +35,6 @@ export default function SupportCard() {
       .then(setThread)
       .catch(() => {});
   }
-
-  useEffect(() => {
-    load();
-  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -70,25 +70,31 @@ export default function SupportCard() {
   }
 
   return (
-    <div className="card-glow p-5 space-y-3 animate-fade-up">
-      <button onClick={() => setOpen((v) => !v)} className="w-full flex items-center justify-between">
-        <span className="font-semibold text-sm flex items-center gap-1.5">
-          <MessageCircle size={16} className="text-accent" /> 고객지원
-        </span>
-        <span className="text-xs text-text-dim">{open ? "접기" : "문의하기"}</span>
-      </button>
-
-      {!open && (
-        <p className="text-xs text-text-dim">
-          궁금한 점을 적으면 관리자가 여기서 바로 답장해줘요. 급하면 문자 상담 070-8970-6766로도 연락할 수 있어요.
-        </p>
-      )}
-
+    <div className="fixed bottom-5 right-5 z-50">
       {open && (
-        <>
-          <div className="max-h-72 overflow-y-auto space-y-2 border border-border rounded-lg p-3">
+        <div className="mb-3 w-80 max-w-[calc(100vw-2.5rem)] card-glow p-4 flex flex-col shadow-xl animate-fade-up">
+          <div className="flex items-center justify-between pb-2 border-b border-border">
+            <p className="font-semibold text-sm flex items-center gap-1.5">
+              <MessageCircle size={16} className="text-accent" /> 고객지원
+            </p>
+            <button onClick={() => setOpen(false)} className="text-text-dim hover:text-text">
+              <X size={16} />
+            </button>
+          </div>
+
+          <div className="py-2 text-xs text-text-dim space-y-0.5 border-b border-border">
+            <p>📱 문자 상담 070-8970-6766</p>
+            <p>📠 팩스 0504-417-2275</p>
+            {DISCORD_INVITE_URL && (
+              <a href={DISCORD_INVITE_URL} target="_blank" rel="noreferrer" className="flex items-center gap-1 hover:text-text">
+                <DiscordLogo size={12} /> 공식 디스코드 참여
+              </a>
+            )}
+          </div>
+
+          <div className="max-h-72 min-h-32 overflow-y-auto space-y-2 py-2">
             {(thread?.messages.length ?? 0) === 0 && (
-              <p className="text-xs text-text-dim text-center py-4">아직 대화가 없어요. 아래에 메시지를 보내보세요.</p>
+              <p className="text-xs text-text-dim text-center py-6">궁금한 점을 적어서 보내면 관리자가 답장해줘요.</p>
             )}
             {thread?.messages.map((m) => (
               <div key={m.id} className={`flex ${m.senderRole === "USER" ? "justify-end" : "justify-start"}`}>
@@ -104,7 +110,7 @@ export default function SupportCard() {
             <div ref={bottomRef} />
           </div>
 
-          <form onSubmit={submit} className="flex gap-2">
+          <form onSubmit={submit} className="flex gap-2 pt-2 border-t border-border">
             <input
               className="input flex-1 text-sm"
               placeholder="메시지를 입력해주세요"
@@ -120,9 +126,17 @@ export default function SupportCard() {
               전송
             </button>
           </form>
-          {error && <p className="text-xs text-red">{error}</p>}
-        </>
+          {error && <p className="text-xs text-red mt-1">{error}</p>}
+        </div>
       )}
+
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-14 h-14 rounded-full bg-accent text-white shadow-xl flex items-center justify-center active:scale-95 transition-transform hover:brightness-110"
+        aria-label="고객지원"
+      >
+        {open ? <X size={22} /> : <MessageCircle size={22} />}
+      </button>
     </div>
   );
 }

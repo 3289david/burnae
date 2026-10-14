@@ -110,6 +110,9 @@ export default function EmailLoginForm() {
           {resendDone ? "인증 메일을 다시 보냈어요" : "인증 메일 다시 받기"}
         </button>
       )}
+      {needsVerification && (
+        <p className="text-xs text-text-dim">메일이 안 보이면 스팸함(스팸 메일함)도 확인해주세요.</p>
+      )}
       {error && <p className="text-xs text-red">{error}</p>}
     </form>
   );

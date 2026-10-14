@@ -33,7 +33,8 @@ export default function EmailRegisterForm({ referralCode }: { referralCode?: str
   if (sent) {
     return (
       <div className="card-glow p-4 text-sm animate-toast-in">
-        <strong>{email}</strong>로 인증 메일을 보냈어요. 메일의 버튼을 누르면 바로 로그인돼요.
+        <p><strong>{email}</strong>로 인증 메일을 보냈어요. 메일의 버튼을 누르면 바로 로그인돼요.</p>
+        <p className="text-xs text-text-dim mt-1.5">메일이 안 보이면 스팸함(스팸 메일함)도 확인해주세요.</p>
       </div>
     );
   }

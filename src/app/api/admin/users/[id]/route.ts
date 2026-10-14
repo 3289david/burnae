@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdminRole, isSuperAdmin, getAdminEmail } from "@/lib/auth";
+import { addDiscordRole, removeDiscordRole } from "@/lib/discordNotify";
 
 const schema = z.object({
   status: z.enum(["ACTIVE", "SUSPENDED"]).optional(),
@@ -55,6 +56,28 @@ export async function PATCH(
       metadata: parsed.data,
     },
   });
+
+  // adminRole이 바뀌었으면 디스코드 역할도 맞춰준다 — purchaserRoleId/customerRoleId와 같은 패턴.
+  // 디스코드 연동이 안 돼 있거나 역할 ID가 설정 안 돼 있으면 조용히 무시한다(응답을 막지 않음).
+  if (adminRole !== undefined) {
+    void (async () => {
+      try {
+        const [link, botSettings] = await Promise.all([
+          prisma.discordLink.findUnique({ where: { userId: id } }),
+          prisma.botSettings.findUnique({ where: { id: 1 } }),
+        ]);
+        const roleId = botSettings?.adminRoleId;
+        if (!link || !roleId) return;
+        if (adminRole) {
+          await addDiscordRole(link.discordUserId, roleId);
+        } else {
+          await removeDiscordRole(link.discordUserId, roleId);
+        }
+      } catch (err) {
+        console.error("[admin/users] 디스코드 관리자 역할 동기화 실패:", err);
+      }
+    })();
+  }
 
   return NextResponse.json({ id: user.id, email: user.email, status: user.status, role: user.role, adminRole: user.adminRole });
 }

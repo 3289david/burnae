@@ -185,3 +185,20 @@ export async function addDiscordRole(discordUserId: string, roleId: string): Pro
     return false;
   }
 }
+
+/** 길드 멤버에게서 역할을 회수한다. 연동 안 된 유저이거나 실패해도 예외를 던지지 않고 false만 돌려준다 */
+export async function removeDiscordRole(discordUserId: string, roleId: string): Promise<boolean> {
+  const headers = botHeaders();
+  const guildId = process.env.DISCORD_GUILD_ID;
+  if (!headers || !guildId) return false;
+  try {
+    const res = await fetch(
+      `${DISCORD_API}/guilds/${guildId}/members/${discordUserId}/roles/${roleId}`,
+      { method: "DELETE", headers },
+    );
+    return res.ok;
+  } catch (err) {
+    console.error("[discordNotify] 역할 회수 실패:", err);
+    return false;
+  }
+}

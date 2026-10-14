@@ -20,6 +20,7 @@ const schema = z.object({
   verifiedRoleId: z.string().min(1).optional().nullable(),
   purchaserRoleId: z.string().min(1).optional().nullable(),
   subscriberRoleId: z.string().min(1).optional().nullable(),
+  adminRoleId: z.string().min(1).optional().nullable(),
   rulesTitle: z.string().min(1).max(100).optional(),
   rulesContent: z.string().max(3800).optional(),
   rulesChannelId: z.string().min(1).optional().nullable(),

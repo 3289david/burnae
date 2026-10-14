@@ -7,6 +7,7 @@ interface BotSettings {
   verifiedRoleId: string | null;
   purchaserRoleId: string | null;
   subscriberRoleId: string | null;
+  adminRoleId: string | null;
   rulesTitle: string;
   rulesContent: string;
   rulesChannelId: string | null;
@@ -30,6 +31,7 @@ const ROLE_FIELDS: { key: keyof BotSettings; label: string; hint: string }[] = [
   { key: "verifiedRoleId", label: "인증 완료 역할 ID", hint: "규칙 임베드의 ✅ 인증하기 버튼을 누르면 부여" },
   { key: "purchaserRoleId", label: "구매자 역할 ID", hint: "서버(유료/포인트 교환 모두)를 만들면 자동 부여" },
   { key: "subscriberRoleId", label: "공지 알림 역할 ID", hint: "/알림설정 버튼으로 유저가 스스로 켜고 끔" },
+  { key: "adminRoleId", label: "관리자 역할 ID", hint: "Burnae 관리자 권한이 생기면 자동 부여, 없어지면 자동 회수" },
 ];
 
 const CHANNEL_FIELDS: { key: keyof BotSettings; label: string; hint: string }[] = [

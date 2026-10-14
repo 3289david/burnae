@@ -1017,6 +1017,8 @@ model BotSettings {
   purchaserRoleId       String?
   /// "공지 알림 받기" 버튼으로 스스로 토글하는 역할
   subscriberRoleId      String?
+  /// Burnae 관리자 권한(adminRole)이 생기면 자동으로 부여하고, 없어지면 자동으로 회수하는 역할
+  adminRoleId           String?
   rulesTitle            String   @default("📜 서버 규칙")
   rulesContent          String   @default("")
   /// 규칙+인증 임베드가 올라갈 채널. 저장 시 이 채널에 없으면 새로 올리고, 있으면 있는 메시지를 수정한다

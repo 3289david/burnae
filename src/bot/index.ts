@@ -6,6 +6,8 @@ import { startStatusBoard } from "./statusBoard";
 import { startNodeStatusBoard } from "./nodeStatusBoard";
 import { startActivityRewards } from "./activityRewards";
 import { startMentionGuard } from "./mentionGuard";
+import { startAntiRaid } from "./antiRaid";
+import { startAntiSpam } from "./antiSpam";
 import { prisma } from "./prismaClient";
 
 /**
@@ -45,6 +47,8 @@ client.once(Events.ClientReady, (c) => {
   startNodeStatusBoard(client);
   startActivityRewards(client, officialGuildId);
   startMentionGuard(client, officialGuildId);
+  startAntiRaid(client, officialGuildId);
+  startAntiSpam(client, officialGuildId);
 });
 
 client.on(Events.GuildMemberAdd, async (member) => {

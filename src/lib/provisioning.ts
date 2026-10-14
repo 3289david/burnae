@@ -385,9 +385,12 @@ export async function createServerForOrder(orderId: string) {
   // 마인크래프트 EULA 자동 동의 — 이걸 안 하면 서버가 뜨자마자 "eula=false"로 바로 종료되고,
   // Wings 크래시 감지가 그 정상 종료를 크래시로 오인해서 무한 재시작 루프에 빠진다.
   // 설치가 끝나기 전엔 파일이 없을 수 있어 몇 번 재시도한다.
-  acceptEulaWithRetry(pteroServer.identifier).catch((err) => {
-    console.error("[provisioning] EULA 자동 동의 실패:", err);
-  });
+  // 마인크래프트 egg가 아니면 eula.txt 자체가 의미 없으니 만들지 않는다.
+  if (template.category === "MINECRAFT") {
+    acceptEulaWithRetry(pteroServer.identifier).catch((err) => {
+      console.error("[provisioning] EULA 자동 동의 실패:", err);
+    });
+  }
 
   return server;
 }

@@ -32,41 +32,65 @@ export default function ConsoleTab({
   useEffect(() => {
     let closedByUs = false;
     let ws: WebSocket | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let attempt = 0;
+
+    // 소켓이 끊겼을 때(네트워크 순단, 노드 쪽 일시적 연결 끊김 등) 그냥 "연결 중..."에 멈춰있지
+    // 않고 점점 늘어나는 간격(1s→2s→4s→8s, 최대 10s)으로 스스로 다시 붙는다.
+    function scheduleReconnect() {
+      if (closedByUs) return;
+      attempt += 1;
+      const delay = Math.min(1000 * 2 ** (attempt - 1), 10000);
+      reconnectTimer = setTimeout(connect, delay);
+    }
 
     async function connect() {
-      const res = await fetch(`/api/servers/${serverId}/websocket`);
-      if (!res.ok) return;
-      const { token, socket } = await res.json();
-      if (closedByUs) return;
+      try {
+        const res = await fetch(`/api/servers/${serverId}/websocket`);
+        if (!res.ok) throw new Error("websocket 자격 증명 발급 실패");
+        const { token, socket } = await res.json();
+        if (closedByUs) return;
 
-      ws = new WebSocket(socket);
-      wsRef.current = ws;
+        ws = new WebSocket(socket);
+        wsRef.current = ws;
 
-      ws.onopen = () => ws?.send(JSON.stringify({ event: "auth", args: [token] }));
+        ws.onopen = () => {
+          attempt = 0;
+          ws?.send(JSON.stringify({ event: "auth", args: [token] }));
+        };
 
-      ws.onmessage = (evt) => {
-        const frame: WsFrame = JSON.parse(evt.data);
-        if (frame.event === "auth success") {
-          setConnected(true);
-          // 접속하자마자 지금까지의 콘솔 출력(백로그)도 요청해서 이어서 보여준다
-          ws?.send(JSON.stringify({ event: "send logs", args: [null] }));
-        }
-        if (frame.event === "console output" && frame.args?.[0]) {
-          setLines((prev) => [...prev.slice(-500), frame.args![0]]);
-        }
-        if (frame.event === "token expiring") {
-          fetch(`/api/servers/${serverId}/websocket`)
-            .then((r) => r.json())
-            .then((d) => ws?.send(JSON.stringify({ event: "auth", args: [d.token] })));
-        }
-      };
+        ws.onmessage = (evt) => {
+          const frame: WsFrame = JSON.parse(evt.data);
+          if (frame.event === "auth success") {
+            setConnected(true);
+            // 접속하자마자 지금까지의 콘솔 출력(백로그)도 요청해서 이어서 보여준다
+            ws?.send(JSON.stringify({ event: "send logs", args: [null] }));
+          }
+          if (frame.event === "console output" && frame.args?.[0]) {
+            setLines((prev) => [...prev.slice(-500), frame.args![0]]);
+          }
+          if (frame.event === "token expiring") {
+            fetch(`/api/servers/${serverId}/websocket`)
+              .then((r) => r.json())
+              .then((d) => ws?.send(JSON.stringify({ event: "auth", args: [d.token] })));
+          }
+        };
 
-      ws.onclose = () => setConnected(false);
+        ws.onclose = () => {
+          setConnected(false);
+          scheduleReconnect();
+        };
+        ws.onerror = () => ws?.close();
+      } catch {
+        setConnected(false);
+        scheduleReconnect();
+      }
     }
 
     connect();
     return () => {
       closedByUs = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
       ws?.close();
     };
   }, [serverId]);

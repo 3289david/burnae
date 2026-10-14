@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { sendVerificationEmail, RESEND_COOLDOWN_SECONDS } from "@/lib/emailAuth";
+import { ResendError } from "@/lib/resend";
 import { withApiErrorHandling } from "@/lib/apiHandler";
 
 const schema = z.object({ email: z.string().email() });
@@ -32,6 +33,12 @@ export const POST = withApiErrorHandling(async (request: Request) => {
     );
   }
 
-  await sendVerificationEmail(user.id, email);
+  try {
+    await sendVerificationEmail(user.id, email);
+  } catch (err) {
+    console.error("[resend-verification] 인증 메일 발송 실패:", err);
+    const message = err instanceof ResendError ? err.message : "인증 메일 발송에 실패했어요.";
+    return NextResponse.json({ error: message }, { status: 502 });
+  }
   return NextResponse.json({ ok: true });
 });

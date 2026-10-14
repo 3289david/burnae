@@ -13,9 +13,14 @@ export default async function RegisterPage({
   return (
     <div className="min-h-screen flex items-center justify-center px-6">
       <div className="w-full max-w-sm animate-fade-up">
-        <Link href="/" className="inline-flex items-center gap-2 text-xl font-bold font-display">
-          <BrandMark /> Burnae
-        </Link>
+        <div className="flex items-center justify-between gap-3">
+          <Link href="/" className="inline-flex items-center gap-2 text-xl font-bold font-display">
+            <BrandMark /> Burnae
+          </Link>
+          <Link href="/login" className="text-xs text-text-dim hover:text-text border border-border rounded-full px-3 py-1.5">
+            로그인하기
+          </Link>
+        </div>
         <h1 className="mt-6 text-2xl font-bold">시작하기</h1>
         <p className="mt-2 text-sm text-text-dim">
           아래 계정 중 하나로 바로 시작할 수 있어요. 처음이면 자동으로 가입돼요.

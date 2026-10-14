@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { resolveInitialRole } from "@/lib/auth";
 import { hashPassword, isValidPassword } from "@/lib/password";
 import { sendVerificationEmail } from "@/lib/emailAuth";
+import { ResendError } from "@/lib/resend";
 import { rewardReferralSignup } from "@/lib/promotions";
 import { extractClientIp } from "@/lib/altAccountDetection";
 import { withApiErrorHandling } from "@/lib/apiHandler";
@@ -63,7 +64,16 @@ export const POST = withApiErrorHandling(async (request: Request) => {
     }
   }
 
-  await sendVerificationEmail(userId, email);
+  try {
+    await sendVerificationEmail(userId, email);
+  } catch (err) {
+    console.error("[email register] 인증 메일 발송 실패:", err);
+    const message = err instanceof ResendError ? err.message : "인증 메일 발송에 실패했어요.";
+    return NextResponse.json(
+      { error: `계정은 만들어졌지만 ${message} 로그인 화면에서 인증 메일을 다시 받아보세요.` },
+      { status: 502 },
+    );
+  }
 
   return NextResponse.json({ ok: true });
 });

@@ -6,7 +6,6 @@ import BrandMark from "@/components/BrandMark";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import DiscordPromoBanner from "@/components/DiscordPromoBanner";
 import CommandPalette from "@/components/CommandPalette";
-import SupportWidget from "@/components/SupportWidget";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
@@ -28,7 +27,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <DiscordPromoBanner />
       <AnnouncementBanner />
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-8">{children}</main>
-      <SupportWidget />
     </div>
   );
 }

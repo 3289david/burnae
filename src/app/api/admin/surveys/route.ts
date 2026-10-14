@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminRole } from "@/lib/auth";
 import { postOrRefreshSurvey } from "@/lib/discordBoards";
 
 export async function GET() {
-  const admin = await requireAdmin();
+  const admin = await requireAdminRole(["COMMUNITY", "SUPER"]);
   if (!admin) return NextResponse.json({ error: "관리자 권한이 필요합니다." }, { status: 403 });
 
   const responses = await prisma.surveyResponse.findMany({
@@ -24,7 +24,7 @@ const pollSchema = z.object({
 
 /** 관리자가 새 설문(투표)을 만들어 디스코드 채널에 버튼 투표로 올린다 */
 export async function POST(request: Request) {
-  const admin = await requireAdmin();
+  const admin = await requireAdminRole(["COMMUNITY", "SUPER"]);
   if (!admin) return NextResponse.json({ error: "관리자 권한이 필요합니다." }, { status: 403 });
 
   const parsed = pollSchema.safeParse(await request.json().catch(() => null));

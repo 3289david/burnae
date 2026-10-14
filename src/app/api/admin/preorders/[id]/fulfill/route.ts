@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminRole } from "@/lib/auth";
 import { retryPreorderFulfillment } from "@/lib/orderFulfillment";
 import { ProvisioningError } from "@/lib/provisioning";
 
@@ -8,7 +8,7 @@ export async function POST(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const admin = await requireAdmin();
+  const admin = await requireAdminRole(["GENERAL", "SUPER"]);
   if (!admin) return NextResponse.json({ error: "관리자 권한이 필요합니다." }, { status: 403 });
 
   const { id } = await params;

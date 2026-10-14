@@ -2,6 +2,9 @@ import { cookies } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
 import { prisma } from "@/lib/prisma";
 import type { UserRole } from "@/generated/prisma/enums";
+import type { AdminRole } from "@/generated/prisma/enums";
+
+export type { AdminRole };
 
 const COOKIE_NAME = "burnae_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30; // 30일
@@ -94,10 +97,36 @@ export async function requireUser() {
   return user;
 }
 
-/** role뿐 아니라 이메일까지 반드시 일치해야 통과 — 관리자 패널은 오직 이 계정만 */
+/**
+ * 소유자 이메일(getAdminEmail)은 항상 통과한다(권한 체계가 깨져도 이 계정만은 확실히 들어갈 수
+ * 있게 하는 안전장치). 그 외에는 role=ADMIN이고 adminRole이 지정돼 있어야 관리자 패널에 들어갈 수
+ * 있다 — 어느 영역까지 볼 수 있는지는 hasAdminRole/requireAdminRole로 또 한 번 좁힌다.
+ */
 export async function requireAdmin() {
   const user = await getCurrentUser();
   if (!user || user.status !== "ACTIVE") return null;
-  if (user.role !== "ADMIN" || !isAdminEmail(user.email)) return null;
+  if (isAdminEmail(user.email)) return user;
+  if (user.role === "ADMIN" && user.adminRole) return user;
+  return null;
+}
+
+/** 소유자이거나 adminRole이 SUPER이면 항상 true — 모든 관리자 영역에 접근 가능 */
+export function isSuperAdmin(user: { email: string; adminRole: AdminRole | null }): boolean {
+  return isAdminEmail(user.email) || user.adminRole === "SUPER";
+}
+
+export function hasAdminRole(
+  user: { email: string; adminRole: AdminRole | null },
+  allowed: AdminRole[],
+): boolean {
+  if (isSuperAdmin(user)) return true;
+  return user.adminRole != null && allowed.includes(user.adminRole);
+}
+
+/** requireAdmin + 특정 영역(allowed) 권한까지 함께 확인 — 관리자 API 라우트에서 영역별로 쓴다 */
+export async function requireAdminRole(allowed: AdminRole[]) {
+  const user = await requireAdmin();
+  if (!user) return null;
+  if (!hasAdminRole(user, allowed)) return null;
   return user;
 }

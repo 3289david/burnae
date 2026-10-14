@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminRole } from "@/lib/auth";
 import { markOrderPaidAndFulfill } from "@/lib/orderFulfillment";
 
 /**
@@ -11,7 +11,7 @@ export async function POST(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const admin = await requireAdmin();
+  const admin = await requireAdminRole(["GENERAL", "SUPER"]);
   if (!admin) return NextResponse.json({ error: "관리자 권한이 필요합니다." }, { status: 403 });
 
   const { id } = await params;

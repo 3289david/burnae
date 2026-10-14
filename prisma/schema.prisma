@@ -19,6 +19,15 @@ enum UserRole {
   ADMIN
 }
 
+/// 관리자 세부 역할 — 관리자(role=ADMIN)에게만 의미가 있다. 소유자 이메일(getAdminEmail)은
+/// 이 값과 무관하게 항상 전체 접근 권한을 가진다(SUPER와 동일하게 취급)
+enum AdminRole {
+  COMMUNITY
+  PROMOTION
+  GENERAL
+  SUPER
+}
+
 enum UserStatus {
   ACTIVE
   SUSPENDED
@@ -29,6 +38,8 @@ model User {
   email                  String     @unique
   name                   String
   role                   UserRole   @default(USER)
+  /// role이 ADMIN일 때만 의미 있음 — 어느 관리자 영역에 접근할 수 있는지
+  adminRole              AdminRole?
   status                 UserStatus @default(ACTIVE)
   /// 인당 총 저장공간 한도(GB). null이면 HostingSettings.defaultUserStorageGb 적용
   storageQuotaGbOverride Int?

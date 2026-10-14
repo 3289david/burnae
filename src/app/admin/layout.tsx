@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getCurrentUser, isAdminEmail } from "@/lib/auth";
+import { requireAdmin, hasAdminRole } from "@/lib/auth";
+import { ADMIN_NAV_AREAS } from "@/lib/adminAreas";
 import LogoutButton from "@/components/LogoutButton";
 import BrandMark from "@/components/BrandMark";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -28,9 +29,13 @@ const NAV = [
   { href: "/admin/settings", label: "호스팅 설정" },
 ];
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const user = await getCurrentUser();
-  if (!user || user.role !== "ADMIN" || !isAdminEmail(user.email)) redirect("/login");
+  const user = await requireAdmin();
+  if (!user) redirect("/login");
+
+  const visibleNav = NAV.filter((item) => hasAdminRole(user, ADMIN_NAV_AREAS[item.href] ?? []));
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -49,7 +54,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
       {/* 모바일: 가로 스크롤 탭 메뉴 */}
       <nav className="md:hidden border-b border-border overflow-x-auto whitespace-nowrap px-4 py-2 flex gap-1">
-        {NAV.map((item) => (
+        {visibleNav.map((item) => (
           <Link
             key={item.href}
             href={item.href}
@@ -63,7 +68,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <div className="flex-1 max-w-6xl w-full mx-auto flex gap-8 px-4 sm:px-6 py-6 sm:py-8">
         {/* 데스크톱: 세로 사이드바 */}
         <nav className="hidden md:block w-44 shrink-0 space-y-1">
-          {NAV.map((item) => (
+          {visibleNav.map((item) => (
             <Link key={item.href} href={item.href} className="block px-3 py-2 rounded-lg text-sm text-text-dim hover:text-text hover:bg-surface-2">
               {item.label}
             </Link>

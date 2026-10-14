@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminRole } from "@/lib/auth";
 import { PteroApp } from "@/lib/pterodactyl";
 import { findLoaderInfo } from "@/lib/minecraftLoaders";
 
@@ -11,7 +11,7 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ nestId: string; eggId: string }> },
 ) {
-  const admin = await requireAdmin();
+  const admin = await requireAdminRole(["GENERAL", "SUPER"]);
   if (!admin) return NextResponse.json({ error: "관리자 권한이 필요합니다." }, { status: 403 });
 
   const { nestId, eggId } = await params;

@@ -5,14 +5,6 @@ import { siteUrl } from "@/lib/oauth";
 
 const COOKIE_NAME = "burnae_session";
 
-// lib/auth.ts는 Node 전용 모듈(prisma, next/headers)을 물고 있어 Edge에서 못 쓰므로
-// 관리자 이메일 검증 로직을 여기서도 최소한으로 복제해둔다 (안전장치는 이중으로).
-function isAdminEmail(email: string | undefined): boolean {
-  if (!email) return false;
-  const adminEmail = (process.env.ADMIN_EMAIL ?? "davideom0414@gmail.com").toLowerCase();
-  return email.toLowerCase() === adminEmail;
-}
-
 async function readSession(request: NextRequest) {
   const token = request.cookies.get(COOKIE_NAME)?.value;
   if (!token) return null;
@@ -30,8 +22,11 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const session = await readSession(request);
 
+  // 여기서는 "로그인 + role=ADMIN"만 낙관적으로 확인한다 — 실제로 어느 관리자 영역까지
+  // 들어갈 수 있는지(소유자 이메일/adminRole)는 Edge에서 DB를 못 보니 여기서 판단하지 않고,
+  // admin/layout.tsx와 각 /api/admin/* 라우트가 requireAdmin/requireAdminRole로 정식 판단한다.
   if (pathname.startsWith("/admin")) {
-    if (!session || session.role !== "ADMIN" || !isAdminEmail(session.email)) {
+    if (!session || session.role !== "ADMIN") {
       const loginUrl = new URL("/login", siteUrl());
       loginUrl.searchParams.set("next", pathname);
       return NextResponse.redirect(loginUrl);

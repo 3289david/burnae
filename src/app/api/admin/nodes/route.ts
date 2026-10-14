@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminRole } from "@/lib/auth";
 import { PteroApp } from "@/lib/pterodactyl";
 import { withApiErrorHandling } from "@/lib/apiHandler";
 
 export async function GET() {
-  const admin = await requireAdmin();
+  const admin = await requireAdminRole(["GENERAL", "SUPER"]);
   if (!admin) return NextResponse.json({ error: "관리자 권한이 필요합니다." }, { status: 403 });
 
   const nodes = await prisma.hostNode.findMany({
@@ -50,7 +50,7 @@ const schema = z.object({
  * fqdn/총 RAM/디스크는 Pterodactyl에서 실제 값을 가져온다 — 임의 입력 아님.
  */
 export const POST = withApiErrorHandling(async (request: Request) => {
-  const admin = await requireAdmin();
+  const admin = await requireAdminRole(["GENERAL", "SUPER"]);
   if (!admin) return NextResponse.json({ error: "관리자 권한이 필요합니다." }, { status: 403 });
 
   const parsed = schema.safeParse(await request.json().catch(() => null));

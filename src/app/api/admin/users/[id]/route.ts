@@ -1,19 +1,21 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminRole, isSuperAdmin, getAdminEmail } from "@/lib/auth";
 
 const schema = z.object({
   status: z.enum(["ACTIVE", "SUSPENDED"]).optional(),
   aiCreditsRemaining: z.number().int().min(0).optional(),
+  role: z.enum(["USER", "ADMIN"]).optional(),
+  adminRole: z.enum(["COMMUNITY", "PROMOTION", "GENERAL", "SUPER"]).nullable().optional(),
 });
 
-/** 관리자가 특정 유저의 AI 크레딧을 조정하거나 계정을 정지 */
+/** 관리자가 특정 유저의 AI 크레딧/정지 상태를 조정하거나(일반 이상), 관리자 권한을 부여(최고관리자만) */
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const admin = await requireAdmin();
+  const admin = await requireAdminRole(["GENERAL", "SUPER"]);
   if (!admin) return NextResponse.json({ error: "관리자 권한이 필요합니다." }, { status: 403 });
 
   const { id } = await params;
@@ -21,8 +23,28 @@ export async function PATCH(
   if (!parsed.success) {
     return NextResponse.json({ error: "입력값이 올바르지 않습니다." }, { status: 422 });
   }
+  const { role, adminRole, ...rest } = parsed.data;
 
-  const user = await prisma.user.update({ where: { id }, data: parsed.data });
+  // role/adminRole(관리자 권한 부여/회수)은 최고관리자만 — 다른 영역 관리자가 자기 권한을 넓히거나
+  // 남에게 넘기는 걸 막는다. getAdminEmail 계정은 역할이 항상 고정이라 변경 대상에서 제외한다.
+  if (role !== undefined || adminRole !== undefined) {
+    if (!isSuperAdmin(admin)) {
+      return NextResponse.json({ error: "관리자 권한 변경은 최고관리자만 할 수 있어요." }, { status: 403 });
+    }
+    const target = await prisma.user.findUnique({ where: { id } });
+    if (target && target.email.toLowerCase() === getAdminEmail()) {
+      return NextResponse.json({ error: "이 계정의 권한은 변경할 수 없어요." }, { status: 409 });
+    }
+  }
+
+  const user = await prisma.user.update({
+    where: { id },
+    data: {
+      ...rest,
+      ...(role !== undefined ? { role } : {}),
+      ...(adminRole !== undefined ? { adminRole } : {}),
+    },
+  });
 
   await prisma.auditLog.create({
     data: {
@@ -34,5 +56,5 @@ export async function PATCH(
     },
   });
 
-  return NextResponse.json({ id: user.id, email: user.email, status: user.status });
+  return NextResponse.json({ id: user.id, email: user.email, status: user.status, role: user.role, adminRole: user.adminRole });
 }

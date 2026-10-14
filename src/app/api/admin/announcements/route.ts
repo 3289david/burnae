@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminRole } from "@/lib/auth";
 import { getBotSettings } from "@/lib/botSettings";
 import { sendDiscordChannelMessage } from "@/lib/discordNotify";
 import { panel, text, COMPONENTS_V2_FLAG } from "@/lib/discordComponentsV2";
@@ -9,7 +9,7 @@ import { panel, text, COMPONENTS_V2_FLAG } from "@/lib/discordComponentsV2";
 const LEVEL_COLOR = { INFO: 0x3b82f6, WARNING: 0xf59e0b, CRITICAL: 0xef4444 } as const;
 
 export async function GET() {
-  const admin = await requireAdmin();
+  const admin = await requireAdminRole(["GENERAL", "SUPER"]);
   if (!admin) return NextResponse.json({ error: "관리자 권한이 필요합니다." }, { status: 403 });
 
   const announcements = await prisma.announcement.findMany({ orderBy: { createdAt: "desc" } });
@@ -25,7 +25,7 @@ const schema = z.object({
 });
 
 export async function POST(request: Request) {
-  const admin = await requireAdmin();
+  const admin = await requireAdminRole(["GENERAL", "SUPER"]);
   if (!admin) return NextResponse.json({ error: "관리자 권한이 필요합니다." }, { status: 403 });
 
   const parsed = schema.safeParse(await request.json().catch(() => null));

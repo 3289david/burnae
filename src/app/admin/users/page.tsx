@@ -8,12 +8,21 @@ interface User {
   email: string;
   name: string;
   role: string;
+  adminRole: string | null;
   status: string;
   aiCreditsRemaining: number;
   promotionPoints: number;
   discordLink: { discordUserId: string } | null;
   _count: { servers: number };
 }
+
+const ADMIN_ROLE_LABEL: Record<string, string> = {
+  NONE: "일반 유저",
+  COMMUNITY: "커뮤니티 관리자",
+  PROMOTION: "홍보 관리자",
+  GENERAL: "일반 관리자",
+  SUPER: "최고 관리자",
+};
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -36,6 +45,18 @@ export default function AdminUsersPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ aiCreditsRemaining: Number(value) || 0 }),
     });
+    await load();
+  }
+
+  async function updateAdminRole(id: string, value: string) {
+    const adminRole = value === "NONE" ? null : value;
+    const res = await fetch(`/api/admin/users/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role: adminRole ? "ADMIN" : "USER", adminRole }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) alert(data.error ?? "변경 실패");
     await load();
   }
 
@@ -115,6 +136,16 @@ export default function AdminUsersPage() {
                 <button onClick={() => toggleStatus(u.id, u.status)} className="btn-secondary px-3 py-1.5 text-sm">
                   {u.status === "ACTIVE" ? "정지" : "정지 해제"}
                 </button>
+                <select
+                  defaultValue={u.adminRole ?? "NONE"}
+                  onChange={(e) => updateAdminRole(u.id, e.target.value)}
+                  className="input text-sm"
+                  title="관리자 권한 — 최고 관리자만 변경할 수 있어요"
+                >
+                  {Object.entries(ADMIN_ROLE_LABEL).map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
                 {u.discordLink && (
                   <button onClick={() => sendDiscordMessage(u.id)} className="btn-secondary px-3 py-1.5 text-sm">
                     디스코드 메시지

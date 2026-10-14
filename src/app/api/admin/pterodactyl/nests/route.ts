@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminRole } from "@/lib/auth";
 import { PteroApp } from "@/lib/pterodactyl";
 
 /**
@@ -7,7 +7,7 @@ import { PteroApp } from "@/lib/pterodactyl";
  * 실제 Nest/Egg 목록을 그대로 가져온다. (초보자용 서버 종류 등록 화면에서 사용)
  */
 export async function GET() {
-  const admin = await requireAdmin();
+  const admin = await requireAdminRole(["GENERAL", "SUPER"]);
   if (!admin) return NextResponse.json({ error: "관리자 권한이 필요합니다." }, { status: 403 });
 
   try {

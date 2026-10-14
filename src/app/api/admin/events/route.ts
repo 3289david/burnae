@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminRole } from "@/lib/auth";
 
 export async function GET() {
-  const admin = await requireAdmin();
+  const admin = await requireAdminRole(["PROMOTION", "SUPER"]);
   if (!admin) return NextResponse.json({ error: "관리자 권한이 필요합니다." }, { status: 403 });
 
   const events = await prisma.event.findMany({
@@ -25,7 +25,7 @@ const schema = z.object({
 
 /** 관리자가 새 이벤트/프로모션을 생성. 쿠폰을 연결하면 고객 화면에서 자동 적용 가능 */
 export async function POST(request: Request) {
-  const admin = await requireAdmin();
+  const admin = await requireAdminRole(["PROMOTION", "SUPER"]);
   if (!admin) return NextResponse.json({ error: "관리자 권한이 필요합니다." }, { status: 403 });
 
   const parsed = schema.safeParse(await request.json().catch(() => null));

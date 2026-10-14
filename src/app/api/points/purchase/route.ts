@@ -6,8 +6,8 @@ import { resolveDepositorName, isValidDepositorName } from "@/lib/hanabank";
 import { markOrderPaidAndFulfill } from "@/lib/orderFulfillment";
 
 /** 포인트 패키지 — 1원 = 1포인트 (AI 크레딧 단독 충전과 동일한 패턴) */
-export const POINTS_PER_KRW = 1;
-export const POINT_PACKAGES = [
+const POINTS_PER_KRW = 1;
+const POINT_PACKAGES = [
   { points: 500, priceKrw: 500 },
   { points: 2500, priceKrw: 2500 },
   { points: 10000, priceKrw: 10000 },

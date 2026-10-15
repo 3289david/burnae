@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
-import { authorizeServerAccess } from "@/lib/serverAccess";
+import { authorizeServerAccess, getServerRole, hasServerRank } from "@/lib/serverAccess";
 import { PteroClient } from "@/lib/pterodactyl";
 import { withApiErrorHandling } from "@/lib/apiHandler";
 
@@ -16,6 +16,11 @@ export const GET = withApiErrorHandling(async (
   const server = await authorizeServerAccess(user, id);
   if (!server || !server.pterodactylIdentifier) {
     return NextResponse.json({ error: "서버를 찾을 수 없습니다." }, { status: 404 });
+  }
+  // 이 토큰은 Wings 쪽에서 보기/명령 실행 권한이 분리되지 않는다(발급하면 콘솔 명령까지
+  // 그대로 보낼 수 있음) — console/route.ts와 동일한 기준(DEVELOPER 이상)으로 막는다.
+  if (!hasServerRank(await getServerRole(user, server), "DEVELOPER")) {
+    return NextResponse.json({ error: "콘솔에 접근할 권한이 없어요." }, { status: 403 });
   }
 
   const credentials = await PteroClient.getWebsocketCredentials(server.pterodactylIdentifier);

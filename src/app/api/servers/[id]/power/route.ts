@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
-import { authorizeServerAccess } from "@/lib/serverAccess";
+import { authorizeServerAccess, getServerRole, hasServerRank } from "@/lib/serverAccess";
 import { PteroClient } from "@/lib/pterodactyl";
 import { withApiErrorHandling } from "@/lib/apiHandler";
 import { logServerActivity } from "@/lib/serverActivityLog";
@@ -27,6 +27,9 @@ export const POST = withApiErrorHandling(async (
   if (!server) return NextResponse.json({ error: "서버를 찾을 수 없습니다." }, { status: 404 });
   if (!server.pterodactylIdentifier) {
     return NextResponse.json({ error: "서버가 아직 준비 중입니다." }, { status: 409 });
+  }
+  if (!hasServerRank(await getServerRole(user, server), "MODERATOR")) {
+    return NextResponse.json({ error: "전원을 조작할 권한이 없어요." }, { status: 403 });
   }
 
   const parsed = schema.safeParse(await request.json().catch(() => null));

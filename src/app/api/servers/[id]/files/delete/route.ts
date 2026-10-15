@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
-import { authorizeServerAccess } from "@/lib/serverAccess";
+import { authorizeServerAccess, getServerRole, hasServerRank } from "@/lib/serverAccess";
 import { PteroClient } from "@/lib/pterodactyl";
 
 const schema = z.object({ directory: z.string().min(1), files: z.array(z.string()).min(1) });
@@ -17,6 +17,9 @@ export async function POST(
   const server = await authorizeServerAccess(user, id);
   if (!server || !server.pterodactylIdentifier) {
     return NextResponse.json({ error: "서버를 찾을 수 없습니다." }, { status: 404 });
+  }
+  if (!hasServerRank(await getServerRole(user, server), "DEVELOPER")) {
+    return NextResponse.json({ error: "파일을 수정할 권한이 없어요." }, { status: 403 });
   }
 
   const parsed = schema.safeParse(await request.json().catch(() => null));

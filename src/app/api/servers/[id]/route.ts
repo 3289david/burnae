@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
-import { authorizeServerAccess } from "@/lib/serverAccess";
+import { authorizeServerAccess, getServerRole, hasServerRank } from "@/lib/serverAccess";
 import { deleteServerFully } from "@/lib/provisioning";
 import { prisma } from "@/lib/prisma";
 import { PteroApp } from "@/lib/pterodactyl";
@@ -22,6 +22,11 @@ export const GET = withApiErrorHandling(async (
     where: { id },
     include: { template: true, product: true, node: { select: { name: true, location: true } } },
   });
+  // accessSecret은 egg 자체 접속 비밀번호(DB 패스워드 등)라서 소유자/신뢰받은 멤버 ADMIN까지만
+  // 보여준다 — VIEWER/MODERATOR/DEVELOPER로 초대된 멤버에게는 숨긴다.
+  if (full && !hasServerRank(await getServerRole(user, server), "ADMIN")) {
+    full.accessSecret = null;
+  }
   return NextResponse.json(full);
 });
 

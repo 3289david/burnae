@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { authorizeServerAccess } from "@/lib/serverAccess";
+import { authorizeServerAccess, getServerRole, hasServerRank } from "@/lib/serverAccess";
 import { getVersionById, contentTypeForLoader, loaderForTemplateKey, downloadVersionFile } from "@/lib/modrinth";
 import { PteroClient } from "@/lib/pterodactyl";
 
@@ -18,6 +18,9 @@ export async function POST(
   const { id } = await params;
   const access = await authorizeServerAccess(user, id);
   if (!access) return NextResponse.json({ error: "서버를 찾을 수 없습니다." }, { status: 404 });
+  if (!hasServerRank(await getServerRole(user, access), "DEVELOPER")) {
+    return NextResponse.json({ error: "플러그인을 설치할 권한이 없어요." }, { status: 403 });
+  }
 
   const server = await prisma.server.findUniqueOrThrow({ where: { id }, include: { template: true } });
   if (!server.pterodactylIdentifier) {

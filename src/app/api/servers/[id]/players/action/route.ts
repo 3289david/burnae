@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { authorizeServerAccess } from "@/lib/serverAccess";
+import { authorizeServerAccess, getServerRole, hasServerRank } from "@/lib/serverAccess";
 import * as Players from "@/lib/players";
 
 const schema = z.object({
@@ -33,6 +33,9 @@ export async function POST(
   if (!server) return NextResponse.json({ error: "서버를 찾을 수 없습니다." }, { status: 404 });
   if (!server.pterodactylIdentifier) {
     return NextResponse.json({ error: "서버가 아직 준비 중입니다." }, { status: 409 });
+  }
+  if (!hasServerRank(await getServerRole(user, server), "MODERATOR")) {
+    return NextResponse.json({ error: "플레이어를 관리할 권한이 없어요." }, { status: 403 });
   }
 
   const parsed = schema.safeParse(await request.json().catch(() => null));

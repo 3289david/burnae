@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { Wrench, ExternalLink, Folder } from "lucide-react";
 import AiCreditsCard from "./AiCreditsCard";
 import MakerFilePanel from "./MakerFilePanel";
+import { hasServerRank, type ServerAccessRole } from "@/lib/serverRoleRank";
+import { Lock } from "lucide-react";
 
 interface Message {
   id: string;
@@ -48,12 +50,15 @@ export default function AiTab({
   templateCategory = "MINECRAFT",
   kind = "CHAT",
   previewAddress = null,
+  myRole,
 }: {
   serverId: string;
   templateCategory?: Category;
   kind?: "CHAT" | "MAKER";
   previewAddress?: string | null;
+  myRole: ServerAccessRole | null;
 }) {
+  const canUseAi = hasServerRank(myRole, "DEVELOPER");
   const [showFiles, setShowFiles] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [conversations, setConversations] = useState<{ id: string; title: string; updatedAt: string }[]>([]);
@@ -86,6 +91,7 @@ export default function AiTab({
   }
 
   useEffect(() => {
+    if (!canUseAi) return;
     (async () => {
       const res = await fetch(`/api/ai/conversations?serverId=${serverId}&kind=${kind}`);
       if (!res.ok) {
@@ -160,6 +166,16 @@ export default function AiTab({
     } finally {
       setBusy(false);
     }
+  }
+
+  if (!canUseAi) {
+    return (
+      <div className="card p-8 flex flex-col items-center justify-center gap-2 text-center">
+        <Lock size={22} className="text-text-dim" />
+        <p className="font-medium">AI 기능을 쓸 권한이 없어요</p>
+        <p className="text-sm text-text-dim">AI가 파일을 수정하거나 콘솔 명령을 실행할 수 있어서, 초대받은 역할로는 쓸 수 없어요.</p>
+      </div>
+    );
   }
 
   if (loadError) {

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { authorizeServerAccess } from "@/lib/serverAccess";
+import { authorizeServerAccess, getServerRole } from "@/lib/serverAccess";
 import { prisma } from "@/lib/prisma";
 import ServerDetailClient from "@/components/server/ServerDetailClient";
 
@@ -30,6 +30,7 @@ export default async function ServerDetailPage({
     update: {},
     create: { id: 1 },
   });
+  const myRole = await getServerRole(user, server);
 
   return (
     <ServerDetailClient
@@ -65,6 +66,7 @@ export default async function ServerDetailPage({
         templateCategory: server.template.category,
         minecraftVersion: server.minecraftVersion,
         isOwner: server.ownerId === user.id,
+        myRole,
         isFreeServer: (server.priceMonthlyKrwSnapshot ?? server.product?.priceMonthlyKrw ?? 0) === 0,
         accessSecret: server.ownerId === user.id ? server.accessSecret : null,
       }}

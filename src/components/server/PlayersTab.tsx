@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Toggle from "@/components/Toggle";
+import { hasServerRank, type ServerAccessRole } from "@/lib/serverRoleRank";
 
 interface PlayersData {
   online: string[];
@@ -11,7 +12,8 @@ interface PlayersData {
   whitelistEnabled: boolean;
 }
 
-export default function PlayersTab({ serverId }: { serverId: string }) {
+export default function PlayersTab({ serverId, myRole }: { serverId: string; myRole: ServerAccessRole | null }) {
+  const canModerate = hasServerRank(myRole, "MODERATOR");
   const [data, setData] = useState<PlayersData | null>(null);
   const [name, setName] = useState("");
   const [reason, setReason] = useState("");
@@ -53,34 +55,36 @@ export default function PlayersTab({ serverId }: { serverId: string }) {
     <div className="space-y-6 animate-fade-up">
       {error && <p className="text-sm text-red">{error}</p>}
 
-      <div className="card-glow p-5">
-        <div className="flex flex-wrap items-center gap-2">
-          <input
-            className="input flex-1 min-w-0"
-            placeholder="플레이어 닉네임"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <input
-            className="input flex-1 min-w-0"
-            placeholder="사유 (밴/킥 시 선택)"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-          />
+      {canModerate && (
+        <div className="card-glow p-5">
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              className="input flex-1 min-w-0"
+              placeholder="플레이어 닉네임"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+            <input
+              className="input flex-1 min-w-0"
+              placeholder="사유 (밴/킥 시 선택)"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-wrap gap-2 mt-3">
+            <button disabled={busy || !name} onClick={() => act("whitelist_add", { name })} className="btn-secondary px-3 py-1.5 text-sm active:scale-95 transition-transform">화이트리스트 추가</button>
+            <button disabled={busy || !name} onClick={() => act("op", { name })} className="btn-secondary px-3 py-1.5 text-sm active:scale-95 transition-transform">OP 지정</button>
+            <button disabled={busy || !name} onClick={() => act("kick", { name, reason })} className="btn-secondary px-3 py-1.5 text-sm active:scale-95 transition-transform">킥</button>
+            <button disabled={busy || !name} onClick={() => act("ban", { name, reason })} className="btn-secondary px-3 py-1.5 text-sm text-red active:scale-95 transition-transform">밴</button>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2 mt-3">
-          <button disabled={busy || !name} onClick={() => act("whitelist_add", { name })} className="btn-secondary px-3 py-1.5 text-sm active:scale-95 transition-transform">화이트리스트 추가</button>
-          <button disabled={busy || !name} onClick={() => act("op", { name })} className="btn-secondary px-3 py-1.5 text-sm active:scale-95 transition-transform">OP 지정</button>
-          <button disabled={busy || !name} onClick={() => act("kick", { name, reason })} className="btn-secondary px-3 py-1.5 text-sm active:scale-95 transition-transform">킥</button>
-          <button disabled={busy || !name} onClick={() => act("ban", { name, reason })} className="btn-secondary px-3 py-1.5 text-sm text-red active:scale-95 transition-transform">밴</button>
-        </div>
-      </div>
+      )}
 
       <Section title={`접속 중 (${data.online.length}명)`}>
         {data.online.length === 0 && <Empty>지금 접속한 플레이어가 없어요.</Empty>}
         {data.online.map((n) => (
           <Row key={n} label={n}>
-            <button disabled={busy} onClick={() => act("kick", { name: n })} className="text-xs text-text-dim hover:text-text active:scale-95 transition-transform">킥</button>
+            {canModerate && <button disabled={busy} onClick={() => act("kick", { name: n })} className="text-xs text-text-dim hover:text-text active:scale-95 transition-transform">킥</button>}
           </Row>
         ))}
       </Section>
@@ -89,7 +93,7 @@ export default function PlayersTab({ serverId }: { serverId: string }) {
         title="화이트리스트"
         action={
           <label className="flex items-center gap-1.5 text-xs text-text-dim">
-            <Toggle checked={data.whitelistEnabled} onChange={(next) => act("whitelist_toggle", { enabled: next })} size="sm" />
+            <Toggle checked={data.whitelistEnabled} onChange={(next) => act("whitelist_toggle", { enabled: next })} size="sm" disabled={!canModerate} />
             사용
           </label>
         }
@@ -97,7 +101,7 @@ export default function PlayersTab({ serverId }: { serverId: string }) {
         {data.whitelist.length === 0 && <Empty>등록된 플레이어가 없어요.</Empty>}
         {data.whitelist.map((w) => (
           <Row key={w.uuid || w.name} label={w.name}>
-            <button disabled={busy} onClick={() => act("whitelist_remove", { name: w.name })} className="text-xs text-red hover:underline active:scale-95 transition-transform">제거</button>
+            {canModerate && <button disabled={busy} onClick={() => act("whitelist_remove", { name: w.name })} className="text-xs text-red hover:underline active:scale-95 transition-transform">제거</button>}
           </Row>
         ))}
       </Section>
@@ -106,7 +110,7 @@ export default function PlayersTab({ serverId }: { serverId: string }) {
         {data.ops.length === 0 && <Empty>OP가 없어요.</Empty>}
         {data.ops.map((o) => (
           <Row key={o.uuid || o.name} label={o.name}>
-            <button disabled={busy} onClick={() => act("deop", { name: o.name })} className="text-xs text-red hover:underline active:scale-95 transition-transform">해제</button>
+            {canModerate && <button disabled={busy} onClick={() => act("deop", { name: o.name })} className="text-xs text-red hover:underline active:scale-95 transition-transform">해제</button>}
           </Row>
         ))}
       </Section>
@@ -115,7 +119,7 @@ export default function PlayersTab({ serverId }: { serverId: string }) {
         {data.bans.length === 0 && <Empty>차단된 플레이어가 없어요.</Empty>}
         {data.bans.map((b) => (
           <Row key={b.name} label={`${b.name}${b.reason ? ` · ${b.reason}` : ""}`}>
-            <button disabled={busy} onClick={() => act("pardon", { name: b.name })} className="text-xs text-accent hover:underline active:scale-95 transition-transform">해제</button>
+            {canModerate && <button disabled={busy} onClick={() => act("pardon", { name: b.name })} className="text-xs text-accent hover:underline active:scale-95 transition-transform">해제</button>}
           </Row>
         ))}
       </Section>

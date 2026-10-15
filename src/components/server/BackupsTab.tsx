@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AlertTriangle, RefreshCw, RotateCcw, Trash2, Lock, Unlock } from "lucide-react";
+import { hasServerRank, type ServerAccessRole } from "@/lib/serverRoleRank";
 
 interface Backup {
   uuid: string;
@@ -12,7 +13,17 @@ interface Backup {
   created_at: string;
 }
 
-export default function BackupsTab({ serverId, backupSlots }: { serverId: string; backupSlots: number }) {
+export default function BackupsTab({
+  serverId,
+  backupSlots,
+  myRole,
+}: {
+  serverId: string;
+  backupSlots: number;
+  myRole: ServerAccessRole | null;
+}) {
+  const canCreate = hasServerRank(myRole, "DEVELOPER");
+  const canManage = hasServerRank(myRole, "ADMIN");
   const [backups, setBackups] = useState<Backup[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -88,9 +99,11 @@ export default function BackupsTab({ serverId, backupSlots }: { serverId: string
     <div className="animate-fade-up">
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm text-text-dim">{backups.length} / {backupSlots}개 사용 중</p>
-        <button onClick={createBackup} disabled={loading} className="btn-primary px-4 py-2 text-sm inline-flex items-center gap-1.5 active:scale-95 transition-transform">
-          <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> 지금 백업
-        </button>
+        {canCreate && (
+          <button onClick={createBackup} disabled={loading} className="btn-primary px-4 py-2 text-sm inline-flex items-center gap-1.5 active:scale-95 transition-transform">
+            <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> 지금 백업
+          </button>
+        )}
       </div>
       {error && <p className="text-sm text-red mb-3">{error}</p>}
       <div className="space-y-2.5">
@@ -116,31 +129,33 @@ export default function BackupsTab({ serverId, backupSlots }: { serverId: string
                 )}
               </p>
             </div>
-            <div className="flex gap-2 shrink-0">
-              <button onClick={() => restore(b.uuid)} className="btn-secondary px-3 py-1.5 text-sm inline-flex items-center gap-1 active:scale-95 transition-transform">
-                <RotateCcw size={13} /> 복원
-              </button>
-              <button
-                onClick={() => toggleLock(b.uuid)}
-                disabled={loading}
-                className="btn-secondary px-3 py-1.5 text-sm inline-flex items-center gap-1 active:scale-95 transition-transform"
-                title={b.is_locked ? "잠금 해제하면 삭제할 수 있어요" : "잠그면 실수로 삭제되지 않아요"}
-              >
-                {b.is_locked ? (
-                  <Unlock size={13} key="unlocked" className="animate-star-pop" />
-                ) : (
-                  <Lock size={13} key="locked" />
-                )}{" "}
-                {b.is_locked ? "잠금 해제" : "잠그기"}
-              </button>
-              <button
-                onClick={() => remove(b.uuid)}
-                disabled={b.is_locked}
-                className="rounded-full px-3 py-1.5 text-sm text-red bg-red/10 hover:bg-red/20 transition-colors inline-flex items-center gap-1 disabled:opacity-40 active:scale-95"
-              >
-                <Trash2 size={13} /> 삭제
-              </button>
-            </div>
+            {canManage && (
+              <div className="flex gap-2 shrink-0">
+                <button onClick={() => restore(b.uuid)} className="btn-secondary px-3 py-1.5 text-sm inline-flex items-center gap-1 active:scale-95 transition-transform">
+                  <RotateCcw size={13} /> 복원
+                </button>
+                <button
+                  onClick={() => toggleLock(b.uuid)}
+                  disabled={loading}
+                  className="btn-secondary px-3 py-1.5 text-sm inline-flex items-center gap-1 active:scale-95 transition-transform"
+                  title={b.is_locked ? "잠금 해제하면 삭제할 수 있어요" : "잠그면 실수로 삭제되지 않아요"}
+                >
+                  {b.is_locked ? (
+                    <Unlock size={13} key="unlocked" className="animate-star-pop" />
+                  ) : (
+                    <Lock size={13} key="locked" />
+                  )}{" "}
+                  {b.is_locked ? "잠금 해제" : "잠그기"}
+                </button>
+                <button
+                  onClick={() => remove(b.uuid)}
+                  disabled={b.is_locked}
+                  className="rounded-full px-3 py-1.5 text-sm text-red bg-red/10 hover:bg-red/20 transition-colors inline-flex items-center gap-1 disabled:opacity-40 active:scale-95"
+                >
+                  <Trash2 size={13} /> 삭제
+                </button>
+              </div>
+            )}
           </div>
         ))}
         {backups.length === 0 && (

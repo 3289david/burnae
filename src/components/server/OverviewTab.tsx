@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2, Ban, Clock, Play, Square, RotateCw, Gauge, Cpu, MemoryStick, HardDrive } from "lucide-react";
 import type { ServerInfo } from "./ServerDetailClient";
+import { hasServerRank } from "@/lib/serverRoleRank";
 import StatusDot from "@/components/StatusDot";
 import AddressActions from "./AddressActions";
 import CustomDomainCard from "./CustomDomainCard";
@@ -159,29 +160,31 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
         </div>
       )}
 
-      <div className="flex gap-2.5 animate-fade-up">
-        <button
-          disabled={actionLoading}
-          onClick={() => power("start")}
-          className="flex-1 sm:flex-none rounded-2xl px-5 py-2.5 text-sm font-semibold inline-flex items-center justify-center gap-1.5 bg-green/15 text-green hover:bg-green/25 transition-colors disabled:opacity-50 active:scale-95 transition-transform"
-        >
-          <Play size={15} /> 시작
-        </button>
-        <button
-          disabled={actionLoading}
-          onClick={() => power("restart")}
-          className="flex-1 sm:flex-none rounded-2xl px-5 py-2.5 text-sm font-semibold inline-flex items-center justify-center gap-1.5 bg-yellow/15 text-yellow hover:bg-yellow/25 transition-colors disabled:opacity-50 active:scale-95 transition-transform"
-        >
-          <RotateCw size={15} className={actionLoading ? "animate-spin" : ""} /> 재시작
-        </button>
-        <button
-          disabled={actionLoading}
-          onClick={() => power("stop")}
-          className="flex-1 sm:flex-none rounded-2xl px-5 py-2.5 text-sm font-semibold inline-flex items-center justify-center gap-1.5 bg-red/15 text-red hover:bg-red/25 transition-colors disabled:opacity-50 active:scale-95 transition-transform"
-        >
-          <Square size={15} /> 중지
-        </button>
-      </div>
+      {hasServerRank(server.myRole, "MODERATOR") && (
+        <div className="flex gap-2.5 animate-fade-up">
+          <button
+            disabled={actionLoading}
+            onClick={() => power("start")}
+            className="flex-1 sm:flex-none rounded-2xl px-5 py-2.5 text-sm font-semibold inline-flex items-center justify-center gap-1.5 bg-green/15 text-green hover:bg-green/25 transition-colors disabled:opacity-50 active:scale-95 transition-transform"
+          >
+            <Play size={15} /> 시작
+          </button>
+          <button
+            disabled={actionLoading}
+            onClick={() => power("restart")}
+            className="flex-1 sm:flex-none rounded-2xl px-5 py-2.5 text-sm font-semibold inline-flex items-center justify-center gap-1.5 bg-yellow/15 text-yellow hover:bg-yellow/25 transition-colors disabled:opacity-50 active:scale-95 transition-transform"
+          >
+            <RotateCw size={15} className={actionLoading ? "animate-spin" : ""} /> 재시작
+          </button>
+          <button
+            disabled={actionLoading}
+            onClick={() => power("stop")}
+            className="flex-1 sm:flex-none rounded-2xl px-5 py-2.5 text-sm font-semibold inline-flex items-center justify-center gap-1.5 bg-red/15 text-red hover:bg-red/25 transition-colors disabled:opacity-50 active:scale-95 transition-transform"
+          >
+            <Square size={15} /> 중지
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Stat

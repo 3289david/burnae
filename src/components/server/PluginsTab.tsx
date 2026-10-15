@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import { hasServerRank, type ServerAccessRole } from "@/lib/serverRoleRank";
 
 interface SearchResult {
   projectId: string;
@@ -23,7 +24,8 @@ interface InstalledFile {
   size: number;
 }
 
-export default function PluginsTab({ serverId }: { serverId: string }) {
+export default function PluginsTab({ serverId, myRole }: { serverId: string; myRole: ServerAccessRole | null }) {
+  const canEdit = hasServerRank(myRole, "DEVELOPER");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[] | null>(null);
   const [loader, setLoader] = useState<string | null>(null);
@@ -115,7 +117,7 @@ export default function PluginsTab({ serverId }: { serverId: string }) {
               style={{ animationDelay: `${Math.min(i, 10) * 0.03}s` }}
             >
               <span>{f.name}</span>
-              <button onClick={() => uninstall(f.name)} className="text-xs text-red hover:underline active:scale-95 transition-transform">삭제</button>
+              {canEdit && <button onClick={() => uninstall(f.name)} className="text-xs text-red hover:underline active:scale-95 transition-transform">삭제</button>}
             </div>
           ))}
           {installed.length === 0 && <p className="px-4 py-3 text-sm text-text-dim">아직 설치된 게 없어요.</p>}
@@ -163,13 +165,15 @@ export default function PluginsTab({ serverId }: { serverId: string }) {
                     <span className="text-text-dim">
                       {v.versionNumber} · {v.gameVersions.slice(-3).join(", ")}
                     </span>
-                    <button
-                      disabled={busy || !v.primaryFile}
-                      onClick={() => install(v.id)}
-                      className="text-accent font-medium hover:underline active:scale-95 transition-transform"
-                    >
-                      설치
-                    </button>
+                    {canEdit && (
+                      <button
+                        disabled={busy || !v.primaryFile}
+                        onClick={() => install(v.id)}
+                        className="text-accent font-medium hover:underline active:scale-95 transition-transform"
+                      >
+                        설치
+                      </button>
+                    )}
                   </div>
                 ))}
                 {versions[r.projectId].length === 0 && (

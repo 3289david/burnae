@@ -13,6 +13,7 @@ import BackupsTab from "./BackupsTab";
 import TeamTab from "./TeamTab";
 import SettingsTab from "./SettingsTab";
 import AiTab from "./AiTab";
+import type { ServerAccessRole } from "@/lib/serverRoleRank";
 
 export interface ServerSubdomainInfo {
   id: string;
@@ -54,6 +55,8 @@ export interface ServerInfo {
   templateCategory: "MINECRAFT" | "DISCORD_BOT" | "GENERAL";
   minecraftVersion: string | null;
   isOwner: boolean;
+  /** 이 서버에서 내 등급(OWNER/ADMIN_STAFF/ADMIN/MODERATOR/DEVELOPER/VIEWER) — 뭐에도 안 걸리면 null */
+  myRole: ServerAccessRole | null;
   isFreeServer: boolean;
   accessSecret: string | null;
 }
@@ -207,14 +210,14 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
 
       <div className="relative mt-6 animate-fade-up" style={{ animationDelay: "0.1s" }}>
         {tab === "overview" && <OverviewTab server={server} />}
-        {tab === "console" && <ConsoleTab serverId={server.id} templateCategory={server.templateCategory} />}
-        {tab === "players" && <PlayersTab serverId={server.id} />}
-        {tab === "plugins" && <PluginsTab serverId={server.id} />}
+        {tab === "console" && <ConsoleTab serverId={server.id} templateCategory={server.templateCategory} myRole={server.myRole} />}
+        {tab === "players" && <PlayersTab serverId={server.id} myRole={server.myRole} />}
+        {tab === "plugins" && <PluginsTab serverId={server.id} myRole={server.myRole} />}
         {tab === "maker" && (
-          <AiTab serverId={server.id} templateCategory={server.templateCategory} kind="MAKER" previewAddress={previewAddress} />
+          <AiTab serverId={server.id} templateCategory={server.templateCategory} kind="MAKER" previewAddress={previewAddress} myRole={server.myRole} />
         )}
-        {tab === "files" && <FilesTab serverId={server.id} />}
-        {tab === "backups" && <BackupsTab serverId={server.id} backupSlots={server.backupSlots} />}
+        {tab === "files" && <FilesTab serverId={server.id} myRole={server.myRole} />}
+        {tab === "backups" && <BackupsTab serverId={server.id} backupSlots={server.backupSlots} myRole={server.myRole} />}
         {tab === "team" && <TeamTab serverId={server.id} isOwner={server.isOwner} />}
         {tab === "settings" && (
           <SettingsTab
@@ -230,7 +233,7 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
             ownerNote={server.ownerNote}
           />
         )}
-        {tab === "ai" && <AiTab serverId={server.id} templateCategory={server.templateCategory} />}
+        {tab === "ai" && <AiTab serverId={server.id} templateCategory={server.templateCategory} myRole={server.myRole} />}
       </div>
     </div>
   );

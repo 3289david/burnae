@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { FileText, Folder as FolderIcon, Search } from "lucide-react";
+import { hasServerRank, type ServerAccessRole } from "@/lib/serverRoleRank";
 
 interface FileObject {
   name: string;
@@ -12,7 +13,8 @@ interface FileObject {
 
 const ARCHIVE_EXT = /\.(zip|tar|tar\.gz|tgz|rar|7z)$/i;
 
-export default function FilesTab({ serverId }: { serverId: string }) {
+export default function FilesTab({ serverId, myRole }: { serverId: string; myRole: ServerAccessRole | null }) {
+  const canEdit = hasServerRank(myRole, "DEVELOPER");
   const [dir, setDir] = useState("/");
   const [files, setFiles] = useState<FileObject[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -263,13 +265,14 @@ export default function FilesTab({ serverId }: { serverId: string }) {
         <div className="flex items-center justify-between mb-3 gap-2">
           <span className="font-mono text-xs sm:text-sm truncate">{editing}</span>
           <div className="flex gap-2 shrink-0">
-            <button onClick={() => setEditing(null)} className="btn-secondary px-3 py-1.5 text-sm">취소</button>
-            <button onClick={save} disabled={loading} className="btn-primary px-3 py-1.5 text-sm">저장</button>
+            <button onClick={() => setEditing(null)} className="btn-secondary px-3 py-1.5 text-sm">{canEdit ? "취소" : "닫기"}</button>
+            {canEdit && <button onClick={save} disabled={loading} className="btn-primary px-3 py-1.5 text-sm">저장</button>}
           </div>
         </div>
         <textarea
           value={content}
-          onChange={(e) => setContent(e.target.value)}
+          onChange={(e) => canEdit && setContent(e.target.value)}
+          readOnly={!canEdit}
           spellCheck={false}
           className="input w-full h-96 font-mono text-xs"
         />
@@ -281,6 +284,7 @@ export default function FilesTab({ serverId }: { serverId: string }) {
     <div
       className={`card p-0 overflow-hidden transition-colors duration-150 ${dragOver ? "border-accent bg-accent/[0.03]" : ""}`}
       onDragOver={(e) => {
+        if (!canEdit) return;
         e.preventDefault();
         setDragOver(true);
       }}
@@ -288,7 +292,7 @@ export default function FilesTab({ serverId }: { serverId: string }) {
       onDrop={(e) => {
         e.preventDefault();
         setDragOver(false);
-        if (e.dataTransfer.files.length > 0) uploadFiles(e.dataTransfer.files);
+        if (canEdit && e.dataTransfer.files.length > 0) uploadFiles(e.dataTransfer.files);
       }}
     >
       <div className="px-4 py-2 border-b border-border flex items-center gap-2 text-sm flex-wrap">
@@ -309,7 +313,7 @@ export default function FilesTab({ serverId }: { serverId: string }) {
           />
         </div>
         <div className="ml-auto flex items-center gap-2">
-          {selected.size > 0 && (
+          {canEdit && selected.size > 0 && (
             <>
               <button onClick={compressSelected} disabled={loading} className="text-accent text-xs">
                 선택 {selected.size}개 압축
@@ -322,26 +326,30 @@ export default function FilesTab({ serverId }: { serverId: string }) {
           {dir !== "/" && (
             <button onClick={() => load(parentDir(dir))} className="text-accent text-xs">상위로</button>
           )}
-          <button onClick={newFolder} disabled={loading} className="btn-secondary px-2.5 py-1 text-xs">
-            새 폴더
-          </button>
-          <button onClick={newFile} disabled={loading} className="btn-secondary px-2.5 py-1 text-xs">
-            새 파일
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            className="hidden"
-            onChange={(e) => e.target.files && uploadFiles(e.target.files)}
-          />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className="btn-secondary px-2.5 py-1 text-xs active:scale-95 transition-transform"
-          >
-            {uploading ? "업로드 중..." : "업로드"}
-          </button>
+          {canEdit && (
+            <>
+              <button onClick={newFolder} disabled={loading} className="btn-secondary px-2.5 py-1 text-xs">
+                새 폴더
+              </button>
+              <button onClick={newFile} disabled={loading} className="btn-secondary px-2.5 py-1 text-xs">
+                새 파일
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                className="hidden"
+                onChange={(e) => e.target.files && uploadFiles(e.target.files)}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="btn-secondary px-2.5 py-1 text-xs active:scale-95 transition-transform"
+              >
+                {uploading ? "업로드 중..." : "업로드"}
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -361,12 +369,14 @@ export default function FilesTab({ serverId }: { serverId: string }) {
               className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-surface-2 transition-colors animate-fade-up"
               style={{ animationDelay: `${Math.min(i, 12) * 0.02}s` }}
             >
-              <input
-                type="checkbox"
-                checked={selected.has(f.name)}
-                onChange={() => toggleSelect(f.name)}
-                className="shrink-0"
-              />
+              {canEdit && (
+                <input
+                  type="checkbox"
+                  checked={selected.has(f.name)}
+                  onChange={() => toggleSelect(f.name)}
+                  className="shrink-0"
+                />
+              )}
               <button
                 onClick={() => (f.is_file ? openFile(f.name) : load(joinPath(dir, f.name)))}
                 className="flex-1 min-w-0 flex items-center gap-1.5 text-left truncate"
@@ -382,14 +392,18 @@ export default function FilesTab({ serverId }: { serverId: string }) {
               {f.is_file && (
                 <button onClick={() => download(f.name)} className="text-xs text-accent shrink-0 hover:underline">받기</button>
               )}
-              {isArchive && (
+              {canEdit && isArchive && (
                 <button onClick={() => decompress(f.name)} className="text-xs text-accent shrink-0 hover:underline">압축해제</button>
               )}
-              <button onClick={() => copyItem(f.name)} className="text-xs text-text-dim shrink-0 hover:text-text">복사</button>
-              <button onClick={() => renameItem(f.name)} className="text-xs text-text-dim shrink-0 hover:text-text">이름변경</button>
-              <button onClick={() => deleteFiles([f.name])} className="text-xs text-red shrink-0 hover:underline">
-                삭제
-              </button>
+              {canEdit && (
+                <>
+                  <button onClick={() => copyItem(f.name)} className="text-xs text-text-dim shrink-0 hover:text-text">복사</button>
+                  <button onClick={() => renameItem(f.name)} className="text-xs text-text-dim shrink-0 hover:text-text">이름변경</button>
+                  <button onClick={() => deleteFiles([f.name])} className="text-xs text-red shrink-0 hover:underline">
+                    삭제
+                  </button>
+                </>
+              )}
             </div>
           );
         })}

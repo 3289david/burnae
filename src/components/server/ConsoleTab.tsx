@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import {
   Download, Trash2, Copy, Check, Maximize2, Minimize2, ArrowDownToLine,
-  Play, RotateCw, Square, Power,
+  Play, RotateCw, Square, Power, Lock,
 } from "lucide-react";
+import { hasServerRank, type ServerAccessRole } from "@/lib/serverRoleRank";
 
 interface WsFrame {
   event: string;
@@ -26,10 +27,17 @@ const BOTTOM_THRESHOLD = 24;
 export default function ConsoleTab({
   serverId,
   templateCategory,
+  myRole,
 }: {
   serverId: string;
   templateCategory?: "MINECRAFT" | "DISCORD_BOT" | "GENERAL";
+  myRole: ServerAccessRole | null;
 }) {
+  // 콘솔 웹소켓 토큰은 Wings 쪽에서 보기/명령 실행 권한이 분리가 안 돼서(발급하면 명령까지
+  // 그대로 보낼 수 있음) 서버(/api/servers/[id]/websocket)도 DEVELOPER 이상만 토큰을 내준다 —
+  // 뷰어/모더레이터에게 연결을 시도조차 안 하고 바로 권한 안내만 보여준다.
+  const canUseConsole = hasServerRank(myRole, "DEVELOPER");
+  const canPower = hasServerRank(myRole, "MODERATOR");
   const [lines, setLines] = useState<string[]>([]);
   const [command, setCommand] = useState("");
   const [connected, setConnected] = useState(false);
@@ -44,6 +52,7 @@ export default function ConsoleTab({
   const draftRef = useRef("");
 
   useEffect(() => {
+    if (!canUseConsole) return;
     let closedByUs = false;
     let ws: WebSocket | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -205,6 +214,16 @@ export default function ConsoleTab({
     }
   }
 
+  if (!canUseConsole) {
+    return (
+      <div className="card p-8 flex flex-col items-center justify-center gap-2 text-center">
+        <Lock size={22} className="text-text-dim" />
+        <p className="font-medium">콘솔을 볼 권한이 없어요</p>
+        <p className="text-sm text-text-dim">초대받은 역할이 콘솔 접근을 포함하지 않아요. 서버 소유자에게 문의해주세요.</p>
+      </div>
+    );
+  }
+
   return (
     <div className={fullscreen ? "fixed inset-2 z-50 card p-0 overflow-hidden flex flex-col" : "card p-0 overflow-hidden"}>
       <div className="px-4 py-2 border-b border-border flex items-center justify-between flex-wrap gap-2">
@@ -217,40 +236,43 @@ export default function ConsoleTab({
         </span>
 
         <div className="flex items-center gap-1">
-          <button
-            onClick={() => power("start")}
-            disabled={powerBusy}
-            title="시작"
-            className="p-1.5 rounded-lg text-green hover:bg-green/15 disabled:opacity-40 active:scale-95 transition-transform"
-          >
-            <Play size={14} />
-          </button>
-          <button
-            onClick={() => power("restart")}
-            disabled={powerBusy}
-            title="재시작"
-            className="p-1.5 rounded-lg text-yellow hover:bg-yellow/15 disabled:opacity-40 active:scale-95 transition-transform"
-          >
-            <RotateCw size={14} className={powerBusy ? "animate-spin" : ""} />
-          </button>
-          <button
-            onClick={() => power("stop")}
-            disabled={powerBusy}
-            title="정지"
-            className="p-1.5 rounded-lg text-red hover:bg-red/15 disabled:opacity-40 active:scale-95 transition-transform"
-          >
-            <Square size={14} />
-          </button>
-          <button
-            onClick={() => power("kill")}
-            disabled={powerBusy}
-            title="강제 종료"
-            className="p-1.5 rounded-lg text-red hover:bg-red/15 disabled:opacity-40 active:scale-95 transition-transform"
-          >
-            <Power size={14} />
-          </button>
-
-          <span className="w-px h-4 bg-border mx-1" />
+          {canPower && (
+            <>
+              <button
+                onClick={() => power("start")}
+                disabled={powerBusy}
+                title="시작"
+                className="p-1.5 rounded-lg text-green hover:bg-green/15 disabled:opacity-40 active:scale-95 transition-transform"
+              >
+                <Play size={14} />
+              </button>
+              <button
+                onClick={() => power("restart")}
+                disabled={powerBusy}
+                title="재시작"
+                className="p-1.5 rounded-lg text-yellow hover:bg-yellow/15 disabled:opacity-40 active:scale-95 transition-transform"
+              >
+                <RotateCw size={14} className={powerBusy ? "animate-spin" : ""} />
+              </button>
+              <button
+                onClick={() => power("stop")}
+                disabled={powerBusy}
+                title="정지"
+                className="p-1.5 rounded-lg text-red hover:bg-red/15 disabled:opacity-40 active:scale-95 transition-transform"
+              >
+                <Square size={14} />
+              </button>
+              <button
+                onClick={() => power("kill")}
+                disabled={powerBusy}
+                title="강제 종료"
+                className="p-1.5 rounded-lg text-red hover:bg-red/15 disabled:opacity-40 active:scale-95 transition-transform"
+              >
+                <Power size={14} />
+              </button>
+              <span className="w-px h-4 bg-border mx-1" />
+            </>
+          )}
 
           <button onClick={copyOutput} disabled={lines.length === 0} title="출력 복사" className="p-1.5 rounded-lg text-text-dim hover:text-text hover:bg-white/5 disabled:opacity-40 active:scale-95 transition-transform">
             {copied ? <Check size={14} className="text-green" /> : <Copy size={14} />}

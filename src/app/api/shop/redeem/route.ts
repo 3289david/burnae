@@ -31,14 +31,16 @@ export async function POST(request: Request) {
   let result: { couponCode?: string };
   try {
     result = await prisma.$transaction(async (tx) => {
-      const fresh = await tx.user.findUniqueOrThrow({ where: { id: user.id } });
-      if (fresh.promotionPoints < item.pointsCost) {
-        throw new Error("포인트가 부족해요.");
-      }
-      await tx.user.update({
-        where: { id: user.id },
+      // READ COMMITTED에서는 읽고-확인하고-쓰는 방식은 동시 요청 두 개가 똑같이 통과할 수 있다
+      // (동시에 1000P 잔액을 각각 읽고, 둘 다 통과 판정 후 각각 깎음 → 잔액이 음수가 됨).
+      // 조건이 걸린 update 하나로 "충분할 때만 깎기"를 원자적으로 만든다.
+      const updated = await tx.user.updateMany({
+        where: { id: user.id, promotionPoints: { gte: item.pointsCost } },
         data: { promotionPoints: { decrement: item.pointsCost } },
       });
+      if (updated.count === 0) {
+        throw new Error("포인트가 부족해요.");
+      }
 
       let couponCode: string | undefined;
       if (item.kind === "AI_CREDITS") {

@@ -99,8 +99,10 @@ export const POST = withApiErrorHandling(async (
   });
 
   await prisma.$transaction(async (tx) => {
-    await tx.user.update({
-      where: { id: user.id },
+    // Pterodactyl 증설은 이미 위에서 확정됐으니 여기서 포인트가 모자라도 되돌릴 수 없다 —
+    // 그래도 동시 요청으로 잔액이 음수가 되는 것만은 막는다(그 경우는 과금 없이 넘어간다).
+    await tx.user.updateMany({
+      where: { id: user.id, promotionPoints: { gte: item.pointsCost } },
       data: { promotionPoints: { decrement: item.pointsCost } },
     });
     await tx.server.update({

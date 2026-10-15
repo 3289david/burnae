@@ -34,7 +34,11 @@ async function applyPlanChange(
       backupSlots: targetProduct.backupSlots,
     },
   });
-  await PteroClient.sendPowerAction(server.pterodactylIdentifier!, "restart");
+  // 재시작은 부수적인 편의 동작 — 실패해도 이미 확정된 플랜 변경 자체를 되돌리지 않는다
+  // (free-upgrade/extra-resources와 같은 패턴)
+  await PteroClient.sendPowerAction(server.pterodactylIdentifier!, "restart").catch((err) => {
+    console.error("[upgrade] 재시작 실패(플랜 변경 자체는 정상 적용됨):", err);
+  });
   await prisma.auditLog.create({
     data: {
       actorUserId,
@@ -106,13 +110,17 @@ export const POST = withApiErrorHandling(async (
       return NextResponse.json({ error: "포인트가 부족해요." }, { status: 422 });
     }
 
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { promotionPoints: { decrement: targetProduct.pointsCost } },
-    });
+    // free-upgrade와 같은 순서: Pterodactyl 변경을 먼저 확정하고, 포인트는 그 다음에 차감한다.
+    // (반대 순서면 Pterodactyl 호출이 실패했을 때 포인트만 빠져나가고 플랜은 안 바뀐 상태가 된다)
     await applyPlanChange(server, targetProduct, user.id, {
       via: "points",
       pointsSpent: targetProduct.pointsCost,
+    });
+    // 동시 요청으로 잔액이 음수가 되는 것만은 막는다 — 위 플랜 변경은 이미 확정됐으니
+    // 여기서 실패해도 되돌리지 않고, 그 경우는 과금 없이 넘어간다.
+    await prisma.user.updateMany({
+      where: { id: user.id, promotionPoints: { gte: targetProduct.pointsCost } },
+      data: { promotionPoints: { decrement: targetProduct.pointsCost } },
     });
 
     return NextResponse.json({ requiresPayment: false, applied: true, pointsSpent: targetProduct.pointsCost });

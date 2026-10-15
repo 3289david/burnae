@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/auth";
+import { requireUser, getAdminEmail } from "@/lib/auth";
 import { sendDiscordDM } from "@/lib/discordNotify";
 import { withApiErrorHandling } from "@/lib/apiHandler";
 
@@ -45,8 +45,16 @@ export const POST = withApiErrorHandling(async (request: Request) => {
   });
   await prisma.supportThread.update({ where: { id: thread.id }, data: { updatedAt: new Date() } });
 
-  const admin = await prisma.user.findFirst({ where: { role: "ADMIN" } });
-  if (admin) {
+  // role==="ADMIN"인 유저가 이제 여러 명(역할별 부관리자 포함)이라, 조건 없는 findFirst는
+  // 고객지원 페이지 권한이 없는 임의의 관리자(홍보/일반 담당)를 집어서 문의를 아무도 못 볼 수
+  // 있다 — 실제로 /admin/support에 들어갈 수 있는 사람(COMMUNITY/SUPER)에게만 보낸다.
+  const supportAdmins = await prisma.user.findMany({
+    where: {
+      role: "ADMIN",
+      OR: [{ adminRole: { in: ["COMMUNITY", "SUPER"] } }, { email: { equals: getAdminEmail(), mode: "insensitive" } }],
+    },
+  });
+  for (const admin of supportAdmins) {
     const adminLink = await prisma.discordLink.findUnique({ where: { userId: admin.id } });
     if (adminLink) {
       await sendDiscordDM(

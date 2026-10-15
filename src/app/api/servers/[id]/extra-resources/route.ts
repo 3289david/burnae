@@ -67,6 +67,8 @@ export const POST = withApiErrorHandling(async (
       { status: 422 },
     );
   }
+  // 이 체크는 바로 아래 트랜잭션에서 조건부 update로 다시 한번 원자적으로 확인한다 —
+  // 여기서는 사용자에게 보여줄 에러 메시지(부족한 포인트 수)를 만들기 위한 사전 확인일 뿐이다.
 
   const expiresAt = new Date(Date.now() + EXTRA_RESOURCE_RENEWAL_DAYS * 24 * 60 * 60 * 1000);
 
@@ -77,13 +79,17 @@ export const POST = withApiErrorHandling(async (
     const allocation = await allocateExtraPort(node);
     await PteroApp.addServerAllocation(server.pterodactylServerId, allocation.id);
 
+    try {
     await prisma.$transaction(async (tx) => {
-      await tx.user.update({ where: { id: user.id }, data: { promotionPoints: { decrement: item.pointsCost } } });
-      const extraPorts = server.extraPorts as { id: number; ip: string; port: number }[];
-      await tx.server.update({
-        where: { id: server.id },
-        data: { extraPorts: [...extraPorts, allocation] },
+      const spent = await tx.user.updateMany({
+        where: { id: user.id, promotionPoints: { gte: item.pointsCost } },
+        data: { promotionPoints: { decrement: item.pointsCost } },
       });
+      if (spent.count === 0) throw new Error("포인트가 부족해요.");
+      // server.extraPorts를 트랜잭션 밖에서 읽은 배열로 덮어쓰면 동시에 들어온 다른 구매가
+      // 추가한 포트를 지워버릴 수 있다(lost update) — DB가 "현재" 값에 직접 append하는
+      // 원자적 UPDATE로 처리한다.
+      await tx.$executeRaw`UPDATE "Server" SET "extraPorts" = "extraPorts" || ${JSON.stringify([allocation])}::jsonb WHERE id = ${server.id}`;
       await tx.resourceUpgradeGrant.create({
         data: { serverId: server.id, userId: user.id, itemId: item.id, kind: item.kind, amount: 1, expiresAt, metadata: allocation },
       });
@@ -98,6 +104,9 @@ export const POST = withApiErrorHandling(async (
         },
       });
     });
+    } catch (err) {
+      return NextResponse.json({ error: err instanceof Error ? err.message : "구매에 실패했어요." }, { status: 422 });
+    }
 
     await logServerActivity(server.id, user.id, "RESOURCE_UPGRADE", item.name);
     await PteroClient.sendPowerAction(server.pterodactylIdentifier, "restart").catch((err) => {
@@ -108,8 +117,13 @@ export const POST = withApiErrorHandling(async (
   }
 
   // EXTRA_SUBDOMAIN — 실제 서브도메인 생성은 기존 "주소 추가" 기능에서 하고, 여기서는 슬롯만 늘린다
+  try {
   await prisma.$transaction(async (tx) => {
-    await tx.user.update({ where: { id: user.id }, data: { promotionPoints: { decrement: item.pointsCost } } });
+    const spent = await tx.user.updateMany({
+      where: { id: user.id, promotionPoints: { gte: item.pointsCost } },
+      data: { promotionPoints: { decrement: item.pointsCost } },
+    });
+    if (spent.count === 0) throw new Error("포인트가 부족해요.");
     await tx.server.update({ where: { id: server.id }, data: { extraSubdomainSlots: { increment: 1 } } });
     await tx.resourceUpgradeGrant.create({
       data: { serverId: server.id, userId: user.id, itemId: item.id, kind: item.kind, amount: 1, expiresAt },
@@ -125,6 +139,9 @@ export const POST = withApiErrorHandling(async (
       },
     });
   });
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : "구매에 실패했어요." }, { status: 422 });
+  }
 
   await logServerActivity(server.id, user.id, "RESOURCE_UPGRADE", item.name);
 

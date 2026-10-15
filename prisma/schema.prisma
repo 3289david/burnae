@@ -404,6 +404,9 @@ model Order {
   /// 전용 노드가 아직 배정되지 않아 선주문 대기 중일 때, 관리자 알림+고객 상담 채널 개설을
   /// 한 번만 보내기 위한 중복 방지 플래그
   dedicatedNodeAlertSent    Boolean     @default(false)
+  /// 동시에 두 번(관리자/고객이 같은 주문에 대해 겹쳐서 /api/orders/[id]를 호출하는 등) 서버
+  /// 생성이 시작되는 걸 막기 위한 원자적 "선점" 마커 — null이 아니면 이미 누군가 생성을 시작함
+  provisioningStartedAt      DateTime?
   createdAt                 DateTime    @default(now())
 
   @@index([userId])

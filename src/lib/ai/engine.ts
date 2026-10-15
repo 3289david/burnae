@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import { prisma } from "@/lib/prisma";
 import { AI_TOOLS, openAiToolList } from "@/lib/ai/tools";
-import { recordUsage, withUsageTracking } from "@/lib/ai/usageTracking";
+import { recordUsage, withUsageTracking, AiTurnFailedError } from "@/lib/ai/usageTracking";
 import { creditsForUsage, InsufficientCreditsError } from "@/lib/ai/pricing";
 import type { Server } from "@/generated/prisma/client";
 import type { AiMessage } from "@/generated/prisma/client";
@@ -220,9 +220,22 @@ export async function runAiTurn(
   const kind = conversation.kind;
   const maxSteps = kind === "MAKER" ? MAX_STEPS_MAKER : MAX_STEPS_CHAT;
 
-  const { result, usage } = await withUsageTracking(() => runAiTurnLoop());
-  await chargeForUsage(userId, usage);
-  return result;
+  // 모델 호출이 도중에 실패해도(OpenRouter 5xx, 도구 에러 등) 그 턴은 전부 "실패했으니 과금
+  // 안 함" 처리였다 — 재시도만 반복하면 토큰을 무한히 공짜로 쓸 수 있었다. 실패해도 그때까지
+  // 쌓인 사용량만큼은 반드시 과금한 뒤 원래 에러를 그대로 다시 던진다.
+  try {
+    const { result, usage } = await withUsageTracking(() => runAiTurnLoop());
+    await chargeForUsage(userId, usage);
+    return result;
+  } catch (err) {
+    if (err instanceof AiTurnFailedError) {
+      await chargeForUsage(userId, err.usage).catch((chargeErr) => {
+        console.error("[ai] 실패한 턴 과금 실패:", chargeErr);
+      });
+      throw err.cause;
+    }
+    throw err;
+  }
 
   async function runAiTurnLoop(): Promise<AiTurnResult> {
     for (let step = 0; step < maxSteps; step++) {

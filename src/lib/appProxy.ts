@@ -48,14 +48,18 @@ export async function syncAppProxyMap(prisma: PrismaClient) {
   // 이 파일은 krl.kr(별도 서비스)의 vhost에도 include돼서, 문법이 깨진 채로 덮어쓰면 nginx 전체가
   // reload/재시작 시 죽을 수 있다 — 그래서 임시 파일에 먼저 쓰고 `nginx -t`로 통과하는 걸 확인한
   // 뒤에만 실제 경로로 옮긴다(원자적 rename). 검증 실패 시 기존 파일은 그대로 남는다.
+  // nginx의 include는 고정 경로(MAP_FILE_PATH)를 보기 때문에, 바뀐 내용을 실제로 검증하려면
+  // 결국 한 번은 그 경로에 써야 한다 — 그래서 옮긴 뒤 바로 `nginx -t`로 검증하고, 실패하면
+  // 즉시 되돌린다. 문제는 "되돌릴 이전 내용"이 없는 첫 실행(existing===null)일 때였다 —
+  // 그때는 깨진 내용을 그대로 둬서, 이후 아무 nginx reload(인증서 갱신 등)에도 전체가 죽었다.
+  // 되돌릴 게 없으면 "서버 하나도 없음"에 해당하는 빈 내용으로 되돌린다(항상 유효한 상태).
   const tmpPath = `${MAP_FILE_PATH}.tmp`;
   fs.writeFileSync(tmpPath, content);
   try {
     fs.renameSync(tmpPath, MAP_FILE_PATH);
     await execFileAsync("nginx", ["-t"]);
   } catch (err) {
-    // 검증 실패 — 가능하면 이전 내용으로 되돌려서 nginx가 계속 정상 동작하게 한다
-    if (existing !== null) fs.writeFileSync(MAP_FILE_PATH, existing);
+    fs.writeFileSync(MAP_FILE_PATH, existing ?? "");
     throw err;
   }
   await execFileAsync("systemctl", ["reload", "nginx"]);

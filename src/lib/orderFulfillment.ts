@@ -5,6 +5,7 @@ import { rewardReferralFirstPayment } from "@/lib/promotions";
 import { logServerActivity } from "@/lib/serverActivityLog";
 import { sendDiscordDM, createPrivateThreadWithMember } from "@/lib/discordNotify";
 import { getBotSettings } from "@/lib/botSettings";
+import { getAdminEmail } from "@/lib/auth";
 import type { Order, User } from "@/generated/prisma/client";
 
 /**
@@ -13,7 +14,10 @@ import type { Order, User } from "@/generated/prisma/client";
  * 1:1 비공개 채널을 열어준다. dedicatedNodeAlertSent로 주문당 한 번만 보낸다.
  */
 async function notifyDedicatedNodeNeeded(order: Order & { user: User }) {
-  const admin = await prisma.user.findFirst({ where: { role: "ADMIN" } });
+  // role==="ADMIN"인 유저가 이제 여러 명(역할별 부관리자 포함)이라, 특정 조건 없는
+  // findFirst는 임의의 한 명(예: 커뮤니티 담당자)을 집어서 중요한 알림을 놓칠 수 있다 —
+  // 소유자 계정으로 특정해서 보낸다.
+  const admin = await prisma.user.findFirst({ where: { email: { equals: getAdminEmail(), mode: "insensitive" } } });
   if (admin) {
     const adminLink = await prisma.discordLink.findUnique({ where: { userId: admin.id } });
     if (adminLink) {
@@ -81,7 +85,9 @@ export async function provisionNewServerOrder(orderId: string) {
     throw err;
   }
 
-  if (order.user.referredByUserId) {
+  // "첫 결제" 보너스는 말 그대로 유료 서버를 처음 만들었을 때만 — 0원 무료 서버로는 지급 안 함
+  // (안 그러면 추천 계정을 만들어 무료 서버만 반복 생성하는 것으로 포인트를 파밍할 수 있다)
+  if (order.user.referredByUserId && (order.product?.priceMonthlyKrw ?? 0) > 0) {
     await rewardReferralFirstPayment(order.user.referredByUserId, order.userId).catch((err) => {
       console.error("[orderFulfillment] 추천 첫결제 포인트 지급 실패:", err);
     });
@@ -100,61 +106,70 @@ export async function markOrderPaidAndFulfill(orderId: string) {
   if (!order) return;
   if (order.status === "PAID") return; // 멱등 처리 — 이미 처리된 결제
 
-  await prisma.order.update({
-    where: { id: order.id },
+  // 하나은행 폴링 크론과 결제 웹훅이 거의 같은 순간 같은 주문을 처리하려고 할 수 있다 — 조건부
+  // update(현재 status가 PAID가 아닐 때만 PAID로)로 원자적 "선점"을 만들어 둘 다 통과하는 걸 막는다.
+  const claimed = await prisma.order.updateMany({
+    where: { id: order.id, status: { not: "PAID" } },
     data: { status: "PAID", paidAt: new Date() },
   });
+  if (claimed.count === 0) return;
 
-  // 여기서부터 실패하면(네트워크 오류, Pterodactyl 장애 등) 결제 상태를 PENDING으로 되돌려서
-  // 다음 크론 주기나 재시도에서 다시 처리할 수 있게 한다 — 안 그러면 위에서 이미 PAID로
-  // 바뀐 뒤라 44번째 줄의 멱등 가드에 막혀 영원히 재시도가 안 되고, 고객은 돈은 냈는데
-  // 서버/갱신/업그레이드는 적용 안 된 채로 방치된다
+  // 예전에는 여기서 실패하면 status를 PENDING으로 되돌려 재시도했는데, 쿠폰 차감/포인트 지급/
+  // 갱신기한 연장처럼 되돌릴 수 없는 부수효과가 재시도마다 중복 실행되는 버그가 있었다
+  // (Wings가 잠깐 불안정하면 같은 갱신 주문이 10분마다 재시도되며 갱신기한이 계속 늘어나는 식).
+  // 이제는 status를 PENDING으로 되돌리지 않는다 — 대신 Pterodactyl처럼 외부 호출이 필요한
+  // 단계를 먼저 끝내고(그 호출들은 원래부터 멱등하거나, 실패해도 DB에 아직 아무것도 안 바뀐
+  // 상태라 재시도가 안전함), 나머지 DB 반영(쿠폰 차감 포함)은 트랜잭션으로 묶어 한번에 적용한다.
+  // 트랜잭션 자체가 실패하면(아주 드문 DB 장애) status는 PAID인데 효과가 안 적용된 채로 남으니
+  // 로그를 남겨 운영자가 직접 확인하게 한다 — "중복 지급"보다 훨씬 안전한 실패 모드다.
   try {
-    if (order.couponId) {
-      await prisma.coupon.update({
-        where: { id: order.couponId },
-        data: { usedCount: { increment: 1 } },
-      });
-    }
-
     if (order.type === "AI_CREDITS") {
-      if (order.aiCreditsAmount) {
-        await prisma.user.update({
-          where: { id: order.userId },
-          data: { aiCreditsRemaining: { increment: order.aiCreditsAmount } },
-        });
-      }
+      await prisma.$transaction(async (tx) => {
+        if (order.couponId) await tx.coupon.update({ where: { id: order.couponId }, data: { usedCount: { increment: 1 } } });
+        if (order.aiCreditsAmount) {
+          await tx.user.update({ where: { id: order.userId }, data: { aiCreditsRemaining: { increment: order.aiCreditsAmount } } });
+        }
+      });
     } else if (order.type === "POINTS") {
-      if (order.pointsAmount) {
-        await prisma.user.update({
-          where: { id: order.userId },
-          data: { promotionPoints: { increment: order.pointsAmount } },
-        });
-      }
+      await prisma.$transaction(async (tx) => {
+        if (order.couponId) await tx.coupon.update({ where: { id: order.couponId }, data: { usedCount: { increment: 1 } } });
+        if (order.pointsAmount) {
+          await tx.user.update({ where: { id: order.userId }, data: { promotionPoints: { increment: order.pointsAmount } } });
+        }
+      });
     } else if (order.type === "NEW_SERVER") {
+      if (order.couponId) {
+        await prisma.coupon.update({ where: { id: order.couponId }, data: { usedCount: { increment: 1 } } });
+      }
       // 결제 시점에 서버 종류/버전을 아직 안 골랐으면(결제 후 선택 방식) 여기서 바로 만들지 않고
       // 고객이 /api/orders/[id]/select-template 로 고른 뒤에 provisionNewServerOrder를 부른다.
       if (!order.templateIdRequested) return;
+      // createServerForOrder는 order.serverId/provisioningStartedAt으로 멱등하게 처리되므로
+      // 실패해도(네트워크/Pterodactyl 장애) 안전하게 재시도할 수 있다.
       await provisionNewServerOrder(order.id);
     } else if (order.type === "RENEWAL" && order.serverId) {
       const server = await prisma.server.findUniqueOrThrow({ where: { id: order.serverId } });
-      const nextDue = addOneMonthClamped(
-        new Date(Math.max(Date.now(), server.renewalDueAt?.getTime() ?? Date.now())),
-      );
-      await prisma.server.update({
-        where: { id: server.id },
-        data: { renewalDueAt: nextDue, status: server.status === "SUSPENDED" ? "STOPPED" : server.status },
-      });
+      // unsuspend는 이미 정지 해제된 서버에 다시 호출해도 안전(멱등)하다.
       if (server.status === "SUSPENDED" && server.pterodactylServerId) {
         await PteroApp.unsuspendServer(server.pterodactylServerId);
       }
-      await logServerActivity(server.id, order.userId, "RENEW");
-      if (order.product && order.product.aiCreditsPerMonth > 0) {
-        await prisma.user.update({
-          where: { id: order.userId },
-          data: { aiCreditsRemaining: { increment: order.product.aiCreditsPerMonth } },
+      const nextDue = addOneMonthClamped(
+        new Date(Math.max(Date.now(), server.renewalDueAt?.getTime() ?? Date.now())),
+      );
+      await prisma.$transaction(async (tx) => {
+        if (order.couponId) await tx.coupon.update({ where: { id: order.couponId }, data: { usedCount: { increment: 1 } } });
+        await tx.server.update({
+          where: { id: server.id },
+          data: { renewalDueAt: nextDue, status: server.status === "SUSPENDED" ? "STOPPED" : server.status },
         });
-      }
+        if (order.product && order.product.aiCreditsPerMonth > 0) {
+          await tx.user.update({
+            where: { id: order.userId },
+            data: { aiCreditsRemaining: { increment: order.product.aiCreditsPerMonth } },
+          });
+        }
+      });
+      await logServerActivity(server.id, order.userId, "RENEW");
     } else if (order.type === "UPGRADE" && order.serverId && order.product) {
       const server = await prisma.server.findUniqueOrThrow({ where: { id: order.serverId } });
       await PteroApp.updateServerBuild(server.pterodactylServerId!, {
@@ -163,28 +178,41 @@ export async function markOrderPaidAndFulfill(orderId: string) {
         cpuPercent: order.product.cpuPercent,
         backupSlots: order.product.backupSlots,
       });
-      await prisma.server.update({
-        where: { id: server.id },
-        data: {
-          productId: order.productId ?? undefined,
-          productNameSnapshot: order.product.name,
-          priceMonthlyKrwSnapshot: order.product.priceMonthlyKrw,
-          ramMb: order.product.ramMb,
-          diskMb: order.product.diskMb,
-          cpuPercent: order.product.cpuPercent,
-          backupSlots: order.product.backupSlots,
-        },
-      });
       if (server.pterodactylIdentifier) {
-        await PteroClient.sendPowerAction(server.pterodactylIdentifier, "restart");
+        await PteroClient.sendPowerAction(server.pterodactylIdentifier, "restart").catch((err) => {
+          console.error("[orderFulfillment] 업그레이드 재시작 실패(적용은 계속 진행):", err);
+        });
       }
+      await prisma.$transaction(async (tx) => {
+        if (order.couponId) await tx.coupon.update({ where: { id: order.couponId }, data: { usedCount: { increment: 1 } } });
+        await tx.server.update({
+          where: { id: server.id },
+          data: {
+            productId: order.productId ?? undefined,
+            productNameSnapshot: order.product!.name,
+            priceMonthlyKrwSnapshot: order.product!.priceMonthlyKrw,
+            ramMb: order.product!.ramMb,
+            diskMb: order.product!.diskMb,
+            cpuPercent: order.product!.cpuPercent,
+            backupSlots: order.product!.backupSlots,
+          },
+        });
+      });
       await logServerActivity(server.id, order.userId, "RESOURCE_UPGRADE", order.product.name);
+    } else if (order.couponId) {
+      // 매칭되는 분기가 없어도 쿠폰은 확정 처리한다
+      await prisma.coupon.update({ where: { id: order.couponId }, data: { usedCount: { increment: 1 } } });
     }
   } catch (err) {
-    await prisma.order.update({
-      where: { id: order.id },
-      data: { status: "PENDING", paidAt: null },
-    });
+    console.error(`[orderFulfillment] 주문 ${order.id} 결제는 확정됐지만 효과 적용 중 실패 — 직접 확인 필요:`, err);
+    await prisma.auditLog.create({
+      data: {
+        action: "ORDER_FULFILLMENT_PARTIAL_FAILURE",
+        targetType: "Order",
+        targetId: order.id,
+        metadata: { type: order.type, error: err instanceof Error ? err.message : String(err) },
+      },
+    }).catch(() => {});
     throw err;
   }
 }
@@ -194,13 +222,13 @@ export async function markOrderPaidAndFulfill(orderId: string) {
  * ProvisioningError가 그대로 올라오니, 호출하는 쪽(크론)에서 잡아서 다음 주기에 또 시도하면 된다.
  */
 export async function retryPreorderFulfillment(orderId: string) {
-  const order = await prisma.order.findUnique({ where: { id: orderId }, include: { user: true } });
+  const order = await prisma.order.findUnique({ where: { id: orderId }, include: { user: true, product: true } });
   if (!order || !order.preorderWaiting || order.serverId) return;
 
   await createServerForOrder(order.id);
   await prisma.order.update({ where: { id: order.id }, data: { preorderWaiting: false } });
 
-  if (order.user.referredByUserId) {
+  if (order.user.referredByUserId && (order.product?.priceMonthlyKrw ?? 0) > 0) {
     await rewardReferralFirstPayment(order.user.referredByUserId, order.userId).catch((err) => {
       console.error("[orderFulfillment] 추천 첫결제 포인트 지급 실패:", err);
     });

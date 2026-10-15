@@ -25,6 +25,12 @@ import { syncAppProxyMap } from "../src/lib/appProxy";
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
+// src/lib/auth.ts를 그대로 쓰면 next/headers를 import하게 돼서 Next.js 런타임 밖인 이
+// 독립 크론 스크립트에서 깨질 수 있다 — 같은 로직만 그대로 복사해서 둔다.
+function getAdminEmail(): string {
+  return (process.env.ADMIN_EMAIL ?? "davideom0414@gmail.com").toLowerCase();
+}
+
 const RETENTION_DAYS = 7; // 정지 후 이 기간이 지나면 완전 삭제
 const REMINDER_COOLDOWN_HOURS = 20; // 같은 알림을 하루에 한 번만 보내기 위한 최소 간격
 const NODE_ALERT_THRESHOLD = 0.9; // RAM 판매율 90% 넘으면 경고
@@ -473,7 +479,7 @@ async function handleNodeAlerts() {
   });
   const usageMap = new Map(usage.map((u) => [u.nodeId, u._sum]));
 
-  const admin = await prisma.user.findFirst({ where: { role: "ADMIN" } });
+  const admin = await prisma.user.findFirst({ where: { email: { equals: getAdminEmail(), mode: "insensitive" } } });
   if (!admin) return;
 
   for (const node of nodes) {
@@ -524,7 +530,7 @@ async function handleStuckProvisioning() {
   });
   if (stuck.length === 0) return;
 
-  const admin = await prisma.user.findFirst({ where: { role: "ADMIN" } });
+  const admin = await prisma.user.findFirst({ where: { email: { equals: getAdminEmail(), mode: "insensitive" } } });
   if (!admin) return;
 
   for (const server of stuck) {
@@ -550,6 +556,35 @@ async function handleStuckProvisioning() {
 }
 
 /**
+ * markOrderPaidAndFulfill은 결제를 PAID로 확정한 뒤 효과(서버 생성/갱신/크레딧 등)를 적용하다가
+ * 실패하면 더 이상 PENDING으로 되돌리지 않는다(중복 지급 버그 방지) — 대신 ORDER_FULFILLMENT_
+ * PARTIAL_FAILURE 로그를 남긴다. 고객은 돈을 냈는데 아무 효과도 못 받은 채로 방치되지 않도록
+ * 관리자에게 바로 알린다.
+ */
+async function handleStuckFulfillment() {
+  const recent = await prisma.auditLog.findMany({
+    where: { action: "ORDER_FULFILLMENT_PARTIAL_FAILURE", createdAt: { gte: new Date(Date.now() - 60 * 60 * 1000) } },
+    orderBy: { createdAt: "desc" },
+  });
+  if (recent.length === 0) return;
+
+  const admin = await prisma.user.findFirst({ where: { email: { equals: getAdminEmail(), mode: "insensitive" } } });
+  if (!admin) return;
+
+  for (const log of recent) {
+    const action = "ORDER_FULFILLMENT_PARTIAL_FAILURE_ALERTED";
+    if (await recentlyLogged(action, log.targetId, STUCK_PROVISIONING_COOLDOWN_HOURS)) continue;
+
+    const sent = await notifyOwner(
+      admin.id,
+      `🚨 주문 ${log.targetId} 결제는 확정됐지만 효과(서버 생성/갱신/크레딧 등) 적용에 실패했어요 — /admin/orders에서 직접 확인해주세요.`,
+    );
+    await prisma.auditLog.create({ data: { action, targetType: "Order", targetId: log.targetId, metadata: { discordNotified: sent } } });
+    console.log(`[cron] 주문 ${log.targetId} — 결제 처리 실패 알림 ${sent ? "발송" : "스킵(관리자 디스코드 미연동)"}`);
+  }
+}
+
+/**
  * 하나은행 API는 payaction/paysync 같은 SMS 대행 서비스와 달리 입금 발생 시 실시간으로
  * 알려주는 웹훅이 없다. 그래서 마지막으로 확인한 시각(lastCheckedAt) 이후의 거래내역을
  * 주기적으로 조회해서 "입금자명(적요) + 금액"이 정확히 일치하는 PENDING 주문을 찾아 매칭한다.
@@ -561,9 +596,13 @@ async function handleHanaBankMatching() {
     create: { id: 1 },
   });
 
+  // 처리(특히 서버 생성)가 몇십 초씩 걸릴 수 있어서, toDate를 루프가 다 끝난 뒤의 시각으로
+  // 잡으면 그 사이에 들어온 입금이 이번 창에도 다음 창에도 안 걸리는 공백이 생긴다 — 조회
+  // 시작 시각을 그대로 lastCheckedAt으로 쓴다.
+  const queryToDate = new Date();
   let deposits;
   try {
-    deposits = await getRecentDeposits({ fromDate: sync.lastCheckedAt, toDate: new Date() });
+    deposits = await getRecentDeposits({ fromDate: sync.lastCheckedAt, toDate: queryToDate });
   } catch (err) {
     console.error("[cron] 하나은행 거래내역 조회 실패:", err);
     return;
@@ -593,7 +632,7 @@ async function handleHanaBankMatching() {
     }
   }
 
-  await prisma.hanaBankSync.update({ where: { id: 1 }, data: { lastCheckedAt: new Date() } });
+  await prisma.hanaBankSync.update({ where: { id: 1 }, data: { lastCheckedAt: queryToDate } });
 }
 
 /**
@@ -626,6 +665,7 @@ async function main() {
   console.log(`[cron] 시작 ${new Date().toISOString()}`);
   await handleServerStatusSync();
   await handleStuckProvisioning();
+  await handleStuckFulfillment();
   await handleUsageSnapshots();
   try {
     const result = await syncAppProxyMap(prisma);

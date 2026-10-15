@@ -85,5 +85,19 @@ export const POST = withApiErrorHandling(async (
     data: { pterodactylUserId, sftpPassword: newPassword },
   });
 
+  // 소유자 본인이 아니라 관리자가 대신 재발급한 경우(지원 요청 처리 등)는 남이 쓰던 패널
+  // 계정 비밀번호를 바꾼 셈이라 반드시 기록을 남긴다.
+  if (user.id !== owner.id) {
+    await prisma.auditLog.create({
+      data: {
+        actorUserId: user.id,
+        action: "ADMIN_RESET_SFTP_PASSWORD",
+        targetType: "User",
+        targetId: owner.id,
+        metadata: { serverId: server.id },
+      },
+    });
+  }
+
   return NextResponse.json({ password: newPassword });
 });

@@ -20,10 +20,22 @@ export function recordUsage(usage: { prompt_tokens?: number; completion_tokens?:
   acc.completionTokens += usage.completion_tokens ?? 0;
 }
 
+/** fn이 중간에 실패해도 그때까지 쌓인 사용량을 잃지 않도록 에러에 실어서 다시 던진다 — 실패한
+ * 턴도 그 직전까지 쓴 토큰만큼은 과금해야 한다(무한 재시도로 공짜 토큰을 쓰는 걸 막기 위함). */
+export class AiTurnFailedError extends Error {
+  constructor(public readonly cause: unknown, public readonly usage: UsageAccumulator) {
+    super(cause instanceof Error ? cause.message : String(cause));
+  }
+}
+
 export async function withUsageTracking<T>(
   fn: () => Promise<T>,
 ): Promise<{ result: T; usage: UsageAccumulator }> {
   const acc: UsageAccumulator = { promptTokens: 0, completionTokens: 0 };
-  const result = await storage.run(acc, fn);
-  return { result, usage: acc };
+  try {
+    const result = await storage.run(acc, fn);
+    return { result, usage: acc };
+  } catch (err) {
+    throw new AiTurnFailedError(err, acc);
+  }
 }

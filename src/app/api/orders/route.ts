@@ -138,7 +138,10 @@ export const POST = withApiErrorHandling(async (request: Request) => {
       coupon!.discountType === "PERCENT"
         ? Math.floor((basePrice * coupon!.discountValue) / 100)
         : coupon!.discountValue;
-    discountKrw = Math.min(discountKrw, basePrice - 100);
+    // basePrice가 100원 이하(0원 무료 서버 포함)면 할인 자체를 적용하지 않는다 — 그대로
+    // "basePrice - 100"으로 클램프하면 음수가 돼서 무료 서버에 쿠폰을 쓰면 오히려
+    // 100원짜리 유료 주문이 생겨버렸다.
+    discountKrw = basePrice <= 100 ? 0 : Math.min(discountKrw, basePrice - 100);
   }
 
   if (input.depositorName && !isValidDepositorName(input.depositorName)) {
@@ -161,24 +164,37 @@ export const POST = withApiErrorHandling(async (request: Request) => {
     );
   }
 
-  const order = await prisma.order.create({
-    data: {
-      userId: user.id,
-      productId: product.id,
-      productNameSnapshot: product.name,
-      type: "NEW_SERVER",
-      amountKrw,
-      discountKrw,
-      couponId,
-      depositorName,
-      isPreorder,
-      serverNameRequested: input.serverName,
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-    },
-  });
-
-  if (couponId) {
-    await prisma.couponRedemption.create({ data: { couponId, userId: user.id } });
+  // 주문 생성 + 쿠폰 사용 기록을 한 트랜잭션으로 묶는다 — 따로 하면 같은 1회용 쿠폰으로
+  // 동시에 들어온 두 요청이 둘 다 "아직 안 씀" 체크를 통과해 둘 다 할인 주문을 만들 수 있다.
+  // couponId_userId에 유니크 제약이 있으니, 트랜잭션으로 묶으면 둘 중 하나는 여기서 바로 실패한다.
+  let order;
+  try {
+    order = await prisma.$transaction(async (tx) => {
+      const created = await tx.order.create({
+        data: {
+          userId: user.id,
+          productId: product.id,
+          productNameSnapshot: product.name,
+          type: "NEW_SERVER",
+          amountKrw,
+          discountKrw,
+          couponId,
+          depositorName,
+          isPreorder,
+          serverNameRequested: input.serverName,
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        },
+      });
+      if (couponId) {
+        await tx.couponRedemption.create({ data: { couponId, userId: user.id } });
+      }
+      return created;
+    });
+  } catch (err) {
+    if (err instanceof Error && err.message.includes("Unique constraint")) {
+      return NextResponse.json({ error: "이미 사용한 쿠폰입니다." }, { status: 422 });
+    }
+    throw err;
   }
 
   // 쿠폰 등으로 결제 금액이 0원이 되면 입금 대기 없이 바로 처리한다

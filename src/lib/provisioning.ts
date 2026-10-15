@@ -206,12 +206,45 @@ export async function createServerForOrder(orderId: string) {
   if (order.serverId) {
     return prisma.server.findUniqueOrThrow({ where: { id: order.serverId } });
   }
+
+  // 같은 주문에 대해 거의 동시에 두 번 호출되면(겹친 클릭, 재시도, 크론+API 등) 둘 다 위의
+  // serverId 체크를 통과해서 둘 다 서버를 만들 수 있다 — Pterodactyl 서버가 실제로 2개 생겨도
+  // order.serverId는 마지막에 쓴 쪽만 가리켜서 나머지는 고아가 된다. provisioningStartedAt을
+  // 원자적으로 먼저 찍어서(한쪽만 성공) 이 창을 없앤다.
+  const claim = await prisma.order.updateMany({
+    where: { id: order.id, provisioningStartedAt: null },
+    data: { provisioningStartedAt: new Date() },
+  });
+  if (claim.count === 0) {
+    // 이미 다른 요청이 생성을 시작했다 — 끝날 때까지 짧게 기다렸다가 결과를 반환한다.
+    for (let attempt = 0; attempt < 20; attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const latest = await prisma.order.findUniqueOrThrow({ where: { id: order.id } });
+      if (latest.serverId) {
+        return prisma.server.findUniqueOrThrow({ where: { id: latest.serverId } });
+      }
+    }
+    throw new ProvisioningError("서버 생성이 이미 진행 중이에요. 잠시 후 다시 확인해주세요.");
+  }
+
+  // 여기서부터 실패하면(용량 부족, Pterodactyl 오류, DB 트랜잭션 실패 등) 반드시 위에서 찍은
+  // provisioningStartedAt 선점을 풀어줘야 한다 — 안 풀면 이 주문은 재시도할 때마다 "이미 진행
+  // 중"으로 오인돼서 영원히 서버를 못 만든다. (성공해서 order.serverId가 생기면 그 이후로는
+  // 맨 위의 serverId 체크로 바로 빠져나가니 풀어줄 필요가 없다.)
+  let pteroServerForCleanup: { id: number } | null = null;
+  let server: Server;
+  let node: HostNode;
+  let preset: { id: string; gitRepoUrl: string | null; createdById: string } | null;
+  let template: { category: string; startupCommand: string; dockerImage: string; defaultEnvironment: unknown; pterodactylEggId: number; pterodactylNestId: number; id: string };
+  let pteroServer: PteroApp.PteroServer;
+  try {
+
   if (!order.product) {
     throw new ProvisioningError("이 주문의 상품이 삭제되어 서버를 생성할 수 없습니다. 관리자에게 문의해주세요.");
   }
   const product = order.product;
 
-  const template = order.templateIdRequested
+  template = order.templateIdRequested
     ? await prisma.serverTemplate.findUniqueOrThrow({
         where: { id: order.templateIdRequested },
       })
@@ -220,7 +253,7 @@ export async function createServerForOrder(orderId: string) {
 
   const settings = await prisma.hostingSettings.findUniqueOrThrow({ where: { id: 1 } });
 
-  const node = await selectNode(
+  node = await selectNode(
     product.ramMb,
     product.diskMb,
     product.cpuPercent,
@@ -251,7 +284,7 @@ export async function createServerForOrder(orderId: string) {
   // 커뮤니티 프리셋을 골랐다면 그 저장소 주소를 GIT_ADDRESS로 적용한다. 신고 누적으로
   // 비공개(delisted)된 프리셋은 이미 결제 전에 걸러지긴 하지만, 결제와 적용 사이 시차를 노린
   // 악용을 막기 위해 여기서도 다시 한번 delisted 여부와 baseTemplateId 일치 여부를 확인한다.
-  const preset = order.presetIdRequested
+  preset = order.presetIdRequested
     ? await prisma.userPreset.findFirst({
         where: { id: order.presetIdRequested, baseTemplateId: template.id, delisted: false },
       })
@@ -293,7 +326,7 @@ export async function createServerForOrder(orderId: string) {
     resolvedStartupCommand = resolvedStartupCommand.split(`{{${key}}}`).join(str).split(`\${${key}}`).join(str);
   }
 
-  const pteroServer = await PteroApp.createServer({
+  pteroServer = await PteroApp.createServer({
     name: order.serverNameRequested ?? `${order.user.name}의 서버`,
     userId: pteroUser.id,
     nodeId: node.pterodactylNodeId,
@@ -308,8 +341,10 @@ export async function createServerForOrder(orderId: string) {
     cpuPercent: product.cpuPercent,
     backupSlots: product.backupSlots,
   });
+  pteroServerForCleanup = pteroServer;
 
-  const server = await prisma.$transaction(async (tx) => {
+  try {
+  server = await prisma.$transaction(async (tx) => {
     const created = await tx.server.create({
       data: {
         ownerId: order.userId,
@@ -360,6 +395,26 @@ export async function createServerForOrder(orderId: string) {
     });
     return created;
   });
+  } catch (err) {
+    // DB 트랜잭션이 실패하면(유니크 충돌, 연결 끊김 등) Pterodactyl에는 이미 실제 서버가 떠서
+    // DB에는 아무 기록도 없는 "고아" 컨테이너가 남는다 — 노드 용량 계산에도 안 잡혀서 과판매로
+    // 이어진다. 실패했으면 방금 만든 Pterodactyl 서버를 바로 지워서 재시도가 깨끗하게 시작하게 한다.
+    await PteroApp.deleteServer(pteroServer.id).catch((cleanupErr) => {
+      console.error(`[provisioning] 고아 Pterodactyl 서버(#${pteroServer.id}) 정리 실패 — 수동 확인 필요:`, cleanupErr);
+    });
+    await prisma.order.update({ where: { id: order.id }, data: { provisioningStartedAt: null } }).catch(() => {});
+    throw err;
+  }
+
+  } catch (err) {
+    // product/template/node 조회, Pterodactyl 유저/allocation 준비 단계에서 실패한 경우(위의
+    // 안쪽 catch가 처리하는 "DB 트랜잭션 실패" 이전 단계) — 선점을 풀어서 재시도가 가능하게 한다.
+    // pteroServerForCleanup이 설정돼 있다면 안쪽 catch가 이미 정리했으므로 중복 호출만 막는다.
+    if (!pteroServerForCleanup) {
+      await prisma.order.update({ where: { id: order.id }, data: { provisioningStartedAt: null } }).catch(() => {});
+    }
+    throw err;
+  }
 
   try {
     await provisionSubdomain({

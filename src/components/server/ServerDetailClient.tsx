@@ -49,6 +49,7 @@ export interface ServerInfo {
   cpuPercent: number;
   backupSlots: number;
   templateId: string;
+  templateKey: string;
   templateName: string;
   templateCategory: "MINECRAFT" | "DISCORD_BOT" | "GENERAL";
   minecraftVersion: string | null;

@@ -286,6 +286,29 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
         </div>
       </div>
 
+      {server.templateKey === "blank-server" && server.accessSecret && server.allocationIp && server.allocationPort && (
+        <div className="card-glow p-5">
+          <h3 className="font-semibold mb-3">SSH 접속 정보</h3>
+          <p className="text-xs text-text-dim mb-3">
+            터미널 프로그램(macOS/리눅스는 기본 터미널, 윈도우는 PuTTY 등)에서 아래 정보로 바로 접속할 수 있어요.
+            서버를 시작한 뒤 몇 초 정도 기다렸다가 접속해주세요.
+          </p>
+          <div className="grid grid-cols-2 gap-y-2 text-sm">
+            <span className="text-text-dim">호스트</span>
+            <span className="font-mono select-all">{server.allocationIp}</span>
+            <span className="text-text-dim">포트</span>
+            <span className="font-mono select-all">{server.allocationPort}</span>
+            <span className="text-text-dim">사용자명</span>
+            <span className="font-mono select-all">container</span>
+            <span className="text-text-dim">비밀번호</span>
+            <span className="font-mono select-all">{server.accessSecret}</span>
+          </div>
+          <div className="mt-3 bg-black/30 rounded-lg px-3 py-2 font-mono text-xs select-all break-all">
+            ssh container@{server.allocationIp} -p {server.allocationPort}
+          </div>
+        </div>
+      )}
+
       <div className="card-glow p-5">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold">접속 주소</h3>

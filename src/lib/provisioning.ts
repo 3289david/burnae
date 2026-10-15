@@ -260,6 +260,39 @@ export async function createServerForOrder(orderId: string) {
 
   const dockerImage = order.dockerImageRequested ?? template.dockerImage;
 
+  const environment: Record<string, string | number | boolean> = {
+    ...defaultEnv,
+    // 에그마다 버전 변수 이름이 달라서(MINECRAFT_VERSION/MC_VERSION/VANILLA_VERSION) 존재하는
+    // 키만 선택해서 덮어쓴다 — FABRIC_VERSION/LOADER_VERSION/빌드 번호류는 별개 개념이라 건드리지 않음
+    ...(template.category === "MINECRAFT"
+      ? Object.fromEntries(
+          MINECRAFT_VERSION_ENV_ALIASES.filter((key) => key in defaultEnv).map((key) => [
+            key,
+            order.minecraftVersionRequested ?? "latest",
+          ]),
+        )
+      : {}),
+    ...("GIT_ADDRESS" in defaultEnv && gitAddressToApply
+      ? { GIT_ADDRESS: gitAddressToApply, USER_UPLOAD: "0" }
+      : {}),
+    // 봇 토큰/API 키처럼 egg가 필수로 요구하지만 기본값으로 채울 수 없는 변수 — 주문 시점에
+    // 사용자가 직접 입력한 값(customVariables)이 프리셋 기본값보다 항상 우선해야 한다
+    ...((order.customVariables as Record<string, string> | null) ?? {}),
+    ...(accessSecret && secretEnvKey ? { [secretEnvKey]: accessSecret } : {}),
+    SERVER_MEMORY: product.ramMb,
+  };
+
+  // GENERAL 카테고리 템플릿이 공유하는 egg는 변수 스키마가 비어 있어서, 패널이 egg에 등록되지
+  // 않은 커스텀 환경변수(PASSWORD, GIT_ADDRESS, 봇 토큰 등)는 조용히 무시한다 — {{KEY}}/${KEY}
+  // 치환도, 실제 컨테이너 env 주입도 안 돼서 시작 명령어에 빈 값이 들어가는 문제가 있었다.
+  // (SERVER_PORT처럼 Wings가 기본 제공하는 값은 영향 없음 — 우리가 직접 넣은 키만 치환한다.)
+  // 값을 이미 우리가 알고 있으니, Pterodactyl에 보내기 전에 시작 명령어 문자열에 직접 박아 넣는다.
+  let resolvedStartupCommand = template.startupCommand;
+  for (const [key, value] of Object.entries(environment)) {
+    const str = String(value);
+    resolvedStartupCommand = resolvedStartupCommand.split(`{{${key}}}`).join(str).split(`\${${key}}`).join(str);
+  }
+
   const pteroServer = await PteroApp.createServer({
     name: order.serverNameRequested ?? `${order.user.name}의 서버`,
     userId: pteroUser.id,
@@ -268,28 +301,8 @@ export async function createServerForOrder(orderId: string) {
     eggId: template.pterodactylEggId,
     nestId: template.pterodactylNestId,
     dockerImage,
-    startupCommand: template.startupCommand,
-    environment: {
-      ...defaultEnv,
-      // 에그마다 버전 변수 이름이 달라서(MINECRAFT_VERSION/MC_VERSION/VANILLA_VERSION) 존재하는
-      // 키만 선택해서 덮어쓴다 — FABRIC_VERSION/LOADER_VERSION/빌드 번호류는 별개 개념이라 건드리지 않음
-      ...(template.category === "MINECRAFT"
-        ? Object.fromEntries(
-            MINECRAFT_VERSION_ENV_ALIASES.filter((key) => key in defaultEnv).map((key) => [
-              key,
-              order.minecraftVersionRequested ?? "latest",
-            ]),
-          )
-        : {}),
-      ...("GIT_ADDRESS" in defaultEnv && gitAddressToApply
-        ? { GIT_ADDRESS: gitAddressToApply, USER_UPLOAD: "0" }
-        : {}),
-      // 봇 토큰/API 키처럼 egg가 필수로 요구하지만 기본값으로 채울 수 없는 변수 — 주문 시점에
-      // 사용자가 직접 입력한 값(customVariables)이 프리셋 기본값보다 항상 우선해야 한다
-      ...((order.customVariables as Record<string, string> | null) ?? {}),
-      ...(accessSecret && secretEnvKey ? { [secretEnvKey]: accessSecret } : {}),
-      SERVER_MEMORY: product.ramMb,
-    },
+    startupCommand: resolvedStartupCommand,
+    environment,
     memoryMb: product.ramMb,
     diskMb: product.diskMb,
     cpuPercent: product.cpuPercent,

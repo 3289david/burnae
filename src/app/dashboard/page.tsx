@@ -87,6 +87,7 @@ export default async function DashboardPage() {
               isOwner: s.ownerId === user!.id,
               isFavorite: s.isFavorite,
               status: s.status,
+              hasIdentifier: !!s.pterodactylIdentifier,
               ramMb: s.ramMb,
               diskMb: s.diskMb,
               category: s.template.category,

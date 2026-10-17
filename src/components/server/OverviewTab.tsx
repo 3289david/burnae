@@ -109,6 +109,11 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
 
   async function power(signal: "start" | "stop" | "restart") {
     setActionLoading(true);
+    // 다음 5초 폴링을 기다리지 않고 누르자마자 바로 "시작 중/정지 중"으로 보이게 한다 —
+    // 실제 Wings 상태는 바로 다음 poll()에서 다시 확인해서 틀렸으면 금방 바로잡는다.
+    setResources((prev) =>
+      prev ? { ...prev, current_state: signal === "stop" ? "stopping" : "starting" } : prev,
+    );
     try {
       await fetch(`/api/servers/${server.id}/power`, {
         method: "POST",

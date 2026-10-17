@@ -72,32 +72,42 @@ export default function ServerListClient({ servers }: { servers: DashboardServer
   liveStatusRef.current = liveStatus;
 
   // "생성 중"/"시작 중" 같은 과도기 상태는 새로고침해야만 바뀐 걸 볼 수 있었다 — 컨테이너가
-  // 이미 있는 서버는 Wings 실시간 상태를 직접 물어보고, 아직 컨테이너 자체가 없는(=아직
-  // 우리 DB의 provisioning 코드가 안 끝난) 서버는 페이지 데이터를 통째로 다시 불러온다.
+  // 이미 있는 서버는 Wings 실시간 상태를 항상 직접 물어보고(전원 버튼을 눌러서 DB의 status는
+  // 아직 안 바뀐 채로 Wings만 먼저 바뀌는 경우까지 잡아야 해서, "지금 과도기 상태인 것만"으로
+  // 좁히면 안 된다), 아직 컨테이너 자체가 없는(=아직 provisioning 코드가 안 끝난) 서버는
+  // 페이지 데이터를 통째로 다시 불러온다. 탭을 처음 열자마자(5초 기다리지 않고) 바로 한 번
+  // 확인하고, 그 뒤로 3초마다 반복한다.
   useEffect(() => {
-    const withIdentifier = servers.filter(
-      (s) => s.hasIdentifier && TRANSIENT_STATUSES.has(liveStatusRef.current[s.id] ?? s.status),
-    );
-    const withoutIdentifier = servers.filter((s) => !s.hasIdentifier && TRANSIENT_STATUSES.has(s.status));
+    const withIdentifier = servers.filter((s) => s.hasIdentifier);
+    const withoutIdentifier = servers.filter((s) => !s.hasIdentifier);
     if (withIdentifier.length === 0 && withoutIdentifier.length === 0) return;
 
-    const interval = setInterval(async () => {
-      if (withoutIdentifier.length > 0) router.refresh();
-      for (const s of withIdentifier) {
-        try {
-          const res = await fetch(`/api/servers/${s.id}/resources`);
-          if (!res.ok) continue;
-          const data = await res.json();
-          const mapped = WINGS_STATE_TO_STATUS[data.current_state];
-          if (mapped && liveStatusRef.current[s.id] !== mapped) {
-            setLiveStatus((prev) => ({ ...prev, [s.id]: mapped }));
+    let cancelled = false;
+    async function tick() {
+      if (withoutIdentifier.some((s) => TRANSIENT_STATUSES.has(s.status))) router.refresh();
+      await Promise.all(
+        withIdentifier.map(async (s) => {
+          try {
+            const res = await fetch(`/api/servers/${s.id}/resources`);
+            if (!res.ok || cancelled) return;
+            const data = await res.json();
+            const mapped = WINGS_STATE_TO_STATUS[data.current_state];
+            if (mapped && liveStatusRef.current[s.id] !== mapped) {
+              setLiveStatus((prev) => ({ ...prev, [s.id]: mapped }));
+            }
+          } catch {
+            // 일시적 네트워크 오류 — 다음 틱에서 다시 시도
           }
-        } catch {
-          // 일시적 네트워크 오류 — 다음 틱에서 다시 시도
-        }
-      }
-    }, 5000);
-    return () => clearInterval(interval);
+        }),
+      );
+    }
+
+    tick();
+    const interval = setInterval(tick, 3000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, [servers, router]);
 
   const ownedCount = useMemo(() => servers.filter((s) => s.isOwner).length, [servers]);
@@ -114,6 +124,14 @@ export default function ServerListClient({ servers }: { servers: DashboardServer
   async function runBulkPower(signal: "start" | "stop" | "restart") {
     if (selected.size === 0 || bulkBusy) return;
     setBulkBusy(true);
+    // 요청이 끝나길(그리고 다음 폴링 틱까지) 기다리지 않고 누르자마자 바로 보여준다 —
+    // 실제 상태는 바로 다음 poll에서 확인해서 틀렸으면 바로잡는다.
+    const optimistic = signal === "stop" ? "STOPPING" : signal === "restart" ? "STARTING" : "STARTING";
+    setLiveStatus((prev) => {
+      const next = { ...prev };
+      for (const id of selected) next[id] = optimistic;
+      return next;
+    });
     try {
       await Promise.allSettled(
         Array.from(selected).map((id) =>

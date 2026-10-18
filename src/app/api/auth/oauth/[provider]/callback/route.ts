@@ -6,6 +6,7 @@ import { completeOAuthLogin, siteUrl, type OAuthProviderKey } from "@/lib/oauth"
 import { rewardReferralSignup } from "@/lib/promotions";
 import { extractClientIp } from "@/lib/altAccountDetection";
 import { addDiscordRole } from "@/lib/discordNotify";
+import { localizedPath } from "@/lib/localeFromRequest";
 
 const VALID_PROVIDERS: OAuthProviderKey[] = ["google", "github", "discord"];
 const PROVIDER_ENUM: Record<OAuthProviderKey, "GOOGLE" | "GITHUB" | "DISCORD"> = {
@@ -20,8 +21,9 @@ export async function GET(
 ) {
   const { provider: providerParam } = await params;
   const url = new URL(request.url);
+  const preLocale = (await cookies()).get("NEXT_LOCALE")?.value;
   const loginError = (message: string) =>
-    NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(message)}`, siteUrl()));
+    NextResponse.redirect(new URL(`${localizedPath(preLocale, "/login")}?error=${encodeURIComponent(message)}`, siteUrl()));
 
   if (!VALID_PROVIDERS.includes(providerParam as OAuthProviderKey)) {
     return loginError("지원하지 않는 로그인 방식입니다.");
@@ -48,7 +50,7 @@ export async function GET(
     console.error(`[oauth:${provider}] 로그인 실패:`, err);
     if (linkMode) {
       return NextResponse.redirect(
-        new URL(`/dashboard/account?discordError=${encodeURIComponent(err instanceof Error ? err.message : "연동에 실패했습니다.")}`, siteUrl()),
+        new URL(`${localizedPath(preLocale, "/dashboard/account")}?discordError=${encodeURIComponent(err instanceof Error ? err.message : "연동에 실패했습니다.")}`, siteUrl()),
       );
     }
     return loginError(err instanceof Error ? err.message : "로그인에 실패했습니다.");
@@ -58,13 +60,13 @@ export async function GET(
   if (linkMode && provider === "discord") {
     const currentUser = await getCurrentUser();
     if (!currentUser) {
-      return NextResponse.redirect(new URL("/login", siteUrl()));
+      return NextResponse.redirect(new URL(localizedPath(preLocale, "/login"), siteUrl()));
     }
     try {
       const conflict = await prisma.discordLink.findUnique({ where: { discordUserId: profile.providerAccountId } });
       if (conflict && conflict.userId !== currentUser.id) {
         return NextResponse.redirect(
-          new URL(`/dashboard/account?discordError=${encodeURIComponent("이 디스코드 계정은 이미 다른 Burnae 계정에 연동되어 있습니다.")}`, siteUrl()),
+          new URL(`${localizedPath(preLocale, "/dashboard/account")}?discordError=${encodeURIComponent("이 디스코드 계정은 이미 다른 Burnae 계정에 연동되어 있습니다.")}`, siteUrl()),
         );
       }
       await prisma.discordLink.upsert({
@@ -79,11 +81,11 @@ export async function GET(
           create: { userId: currentUser.id, provider: "DISCORD", providerAccountId: profile.providerAccountId },
         })
         .catch(() => {});
-      return NextResponse.redirect(new URL("/dashboard/account?discordLinked=1", siteUrl()));
+      return NextResponse.redirect(new URL(`${localizedPath(preLocale, "/dashboard/account")}?discordLinked=1`, siteUrl()));
     } catch (err) {
       console.error("[oauth:discord] 연동 실패:", err);
       return NextResponse.redirect(
-        new URL(`/dashboard/account?discordError=${encodeURIComponent("연동 처리 중 오류가 발생했습니다.")}`, siteUrl()),
+        new URL(`${localizedPath(preLocale, "/dashboard/account")}?discordError=${encodeURIComponent("연동 처리 중 오류가 발생했습니다.")}`, siteUrl()),
       );
     }
   }
@@ -166,7 +168,7 @@ export async function GET(
     await createSessionCookie({ sub: user.id, role: user.role, email: user.email });
 
     const redirectTo = isAdminEmail(user.email) ? "/admin" : "/dashboard";
-    return NextResponse.redirect(new URL(redirectTo, siteUrl()));
+    return NextResponse.redirect(new URL(localizedPath(preLocale, redirectTo), siteUrl()));
   } catch (err) {
     console.error(`[oauth:${provider}] 계정 처리 실패:`, err);
     return loginError("서버에 일시적인 문제가 있어요. 잠시 후 다시 시도해주세요.");

@@ -1,9 +1,11 @@
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import BrandMark from "@/components/BrandMark";
+import LegalEnglishNotice from "@/components/LegalEnglishNotice";
 
 export const metadata = { title: "개인정보처리방침 — Burnae" };
 
-export default function PrivacyPage() {
+export default async function PrivacyPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
   return (
     <div className="min-h-screen">
       <header className="border-b border-border">
@@ -15,6 +17,7 @@ export default function PrivacyPage() {
       </header>
 
       <main className="max-w-3xl mx-auto px-6 py-12">
+        <LegalEnglishNotice locale={locale} />
         <h1 className="text-3xl font-bold font-display">개인정보처리방침</h1>
         <p className="text-sm text-text-dim mt-2">시행일: 2026년 8월 31일</p>
 

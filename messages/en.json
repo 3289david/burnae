@@ -1,0 +1,159 @@
+{
+  "common": {
+    "brand": "Burnae"
+  },
+  "home": {
+    "nav": {
+      "login": "Log in",
+      "start": "Get started",
+      "dashboard": "Dashboard"
+    },
+    "hero": {
+      "titleMinecraft": "Minecraft servers",
+      "titleGeneral": "Server hosting",
+      "titleBoth": "Minecraft & server hosting",
+      "titleGradient": "managed by chat",
+      "titleEra": "",
+      "descMinecraft": "Spin up a server in under a minute — handle setup, plugins, and troubleshooting with a single chat message. We hide the complicated control panel for you.",
+      "descGeneral": "From VPS to Discord bot hosting — create it in a minute, and finish setup and troubleshooting with a single chat message.",
+      "descBoth": "From Minecraft to VPS and Discord bot hosting — create it in a minute, and finish setup and troubleshooting with a single chat message.",
+      "ctaPrimary": "Start for free",
+      "ctaDiscord": "Join our Discord",
+      "trustNoCard": "Bank transfer, no card needed",
+      "trustNoSignup": "See pricing without signing up",
+      "trustCancelAnytime": "Cancel anytime"
+    },
+    "features": {
+      "title": "Everything hosting needs",
+      "subtitle": "We handle the complicated server management — all you see are simple buttons.",
+      "create": { "title": "1-minute server creation", "desc": "Pay and your server is created automatically — connection address included." },
+      "console": { "title": "Live console", "desc": "Type commands and watch logs in real time, right from the browser." },
+      "backup": { "title": "Automatic backups", "desc": "Set a schedule and we back up for you, with automatic snapshots before risky actions." },
+      "subdomain": { "title": "Automatic subdomain", "desc": "Create a server and get a name.krl.kr address instantly." },
+      "team": { "title": "Team collaboration", "desc": "Invite friends and split up moderator/developer permissions." },
+      "mcAi": { "title": "AI server management", "desc": "Say \"enable command blocks\" in chat and the AI checks and changes the actual setting." },
+      "mcPlayers": { "title": "Player management", "desc": "Whitelist, OP, ban, kick — all with one button. No complicated config needed." },
+      "mcPlugins": { "title": "Plugin & mod marketplace", "desc": "From Modrinth search to install in a few clicks — or just ask the AI." },
+      "genAi": { "title": "AI server management", "desc": "Say \"restart the bot\" in chat and the AI checks the actual console and files, then makes the change." },
+      "genEnv": { "title": "Startup variable editor", "desc": "Enter and edit settings like bot tokens directly from the browser." },
+      "genDeploy": { "title": "GitHub repo deploy", "desc": "Start instantly from 20+ popular presets like Red, Muse, Uptime Kuma, or your own GitHub repo." }
+    },
+    "steps": {
+      "title": "Four steps, done",
+      "subtitle": "No admin approval, no long wait.",
+      "planTitle": "Pick a plan",
+      "planDescMinecraft": "Choose RAM/CPU/disk and a server type (Paper, Fabric, Forge, etc).",
+      "planDescGeneral": "Choose RAM/CPU/disk and a server type (VPS, Discord bot, etc).",
+      "planDescBoth": "Choose RAM/CPU/disk and a server type.",
+      "depositTitle": "Bank transfer",
+      "depositDesc": "Confirmed automatically once the depositor name and amount match.",
+      "autoCreateTitle": "Automatic setup",
+      "autoCreateDesc": "From server install to address connection — fully automatic.",
+      "connectTitle": "Connect right away",
+      "connectDesc": "Share the generated address and start using it immediately."
+    },
+    "aiShowcase": {
+      "badge": "Burnae AI",
+      "title": "Operate your server by chatting",
+      "desc": "From server settings and plugin installs to error diagnosis — this AI works directly with your real server files and console. It always asks first before anything risky, and automatically backs up before making changes.",
+      "exampleUserGeneral": "Restart the bot and check the logs",
+      "exampleAiGeneral": "Restarted the bot — no errors in the recent logs. Want me to keep watching?",
+      "exampleUserMinecraft": "Let me use command blocks",
+      "exampleAiMinecraft": "enable-command-block is off in server.properties. Want me to turn it on and restart?",
+      "applyButton": "Apply"
+    },
+    "pricing": {
+      "title": "Transparent pricing",
+      "subtitle": "See the plans without creating an account.",
+      "comingSoon": "Plans are being prepared — check back soon.",
+      "popular": "Popular",
+      "perMonth": "/mo",
+      "cpuLabel": "CPU {percent}%",
+      "diskLabel": "Disk {size}",
+      "trafficUnlimited": "Unlimited traffic",
+      "backupLabel": "{count} backup slots",
+      "aiCreditsLabel": "{count} AI credits granted monthly",
+      "multiAddressLabel": "Multiple addresses + your own domain supported",
+      "startPlan": "Start with this plan",
+      "fairUseNote": "Unlimited traffic is provided subject to our",
+      "fairUseLink": "fair use policy",
+      "fairUseNoteEnd": ".",
+      "freeBadge": "Free",
+      "freeTitle": "Get a server without paying a thing",
+      "freeDesc": "Earn points by referring friends, joining our official Discord, or promoting us on a blog or video — redeem them for a free trial server right away. Earned points can also be used to upgrade your server.",
+      "freeCta": "Start for free"
+    },
+    "faq": {
+      "title": "Frequently asked questions",
+      "refundQ": "Can I get a refund?",
+      "refundA": "Refunds for simple change-of-mind are limited, and are handled according to the procedures set out by applicable law. See our Terms of Service for details.",
+      "aiControlQ": "Can the AI change my server on its own?",
+      "aiControlA": "No. Anything with a real effect — editing files, running commands — always requires you to press an approval button. We also auto-backup before risky actions.",
+      "minecraftQ": "Which Minecraft versions are supported?",
+      "minecraftA": "We support server types registered by the operator, including Paper, Fabric, Forge, NeoForge, and Vanilla. You can pick a version when creating a server.",
+      "generalQ": "What server types are supported?",
+      "generalA": "VPS (Code-Server), Discord bots (20+ popular presets like Red and Muse, plus custom GitHub repos), generic Node.js/Python/Go/Java/C#, and utilities like Uptime Kuma and Gitea.",
+      "paymentQ": "How do I pay?",
+      "paymentA": "No card needed — pay by bank transfer. Once the depositor name and amount match, it's confirmed automatically and your server is created."
+    },
+    "finalCta": {
+      "title": "Create your server right now",
+      "desc": "Signup takes 30 seconds, server creation takes a minute.",
+      "cta": "Start for free"
+    }
+  },
+  "footer": {
+    "terms": "Terms of Service",
+    "privacy": "Privacy Policy",
+    "refund": "Refund Policy",
+    "fairUse": "Fair Use Policy",
+    "start": "Get started",
+    "copyright": "© {year} Burnae · burnae.kr · This service is independent and not affiliated with any specific bank or payment processor.",
+    "contact": "Text support 070-8970-6766 · Fax 0504-417-2275"
+  },
+  "login": {
+    "title": "Log in",
+    "subtitle": "Log in with the account you signed up with.",
+    "or": "or",
+    "noAccount": "Don't have an account?",
+    "startLink": "Get started"
+  },
+  "register": {
+    "loginLink": "Log in",
+    "title": "Get started",
+    "subtitle": "Start instantly with one of the accounts below — first time signs you up automatically.",
+    "referralNote": "You came through a referral link — your referrer will earn points when you sign up.",
+    "or": "or",
+    "agreementPrefix": "By continuing, you agree to our",
+    "termsLink": "Terms of Service",
+    "and": "and",
+    "privacyLink": "Privacy Policy",
+    "agreementSuffix": "."
+  },
+  "dashboardNav": {
+    "communityEggs": "Community presets",
+    "promotions": "Promo points",
+    "billing": "Billing",
+    "support": "Support",
+    "account": "Account",
+    "admin": "Admin",
+    "search": "Search",
+    "menu": "Menu",
+    "greeting": "{name}"
+  },
+  "dashboardHome": {
+    "greeting": "Hello,",
+    "greetingSuffix": "",
+    "serverCountPrefix": "",
+    "serverCountMiddle": " servers · ",
+    "serverCountSuffix": " running",
+    "createServer": "Create server",
+    "emptyText": "You haven't created a server yet.",
+    "emptyCta": "Create your first server",
+    "addressPending": "Address pending"
+  },
+  "legal": {
+    "enNotice": "This page is only officially published in Korean — the Korean text below is the legally binding version. If there's ever a conflict between an English summary and the Korean original, the Korean original governs.",
+    "lastUpdatedPrefix": "Effective date:"
+  }
+}

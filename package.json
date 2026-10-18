@@ -18,8 +18,8 @@
     "crypto:watch": "tsx scripts/crypto-watch-cron.ts"
   },
   "dependencies": {
-    "@prisma/adapter-pg": "^7.9.1",
-    "@prisma/client": "^7.9.1",
+    "@prisma/adapter-pg": "7.9.1",
+    "@prisma/client": "7.9.1",
     "bip32": "^5.0.1",
     "bitcoinjs-lib": "^7.0.4",
     "discord.js": "^14.27.0",
@@ -27,9 +27,10 @@
     "js-sha3": "^0.13.0",
     "lucide-react": "^1.31.0",
     "next": "^16.3.1",
+    "next-intl": "^4.14.9",
     "openai": "^7.4.0",
     "pg": "^8.23.0",
-    "prisma": "^7.9.1",
+    "prisma": "7.9.1",
     "qrcode": "^1.5.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
@@ -49,6 +50,7 @@
     "eslint-config-next": "16.3.1",
     "tailwindcss": "^4",
     "tsx": "^4.23.12",
-    "typescript": "^5"
+    "typescript": "^5",
+    "prisma": "7.9.1"
   }
 }

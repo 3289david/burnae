@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import OAuthButtons from "@/components/OAuthButtons";
 import EmailLoginForm from "@/components/EmailLoginForm";
 import BrandMark from "@/components/BrandMark";
 
 export default function LoginPage() {
+  const t = useTranslations("login");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -21,15 +23,15 @@ export default function LoginPage() {
         <Link href="/" className="inline-flex items-center gap-2 text-xl font-bold font-display">
           <BrandMark /> Burnae
         </Link>
-        <h1 className="mt-6 text-2xl font-bold">로그인</h1>
-        <p className="mt-2 text-sm text-text-dim">가입할 때 사용한 계정으로 로그인하세요.</p>
+        <h1 className="mt-6 text-2xl font-bold">{t("title")}</h1>
+        <p className="mt-2 text-sm text-text-dim">{t("subtitle")}</p>
 
         <div className="mt-6 animate-fade-up" style={{ animationDelay: "0.1s" }}>
           <OAuthButtons />
         </div>
 
         <div className="my-5 flex items-center gap-3 text-xs text-text-dim animate-fade-up" style={{ animationDelay: "0.12s" }}>
-          <span className="flex-1 h-px bg-border" /> 또는 <span className="flex-1 h-px bg-border" />
+          <span className="flex-1 h-px bg-border" /> {t("or")} <span className="flex-1 h-px bg-border" />
         </div>
 
         <div className="animate-fade-up" style={{ animationDelay: "0.14s" }}>
@@ -39,8 +41,8 @@ export default function LoginPage() {
         {error && <p className="animate-toast-in mt-4 text-sm text-red">{error}</p>}
 
         <p className="mt-6 text-sm text-text-dim animate-fade-up" style={{ animationDelay: "0.15s" }}>
-          계정이 없으신가요?{" "}
-          <Link href="/register" className="text-accent">시작하기</Link>
+          {t("noAccount")}{" "}
+          <Link href="/register" className="text-accent">{t("startLink")}</Link>
         </p>
       </div>
     </div>

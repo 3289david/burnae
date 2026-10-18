@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useRouter } from "@/i18n/navigation";
+import { Link } from "@/i18n/navigation";
 import { Search, X, CheckSquare, Check, Play, Square as StopIcon, RotateCw } from "lucide-react";
 import StatusDot from "@/components/StatusDot";
 import { formatMb } from "@/lib/formatSize";

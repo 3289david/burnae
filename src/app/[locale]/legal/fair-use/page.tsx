@@ -1,9 +1,11 @@
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import BrandMark from "@/components/BrandMark";
+import LegalEnglishNotice from "@/components/LegalEnglishNotice";
 
 export const metadata = { title: "공정 이용 정책 — Burnae" };
 
-export default function FairUsePage() {
+export default async function FairUsePage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
   return (
     <div className="min-h-screen">
       <header className="border-b border-border">
@@ -15,6 +17,7 @@ export default function FairUsePage() {
       </header>
 
       <main className="max-w-3xl mx-auto px-6 py-12 prose-sm">
+        <LegalEnglishNotice locale={locale} />
         <h1 className="text-3xl font-bold font-display">공정 이용 정책</h1>
         <p className="text-sm text-text-dim mt-2">시행일: 2026년 10월 18일</p>
         <p className="text-sm text-text-dim mt-4">

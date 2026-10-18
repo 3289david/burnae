@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { buildAuthorizeUrl, siteUrl, type OAuthProviderKey } from "@/lib/oauth";
+import { localizedPath } from "@/lib/localeFromRequest";
 
 const VALID_PROVIDERS: OAuthProviderKey[] = ["google", "github", "discord"];
 
@@ -52,8 +53,9 @@ export async function GET(
     return NextResponse.redirect(url);
   } catch (err) {
     const message = err instanceof Error ? err.message : "설정 오류";
+    const locale = store.get("NEXT_LOCALE")?.value;
     return NextResponse.redirect(
-      new URL(`/login?error=${encodeURIComponent(message)}`, siteUrl()),
+      new URL(`${localizedPath(locale, "/login")}?error=${encodeURIComponent(message)}`, siteUrl()),
     );
   }
 }

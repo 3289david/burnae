@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useRouter } from "@/i18n/navigation";
+import { Link } from "@/i18n/navigation";
 import { Copy } from "lucide-react";
 import Toggle from "@/components/Toggle";
 import UpgradeCard from "./UpgradeCard";

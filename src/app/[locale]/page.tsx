@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
+import { getTranslations } from "next-intl/server";
 import {
   Zap, Bot, Terminal, Users, Puzzle, ShieldCheck, Globe, RefreshCw,
   ArrowRight, Check, MessageCircle, Rocket, Gift, KeyRound, FolderGit2,
@@ -15,59 +16,58 @@ import DotGrid from "@/components/DotGrid";
 import CountUp from "@/components/CountUp";
 import { allowedCategoriesForSiteMode, type SiteMode } from "@/lib/siteMode";
 
-const SHARED_FEATURES = [
-  { icon: Zap, color: "var(--accent)", title: "1분 서버 생성", desc: "결제하면 바로 서버가 자동으로 만들어지고 접속 주소까지 연결돼요." },
-  { icon: Terminal, color: "var(--cyan)", title: "실시간 콘솔", desc: "웹에서 바로 명령어를 입력하고 로그를 실시간으로 확인해요." },
-  { icon: RefreshCw, color: "var(--lime)", title: "자동 백업", desc: "주기를 정해두면 알아서 백업하고, 위험한 작업 전엔 자동으로 스냅샷을 남겨요." },
-  { icon: Globe, color: "var(--flame-2)", title: "서브도메인 자동 연결", desc: "서버를 만들면 이름.krl.kr 주소가 자동으로 생겨요." },
-  { icon: ShieldCheck, color: "var(--green)", title: "팀 협업", desc: "친구를 초대해서 운영자·개발자 권한을 나눠줄 수 있어요." },
-];
+type T = Awaited<ReturnType<typeof getTranslations<"home">>>;
 
-const MINECRAFT_FEATURES = [
-  { icon: Bot, color: "var(--purple)", title: "AI 서버 관리", desc: "\"커맨드 블럭 켜줘\" 라고 채팅하면 AI가 실제 설정을 확인하고 바꿔줘요." },
-  { icon: Users, color: "var(--blue)", title: "플레이어 관리", desc: "화이트리스트·OP·밴·킥을 버튼 하나로. 복잡한 설정 필요 없어요." },
-  { icon: Puzzle, color: "var(--pink)", title: "플러그인·모드 마켓", desc: "Modrinth 검색부터 설치까지 클릭 몇 번, AI에게 부탁해도 돼요." },
-];
-
-const GENERAL_FEATURES = [
-  { icon: Bot, color: "var(--purple)", title: "AI 서버 관리", desc: "\"봇 재시작해줘\" 라고 채팅하면 AI가 실제 콘솔과 파일을 확인하고 바꿔줘요." },
-  { icon: KeyRound, color: "var(--blue)", title: "시작 변수 편집", desc: "봇 토큰 같은 설정값을 웹에서 바로 입력하고 수정해요." },
-  { icon: FolderGit2, color: "var(--pink)", title: "GitHub repo 배포", desc: "Red, Muse, Uptime Kuma 등 20여 개 인기 프리셋 또는 원하는 GitHub repo로 바로 시작해요." },
-];
-
-function featuresForMode(mode: SiteMode) {
-  if (mode === "MINECRAFT_ONLY") return [...SHARED_FEATURES.slice(0, 2), ...MINECRAFT_FEATURES, ...SHARED_FEATURES.slice(2)];
-  if (mode === "GENERAL_ONLY") return [...SHARED_FEATURES.slice(0, 2), ...GENERAL_FEATURES, ...SHARED_FEATURES.slice(2)];
-  return [...SHARED_FEATURES.slice(0, 2), MINECRAFT_FEATURES[1], GENERAL_FEATURES[1], MINECRAFT_FEATURES[2], ...SHARED_FEATURES.slice(2)];
+function featureList(t: T, mode: SiteMode) {
+  const ICONS: Record<string, { icon: typeof Zap; color: string }> = {
+    create: { icon: Zap, color: "var(--accent)" },
+    console: { icon: Terminal, color: "var(--cyan)" },
+    backup: { icon: RefreshCw, color: "var(--lime)" },
+    subdomain: { icon: Globe, color: "var(--flame-2)" },
+    team: { icon: ShieldCheck, color: "var(--green)" },
+    mcAi: { icon: Bot, color: "var(--purple)" },
+    mcPlayers: { icon: Users, color: "var(--blue)" },
+    mcPlugins: { icon: Puzzle, color: "var(--pink)" },
+    genAi: { icon: Bot, color: "var(--purple)" },
+    genEnv: { icon: KeyRound, color: "var(--blue)" },
+    genDeploy: { icon: FolderGit2, color: "var(--pink)" },
+  };
+  const order =
+    mode === "MINECRAFT_ONLY"
+      ? ["create", "console", "mcAi", "mcPlayers", "mcPlugins", "backup", "subdomain", "team"]
+      : mode === "GENERAL_ONLY"
+        ? ["create", "console", "genAi", "genEnv", "genDeploy", "backup", "subdomain", "team"]
+        : ["create", "console", "mcPlayers", "genEnv", "mcPlugins", "backup", "subdomain", "team"];
+  return order.map((key) => ({
+    key,
+    ...ICONS[key],
+    title: t(`features.${key}.title`),
+    desc: t(`features.${key}.desc`),
+  }));
 }
 
-function stepsForMode(mode: SiteMode) {
+function stepsList(t: T, mode: SiteMode) {
   const planDesc =
-    mode === "MINECRAFT_ONLY"
-      ? "RAM/CPU/디스크와 서버 종류(Paper·Fabric·Forge 등)를 고르세요."
-      : mode === "GENERAL_ONLY"
-        ? "RAM/CPU/디스크와 서버 종류(VPS·디스코드 봇 등)를 고르세요."
-        : "RAM/CPU/디스크와 서버 종류를 고르세요.";
+    mode === "MINECRAFT_ONLY" ? t("steps.planDescMinecraft") : mode === "GENERAL_ONLY" ? t("steps.planDescGeneral") : t("steps.planDescBoth");
   return [
-    { n: 1, title: "플랜 선택", desc: planDesc },
-    { n: 2, title: "계좌 입금", desc: "입금자명과 금액만 맞으면 자동으로 확인돼요." },
-    { n: 3, title: "자동 생성", desc: "서버 설치부터 주소 연결까지 전부 자동이에요." },
-    { n: 4, title: "바로 접속", desc: "생성된 주소를 바로 공유하고 사용하세요." },
+    { n: 1, title: t("steps.planTitle"), desc: planDesc },
+    { n: 2, title: t("steps.depositTitle"), desc: t("steps.depositDesc") },
+    { n: 3, title: t("steps.autoCreateTitle"), desc: t("steps.autoCreateDesc") },
+    { n: 4, title: t("steps.connectTitle"), desc: t("steps.connectDesc") },
   ];
 }
 
-const BASE_FAQ = [
-  { q: "환불이 가능한가요?", a: "단순 변심에 의한 환불은 제한되며, 관련 법령이 정하는 절차에 따라 처리돼요. 자세한 내용은 이용약관을 확인해주세요." },
-  { q: "AI가 서버를 마음대로 바꾸나요?", a: "아니요. 파일 수정·명령 실행처럼 실제 영향을 주는 작업은 항상 승인 버튼을 눌러야 실행돼요. 위험한 작업 전엔 자동으로 백업도 만들어요." },
-];
-const MINECRAFT_FAQ = { q: "어떤 마인크래프트 버전을 지원하나요?", a: "Paper, Fabric, Forge, NeoForge, Vanilla 등 관리자가 등록한 서버 종류를 지원해요. 서버 생성 시 버전을 선택할 수 있어요." };
-const GENERAL_FAQ = { q: "어떤 서버 종류를 지원하나요?", a: "VPS(Code-Server), 디스코드 봇(Red, Muse 등 20여 개 인기 프리셋 + 커스텀 GitHub repo), Node.js/Python/Go/Java/C# 제네릭, Uptime Kuma·Gitea 같은 유틸리티까지 다양한 프리셋을 지원해요." };
-const PAYMENT_FAQ = { q: "결제는 어떻게 하나요?", a: "카드 없이 계좌 무통장입금으로 결제해요. 입금자명과 금액이 일치하면 자동으로 확인되고 서버가 만들어져요." };
-
-function faqForMode(mode: SiteMode) {
-  if (mode === "MINECRAFT_ONLY") return [...BASE_FAQ, MINECRAFT_FAQ, PAYMENT_FAQ];
-  if (mode === "GENERAL_ONLY") return [...BASE_FAQ, GENERAL_FAQ, PAYMENT_FAQ];
-  return [...BASE_FAQ, MINECRAFT_FAQ, GENERAL_FAQ, PAYMENT_FAQ];
+function faqList(t: T, mode: SiteMode) {
+  const base = [
+    { q: t("faq.refundQ"), a: t("faq.refundA") },
+    { q: t("faq.aiControlQ"), a: t("faq.aiControlA") },
+  ];
+  const minecraft = { q: t("faq.minecraftQ"), a: t("faq.minecraftA") };
+  const general = { q: t("faq.generalQ"), a: t("faq.generalA") };
+  const payment = { q: t("faq.paymentQ"), a: t("faq.paymentA") };
+  if (mode === "MINECRAFT_ONLY") return [...base, minecraft, payment];
+  if (mode === "GENERAL_ONLY") return [...base, general, payment];
+  return [...base, minecraft, general, payment];
 }
 
 async function loadLandingData() {
@@ -100,23 +100,19 @@ async function loadLandingData() {
 }
 
 export default async function HomePage() {
+  const t = await getTranslations("home");
   const user = await getCurrentUser().catch(() => null);
   const { products, events, siteMode } = await loadLandingData();
   const discordInviteUrl = process.env.NEXT_PUBLIC_DISCORD_SERVER_INVITE_URL;
-  const heroTitle = siteMode === "MINECRAFT_ONLY" ? "마인크래프트 서버" : siteMode === "GENERAL_ONLY" ? "서버 호스팅" : "마인크래프트·서버 호스팅";
-  const heroDesc =
-    siteMode === "MINECRAFT_ONLY"
-      ? "1분 안에 서버를 만들고, 설정도 플러그인도 오류 해결도 채팅 한 줄로 끝내세요. 복잡한 관리 패널은 저희가 다 가려드릴게요."
-      : siteMode === "GENERAL_ONLY"
-        ? "VPS부터 디스코드 봇 호스팅까지 — 1분 안에 만들고, 설정도 오류 해결도 채팅 한 줄로 끝내세요."
-        : "마인크래프트부터 VPS, 디스코드 봇 호스팅까지 — 1분 안에 만들고, 설정도 오류 해결도 채팅 한 줄로 끝내세요.";
-  const FEATURES = featuresForMode(siteMode);
-  const STEPS = stepsForMode(siteMode);
-  const FAQ = faqForMode(siteMode);
+  const heroTitle = siteMode === "MINECRAFT_ONLY" ? t("hero.titleMinecraft") : siteMode === "GENERAL_ONLY" ? t("hero.titleGeneral") : t("hero.titleBoth");
+  const heroDesc = siteMode === "MINECRAFT_ONLY" ? t("hero.descMinecraft") : siteMode === "GENERAL_ONLY" ? t("hero.descGeneral") : t("hero.descBoth");
+  const FEATURES = featureList(t, siteMode);
+  const STEPS = stepsList(t, siteMode);
+  const FAQ = faqList(t, siteMode);
   const aiExample =
     siteMode === "GENERAL_ONLY"
-      ? { user: "봇 재시작하고 로그 확인해줘", ai: "봇을 재시작했어요. 최근 로그에 에러는 없어요. 계속 지켜볼까요?" }
-      : { user: "커맨드 블럭 사용 가능하게 해줘", ai: "server.properties에서 enable-command-block이 꺼져있어요. 켜고 재시작할까요?" };
+      ? { user: t("aiShowcase.exampleUserGeneral"), ai: t("aiShowcase.exampleAiGeneral") }
+      : { user: t("aiShowcase.exampleUserMinecraft"), ai: t("aiShowcase.exampleAiMinecraft") };
 
   return (
     <div className="min-h-screen">
@@ -128,13 +124,13 @@ export default async function HomePage() {
           <nav className="flex items-center gap-2 sm:gap-3">
             <ThemeToggle />
             {user ? (
-              <Link href="/dashboard" className="btn-primary px-5 py-2.5 text-sm">대시보드</Link>
+              <Link href="/dashboard" className="btn-primary px-5 py-2.5 text-sm">{t("nav.dashboard")}</Link>
             ) : (
               <>
                 <Link href="/login" className="hidden sm:inline text-sm text-text-dim hover:text-text px-3 py-2">
-                  로그인
+                  {t("nav.login")}
                 </Link>
-                <Link href="/register" className="btn-primary px-5 py-2.5 text-sm">시작하기</Link>
+                <Link href="/register" className="btn-primary px-5 py-2.5 text-sm">{t("nav.start")}</Link>
               </>
             )}
           </nav>
@@ -165,14 +161,14 @@ export default async function HomePage() {
             <h1 className="text-4xl sm:text-6xl font-bold font-display leading-[1.08] animate-fade-up">
               {heroTitle},
               <br />
-              <span className="text-gradient">말로 관리하는</span> 시대
+              <span className="text-gradient">{t("hero.titleGradient")}</span> {t("hero.titleEra")}
             </h1>
             <p className="mt-6 text-lg text-text-dim max-w-xl mx-auto animate-fade-up" style={{ animationDelay: "0.1s" }}>
               {heroDesc}
             </p>
             <div className="mt-9 flex flex-wrap items-center justify-center gap-3 animate-fade-up" style={{ animationDelay: "0.2s" }}>
               <Link href="/register" className="btn-primary px-7 py-3.5 text-base inline-flex items-center gap-2">
-                무료로 시작하기 <ArrowRight size={18} />
+                {t("hero.ctaPrimary")} <ArrowRight size={18} />
               </Link>
               {discordInviteUrl && (
                 <a
@@ -181,15 +177,15 @@ export default async function HomePage() {
                   rel="noreferrer"
                   className="btn-secondary px-7 py-3.5 text-base inline-flex items-center gap-2 border-purple/40 text-purple hover:bg-purple/10"
                 >
-                  <DiscordLogo size={18} /> 공식 디스코드 참여
+                  <DiscordLogo size={18} /> {t("hero.ctaDiscord")}
                 </a>
               )}
             </div>
 
             <div className="mt-16 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-text-dim animate-fade-up" style={{ animationDelay: "0.3s" }}>
-              <span className="inline-flex items-center gap-1.5"><Check size={16} className="text-green" /> 카드 없이 계좌이체 결제</span>
-              <span className="inline-flex items-center gap-1.5"><Check size={16} className="text-green" /> 가입 없이 가격 확인</span>
-              <span className="inline-flex items-center gap-1.5"><Check size={16} className="text-green" /> 언제든 해지 가능</span>
+              <span className="inline-flex items-center gap-1.5"><Check size={16} className="text-green" /> {t("hero.trustNoCard")}</span>
+              <span className="inline-flex items-center gap-1.5"><Check size={16} className="text-green" /> {t("hero.trustNoSignup")}</span>
+              <span className="inline-flex items-center gap-1.5"><Check size={16} className="text-green" /> {t("hero.trustCancelAnytime")}</span>
             </div>
           </div>
         </section>
@@ -197,12 +193,12 @@ export default async function HomePage() {
         {/* ── 기능 ──────────────────────────────────── */}
         <section className="max-w-6xl mx-auto px-6 py-20">
           <div className="text-center max-w-xl mx-auto">
-            <h2 className="text-3xl font-bold font-display">호스팅에 필요한 모든 것</h2>
-            <p className="mt-3 text-text-dim">복잡한 서버 관리는 저희가 대신 다뤄요. 보이는 건 심플한 버튼뿐이에요.</p>
+            <h2 className="text-3xl font-bold font-display">{t("features.title")}</h2>
+            <p className="mt-3 text-text-dim">{t("features.subtitle")}</p>
           </div>
           <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {FEATURES.map((f) => (
-              <div key={f.title} className="card-glow p-6">
+              <div key={f.key} className="card-glow p-6">
                 <div
                   className="w-11 h-11 rounded-2xl flex items-center justify-center"
                   style={{ background: `color-mix(in srgb, ${f.color} 18%, transparent)` }}
@@ -219,8 +215,8 @@ export default async function HomePage() {
         {/* ── 작동 방식 ─────────────────────────────── */}
         <section className="max-w-5xl mx-auto px-6 py-20">
           <div className="text-center max-w-xl mx-auto">
-            <h2 className="text-3xl font-bold font-display">4단계면 끝</h2>
-            <p className="mt-3 text-text-dim">관리자 승인도, 긴 대기도 없어요.</p>
+            <h2 className="text-3xl font-bold font-display">{t("steps.title")}</h2>
+            <p className="mt-3 text-text-dim">{t("steps.subtitle")}</p>
           </div>
           <div className="mt-12 grid sm:grid-cols-4 gap-6 relative">
             {STEPS.map((s) => (
@@ -240,19 +236,16 @@ export default async function HomePage() {
           <div className="card-glow p-6 sm:p-10 grid sm:grid-cols-2 gap-8 items-center">
             <div>
               <div className="inline-flex items-center gap-2 text-xs font-medium text-purple bg-purple/10 rounded-full px-3 py-1">
-                <Bot size={14} /> Burnae AI
+                <Bot size={14} /> {t("aiShowcase.badge")}
               </div>
-              <h2 className="mt-4 text-2xl sm:text-3xl font-bold font-display">채팅으로 서버를 조작해요</h2>
-              <p className="mt-3 text-text-dim">
-                서버 설정, 플러그인 설치, 오류 진단까지 실제 서버 파일과 콘솔을 직접 다루는 AI예요.
-                위험한 작업은 항상 먼저 물어보고, 실행 전 자동으로 백업을 남겨요.
-              </p>
+              <h2 className="mt-4 text-2xl sm:text-3xl font-bold font-display">{t("aiShowcase.title")}</h2>
+              <p className="mt-3 text-text-dim">{t("aiShowcase.desc")}</p>
             </div>
             <div className="card p-4 space-y-3 bg-bg">
               <ChatBubble from="user">{aiExample.user}</ChatBubble>
               <ChatBubble from="ai">{aiExample.ai}</ChatBubble>
               <div className="flex justify-end">
-                <span className="text-xs bg-accent text-white rounded-full px-3 py-1.5 font-medium">적용하기</span>
+                <span className="text-xs bg-accent text-white rounded-full px-3 py-1.5 font-medium">{t("aiShowcase.applyButton")}</span>
               </div>
             </div>
           </div>
@@ -261,35 +254,35 @@ export default async function HomePage() {
         {/* ── 가격 (비회원 열람 가능) ────────────────── */}
         <section id="pricing" className="max-w-6xl mx-auto px-6 py-20">
           <div className="text-center max-w-xl mx-auto">
-            <h2 className="text-3xl font-bold font-display">투명한 가격</h2>
-            <p className="mt-3 text-text-dim">가입하지 않아도 요금제를 확인할 수 있어요.</p>
+            <h2 className="text-3xl font-bold font-display">{t("pricing.title")}</h2>
+            <p className="mt-3 text-text-dim">{t("pricing.subtitle")}</p>
           </div>
 
           {products.length === 0 ? (
-            <p className="mt-10 text-center text-text-dim text-sm">요금제를 준비 중이에요. 곧 공개할게요.</p>
+            <p className="mt-10 text-center text-text-dim text-sm">{t("pricing.comingSoon")}</p>
           ) : (
             <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {products.map((p, i) => (
                 <div key={p.id} className={`card-glow p-6 flex flex-col ${i === 1 ? "border-accent" : ""}`}>
                   {i === 1 && (
-                    <span className="self-start text-xs font-semibold text-accent bg-accent/10 rounded-full px-3 py-1 mb-3">인기</span>
+                    <span className="self-start text-xs font-semibold text-accent bg-accent/10 rounded-full px-3 py-1 mb-3">{t("pricing.popular")}</span>
                   )}
                   <h3 className="font-semibold text-lg font-display">{p.name}</h3>
                   {p.description && <p className="text-sm text-text-dim mt-1">{p.description}</p>}
                   <p className="mt-4 text-3xl font-bold font-display">
-                    <CountUp value={p.priceMonthlyKrw} duration={900} /><span className="text-base font-normal text-text-dim">원/월</span>
+                    <CountUp value={p.priceMonthlyKrw} duration={900} /><span className="text-base font-normal text-text-dim">{t("pricing.perMonth")}</span>
                   </p>
                   <ul className="mt-5 space-y-2 text-sm flex-1">
                     <SpecRow label={`RAM ${formatMb(p.ramMb)}`} />
-                    <SpecRow label={`CPU ${p.cpuPercent}%`} />
-                    <SpecRow label={`디스크 ${formatMb(p.diskMb)}`} />
-                    <SpecRow label="트래픽 무제한" />
-                    <SpecRow label={`백업 ${p.backupSlots}개`} />
-                    {p.aiCreditsPerMonth > 0 && <SpecRow label={`AI 크레딧 매달 ${p.aiCreditsPerMonth.toLocaleString()}개 지급`} />}
-                    {p.priceMonthlyKrw > 0 && <SpecRow label="접속 주소 여러 개 + 내 도메인 연결 가능" />}
+                    <SpecRow label={t("pricing.cpuLabel", { percent: p.cpuPercent })} />
+                    <SpecRow label={t("pricing.diskLabel", { size: formatMb(p.diskMb) })} />
+                    <SpecRow label={t("pricing.trafficUnlimited")} />
+                    <SpecRow label={t("pricing.backupLabel", { count: p.backupSlots })} />
+                    {p.aiCreditsPerMonth > 0 && <SpecRow label={t("pricing.aiCreditsLabel", { count: p.aiCreditsPerMonth })} />}
+                    {p.priceMonthlyKrw > 0 && <SpecRow label={t("pricing.multiAddressLabel")} />}
                   </ul>
                   <Link href="/register" className="btn-primary w-full py-2.5 text-sm text-center mt-6">
-                    이 플랜으로 시작
+                    {t("pricing.startPlan")}
                   </Link>
                 </div>
               ))}
@@ -298,32 +291,29 @@ export default async function HomePage() {
 
           {products.length > 0 && (
             <p className="mt-4 text-center text-xs text-text-dim">
-              트래픽 무제한은{" "}
+              {t("pricing.fairUseNote")}{" "}
               <Link href="/legal/fair-use" className="text-accent hover:underline">
-                공정 이용 정책
+                {t("pricing.fairUseLink")}
               </Link>
-              에 따라 제공돼요.
+              {t("pricing.fairUseNoteEnd")}
             </p>
           )}
 
           <div className="card-glow mt-8 p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-5 border-accent">
             <div>
-              <span className="text-xs font-semibold text-accent bg-accent/10 rounded-full px-3 py-1">무료</span>
-              <h3 className="mt-3 text-xl font-bold font-display">돈 안 내고도 서버를 만들 수 있어요</h3>
-              <p className="mt-2 text-sm text-text-dim max-w-md">
-                친구 추천, 공식 디스코드 가입, 블로그·영상으로 홍보하기 등 다양한 방법으로 포인트를
-                모으면 무료 체험 서버를 바로 받을 수 있어요. 모은 포인트는 서버 업그레이드에도 쓸 수 있어요.
-              </p>
+              <span className="text-xs font-semibold text-accent bg-accent/10 rounded-full px-3 py-1">{t("pricing.freeBadge")}</span>
+              <h3 className="mt-3 text-xl font-bold font-display">{t("pricing.freeTitle")}</h3>
+              <p className="mt-2 text-sm text-text-dim max-w-md">{t("pricing.freeDesc")}</p>
             </div>
             <Link href="/register" className="btn-primary px-6 py-3 text-sm shrink-0">
-              무료로 시작하기
+              {t("pricing.freeCta")}
             </Link>
           </div>
         </section>
 
         {/* ── FAQ ───────────────────────────────────── */}
         <section className="max-w-3xl mx-auto px-6 py-20">
-          <h2 className="text-3xl font-bold font-display text-center">자주 묻는 질문</h2>
+          <h2 className="text-3xl font-bold font-display text-center">{t("faq.title")}</h2>
           <div className="mt-10 space-y-3">
             {FAQ.map((item) => (
               <details key={item.q} className="card p-5 group">
@@ -344,10 +334,10 @@ export default async function HomePage() {
           <div className="card-glow p-10 sm:p-14 text-center relative overflow-hidden">
             <div className="blob w-64 h-64 bg-flame-2 -top-10 -right-10" />
             <Rocket className="mx-auto text-accent relative" size={36} />
-            <h2 className="mt-4 text-2xl sm:text-3xl font-bold font-display relative">지금 바로 서버를 만들어보세요</h2>
-            <p className="mt-2 text-text-dim relative">가입은 30초, 서버 생성은 1분이면 충분해요.</p>
+            <h2 className="mt-4 text-2xl sm:text-3xl font-bold font-display relative">{t("finalCta.title")}</h2>
+            <p className="mt-2 text-text-dim relative">{t("finalCta.desc")}</p>
             <Link href="/register" className="btn-primary px-7 py-3.5 text-base inline-flex items-center gap-2 mt-7 relative">
-              무료로 시작하기 <ArrowRight size={18} />
+              {t("finalCta.cta")} <ArrowRight size={18} />
             </Link>
           </div>
         </section>

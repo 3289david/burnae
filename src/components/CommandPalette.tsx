@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
 import { Search, Server, Plus, CreditCard, User, Users, Gift, ShieldCheck, CornerDownLeft } from "lucide-react";
 
 interface ServerOption {

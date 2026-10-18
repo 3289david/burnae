@@ -1,7 +1,8 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
 import SuccessCheck from "@/components/SuccessCheck";
 import FullScreenCelebration from "@/components/FullScreenCelebration";
 import CryptoPaymentOption from "@/components/CryptoPaymentOption";

@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
+import { Link, redirect } from "@/i18n/navigation";
 import { getCurrentUser, isAdminEmail } from "@/lib/auth";
 import DashboardNav from "@/components/DashboardNav";
 import BrandMark from "@/components/BrandMark";
@@ -7,9 +6,13 @@ import AnnouncementBanner from "@/components/AnnouncementBanner";
 import DiscordPromoBanner from "@/components/DiscordPromoBanner";
 import CommandPalette from "@/components/CommandPalette";
 
-export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default async function DashboardLayout({ children, params }: LayoutProps<"/[locale]/dashboard">) {
+  const { locale } = await params;
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  if (!user) {
+    redirect({ href: "/login", locale: locale as "kr" | "en" });
+    return null;
+  }
 
   const showAdminLink = user.role === "ADMIN" && isAdminEmail(user.email);
 

@@ -1,9 +1,11 @@
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import BrandMark from "@/components/BrandMark";
+import LegalEnglishNotice from "@/components/LegalEnglishNotice";
 
 export const metadata = { title: "이용약관 — Burnae" };
 
-export default function TermsPage() {
+export default async function TermsPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
   return (
     <div className="min-h-screen">
       <header className="border-b border-border">
@@ -15,6 +17,7 @@ export default function TermsPage() {
       </header>
 
       <main className="max-w-3xl mx-auto px-6 py-12 prose-sm">
+        <LegalEnglishNotice locale={locale} />
         <h1 className="text-3xl font-bold font-display">이용약관</h1>
         <p className="text-sm text-text-dim mt-2">시행일: 2026년 8월 31일</p>
 

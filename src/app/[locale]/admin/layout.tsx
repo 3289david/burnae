@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
+import { Link, redirect } from "@/i18n/navigation";
 import { requireAdmin, hasAdminRole } from "@/lib/auth";
 import { ADMIN_NAV_AREAS } from "@/lib/adminAreas";
 import LogoutButton from "@/components/LogoutButton";
@@ -32,9 +31,13 @@ const NAV = [
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+export default async function AdminLayout({ children, params }: LayoutProps<"/[locale]/admin">) {
+  const { locale } = await params;
   const user = await requireAdmin();
-  if (!user) redirect("/login");
+  if (!user) {
+    redirect({ href: "/login", locale: locale as "kr" | "en" });
+    return null;
+  }
 
   const visibleNav = NAV.filter((item) => hasAdminRole(user, ADMIN_NAV_AREAS[item.href] ?? []));
 

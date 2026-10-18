@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { Menu, Search } from "lucide-react";
 import LogoutButton from "@/components/LogoutButton";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -12,27 +13,28 @@ interface Props {
   showAdminLink: boolean;
 }
 
-const LINKS = [
-  { href: "/dashboard/community-eggs", label: "커뮤니티 프리셋" },
-  { href: "/dashboard/promotions", label: "홍보 포인트" },
-  { href: "/dashboard/billing", label: "결제 내역" },
-  { href: "/dashboard/support", label: "고객지원" },
-  { href: "/dashboard/account", label: "계정" },
-];
-
 export default function DashboardNav({ userName, showAdminLink }: Props) {
+  const t = useTranslations("dashboardNav");
   const [open, setOpen] = useState(false);
+
+  const LINKS = [
+    { href: "/dashboard/community-eggs", label: t("communityEggs") },
+    { href: "/dashboard/promotions", label: t("promotions") },
+    { href: "/dashboard/billing", label: t("billing") },
+    { href: "/dashboard/support", label: t("support") },
+    { href: "/dashboard/account", label: t("account") },
+  ];
 
   return (
     <>
       {/* 데스크톱: 한 줄 */}
       <nav className="hidden sm:flex items-center gap-4">
-        <span className="text-sm text-text-dim">{userName}님</span>
+        <span className="text-sm text-text-dim">{t("greeting", { name: userName })}</span>
         <button
           onClick={() => window.dispatchEvent(new CustomEvent(OPEN_COMMAND_PALETTE_EVENT))}
           className="hidden md:inline-flex items-center gap-1.5 text-xs text-text-dim bg-surface-2 rounded-full px-2.5 py-1 hover:text-text active:scale-95 transition-transform"
         >
-          <Search size={12} /> 검색
+          <Search size={12} /> {t("search")}
           <kbd className="text-[10px] bg-surface rounded px-1 py-0.5 ml-1">⌘K</kbd>
         </button>
         {LINKS.map((l) => (
@@ -41,7 +43,7 @@ export default function DashboardNav({ userName, showAdminLink }: Props) {
           </Link>
         ))}
         {showAdminLink && (
-          <Link href="/admin" className="text-sm text-accent hover:underline">관리자</Link>
+          <Link href="/admin" className="text-sm text-accent hover:underline">{t("admin")}</Link>
         )}
         <ThemeToggle />
         <LogoutButton />
@@ -51,13 +53,13 @@ export default function DashboardNav({ userName, showAdminLink }: Props) {
       <button
         onClick={() => setOpen((v) => !v)}
         className="sm:hidden flex items-center gap-1.5 text-sm text-text-dim px-2 py-1 active:scale-95 transition-transform"
-        aria-label="메뉴"
+        aria-label={t("menu")}
       >
-        <Menu size={18} className={`transition-transform duration-200 ${open ? "rotate-90" : ""}`} /> 메뉴
+        <Menu size={18} className={`transition-transform duration-200 ${open ? "rotate-90" : ""}`} /> {t("menu")}
       </button>
       {open && (
         <div className="sm:hidden absolute top-full left-0 right-0 bg-surface border-b border-border px-6 py-3 space-y-3 z-10 animate-toast-in">
-          <p className="text-sm text-text-dim">{userName}님</p>
+          <p className="text-sm text-text-dim">{t("greeting", { name: userName })}</p>
           {LINKS.map((l, i) => (
             <Link
               key={l.href}
@@ -71,7 +73,7 @@ export default function DashboardNav({ userName, showAdminLink }: Props) {
           ))}
           {showAdminLink && (
             <Link href="/admin" className="block text-sm text-accent" onClick={() => setOpen(false)}>
-              관리자
+              {t("admin")}
             </Link>
           )}
           <div className="flex items-center justify-between">

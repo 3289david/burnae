@@ -1,0 +1,159 @@
+{
+  "common": {
+    "brand": "Burnae"
+  },
+  "home": {
+    "nav": {
+      "login": "로그인",
+      "start": "시작하기",
+      "dashboard": "대시보드"
+    },
+    "hero": {
+      "titleMinecraft": "마인크래프트 서버",
+      "titleGeneral": "서버 호스팅",
+      "titleBoth": "마인크래프트·서버 호스팅",
+      "titleGradient": "말로 관리하는",
+      "titleEra": "시대",
+      "descMinecraft": "1분 안에 서버를 만들고, 설정도 플러그인도 오류 해결도 채팅 한 줄로 끝내세요. 복잡한 관리 패널은 저희가 다 가려드릴게요.",
+      "descGeneral": "VPS부터 디스코드 봇 호스팅까지 — 1분 안에 만들고, 설정도 오류 해결도 채팅 한 줄로 끝내세요.",
+      "descBoth": "마인크래프트부터 VPS, 디스코드 봇 호스팅까지 — 1분 안에 만들고, 설정도 오류 해결도 채팅 한 줄로 끝내세요.",
+      "ctaPrimary": "무료로 시작하기",
+      "ctaDiscord": "공식 디스코드 참여",
+      "trustNoCard": "카드 없이 계좌이체 결제",
+      "trustNoSignup": "가입 없이 가격 확인",
+      "trustCancelAnytime": "언제든 해지 가능"
+    },
+    "features": {
+      "title": "호스팅에 필요한 모든 것",
+      "subtitle": "복잡한 서버 관리는 저희가 대신 다뤄요. 보이는 건 심플한 버튼뿐이에요.",
+      "create": { "title": "1분 서버 생성", "desc": "결제하면 바로 서버가 자동으로 만들어지고 접속 주소까지 연결돼요." },
+      "console": { "title": "실시간 콘솔", "desc": "웹에서 바로 명령어를 입력하고 로그를 실시간으로 확인해요." },
+      "backup": { "title": "자동 백업", "desc": "주기를 정해두면 알아서 백업하고, 위험한 작업 전엔 자동으로 스냅샷을 남겨요." },
+      "subdomain": { "title": "서브도메인 자동 연결", "desc": "서버를 만들면 이름.krl.kr 주소가 자동으로 생겨요." },
+      "team": { "title": "팀 협업", "desc": "친구를 초대해서 운영자·개발자 권한을 나눠줄 수 있어요." },
+      "mcAi": { "title": "AI 서버 관리", "desc": "\"커맨드 블럭 켜줘\" 라고 채팅하면 AI가 실제 설정을 확인하고 바꿔줘요." },
+      "mcPlayers": { "title": "플레이어 관리", "desc": "화이트리스트·OP·밴·킥을 버튼 하나로. 복잡한 설정 필요 없어요." },
+      "mcPlugins": { "title": "플러그인·모드 마켓", "desc": "Modrinth 검색부터 설치까지 클릭 몇 번, AI에게 부탁해도 돼요." },
+      "genAi": { "title": "AI 서버 관리", "desc": "\"봇 재시작해줘\" 라고 채팅하면 AI가 실제 콘솔과 파일을 확인하고 바꿔줘요." },
+      "genEnv": { "title": "시작 변수 편집", "desc": "봇 토큰 같은 설정값을 웹에서 바로 입력하고 수정해요." },
+      "genDeploy": { "title": "GitHub repo 배포", "desc": "Red, Muse, Uptime Kuma 등 20여 개 인기 프리셋 또는 원하는 GitHub repo로 바로 시작해요." }
+    },
+    "steps": {
+      "title": "4단계면 끝",
+      "subtitle": "관리자 승인도, 긴 대기도 없어요.",
+      "planTitle": "플랜 선택",
+      "planDescMinecraft": "RAM/CPU/디스크와 서버 종류(Paper·Fabric·Forge 등)를 고르세요.",
+      "planDescGeneral": "RAM/CPU/디스크와 서버 종류(VPS·디스코드 봇 등)를 고르세요.",
+      "planDescBoth": "RAM/CPU/디스크와 서버 종류를 고르세요.",
+      "depositTitle": "계좌 입금",
+      "depositDesc": "입금자명과 금액만 맞으면 자동으로 확인돼요.",
+      "autoCreateTitle": "자동 생성",
+      "autoCreateDesc": "서버 설치부터 주소 연결까지 전부 자동이에요.",
+      "connectTitle": "바로 접속",
+      "connectDesc": "생성된 주소를 바로 공유하고 사용하세요."
+    },
+    "aiShowcase": {
+      "badge": "Burnae AI",
+      "title": "채팅으로 서버를 조작해요",
+      "desc": "서버 설정, 플러그인 설치, 오류 진단까지 실제 서버 파일과 콘솔을 직접 다루는 AI예요. 위험한 작업은 항상 먼저 물어보고, 실행 전 자동으로 백업을 남겨요.",
+      "exampleUserGeneral": "봇 재시작하고 로그 확인해줘",
+      "exampleAiGeneral": "봇을 재시작했어요. 최근 로그에 에러는 없어요. 계속 지켜볼까요?",
+      "exampleUserMinecraft": "커맨드 블럭 사용 가능하게 해줘",
+      "exampleAiMinecraft": "server.properties에서 enable-command-block이 꺼져있어요. 켜고 재시작할까요?",
+      "applyButton": "적용하기"
+    },
+    "pricing": {
+      "title": "투명한 가격",
+      "subtitle": "가입하지 않아도 요금제를 확인할 수 있어요.",
+      "comingSoon": "요금제를 준비 중이에요. 곧 공개할게요.",
+      "popular": "인기",
+      "perMonth": "원/월",
+      "cpuLabel": "CPU {percent}%",
+      "diskLabel": "디스크 {size}",
+      "trafficUnlimited": "트래픽 무제한",
+      "backupLabel": "백업 {count}개",
+      "aiCreditsLabel": "AI 크레딧 매달 {count}개 지급",
+      "multiAddressLabel": "접속 주소 여러 개 + 내 도메인 연결 가능",
+      "startPlan": "이 플랜으로 시작",
+      "fairUseNote": "트래픽 무제한은",
+      "fairUseLink": "공정 이용 정책",
+      "fairUseNoteEnd": "에 따라 제공돼요.",
+      "freeBadge": "무료",
+      "freeTitle": "돈 안 내고도 서버를 만들 수 있어요",
+      "freeDesc": "친구 추천, 공식 디스코드 가입, 블로그·영상으로 홍보하기 등 다양한 방법으로 포인트를 모으면 무료 체험 서버를 바로 받을 수 있어요. 모은 포인트는 서버 업그레이드에도 쓸 수 있어요.",
+      "freeCta": "무료로 시작하기"
+    },
+    "faq": {
+      "title": "자주 묻는 질문",
+      "refundQ": "환불이 가능한가요?",
+      "refundA": "단순 변심에 의한 환불은 제한되며, 관련 법령이 정하는 절차에 따라 처리돼요. 자세한 내용은 이용약관을 확인해주세요.",
+      "aiControlQ": "AI가 서버를 마음대로 바꾸나요?",
+      "aiControlA": "아니요. 파일 수정·명령 실행처럼 실제 영향을 주는 작업은 항상 승인 버튼을 눌러야 실행돼요. 위험한 작업 전엔 자동으로 백업도 만들어요.",
+      "minecraftQ": "어떤 마인크래프트 버전을 지원하나요?",
+      "minecraftA": "Paper, Fabric, Forge, NeoForge, Vanilla 등 관리자가 등록한 서버 종류를 지원해요. 서버 생성 시 버전을 선택할 수 있어요.",
+      "generalQ": "어떤 서버 종류를 지원하나요?",
+      "generalA": "VPS(Code-Server), 디스코드 봇(Red, Muse 등 20여 개 인기 프리셋 + 커스텀 GitHub repo), Node.js/Python/Go/Java/C# 제네릭, Uptime Kuma·Gitea 같은 유틸리티까지 다양한 프리셋을 지원해요.",
+      "paymentQ": "결제는 어떻게 하나요?",
+      "paymentA": "카드 없이 계좌 무통장입금으로 결제해요. 입금자명과 금액이 일치하면 자동으로 확인되고 서버가 만들어져요."
+    },
+    "finalCta": {
+      "title": "지금 바로 서버를 만들어보세요",
+      "desc": "가입은 30초, 서버 생성은 1분이면 충분해요.",
+      "cta": "무료로 시작하기"
+    }
+  },
+  "footer": {
+    "terms": "이용약관",
+    "privacy": "개인정보처리방침",
+    "refund": "환불정책",
+    "fairUse": "공정 이용 정책",
+    "start": "시작하기",
+    "copyright": "© {year} Burnae · burnae.kr · 이 서비스는 특정 은행/결제사와 제휴 관계가 없는 독립 서비스입니다.",
+    "contact": "문자 상담 070-8970-6766 · 팩스 0504-417-2275"
+  },
+  "login": {
+    "title": "로그인",
+    "subtitle": "가입할 때 사용한 계정으로 로그인하세요.",
+    "or": "또는",
+    "noAccount": "계정이 없으신가요?",
+    "startLink": "시작하기"
+  },
+  "register": {
+    "loginLink": "로그인하기",
+    "title": "시작하기",
+    "subtitle": "아래 계정 중 하나로 바로 시작할 수 있어요. 처음이면 자동으로 가입돼요.",
+    "referralNote": "추천 링크로 들어오셨네요 — 가입하면 추천인에게 포인트가 적립돼요.",
+    "or": "또는",
+    "agreementPrefix": "계속 진행하면",
+    "termsLink": "이용약관",
+    "and": "및",
+    "privacyLink": "개인정보처리방침",
+    "agreementSuffix": "에 동의하는 것으로 간주돼요."
+  },
+  "dashboardNav": {
+    "communityEggs": "커뮤니티 프리셋",
+    "promotions": "홍보 포인트",
+    "billing": "결제 내역",
+    "support": "고객지원",
+    "account": "계정",
+    "admin": "관리자",
+    "search": "검색",
+    "menu": "메뉴",
+    "greeting": "{name}님"
+  },
+  "dashboardHome": {
+    "greeting": "안녕하세요,",
+    "greetingSuffix": "님",
+    "serverCountPrefix": "서버 ",
+    "serverCountMiddle": "개 · 그중 ",
+    "serverCountSuffix": "개 가동 중",
+    "createServer": "서버 만들기",
+    "emptyText": "아직 만든 서버가 없어요.",
+    "emptyCta": "첫 서버 만들기",
+    "addressPending": "주소 준비 중"
+  },
+  "legal": {
+    "enNotice": "This page is only officially published in Korean — the Korean text below is the legally binding version. If there's ever a conflict between an English summary and the Korean original, the Korean original governs.",
+    "lastUpdatedPrefix": "시행일:"
+  }
+}

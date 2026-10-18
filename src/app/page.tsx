@@ -283,6 +283,7 @@ export default async function HomePage() {
                     <SpecRow label={`RAM ${formatMb(p.ramMb)}`} />
                     <SpecRow label={`CPU ${p.cpuPercent}%`} />
                     <SpecRow label={`디스크 ${formatMb(p.diskMb)}`} />
+                    <SpecRow label="트래픽 무제한" />
                     <SpecRow label={`백업 ${p.backupSlots}개`} />
                     {p.aiCreditsPerMonth > 0 && <SpecRow label={`AI 크레딧 매달 ${p.aiCreditsPerMonth.toLocaleString()}개 지급`} />}
                     {p.priceMonthlyKrw > 0 && <SpecRow label="접속 주소 여러 개 + 내 도메인 연결 가능" />}
@@ -293,6 +294,16 @@ export default async function HomePage() {
                 </div>
               ))}
             </div>
+          )}
+
+          {products.length > 0 && (
+            <p className="mt-4 text-center text-xs text-text-dim">
+              트래픽 무제한은{" "}
+              <Link href="/legal/fair-use" className="text-accent hover:underline">
+                공정 이용 정책
+              </Link>
+              에 따라 제공돼요.
+            </p>
           )}
 
           <div className="card-glow mt-8 p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-5 border-accent">

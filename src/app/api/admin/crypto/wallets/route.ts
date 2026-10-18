@@ -3,6 +3,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdminRole } from "@/lib/auth";
 import { isValidXpub } from "@/lib/crypto/tronAddress";
+import { isValidBtcLtcXpub } from "@/lib/crypto/btcLtcAddress";
+import { isValidSolanaAddress } from "@/lib/crypto/solanaAddress";
 
 const COINS = ["USDT_TRC20", "USDT_SOL", "BTC", "LTC", "TRX", "SOL"] as const;
 
@@ -37,6 +39,8 @@ const schema = z.object({
 });
 
 const XPUB_COINS = new Set(["USDT_TRC20", "TRX"]);
+const BTC_LTC_COINS = new Set(["BTC", "LTC"]);
+const POOL_COINS = new Set(["SOL", "USDT_SOL"]);
 
 export async function PUT(request: Request) {
   const admin = await requireAdminRole(["SUPER"]);
@@ -51,6 +55,9 @@ export async function PUT(request: Request) {
   if (XPUB_COINS.has(coin) && xpub && !isValidXpub(xpub)) {
     return NextResponse.json({ error: "올바른 확장 공개키(xpub)가 아니에요. 개인키(xprv)가 아닌 공개키인지 확인해주세요." }, { status: 422 });
   }
+  if (BTC_LTC_COINS.has(coin) && xpub && !isValidBtcLtcXpub(xpub)) {
+    return NextResponse.json({ error: "올바른 확장 공개키(xpub)가 아니에요. 개인키(xprv)가 아닌 공개키인지 확인해주세요." }, { status: 422 });
+  }
 
   const existing = await prisma.cryptoWalletConfig.findUnique({ where: { coin } });
   let addressPool = (existing?.addressPool as { address: string; used: boolean }[] | null) ?? [];
@@ -60,6 +67,12 @@ export async function PUT(request: Request) {
       .split("\n")
       .map((s) => s.trim())
       .filter((s) => s.length > 0 && !existingAddresses.has(s));
+    if (POOL_COINS.has(coin)) {
+      const invalid = newAddresses.find((a) => !isValidSolanaAddress(a));
+      if (invalid) {
+        return NextResponse.json({ error: `올바른 Solana 주소가 아니에요: ${invalid}` }, { status: 422 });
+      }
+    }
     addressPool = [...addressPool, ...newAddresses.map((address) => ({ address, used: false }))];
   }
 

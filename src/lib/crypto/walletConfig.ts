@@ -1,9 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import type { CryptoCoin } from "@/generated/prisma/enums";
 import { deriveTronAddress } from "@/lib/crypto/tronAddress";
+import { deriveBtcLtcAddress } from "@/lib/crypto/btcLtcAddress";
 
 /** xpub(공개키)만으로 입금 주소를 파생할 수 있는 코인 — secp256k1 계열 */
-const XPUB_DERIVABLE: CryptoCoin[] = ["USDT_TRC20", "TRX"];
+const XPUB_DERIVABLE: CryptoCoin[] = ["USDT_TRC20", "TRX", "BTC", "LTC"];
+const BTC_LTC_COINS = new Set(["BTC", "LTC"]);
 /** 운영자가 오프라인에서 미리 만들어둔 주소 목록에서 하나씩 꺼내 쓰는 코인 — ed25519라 공개키만으로 자식 주소를 못 만듦 */
 const POOL_BASED: CryptoCoin[] = ["SOL", "USDT_SOL"];
 
@@ -40,7 +42,9 @@ export async function allocateDepositAddress(
       });
       return index;
     });
-    const address = deriveTronAddress(config.xpub, updated);
+    const address = BTC_LTC_COINS.has(coin)
+      ? deriveBtcLtcAddress(config.xpub, updated, coin as "BTC" | "LTC")
+      : deriveTronAddress(config.xpub, updated);
     return { address, derivationIndex: updated };
   }
 

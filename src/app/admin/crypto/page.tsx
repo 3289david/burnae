@@ -48,8 +48,16 @@ const COIN_META: Record<string, { label: string; kind: "xpub" | "pool"; help: st
     help: "Solana는 공개키만으로 자식 주소를 못 만들어서, 오프라인에서 미리 만들어둔 받기 전용 주소를 한 줄에 하나씩 붙여넣어 등록해두세요.",
   },
   SOL: { label: "Solana (SOL)", kind: "pool", help: "USDT(Solana)와 같은 주소 목록을 공유해도 되고 따로 둬도 돼요." },
-  BTC: { label: "Bitcoin (BTC)", kind: "xpub", help: "BIP32 확장 공개키(xpub/ypub/zpub). 아직 주소 파생 로직은 준비 중이에요." },
-  LTC: { label: "Litecoin (LTC)", kind: "xpub", help: "BIP32 확장 공개키(xpub/Ltub 등). 아직 주소 파생 로직은 준비 중이에요." },
+  BTC: {
+    label: "Bitcoin (BTC)",
+    kind: "xpub",
+    help: "BIP32 확장 공개키(네이티브 세그윗 계정, m/84'/0'/0' 기준 xpub) — 공개키만으로 bc1... 주소를 자동으로 여러 개 만들어요.",
+  },
+  LTC: {
+    label: "Litecoin (LTC)",
+    kind: "xpub",
+    help: "BIP32 확장 공개키(표준 xpub 형식) — 공개키만으로 ltc1... 주소를 자동으로 여러 개 만들어요. Ltub/Mtub 형식은 아직 지원하지 않아요.",
+  },
 };
 
 const STATUS_LABEL: Record<string, string> = {

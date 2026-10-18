@@ -2,12 +2,13 @@ import "dotenv/config";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { checkTrc20Payment } from "../src/lib/crypto/tronWatcher";
+import { checkBtcLtcPayment } from "../src/lib/crypto/btcLtcWatcher";
+import { checkSolanaPayment } from "../src/lib/crypto/solanaWatcher";
+import type { CryptoPayment } from "../src/generated/prisma/client";
 
 /**
  * 블록체인 입금은 일반 운영 크론(10분 간격)보다 훨씬 빠르게 확인해야 체크아웃 화면에서
  * 기다리는 고객 경험이 괜찮다 — 그래서 별도 타이머(burnae-crypto-watch.timer, 1분 간격)로 돌린다.
- * 지금은 USDT(TRC20)만 실제로 확인한다. 다른 코인은 지갑 설정(xpub/주소 목록)이 들어오고
- * 각 체인 감시 로직이 추가되는 대로 여기 분기를 늘리면 된다.
  */
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
@@ -17,17 +18,30 @@ const prisma = new PrismaClient({ adapter });
 // 결제 사이에 살짝 간격을 둬서 같은 틱 안에서 바로 막히는 것만이라도 피한다.
 const STAGGER_MS = process.env.TRONGRID_API_KEY ? 0 : 1100;
 
+const CHECKERS: Record<string, (p: CryptoPayment) => Promise<void>> = {
+  USDT_TRC20: checkTrc20Payment,
+  TRX: checkTrc20Payment,
+  BTC: checkBtcLtcPayment,
+  LTC: checkBtcLtcPayment,
+  SOL: checkSolanaPayment,
+  USDT_SOL: checkSolanaPayment,
+};
+
 async function main() {
   const pending = await prisma.cryptoPayment.findMany({
-    where: { coin: "USDT_TRC20", status: { in: ["PENDING", "DETECTED", "CONFIRMING", "UNDERPAID"] } },
+    where: { status: { in: ["PENDING", "DETECTED", "CONFIRMING", "UNDERPAID"] } },
   });
   for (const payment of pending) {
+    const checker = CHECKERS[payment.coin];
+    if (!checker) continue;
     try {
-      await checkTrc20Payment(payment);
+      await checker(payment);
     } catch (err) {
       console.error(`[crypto-watch] 결제 ${payment.id} 확인 실패:`, err);
     }
-    if (STAGGER_MS > 0) await new Promise((r) => setTimeout(r, STAGGER_MS));
+    if (STAGGER_MS > 0 && (payment.coin === "USDT_TRC20" || payment.coin === "TRX")) {
+      await new Promise((r) => setTimeout(r, STAGGER_MS));
+    }
   }
   if (pending.length > 0) console.log(`[crypto-watch] ${pending.length}건 확인함`);
 }

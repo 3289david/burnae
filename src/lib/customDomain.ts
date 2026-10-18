@@ -61,3 +61,17 @@ export async function verifyCustomDomain(
     return { verified: false, reason: "DNS 레코드를 찾을 수 없어요. 아직 전파 중일 수 있어요." };
   }
 }
+
+/**
+ * HTTP로 서비스하는 서버(GENERAL/DISCORD_BOT)용 — nginx가 80/443에서 받아서 컨테이너 포트로
+ * 내부 프록시하니까 고객 쪽 A 레코드는 포트 상관없이 우리 IP만 가리키면 된다.
+ */
+export async function verifyHttpCustomDomain(hostname: string, ip: string): Promise<DomainVerifyResult> {
+  try {
+    const aRecords = await dns.resolve4(hostname);
+    if (aRecords.includes(ip)) return { verified: true, reason: "A 레코드 확인됨" };
+    return { verified: false, reason: "A 레코드가 서버 IP를 가리키지 않아요." };
+  } catch {
+    return { verified: false, reason: "DNS 레코드를 찾을 수 없어요. 아직 전파 중일 수 있어요." };
+  }
+}

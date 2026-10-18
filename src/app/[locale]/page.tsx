@@ -15,6 +15,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import DotGrid from "@/components/DotGrid";
 import CountUp from "@/components/CountUp";
 import { allowedCategoriesForSiteMode, type SiteMode } from "@/lib/siteMode";
+import { getUsdPerKrw, formatUsdApprox } from "@/lib/fxRate";
 
 type T = Awaited<ReturnType<typeof getTranslations<"home">>>;
 
@@ -99,10 +100,12 @@ async function loadLandingData() {
   }
 }
 
-export default async function HomePage() {
+export default async function HomePage({ params }: PageProps<"/[locale]">) {
+  const { locale } = await params;
   const t = await getTranslations("home");
   const user = await getCurrentUser().catch(() => null);
   const { products, events, siteMode } = await loadLandingData();
+  const usdPerKrw = locale === "en" ? await getUsdPerKrw() : null;
   const discordInviteUrl = process.env.NEXT_PUBLIC_DISCORD_SERVER_INVITE_URL;
   const heroTitle = siteMode === "MINECRAFT_ONLY" ? t("hero.titleMinecraft") : siteMode === "GENERAL_ONLY" ? t("hero.titleGeneral") : t("hero.titleBoth");
   const heroDesc = siteMode === "MINECRAFT_ONLY" ? t("hero.descMinecraft") : siteMode === "GENERAL_ONLY" ? t("hero.descGeneral") : t("hero.descBoth");
@@ -267,11 +270,16 @@ export default async function HomePage() {
                   {i === 1 && (
                     <span className="self-start text-xs font-semibold text-accent bg-accent/10 rounded-full px-3 py-1 mb-3">{t("pricing.popular")}</span>
                   )}
-                  <h3 className="font-semibold text-lg font-display">{p.name}</h3>
-                  {p.description && <p className="text-sm text-text-dim mt-1">{p.description}</p>}
+                  <h3 className="font-semibold text-lg font-display">{locale === "en" && p.nameEn ? p.nameEn : p.name}</h3>
+                  {(locale === "en" ? p.descriptionEn ?? p.description : p.description) && (
+                    <p className="text-sm text-text-dim mt-1">{locale === "en" ? p.descriptionEn ?? p.description : p.description}</p>
+                  )}
                   <p className="mt-4 text-3xl font-bold font-display">
                     <CountUp value={p.priceMonthlyKrw} duration={900} /><span className="text-base font-normal text-text-dim">{t("pricing.perMonth")}</span>
                   </p>
+                  {usdPerKrw !== null && (
+                    <p className="text-xs text-text-dim mt-0.5">{formatUsdApprox(p.priceMonthlyKrw, usdPerKrw)}/mo</p>
+                  )}
                   <ul className="mt-5 space-y-2 text-sm flex-1">
                     <SpecRow label={`RAM ${formatMb(p.ramMb)}`} />
                     <SpecRow label={t("pricing.cpuLabel", { percent: p.cpuPercent })} />

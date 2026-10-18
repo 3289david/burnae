@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { authorizeServerAccess } from "@/lib/serverAccess";
 import { isValidHostname } from "@/lib/customDomain";
+import { isSslEligibleCategory } from "@/lib/customDomainSsl";
 
 export async function GET(
   _request: Request,
@@ -68,21 +69,28 @@ export async function POST(
     return NextResponse.json({ error: "이미 다른 서버에 연결된 도메인이에요." }, { status: 409 });
   }
 
+  const template = await prisma.serverTemplate.findUnique({ where: { id: server.templateId }, select: { category: true } });
+  const sslEligible = template ? isSslEligibleCategory(template.category) : false;
+
   const created = await prisma.serverCustomDomain.create({
-    data: { serverId: id, hostname },
+    data: { serverId: id, hostname, sslEligible },
   });
-  return NextResponse.json({
-    ...created,
-    dnsInstructions: {
-      srv: {
-        name: `_minecraft._tcp.${hostname}`,
-        type: "SRV",
-        priority: 0,
-        weight: 5,
-        port: server.allocationPort,
-        target: hostname,
-      },
-      a: { name: hostname, type: "A", value: server.allocationIp },
-    },
-  });
+
+  // HTTP로 서비스하는 서버는 A 레코드만 있으면 되고, 확인되는 즉시 자동으로 HTTPS가 붙는다 —
+  // SRV는 마인크래프트(raw TCP)에서만 포트를 알려주는 용도라 의미가 없다
+  const dnsInstructions = sslEligible
+    ? { a: { name: hostname, type: "A", value: server.allocationIp } }
+    : {
+        srv: {
+          name: `_minecraft._tcp.${hostname}`,
+          type: "SRV",
+          priority: 0,
+          weight: 5,
+          port: server.allocationPort,
+          target: hostname,
+        },
+        a: { name: hostname, type: "A", value: server.allocationIp },
+      };
+
+  return NextResponse.json({ ...created, dnsInstructions });
 }

@@ -25,6 +25,9 @@ export interface ServerCustomDomainInfo {
   id: string;
   hostname: string;
   verified: boolean;
+  sslEligible: boolean;
+  sslStatus: "NONE" | "ISSUED" | "FAILED";
+  sslError: string | null;
 }
 
 export interface ServerInfo {

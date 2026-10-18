@@ -8,6 +8,7 @@ import { getRecentDeposits, isValidDepositorName } from "../src/lib/hanabank";
 import { markOrderPaidAndFulfill, retryPreorderFulfillment } from "../src/lib/orderFulfillment";
 import { ProvisioningError } from "../src/lib/provisioning";
 import { syncAppProxyMap } from "../src/lib/appProxy";
+import { provisionCustomDomainSsl } from "../src/lib/customDomainSsl";
 
 /**
  * 주기적으로(예: 5~10분마다) 실행하는 운영 크론.
@@ -425,6 +426,40 @@ async function handleScheduledBackups() {
 }
 
 /**
+ * 커스텀 도메인 SSL 발급 재시도 — 보통은 "확인하기" 버튼을 누른 그 요청 안에서 바로 발급까지
+ * 끝나지만(API route 참고), 그때 certbot이 실패했거나 프로세스가 죽는 등으로 못 끝난 경우를
+ * 위한 안전망이다. Let's Encrypt 실패 레이트리밋(같은 호스트 1시간에 5번)을 피하려고 FAILED는
+ * 마지막 시도로부터 1시간 지난 것만 재시도한다.
+ */
+async function handleCustomDomainSsl() {
+  const domains = await prisma.serverCustomDomain.findMany({
+    where: {
+      verified: true,
+      sslEligible: true,
+      sslStatus: { in: ["NONE", "FAILED"] },
+    },
+    include: { server: { select: { allocationIp: true, allocationPort: true } } },
+  });
+
+  for (const domain of domains) {
+    if (domain.sslLastAttemptAt && Date.now() - domain.sslLastAttemptAt.getTime() < 60 * 60 * 1000) continue;
+    if (!domain.server.allocationIp || !domain.server.allocationPort) continue;
+
+    const result = await provisionCustomDomainSsl(domain.hostname, domain.server.allocationIp, domain.server.allocationPort);
+    await prisma.serverCustomDomain.update({
+      where: { id: domain.id },
+      data: {
+        sslStatus: result.ok ? "ISSUED" : "FAILED",
+        sslIssuedAt: result.ok ? new Date() : undefined,
+        sslError: result.ok ? null : result.error,
+        sslLastAttemptAt: new Date(),
+      },
+    });
+    console.log(`[cron] 커스텀 도메인 SSL ${domain.hostname} — ${result.ok ? "발급 성공" : `발급 실패: ${result.error}`}`);
+  }
+}
+
+/**
  * "크론 작업" — 서버 콘솔에 주기적으로 명령을 보내는 가장 단순한 형태의 스케줄러. 이 크론
  * 자체가 10분마다 돌기 때문에 intervalMinutes가 10보다 작아도 실제로는 최대 10분 지연될 수
  * 있다(API에서 최소값을 10분으로 막아두긴 했음).
@@ -707,6 +742,7 @@ async function main() {
   await handleRenewals();
   await handleResourceUpgradeExpiry();
   await handleScheduledBackups();
+  await handleCustomDomainSsl();
   await handleScheduledTasks();
   await handleScheduledRestarts();
   await handleNodeAlerts();

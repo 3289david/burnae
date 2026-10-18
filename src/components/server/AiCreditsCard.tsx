@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
 import SuccessCheck from "@/components/SuccessCheck";
 import CountUp from "@/components/CountUp";
+import CryptoPaymentOption from "@/components/CryptoPaymentOption";
 
 /** 40원 = 1크레딧 */
 const PACKAGES = [
@@ -132,6 +133,7 @@ export default function AiCreditsCard() {
           <p className="text-xs text-text-dim flex items-center gap-1.5">
             <span className="animate-pulse">●</span> 입금 확인 대기 중... (자동으로 충전돼요)
           </p>
+          <CryptoPaymentOption orderId={payment.orderId} amountKrw={payment.amountKrw} />
         </div>
       )}
 

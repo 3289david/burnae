@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Clock, Copy, Check } from "lucide-react";
+import { CheckCircle2, Clock, Copy, Check, ShieldCheck, ShieldAlert } from "lucide-react";
 import type { ServerCustomDomainInfo } from "./ServerDetailClient";
 
 interface DnsInstructions {
-  srv: { name: string; type: string; priority: number; weight: number; port: number; target: string };
+  srv?: { name: string; type: string; priority: number; weight: number; port: number; target: string };
   a: { name: string; type: string; value: string };
 }
 
@@ -37,7 +37,17 @@ export default function CustomDomainCard({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setDomains((prev) => [...prev, { id: data.id, hostname: data.hostname, verified: data.verified }]);
+      setDomains((prev) => [
+        ...prev,
+        {
+          id: data.id,
+          hostname: data.hostname,
+          verified: data.verified,
+          sslEligible: data.sslEligible,
+          sslStatus: data.sslStatus,
+          sslError: data.sslError,
+        },
+      ]);
       setInstructions(data.dnsInstructions);
       setHostname("");
     } catch (err) {
@@ -58,7 +68,13 @@ export default function CustomDomainCard({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setDomains((prev) => prev.map((d) => (d.id === id ? { ...d, verified: data.verified } : d)));
+      setDomains((prev) =>
+        prev.map((d) =>
+          d.id === id
+            ? { ...d, verified: data.verified, sslStatus: data.sslStatus, sslError: data.sslError }
+            : d,
+        ),
+      );
       setVerifyMsg(data.reason);
     } catch (err) {
       setVerifyMsg(err instanceof Error ? err.message : "확인 실패");
@@ -119,6 +135,23 @@ export default function CustomDomainCard({
                 아직 확인되지 않았어요. 아래 DNS 레코드를 자기 도메인에 등록한 뒤 확인하기를 눌러주세요.
               </p>
             )}
+            {d.verified && d.sslEligible && (
+              <p className="text-xs mt-1 flex items-center gap-1.5">
+                {d.sslStatus === "ISSUED" ? (
+                  <span className="text-green flex items-center gap-1">
+                    <ShieldCheck size={13} /> HTTPS 자동 적용됨
+                  </span>
+                ) : d.sslStatus === "FAILED" ? (
+                  <span className="text-red flex items-center gap-1" title={d.sslError ?? undefined}>
+                    <ShieldAlert size={13} /> 인증서 발급 실패 — {d.sslError ?? "확인하기를 다시 눌러주세요."}
+                  </span>
+                ) : (
+                  <span className="text-text-dim flex items-center gap-1">
+                    <Clock size={13} /> HTTPS 설정 중...
+                  </span>
+                )}
+              </p>
+            )}
           </div>
         ))}
         {domains.length === 0 && <p className="text-sm text-text-dim">연결된 도메인이 없어요.</p>}
@@ -144,20 +177,24 @@ export default function CustomDomainCard({
       {instructions && (
         <div className="mt-3 pt-3 border-t border-border space-y-2 text-xs font-mono animate-fade-up">
           <p className="text-text-dim font-sans">
-            아래 두 레코드를 도메인 DNS 설정에 추가하세요 (A 레코드 먼저, SRV는 선택이지만 추천):
+            {instructions.srv
+              ? "아래 두 레코드를 도메인 DNS 설정에 추가하세요 (A 레코드 먼저, SRV는 선택이지만 추천):"
+              : "아래 A 레코드를 도메인 DNS 설정에 추가하세요. 확인되는 즉시 HTTPS 인증서도 자동으로 발급돼요:"}
           </p>
           <Record
             label="A"
             row={`${instructions.a.name}  A  ${instructions.a.value}`}
             onCopy={() => copy(instructions.a.value)}
           />
-          <Record
-            label="SRV"
-            row={`${instructions.srv.name}  SRV  ${instructions.srv.priority} ${instructions.srv.weight} ${instructions.srv.port} ${instructions.srv.target}`}
-            onCopy={() =>
-              copy(`${instructions.srv.priority} ${instructions.srv.weight} ${instructions.srv.port} ${instructions.srv.target}`)
-            }
-          />
+          {instructions.srv && (
+            <Record
+              label="SRV"
+              row={`${instructions.srv.name}  SRV  ${instructions.srv.priority} ${instructions.srv.weight} ${instructions.srv.port} ${instructions.srv.target}`}
+              onCopy={() =>
+                copy(`${instructions.srv!.priority} ${instructions.srv!.weight} ${instructions.srv!.port} ${instructions.srv!.target}`)
+              }
+            />
+          )}
         </div>
       )}
     </div>

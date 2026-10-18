@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Coins } from "lucide-react";
 import SuccessCheck from "@/components/SuccessCheck";
+import CryptoPaymentOption from "@/components/CryptoPaymentOption";
 
 const PACKAGES = [
   { points: 500, priceKrw: 500 },
@@ -118,6 +119,7 @@ export default function PointsPurchaseCard() {
           <p className="text-xs text-text-dim flex items-center gap-1.5">
             <span className="animate-pulse">●</span> 입금 확인 대기 중... (자동으로 충전돼요)
           </p>
+          <CryptoPaymentOption orderId={payment.orderId} amountKrw={payment.amountKrw} />
         </div>
       )}
 

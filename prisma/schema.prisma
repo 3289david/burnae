@@ -304,6 +304,9 @@ model Product {
   id                String   @id @default(cuid())
   name              String
   description       String?
+  /// 영어(/en) 페이지에 보여줄 이름 — 비어 있으면 name을 그대로 보여준다
+  nameEn            String?
+  descriptionEn     String?
   ramMb             Int
   cpuPercent        Int
   diskMb            Int
@@ -693,6 +696,12 @@ model ServerSubdomain {
 }
 
 /// 고객이 자신의 외부 도메인을 서버에 연결(SRV/A 레코드는 고객이 직접 자기 DNS에 등록, 우리는 확인만)
+enum CustomDomainSslStatus {
+  NONE
+  ISSUED
+  FAILED
+}
+
 model ServerCustomDomain {
   id         String    @id @default(cuid())
   serverId   String
@@ -701,6 +710,13 @@ model ServerCustomDomain {
   verified   Boolean   @default(false)
   lastCheckedAt DateTime?
   createdAt  DateTime  @default(now())
+  /// HTTP로 서비스하는 서버 종류(GENERAL/DISCORD_BOT)에서 연결한 도메인만 true — 이 경우에만
+  /// 자동 SSL 발급 + 리버스 프록시 대상이 된다. 마인크래프트는 raw TCP라 TLS가 의미 없어서 제외.
+  sslEligible      Boolean               @default(false)
+  sslStatus        CustomDomainSslStatus @default(NONE)
+  sslIssuedAt      DateTime?
+  sslLastAttemptAt DateTime?
+  sslError         String?
 
   @@index([serverId])
 }

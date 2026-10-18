@@ -1,21 +1,8 @@
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Receipt } from "lucide-react";
+import BillingOrderRow from "@/components/BillingOrderRow";
 
-const STATUS_LABEL: Record<string, string> = {
-  PENDING: "입금 대기",
-  PAID: "결제 완료",
-  CANCELLED: "취소됨",
-  EXPIRED: "만료됨",
-  REFUNDED: "환불됨",
-};
-const STATUS_COLOR: Record<string, string> = {
-  PENDING: "var(--yellow)",
-  PAID: "var(--green)",
-  CANCELLED: "var(--text-dim)",
-  EXPIRED: "var(--red)",
-  REFUNDED: "var(--blue)",
-};
 const TYPE_LABEL: Record<string, string> = {
   NEW_SERVER: "서버 생성",
   RENEWAL: "갱신",
@@ -41,38 +28,26 @@ export default async function BillingPage() {
       </div>
 
       <div className="mt-6 space-y-2.5">
-        {orders.map((o, i) => {
-          const statusText = o.preorderWaiting ? "선주문 대기중" : STATUS_LABEL[o.status];
-          const color = o.preorderWaiting ? "var(--yellow)" : STATUS_COLOR[o.status];
+        {orders.map((o) => {
+          const titleText = `${TYPE_LABEL[o.type]}${
+            o.type === "AI_CREDITS"
+              ? ` · ${o.aiCreditsAmount?.toLocaleString() ?? 0}개`
+              : ` · ${o.productNameSnapshot ?? o.product?.name ?? "삭제된 상품"}`
+          }${o.server ? ` (${o.server.name})` : ""}`;
           return (
-            <div
+            <BillingOrderRow
               key={o.id}
-              className="card-glow p-4 flex items-center justify-between flex-wrap gap-2 animate-fade-up"
-              style={{ animationDelay: `${Math.min(i, 8) * 0.04}s` }}
-            >
-              <div className="min-w-0">
-                <p className="font-medium text-sm truncate">
-                  {TYPE_LABEL[o.type]}
-                  {o.type === "AI_CREDITS"
-                    ? ` · ${o.aiCreditsAmount?.toLocaleString() ?? 0}개`
-                    : ` · ${o.productNameSnapshot ?? o.product?.name ?? "삭제된 상품"}`}
-                  {o.server && ` (${o.server.name})`}
-                </p>
-                <p className="text-xs text-text-dim mt-0.5">
-                  {o.createdAt.toLocaleString("ko-KR")} · 입금자명 {o.depositorName}
-                  {o.discountKrw > 0 && ` · 할인 ${o.discountKrw.toLocaleString()}원`}
-                </p>
-              </div>
-              <div className="text-right shrink-0">
-                <p className="font-semibold text-sm">{o.amountKrw.toLocaleString()}원</p>
-                <span
-                  className="inline-block mt-1 text-[11px] font-medium rounded-full px-2.5 py-0.5"
-                  style={{ background: `color-mix(in srgb, ${color} 16%, transparent)`, color }}
-                >
-                  {statusText}
-                </span>
-              </div>
-            </div>
+              order={{
+                id: o.id,
+                status: o.status,
+                preorderWaiting: o.preorderWaiting,
+                amountKrw: o.amountKrw,
+                depositorName: o.depositorName,
+                discountKrw: o.discountKrw,
+                createdAtText: o.createdAt.toLocaleString("ko-KR"),
+                titleText,
+              }}
+            />
           );
         })}
         {orders.length === 0 && (

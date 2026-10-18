@@ -76,6 +76,7 @@ export default function AdminCryptoPage() {
   const [payments, setPayments] = useState<PaymentRow[] | null>(null);
   const [drafts, setDrafts] = useState<Record<string, { xpub: string; addressPoolText: string; confirmationsRequired: number }>>({});
   const [saving, setSaving] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [filter, setFilter] = useState<string>("");
 
   async function loadWallets() {
@@ -108,9 +109,10 @@ export default function AdminCryptoPage() {
 
   async function saveWallet(coin: string, patch: Partial<{ enabled: boolean }>) {
     setSaving(coin);
+    setErrors((prev) => ({ ...prev, [coin]: "" }));
     try {
       const draft = drafts[coin];
-      await fetch("/api/admin/crypto/wallets", {
+      const res = await fetch("/api/admin/crypto/wallets", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -121,7 +123,14 @@ export default function AdminCryptoPage() {
           ...patch,
         }),
       });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        setErrors((prev) => ({ ...prev, [coin]: body?.error ?? `저장 실패 (${res.status})` }));
+        return;
+      }
       await loadWallets();
+    } catch {
+      setErrors((prev) => ({ ...prev, [coin]: "네트워크 오류로 저장하지 못했어요." }));
     } finally {
       setSaving(null);
     }
@@ -211,6 +220,7 @@ export default function AdminCryptoPage() {
                   {saving === w.coin ? "저장 중..." : "저장"}
                 </button>
               </div>
+              {errors[w.coin] && <p className="text-xs text-red">{errors[w.coin]}</p>}
             </div>
           );
         })}

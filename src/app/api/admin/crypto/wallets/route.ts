@@ -63,14 +63,18 @@ export async function PUT(request: Request) {
   let addressPool = (existing?.addressPool as { address: string; used: boolean }[] | null) ?? [];
   if (addressPoolText !== undefined) {
     const existingAddresses = new Set(addressPool.map((p) => p.address));
+    // 줄바꿈뿐 아니라 쉼표/세미콜론/공백으로 구분해 붙여넣는 경우도 흔해서 전부 구분자로 받는다
     const newAddresses = addressPoolText
-      .split("\n")
+      .split(/[\s,;]+/)
       .map((s) => s.trim())
       .filter((s) => s.length > 0 && !existingAddresses.has(s));
     if (POOL_COINS.has(coin)) {
-      const invalid = newAddresses.find((a) => !isValidSolanaAddress(a));
-      if (invalid) {
-        return NextResponse.json({ error: `올바른 Solana 주소가 아니에요: ${invalid}` }, { status: 422 });
+      const invalid = newAddresses.filter((a) => !isValidSolanaAddress(a));
+      if (invalid.length > 0) {
+        return NextResponse.json(
+          { error: `올바른 Solana 주소가 아니에요: ${invalid.join(", ")}` },
+          { status: 422 },
+        );
       }
     }
     addressPool = [...addressPool, ...newAddresses.map((address) => ({ address, used: false }))];

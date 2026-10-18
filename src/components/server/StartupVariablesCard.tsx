@@ -71,6 +71,12 @@ export default function StartupVariablesCard({ serverId, templateId }: { serverI
   const [installDone, setInstallDone] = useState(false);
   const [installError, setInstallError] = useState<string | null>(null);
 
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkText, setBulkText] = useState("");
+  const [bulkSaving, setBulkSaving] = useState(false);
+  const [bulkError, setBulkError] = useState<string | null>(null);
+  const [revealed, setRevealed] = useState<Set<string>>(new Set());
+
   const [sharing, setSharing] = useState(false);
   const [shareName, setShareName] = useState("");
   const [shareBlurb, setShareBlurb] = useState("");
@@ -105,6 +111,54 @@ export default function StartupVariablesCard({ serverId, templateId }: { serverI
     } finally {
       setSaving(null);
     }
+  }
+
+  /** .env 형식 텍스트를 붙여넣어 한 번에 여러 변수를 채운다 — 이미 아는(편집 가능한) 키만 반영한다 */
+  async function saveBulk(editableKeys: Set<string>) {
+    setBulkSaving(true);
+    setBulkError(null);
+    try {
+      const parsed: Record<string, string> = {};
+      for (const line of bulkText.split("\n")) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith("#")) continue;
+        const idx = trimmed.indexOf("=");
+        if (idx === -1) continue;
+        const key = trimmed.slice(0, idx).trim();
+        let value = trimmed.slice(idx + 1).trim();
+        if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+          value = value.slice(1, -1);
+        }
+        if (editableKeys.has(key)) parsed[key] = value;
+      }
+      if (Object.keys(parsed).length === 0) {
+        throw new Error("이 서버가 쓰는 변수 이름이 하나도 안 보여요. KEY=값 형식으로 넣어주세요.");
+      }
+      for (const [key, value] of Object.entries(parsed)) {
+        const res = await fetch(`/api/servers/${serverId}/startup`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ key, value }),
+        });
+        if (!res.ok) throw new Error((await res.json()).error ?? `${key} 저장 실패`);
+      }
+      setValues((prev) => ({ ...prev, ...parsed }));
+      setBulkText("");
+      setBulkOpen(false);
+    } catch (err) {
+      setBulkError(err instanceof Error ? err.message : "붙여넣기 저장 실패");
+    } finally {
+      setBulkSaving(false);
+    }
+  }
+
+  function toggleReveal(key: string) {
+    setRevealed((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
   }
 
   async function installFromRepo() {
@@ -202,20 +256,58 @@ export default function StartupVariablesCard({ serverId, templateId }: { serverI
         </div>
       )}
 
+      {editable.length > 1 && (
+        <div className="pt-1">
+          <button type="button" onClick={() => setBulkOpen((v) => !v)} className="text-xs text-accent hover:underline">
+            {bulkOpen ? "붙여넣기 닫기" : ".env 붙여넣기로 한번에 입력"}
+          </button>
+          {bulkOpen && (
+            <div className="mt-2 space-y-2 animate-fade-up">
+              <textarea
+                className="input w-full font-mono text-xs"
+                rows={4}
+                placeholder={"KEY=값\nANOTHER_KEY=값"}
+                value={bulkText}
+                onChange={(e) => setBulkText(e.target.value)}
+              />
+              <button
+                onClick={() => saveBulk(new Set(editable.map((v) => v.envVariable)))}
+                disabled={bulkSaving || !bulkText.trim()}
+                className="btn-secondary px-3.5 py-1.5 text-xs"
+              >
+                {bulkSaving ? "저장 중..." : "한번에 저장"}
+              </button>
+              {bulkError && <p className="text-xs text-red">{bulkError}</p>}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="space-y-3">
         {editable.filter((v) => v.envVariable !== "GIT_ADDRESS").map((v, i) => {
           const info = friendlyHelp(v.envVariable);
+          const isSecret = /PASSWORD|SECRET|TOKEN|KEY/i.test(v.envVariable);
+          const masked = isSecret && !revealed.has(v.envVariable);
           return (
             <div key={v.envVariable} className="space-y-1 animate-fade-up" style={{ animationDelay: `${Math.min(i, 10) * 0.03}s` }}>
               <div className="flex flex-wrap items-end gap-2">
-                <div className="flex-1 min-w-[180px]">
+                <div className="flex-1 min-w-[180px] relative">
                   <label className="text-xs text-text-dim">{v.name} <span className="font-mono">({v.envVariable})</span></label>
                   <input
-                    type="text"
-                    className="input w-full mt-1 font-mono text-sm"
+                    type={masked ? "password" : "text"}
+                    className="input w-full mt-1 font-mono text-sm pr-14"
                     value={values[v.envVariable] ?? ""}
                     onChange={(e) => setValues({ ...values, [v.envVariable]: e.target.value })}
                   />
+                  {isSecret && (
+                    <button
+                      type="button"
+                      onClick={() => toggleReveal(v.envVariable)}
+                      className="absolute right-2 bottom-2 text-[10px] text-text-dim hover:text-text px-1.5 py-1"
+                    >
+                      {masked ? "보기" : "가리기"}
+                    </button>
+                  )}
                 </div>
                 <button
                   onClick={() => save(v.envVariable)}

@@ -10,6 +10,7 @@ interface DeployConfig {
   webhookUrl: string;
   hasSecret: boolean;
   deployWebhookSecret: string | null;
+  buildCommand: string | null;
 }
 
 export default function GitDeployCard({ serverId }: { serverId: string }) {
@@ -18,20 +19,28 @@ export default function GitDeployCard({ serverId }: { serverId: string }) {
   const [deploying, setDeploying] = useState(false);
   const [deployResult, setDeployResult] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [buildCommand, setBuildCommand] = useState("");
 
   useEffect(() => {
     fetch(`/api/servers/${serverId}/deploy`)
       .then((r) => (r.ok ? r.json() : null))
-      .then(setConfig);
+      .then((data) => {
+        setConfig(data);
+        setBuildCommand(data?.buildCommand ?? "");
+      });
   }, [serverId]);
 
-  async function toggle(enabled: boolean, rotateSecret = false) {
+  async function toggle(enabled: boolean, rotateSecret = false, buildCommandOverride?: string) {
     setSaving(true);
     try {
       const res = await fetch(`/api/servers/${serverId}/deploy`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ enabled, rotateSecret }),
+        body: JSON.stringify({
+          enabled,
+          rotateSecret,
+          ...(buildCommandOverride !== undefined ? { buildCommand: buildCommandOverride || null } : {}),
+        }),
       });
       const data = await res.json();
       if (res.ok) setConfig((prev) => (prev ? { ...prev, ...data, hasSecret: !!data.deployWebhookSecret } : prev));
@@ -107,6 +116,25 @@ export default function GitDeployCard({ serverId }: { serverId: string }) {
           <button onClick={() => toggle(true, true)} disabled={saving} className="text-accent hover:underline">
             비밀값 재발급
           </button>
+
+          <div className="pt-2 border-t border-border">
+            <label className="text-text-dim">빌드 명령 (선택) — pull 뒤 재시작 전에 실행해요</label>
+            <div className="flex gap-2 mt-1">
+              <input
+                className="input flex-1 font-mono text-xs"
+                placeholder="예: npm install && npm run build"
+                value={buildCommand}
+                onChange={(e) => setBuildCommand(e.target.value)}
+              />
+              <button
+                onClick={() => toggle(true, false, buildCommand)}
+                disabled={saving}
+                className="btn-secondary px-3 py-1.5 text-xs shrink-0"
+              >
+                저장
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

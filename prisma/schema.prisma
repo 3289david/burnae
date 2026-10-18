@@ -598,6 +598,9 @@ model Server {
   autoDeployEnabled   Boolean @default(false)
   /// GitHub 웹훅 서명(X-Hub-Signature-256) 검증용 비밀값. 자동 배포를 처음 켤 때 발급한다
   deployWebhookSecret String?
+  /// git pull 뒤 재시작 전에 실행할 선택적 빌드 명령(예: npm install && npm run build).
+  /// 비어있으면 pull만 하고 바로 재시작한다
+  buildCommand        String?
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt

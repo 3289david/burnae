@@ -30,10 +30,15 @@ export const GET = withApiErrorHandling(async (
     webhookUrl: `${siteUrl()}/api/webhooks/github-deploy/${server.id}`,
     hasSecret: !!server.deployWebhookSecret,
     deployWebhookSecret: server.deployWebhookSecret,
+    buildCommand: server.buildCommand,
   });
 });
 
-const patchSchema = z.object({ enabled: z.boolean(), rotateSecret: z.boolean().optional() });
+const patchSchema = z.object({
+  enabled: z.boolean(),
+  rotateSecret: z.boolean().optional(),
+  buildCommand: z.string().max(500).optional().nullable(),
+});
 
 /** 자동 배포 켜고 끄기 + 웹훅 비밀값 발급 — 소유자만(웹훅 URL+비밀값은 누구나 호출 가능한 외부
  * 진입점을 만드는 설정이라 팀 멤버에게는 안 넘긴다) */
@@ -60,6 +65,7 @@ export const PATCH = withApiErrorHandling(async (
     data: {
       autoDeployEnabled: parsed.data.enabled,
       ...(needsSecret ? { deployWebhookSecret: crypto.randomBytes(24).toString("hex") } : {}),
+      ...(parsed.data.buildCommand !== undefined ? { buildCommand: parsed.data.buildCommand } : {}),
     },
   });
 
@@ -67,6 +73,7 @@ export const PATCH = withApiErrorHandling(async (
     autoDeployEnabled: updated.autoDeployEnabled,
     webhookUrl: `${siteUrl()}/api/webhooks/github-deploy/${updated.id}`,
     deployWebhookSecret: updated.deployWebhookSecret,
+    buildCommand: updated.buildCommand,
   });
 });
 

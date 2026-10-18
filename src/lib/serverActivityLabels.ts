@@ -10,4 +10,7 @@ export const SERVER_ACTIVITY_LABELS: Record<string, string> = {
   MEMBER_REMOVE: "팀원 제거",
   RESOURCE_UPGRADE: "자원 업그레이드",
   OWNER_TRANSFER: "소유권 이전",
+  GIT_DEPLOY_SUCCESS: "Git 배포 완료",
+  GIT_DEPLOY_FAILED: "Git 배포 실패",
+  SCHEDULED_TASK_RUN: "예약 작업 실행",
 };

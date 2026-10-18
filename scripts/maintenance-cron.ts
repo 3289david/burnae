@@ -424,6 +424,37 @@ async function handleScheduledBackups() {
   }
 }
 
+/**
+ * "크론 작업" — 서버 콘솔에 주기적으로 명령을 보내는 가장 단순한 형태의 스케줄러. 이 크론
+ * 자체가 10분마다 돌기 때문에 intervalMinutes가 10보다 작아도 실제로는 최대 10분 지연될 수
+ * 있다(API에서 최소값을 10분으로 막아두긴 했음).
+ */
+async function handleScheduledTasks() {
+  const tasks = await prisma.scheduledTask.findMany({
+    where: { enabled: true },
+    include: { server: { select: { id: true, name: true, status: true, pterodactylIdentifier: true, deletedAt: true } } },
+  });
+
+  for (const task of tasks) {
+    const server = task.server;
+    if (!server || server.deletedAt || server.status !== "RUNNING" || !server.pterodactylIdentifier) continue;
+    const dueMs = task.intervalMinutes * 60 * 1000;
+    const last = task.lastRunAt?.getTime() ?? 0;
+    if (Date.now() - last < dueMs) continue;
+
+    try {
+      await PteroClient.sendConsoleCommand(server.pterodactylIdentifier, task.command);
+      await prisma.scheduledTask.update({ where: { id: task.id }, data: { lastRunAt: new Date() } });
+      await prisma.serverActivityLog.create({
+        data: { serverId: server.id, actorId: null, action: "SCHEDULED_TASK_RUN", detail: `${task.name}: ${task.command}` },
+      });
+      console.log(`[cron] ${server.name} — 예약 작업 "${task.name}" 실행`);
+    } catch (err) {
+      console.error(`[cron] ${server.name} 예약 작업 "${task.name}" 실행 실패:`, err);
+    }
+  }
+}
+
 async function handleRestartWarnings(currentHourKst: number) {
   const warnHour = (currentHourKst + 1) % 24;
   const servers = await prisma.server.findMany({
@@ -676,6 +707,7 @@ async function main() {
   await handleRenewals();
   await handleResourceUpgradeExpiry();
   await handleScheduledBackups();
+  await handleScheduledTasks();
   await handleScheduledRestarts();
   await handleNodeAlerts();
   await handleHanaBankMatching();

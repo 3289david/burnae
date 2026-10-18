@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { History, Play, Square, RotateCw, Skull, RefreshCcw, Wrench, RotateCcw, UserPlus, UserMinus, ArrowUpCircle, Crown } from "lucide-react";
+import { History, Play, Square, RotateCw, Skull, RefreshCcw, Wrench, RotateCcw, UserPlus, UserMinus, ArrowUpCircle, Crown, GitBranch, XCircle, Timer } from "lucide-react";
 import { SERVER_ACTIVITY_LABELS } from "@/lib/serverActivityLabels";
 
 interface ActivityLogEntry {
@@ -24,6 +24,9 @@ const ACTION_ICON: Record<string, typeof Play> = {
   MEMBER_REMOVE: UserMinus,
   RESOURCE_UPGRADE: ArrowUpCircle,
   OWNER_TRANSFER: Crown,
+  GIT_DEPLOY_SUCCESS: GitBranch,
+  GIT_DEPLOY_FAILED: XCircle,
+  SCHEDULED_TASK_RUN: Timer,
 };
 
 function timeAgo(iso: string): string {

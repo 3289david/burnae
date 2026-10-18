@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import SuccessCheck from "@/components/SuccessCheck";
 import FullScreenCelebration from "@/components/FullScreenCelebration";
+import CryptoPaymentOption from "@/components/CryptoPaymentOption";
 import { formatMb } from "@/lib/formatSize";
 import {
   Check,
@@ -602,6 +603,9 @@ function NewServerPageInner() {
           <div className="flex items-center gap-2 text-sm text-text-dim pt-2">
             <span className="animate-pulse">●</span> 입금 확인 대기 중...
           </div>
+        </div>
+        <div className="mt-4">
+          <CryptoPaymentOption orderId={order.id} amountKrw={order.amountKrw} />
         </div>
       </div>
     );

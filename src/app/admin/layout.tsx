@@ -21,6 +21,7 @@ const NAV = [
   { href: "/admin/promotions", label: "홍보 포인트" },
   { href: "/admin/shop", label: "포인트 상점" },
   { href: "/admin/bank-account", label: "결제 계좌" },
+  { href: "/admin/crypto", label: "코인 결제" },
   { href: "/admin/logs", label: "로그" },
   { href: "/admin/statistics", label: "통계" },
   { href: "/admin/discord", label: "디스코드 봇" },

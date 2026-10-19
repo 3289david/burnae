@@ -148,7 +148,8 @@
     "start": "Get started",
     "copyright": "© {year} Burnae · burnae.kr · This service is independent and not affiliated with any specific bank or payment processor.",
     "contact": "Text support 070-8970-6766 · Fax 0504-417-2275",
-    "blog": "Blog"
+    "blog": "Blog",
+    "apiDocs": "API Docs"
   },
   "login": {
     "title": "Log in",
@@ -540,7 +541,11 @@
     "loadingRepos": "Loading...",
     "privateSuffix": " (private)",
     "changeToThisRepo": "Change to this repo and re-fetch",
-    "otherHostDetails": "Connect to another host (GitLab, etc) or with a manual token"
+    "otherHostDetails": "Connect to another host (GitLab, etc) or with a manual token",
+    "branchLabel": "Branch to track (optional) — leave blank to keep whatever branch was checked out on install",
+    "branchPlaceholder": "e.g. main, develop",
+    "notifyWebhookLabel": "Outgoing deploy notification webhook (optional) — Slack/Discord Incoming Webhook URL",
+    "notifyWebhookPlaceholder": "https://discord.com/api/webhooks/... or a Slack webhook URL"
   },
   "scheduledTasksCard": {
     "addFailed": "Failed to add",
@@ -672,6 +677,78 @@
     "cancelAria": "Cancel",
     "renameAria": "Rename",
     "renameFailed": "Failed to rename"
+  },
+  "consoleTab": {
+    "quickSaveAll": "Save all",
+    "quickWhitelist": "Whitelist",
+    "quickList": "Player list",
+    "quickDay": "Set day",
+    "quickClear": "Clear weather",
+    "wsCredFailed": "Failed to get websocket credentials",
+    "killConfirm": "Force-kill the process? Unsaved data may be lost.",
+    "noPermTitle": "You don't have permission to view the console",
+    "noPermDesc": "Your invited role doesn't include console access. Contact the server owner.",
+    "console": "Console",
+    "connected": "· Connected",
+    "connecting": "· Connecting...",
+    "start": "Start",
+    "restart": "Restart",
+    "stop": "Stop",
+    "kill": "Force kill",
+    "copyOutput": "Copy output",
+    "downloadLog": "Download log",
+    "clearScreen": "Clear screen",
+    "exitFullscreen": "Exit fullscreen",
+    "fullscreen": "Fullscreen",
+    "waitingOutput": "Waiting for output...",
+    "jumpToBottom": "Jump to bottom",
+    "commandPlaceholder": "Enter a command (e.g. say hello, ↑/↓ for command history)",
+    "run": "Run"
+  },
+  "filesTab": {
+    "loadFailed": "Failed to load",
+    "genericError": "An error occurred.",
+    "uploadPrepFailed": "Failed to prepare upload",
+    "uploadFailedMsg": "Upload failed.",
+    "uploadFailed": "Upload failed",
+    "compressFailed": "Compression failed",
+    "decompressFailed": "Decompression failed",
+    "deleteConfirm": "Delete {count} item(s)? This can't be undone.",
+    "deleteFailed": "Delete failed",
+    "renamePrompt": "Enter a new name",
+    "renameFailed": "Rename failed",
+    "copyFailed": "Copy failed",
+    "newFolderPrompt": "Enter a new folder name",
+    "newFolderFailed": "Failed to create folder",
+    "newFilePrompt": "Enter a new file name (e.g. notes.txt)",
+    "newFileFailed": "Failed to create file",
+    "cancel": "Cancel",
+    "close": "Close",
+    "save": "Save",
+    "pathLabel": "Path:",
+    "searchPlaceholder": "Search files",
+    "compressSelected": "Compress {count} selected",
+    "deleteSelected": "Delete selected",
+    "goUp": "Up",
+    "newFolder": "New folder",
+    "newFile": "New file",
+    "uploading": "Uploading...",
+    "upload": "Upload",
+    "dropHere": "Drop files here",
+    "download": "Download",
+    "decompress": "Decompress",
+    "copy": "Copy",
+    "renameAction": "Rename",
+    "delete": "Delete",
+    "emptyFolder": "This folder is empty. You can drag and drop files to upload.",
+    "noSearchResults": "No results found."
+  },
+  "makerFilePanel": {
+    "loadFailed": "Failed to load",
+    "loadFailedMsg": "Couldn't load files.",
+    "back": "Back",
+    "goUp": "Up",
+    "noFiles": "No files yet. Try making something via chat."
   },
   "activityLabels": {
     "powerStart": "Server started",
@@ -812,5 +889,18 @@
   "depositorNameField": {
     "label": "Depositor name (this payment)",
     "hint": "Leave blank to use your saved default."
+  },
+  "deployHistory": {
+    "title": "Deploy history",
+    "subtitle": "Last 20 deploys",
+    "webhookTrigger": "GitHub push",
+    "manualTrigger": "Manual",
+    "secondsUnit": "s",
+    "noOutput": "(no output)",
+    "rollback": "Roll back to this point",
+    "rollbackConfirm": "Roll back to this commit? The next time you click \"Deploy now\" it will pull the latest commit again.",
+    "rollbackSuccess": "Rolled back! Check the Console tab.",
+    "rollbackFailed": "There was a problem rolling back: {detail}",
+    "rollbackRequestFailed": "The rollback request failed."
   }
 }

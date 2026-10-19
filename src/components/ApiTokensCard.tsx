@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { KeyRound, Copy, Check, Trash2 } from "lucide-react";
+import { Link } from "@/i18n/navigation";
 
 interface TokenInfo {
   id: string;
@@ -73,7 +74,10 @@ export default function ApiTokensCard() {
         </span>
         <div>
           <h3 className="font-semibold text-sm">API 토큰</h3>
-          <p className="text-xs text-text-dim">CLI나 스크립트에서 내 서버를 조회·조작할 수 있어요.</p>
+          <p className="text-xs text-text-dim">
+            CLI나 스크립트에서 내 서버를 조회·조작할 수 있어요.{" "}
+            <Link href="/docs/api" className="text-accent hover:underline">API 문서 보기</Link>
+          </p>
         </div>
       </div>
 

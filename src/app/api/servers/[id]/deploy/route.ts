@@ -44,6 +44,9 @@ export const GET = withApiErrorHandling(async (
     buildCommand: server.buildCommand,
     currentRepoUrl,
     githubLogin: githubConnection?.githubLogin ?? null,
+    gitBranch: server.gitBranch,
+    deployNotifyWebhookUrl: server.deployNotifyWebhookUrl,
+    healthCheckPath: server.healthCheckPath,
   });
 });
 
@@ -51,6 +54,8 @@ const patchSchema = z.object({
   enabled: z.boolean(),
   rotateSecret: z.boolean().optional(),
   buildCommand: z.string().max(500).optional().nullable(),
+  gitBranch: z.string().max(200).optional().nullable(),
+  deployNotifyWebhookUrl: z.union([z.string().url(), z.literal(""), z.null()]).optional(),
 });
 
 /** 자동 배포 켜고 끄기 + 웹훅 비밀값 발급 — 소유자만(웹훅 URL+비밀값은 누구나 호출 가능한 외부
@@ -79,6 +84,8 @@ export const PATCH = withApiErrorHandling(async (
       autoDeployEnabled: parsed.data.enabled,
       ...(needsSecret ? { deployWebhookSecret: crypto.randomBytes(24).toString("hex") } : {}),
       ...(parsed.data.buildCommand !== undefined ? { buildCommand: parsed.data.buildCommand } : {}),
+      ...(parsed.data.gitBranch !== undefined ? { gitBranch: parsed.data.gitBranch || null } : {}),
+      ...(parsed.data.deployNotifyWebhookUrl !== undefined ? { deployNotifyWebhookUrl: parsed.data.deployNotifyWebhookUrl || null } : {}),
     },
   });
 
@@ -87,6 +94,8 @@ export const PATCH = withApiErrorHandling(async (
     webhookUrl: `${siteUrl()}/api/webhooks/github-deploy/${updated.id}`,
     deployWebhookSecret: updated.deployWebhookSecret,
     buildCommand: updated.buildCommand,
+    gitBranch: updated.gitBranch,
+    deployNotifyWebhookUrl: updated.deployNotifyWebhookUrl,
   });
 });
 

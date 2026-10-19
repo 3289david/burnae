@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   Download, Trash2, Copy, Check, Maximize2, Minimize2, ArrowDownToLine,
   Play, RotateCw, Square, Power, Lock,
@@ -12,12 +13,12 @@ interface WsFrame {
   args?: string[];
 }
 
-const MINECRAFT_QUICK_COMMANDS = [
-  { label: "전체 저장", command: "save-all" },
-  { label: "화이트리스트 목록", command: "whitelist list" },
-  { label: "접속자 목록", command: "list" },
-  { label: "낮으로", command: "time set day" },
-  { label: "날씨 맑게", command: "weather clear" },
+const MINECRAFT_QUICK_COMMAND_DEFS = [
+  { labelKey: "quickSaveAll", command: "save-all" },
+  { labelKey: "quickWhitelist", command: "whitelist list" },
+  { labelKey: "quickList", command: "list" },
+  { labelKey: "quickDay", command: "time set day" },
+  { labelKey: "quickClear", command: "weather clear" },
 ];
 
 // 스크롤이 이 정도(px) 안쪽에 있으면 "맨 아래"로 취급한다 — 줄바꿈 애니메이션 때문에 생기는
@@ -36,6 +37,7 @@ export default function ConsoleTab({
   // 콘솔 웹소켓 토큰은 Wings 쪽에서 보기/명령 실행 권한이 분리가 안 돼서(발급하면 명령까지
   // 그대로 보낼 수 있음) 서버(/api/servers/[id]/websocket)도 DEVELOPER 이상만 토큰을 내준다 —
   // 뷰어/모더레이터에게 연결을 시도조차 안 하고 바로 권한 안내만 보여준다.
+  const t = useTranslations("consoleTab");
   const canUseConsole = hasServerRank(myRole, "DEVELOPER");
   const canPower = hasServerRank(myRole, "MODERATOR");
   const [lines, setLines] = useState<string[]>([]);
@@ -70,7 +72,7 @@ export default function ConsoleTab({
     async function connect() {
       try {
         const res = await fetch(`/api/servers/${serverId}/websocket`);
-        if (!res.ok) throw new Error("websocket 자격 증명 발급 실패");
+        if (!res.ok) throw new Error(t("wsCredFailed"));
         const { token, socket } = await res.json();
         if (closedByUs) return;
 
@@ -201,7 +203,7 @@ export default function ConsoleTab({
   }
 
   async function power(signal: "start" | "stop" | "restart" | "kill") {
-    if (signal === "kill" && !confirm("프로세스를 강제 종료할까요? 저장되지 않은 데이터는 사라질 수 있어요.")) return;
+    if (signal === "kill" && !confirm(t("killConfirm"))) return;
     setPowerBusy(true);
     try {
       await fetch(`/api/servers/${serverId}/power`, {
@@ -218,8 +220,8 @@ export default function ConsoleTab({
     return (
       <div className="card p-8 flex flex-col items-center justify-center gap-2 text-center">
         <Lock size={22} className="text-text-dim" />
-        <p className="font-medium">콘솔을 볼 권한이 없어요</p>
-        <p className="text-sm text-text-dim">초대받은 역할이 콘솔 접근을 포함하지 않아요. 서버 소유자에게 문의해주세요.</p>
+        <p className="font-medium">{t("noPermTitle")}</p>
+        <p className="text-sm text-text-dim">{t("noPermDesc")}</p>
       </div>
     );
   }
@@ -232,7 +234,7 @@ export default function ConsoleTab({
             {connected && <span className="absolute inset-0 rounded-full bg-green animate-ping" />}
             <span className={`relative w-2 h-2 rounded-full ${connected ? "bg-green" : "bg-yellow"}`} />
           </span>
-          콘솔 {connected ? "· 연결됨" : "· 연결 중..."}
+          {t("console")} {connected ? t("connected") : t("connecting")}
         </span>
 
         <div className="flex items-center gap-1">
@@ -241,7 +243,7 @@ export default function ConsoleTab({
               <button
                 onClick={() => power("start")}
                 disabled={powerBusy}
-                title="시작"
+                title={t("start")}
                 className="p-1.5 rounded-lg text-green hover:bg-green/15 disabled:opacity-40 active:scale-95 transition-transform"
               >
                 <Play size={14} />
@@ -249,7 +251,7 @@ export default function ConsoleTab({
               <button
                 onClick={() => power("restart")}
                 disabled={powerBusy}
-                title="재시작"
+                title={t("restart")}
                 className="p-1.5 rounded-lg text-yellow hover:bg-yellow/15 disabled:opacity-40 active:scale-95 transition-transform"
               >
                 <RotateCw size={14} className={powerBusy ? "animate-spin" : ""} />
@@ -257,7 +259,7 @@ export default function ConsoleTab({
               <button
                 onClick={() => power("stop")}
                 disabled={powerBusy}
-                title="정지"
+                title={t("stop")}
                 className="p-1.5 rounded-lg text-red hover:bg-red/15 disabled:opacity-40 active:scale-95 transition-transform"
               >
                 <Square size={14} />
@@ -265,7 +267,7 @@ export default function ConsoleTab({
               <button
                 onClick={() => power("kill")}
                 disabled={powerBusy}
-                title="강제 종료"
+                title={t("kill")}
                 className="p-1.5 rounded-lg text-red hover:bg-red/15 disabled:opacity-40 active:scale-95 transition-transform"
               >
                 <Power size={14} />
@@ -274,23 +276,23 @@ export default function ConsoleTab({
             </>
           )}
 
-          <button onClick={copyOutput} disabled={lines.length === 0} title="출력 복사" className="p-1.5 rounded-lg text-text-dim hover:text-text hover:bg-white/5 disabled:opacity-40 active:scale-95 transition-transform">
+          <button onClick={copyOutput} disabled={lines.length === 0} title={t("copyOutput")} className="p-1.5 rounded-lg text-text-dim hover:text-text hover:bg-white/5 disabled:opacity-40 active:scale-95 transition-transform">
             {copied ? <Check size={14} className="text-green" /> : <Copy size={14} />}
           </button>
-          <button onClick={downloadLog} disabled={lines.length === 0} title="로그 다운로드" className="p-1.5 rounded-lg text-text-dim hover:text-text hover:bg-white/5 disabled:opacity-40 active:scale-95 transition-transform">
+          <button onClick={downloadLog} disabled={lines.length === 0} title={t("downloadLog")} className="p-1.5 rounded-lg text-text-dim hover:text-text hover:bg-white/5 disabled:opacity-40 active:scale-95 transition-transform">
             <Download size={14} />
           </button>
-          <button onClick={clearConsole} disabled={lines.length === 0} title="화면 지우기" className="p-1.5 rounded-lg text-text-dim hover:text-text hover:bg-white/5 disabled:opacity-40 active:scale-95 transition-transform">
+          <button onClick={clearConsole} disabled={lines.length === 0} title={t("clearScreen")} className="p-1.5 rounded-lg text-text-dim hover:text-text hover:bg-white/5 disabled:opacity-40 active:scale-95 transition-transform">
             <Trash2 size={14} />
           </button>
-          <button onClick={() => setFullscreen((f) => !f)} title={fullscreen ? "전체화면 종료" : "전체화면"} className="p-1.5 rounded-lg text-text-dim hover:text-text hover:bg-white/5 active:scale-95 transition-transform">
+          <button onClick={() => setFullscreen((f) => !f)} title={fullscreen ? t("exitFullscreen") : t("fullscreen")} className="p-1.5 rounded-lg text-text-dim hover:text-text hover:bg-white/5 active:scale-95 transition-transform">
             {fullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
           </button>
         </div>
       </div>
       {templateCategory === "MINECRAFT" && (
         <div className="px-4 py-2 border-b border-border flex flex-wrap gap-1.5">
-          {MINECRAFT_QUICK_COMMANDS.map((qc, i) => (
+          {MINECRAFT_QUICK_COMMAND_DEFS.map((qc, i) => (
             <button
               key={qc.command}
               onClick={() => runQuickCommand(qc.command)}
@@ -298,7 +300,7 @@ export default function ConsoleTab({
               className="btn-secondary px-2.5 py-1 text-xs disabled:opacity-40 active:scale-95 transition-transform animate-fade-up"
               style={{ animationDelay: `${i * 0.03}s` }}
             >
-              {qc.label}
+              {t(qc.labelKey)}
             </button>
           ))}
         </div>

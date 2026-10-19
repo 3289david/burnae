@@ -12,6 +12,7 @@ import SftpCard from "./SftpCard";
 import DiscordInviteCard from "./DiscordInviteCard";
 import GitDeployCard from "./GitDeployCard";
 import DeployHistoryCard from "./DeployHistoryCard";
+import HealthCheckCard from "./HealthCheckCard";
 import ScheduledTasksCard from "./ScheduledTasksCard";
 
 const KNOWN_KEYS = [
@@ -276,6 +277,8 @@ export default function SettingsTab({
     {isOwner && <GitDeployCard serverId={serverId} />}
 
     {isOwner && <DeployHistoryCard serverId={serverId} />}
+
+    {isOwner && templateCategory !== "MINECRAFT" && <HealthCheckCard serverId={serverId} />}
 
     {isOwner && <ScheduledTasksCard serverId={serverId} />}
 

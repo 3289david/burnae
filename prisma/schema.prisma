@@ -607,6 +607,19 @@ model Server {
   /// git pull 뒤 재시작 전에 실행할 선택적 빌드 명령(예: npm install && npm run build).
   /// 비어있으면 pull만 하고 바로 재시작한다
   buildCommand        String?
+  /// 특정 브랜치를 계속 추적하고 싶을 때(기본 브랜치가 아닌 다른 브랜치로 배포). null이면
+  /// 저장소를 처음 설치했을 때 체크아웃된 브랜치(보통 기본 브랜치)를 그대로 쓴다
+  gitBranch           String?
+  /// 배포 결과(성공/실패)를 디스코드 DM 말고 외부로도 알리고 싶을 때 — Slack/Discord 둘 다
+  /// 호환되는 웹훅 URL(Incoming Webhook)
+  deployNotifyWebhookUrl String?
+
+  /// HTTP로 서비스하는 서버(GENERAL/DISCORD_BOT)의 헬스체크 경로(예: "/health"). 설정하면
+  /// 유지보수 크론이 주기적으로 핑을 보내고, 연속 실패 시 자동으로 재시작한다. null이면 비활성.
+  healthCheckPath         String?
+  /// 연속 실패 횟수 — 성공하면 0으로 리셋. 일정 횟수 넘으면 자동 재시작하고 다시 0으로 리셋
+  healthCheckFailures     Int       @default(0)
+  lastHealthCheckAt       DateTime?
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -663,6 +676,8 @@ model DeploymentLog {
   output    String
   startedAt DateTime      @default(now())
   durationMs Int
+  /// pull 직후 `git rev-parse HEAD`로 캡처한 커밋 해시 — 롤백 버튼에서 "이 시점으로 되돌리기"에 사용
+  commitSha String?
 
   @@index([serverId, startedAt])
 }

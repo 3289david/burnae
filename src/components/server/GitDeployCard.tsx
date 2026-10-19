@@ -15,6 +15,8 @@ interface DeployConfig {
   buildCommand: string | null;
   currentRepoUrl: string | null;
   githubLogin: string | null;
+  gitBranch: string | null;
+  deployNotifyWebhookUrl: string | null;
 }
 
 interface GithubRepoSummary {
@@ -32,6 +34,8 @@ export default function GitDeployCard({ serverId }: { serverId: string }) {
   const [deployResult, setDeployResult] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [buildCommand, setBuildCommand] = useState("");
+  const [gitBranch, setGitBranch] = useState("");
+  const [notifyWebhookUrl, setNotifyWebhookUrl] = useState("");
   const [editingRepo, setEditingRepo] = useState(false);
   const [repoMode, setRepoMode] = useState<"github" | "manual">("github");
   const [githubRepos, setGithubRepos] = useState<GithubRepoSummary[] | null>(null);
@@ -47,6 +51,8 @@ export default function GitDeployCard({ serverId }: { serverId: string }) {
       .then((data) => {
         setConfig(data);
         setBuildCommand(data?.buildCommand ?? "");
+        setGitBranch(data?.gitBranch ?? "");
+        setNotifyWebhookUrl(data?.deployNotifyWebhookUrl ?? "");
         setRepoMode(data?.githubLogin ? "github" : "manual");
       });
   }
@@ -59,7 +65,13 @@ export default function GitDeployCard({ serverId }: { serverId: string }) {
       .then((data) => data && setGithubRepos(data.repos));
   }, [editingRepo, repoMode, config?.githubLogin, githubRepos]);
 
-  async function toggle(enabled: boolean, rotateSecret = false, buildCommandOverride?: string) {
+  async function toggle(
+    enabled: boolean,
+    rotateSecret = false,
+    buildCommandOverride?: string,
+    gitBranchOverride?: string,
+    notifyWebhookOverride?: string,
+  ) {
     setSaving(true);
     try {
       const res = await fetch(`/api/servers/${serverId}/deploy`, {
@@ -69,6 +81,8 @@ export default function GitDeployCard({ serverId }: { serverId: string }) {
           enabled,
           rotateSecret,
           ...(buildCommandOverride !== undefined ? { buildCommand: buildCommandOverride || null } : {}),
+          ...(gitBranchOverride !== undefined ? { gitBranch: gitBranchOverride || null } : {}),
+          ...(notifyWebhookOverride !== undefined ? { deployNotifyWebhookUrl: notifyWebhookOverride || null } : {}),
         }),
       });
       const data = await res.json();
@@ -276,6 +290,45 @@ export default function GitDeployCard({ serverId }: { serverId: string }) {
             )}
           </div>
         )}
+      </div>
+
+      <div className="rounded-xl border border-border bg-surface-2/50 p-3.5 space-y-3 text-xs">
+        <div>
+          <label className="text-text-dim">{t("branchLabel")}</label>
+          <div className="flex gap-2 mt-1">
+            <input
+              className="input flex-1 font-mono text-xs"
+              placeholder={t("branchPlaceholder")}
+              value={gitBranch}
+              onChange={(e) => setGitBranch(e.target.value)}
+            />
+            <button
+              onClick={() => toggle(config.autoDeployEnabled, false, undefined, gitBranch)}
+              disabled={saving}
+              className="btn-secondary px-3 py-1.5 text-xs shrink-0"
+            >
+              {t("save")}
+            </button>
+          </div>
+        </div>
+        <div>
+          <label className="text-text-dim">{t("notifyWebhookLabel")}</label>
+          <div className="flex gap-2 mt-1">
+            <input
+              className="input flex-1 font-mono text-xs"
+              placeholder={t("notifyWebhookPlaceholder")}
+              value={notifyWebhookUrl}
+              onChange={(e) => setNotifyWebhookUrl(e.target.value)}
+            />
+            <button
+              onClick={() => toggle(config.autoDeployEnabled, false, undefined, undefined, notifyWebhookUrl)}
+              disabled={saving}
+              className="btn-secondary px-3 py-1.5 text-xs shrink-0"
+            >
+              {t("save")}
+            </button>
+          </div>
+        </div>
       </div>
 
       {config.autoDeployEnabled && config.deployWebhookSecret && (

@@ -40,6 +40,7 @@ export const GET = withApiErrorHandling(async (
       output: l.output,
       startedAt: l.startedAt,
       durationMs: l.durationMs,
+      commitSha: l.commitSha,
     })),
   );
 });

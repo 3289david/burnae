@@ -148,7 +148,8 @@
     "start": "시작하기",
     "copyright": "© {year} Burnae · burnae.kr · 이 서비스는 특정 은행/결제사와 제휴 관계가 없는 독립 서비스입니다.",
     "contact": "문자 상담 070-8970-6766 · 팩스 0504-417-2275",
-    "blog": "블로그"
+    "blog": "블로그",
+    "apiDocs": "API 문서"
   },
   "login": {
     "title": "로그인",
@@ -540,7 +541,11 @@
     "loadingRepos": "불러오는 중...",
     "privateSuffix": " (비공개)",
     "changeToThisRepo": "이 저장소로 변경하고 다시 받아오기",
-    "otherHostDetails": "다른 호스트(GitLab 등)나 직접 토큰으로 연결"
+    "otherHostDetails": "다른 호스트(GitLab 등)나 직접 토큰으로 연결",
+    "branchLabel": "추적할 브랜치 (선택) — 비워두면 저장소를 처음 설치했을 때 브랜치를 계속 써요",
+    "branchPlaceholder": "예: main, develop",
+    "notifyWebhookLabel": "외부 배포 알림 웹훅 (선택) — Slack/Discord Incoming Webhook URL",
+    "notifyWebhookPlaceholder": "https://discord.com/api/webhooks/... 또는 Slack 웹훅 URL"
   },
   "scheduledTasksCard": {
     "addFailed": "추가 실패",
@@ -672,6 +677,78 @@
     "cancelAria": "취소",
     "renameAria": "이름 바꾸기",
     "renameFailed": "이름 변경 실패"
+  },
+  "consoleTab": {
+    "quickSaveAll": "전체 저장",
+    "quickWhitelist": "화이트리스트 목록",
+    "quickList": "접속자 목록",
+    "quickDay": "낮으로",
+    "quickClear": "날씨 맑게",
+    "wsCredFailed": "websocket 자격 증명 발급 실패",
+    "killConfirm": "프로세스를 강제 종료할까요? 저장되지 않은 데이터는 사라질 수 있어요.",
+    "noPermTitle": "콘솔을 볼 권한이 없어요",
+    "noPermDesc": "초대받은 역할이 콘솔 접근을 포함하지 않아요. 서버 소유자에게 문의해주세요.",
+    "console": "콘솔",
+    "connected": "· 연결됨",
+    "connecting": "· 연결 중...",
+    "start": "시작",
+    "restart": "재시작",
+    "stop": "정지",
+    "kill": "강제 종료",
+    "copyOutput": "출력 복사",
+    "downloadLog": "로그 다운로드",
+    "clearScreen": "화면 지우기",
+    "exitFullscreen": "전체화면 종료",
+    "fullscreen": "전체화면",
+    "waitingOutput": "출력을 기다리는 중...",
+    "jumpToBottom": "맨 아래로",
+    "commandPlaceholder": "명령어 입력 (예: say hello, ↑/↓로 이전 명령 다시 불러오기)",
+    "run": "실행"
+  },
+  "filesTab": {
+    "loadFailed": "불러오기 실패",
+    "genericError": "오류가 발생했습니다.",
+    "uploadPrepFailed": "업로드 준비 실패",
+    "uploadFailedMsg": "업로드에 실패했어요.",
+    "uploadFailed": "업로드 실패",
+    "compressFailed": "압축 실패",
+    "decompressFailed": "압축 해제 실패",
+    "deleteConfirm": "{count}개를 삭제할까요? 되돌릴 수 없어요.",
+    "deleteFailed": "삭제 실패",
+    "renamePrompt": "새 이름을 입력하세요",
+    "renameFailed": "이름 변경 실패",
+    "copyFailed": "복사 실패",
+    "newFolderPrompt": "새 폴더 이름을 입력하세요",
+    "newFolderFailed": "폴더 생성 실패",
+    "newFilePrompt": "새 파일 이름을 입력하세요 (예: notes.txt)",
+    "newFileFailed": "파일 생성 실패",
+    "cancel": "취소",
+    "close": "닫기",
+    "save": "저장",
+    "pathLabel": "경로:",
+    "searchPlaceholder": "파일 검색",
+    "compressSelected": "선택 {count}개 압축",
+    "deleteSelected": "선택 삭제",
+    "goUp": "상위로",
+    "newFolder": "새 폴더",
+    "newFile": "새 파일",
+    "uploading": "업로드 중...",
+    "upload": "업로드",
+    "dropHere": "여기에 파일을 놓으세요",
+    "download": "받기",
+    "decompress": "압축해제",
+    "copy": "복사",
+    "renameAction": "이름변경",
+    "delete": "삭제",
+    "emptyFolder": "빈 폴더예요. 파일을 끌어다 놓아도 업로드돼요.",
+    "noSearchResults": "검색 결과가 없어요."
+  },
+  "makerFilePanel": {
+    "loadFailed": "불러오기 실패",
+    "loadFailedMsg": "파일을 불러오지 못했어요.",
+    "back": "뒤로",
+    "goUp": "상위로",
+    "noFiles": "아직 파일이 없어요. 채팅으로 뭔가 만들어보세요."
   },
   "activityLabels": {
     "powerStart": "서버 시작",
@@ -812,5 +889,18 @@
   "depositorNameField": {
     "label": "입금자명 (이번 결제용)",
     "hint": "비워두면 계정 설정의 기본값을 써요."
+  },
+  "deployHistory": {
+    "title": "배포 이력",
+    "subtitle": "최근 20건",
+    "webhookTrigger": "GitHub push",
+    "manualTrigger": "수동",
+    "secondsUnit": "초",
+    "noOutput": "(출력 없음)",
+    "rollback": "이 시점으로 롤백",
+    "rollbackConfirm": "이 커밋 시점으로 되돌릴까요? 다음에 \"지금 배포\"를 누르면 다시 최신 커밋으로 돌아가요.",
+    "rollbackSuccess": "롤백 완료! 콘솔 탭에서 확인해보세요.",
+    "rollbackFailed": "롤백 중 문제가 있었어요: {detail}",
+    "rollbackRequestFailed": "롤백 요청에 실패했어요."
   }
 }

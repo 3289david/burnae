@@ -9,6 +9,7 @@ import { markOrderPaidAndFulfill, retryPreorderFulfillment } from "../src/lib/or
 import { ProvisioningError } from "../src/lib/provisioning";
 import { syncAppProxyMap } from "../src/lib/appProxy";
 import { provisionCustomDomainSsl } from "../src/lib/customDomainSsl";
+import { pingHealthCheck } from "../src/lib/healthCheck";
 
 /**
  * 주기적으로(예: 5~10분마다) 실행하는 운영 크론.
@@ -464,6 +465,47 @@ async function handleCustomDomainSsl() {
  * 자체가 10분마다 돌기 때문에 intervalMinutes가 10보다 작아도 실제로는 최대 10분 지연될 수
  * 있다(API에서 최소값을 10분으로 막아두긴 했음).
  */
+/**
+ * Render/Railway 스타일 헬스체크 — 이 크론(10분 간격)에 얹혀서 돌기 때문에 실제로는 "10분 넘게
+ * 응답이 없으면" 감지하는 수준이다(진짜 PaaS처럼 몇 초 단위로 감지하려면 crypto-watch.timer처럼
+ * 별도의 빠른 타이머가 필요한데, 지금은 "꺼진 채로 방치되는 걸 막는다" 정도의 안전망이면
+ * 충분해서 기존 크론에 포함했다). 연속 2번(=최소 20분) 실패해야 재시작해서 단발성 네트워크
+ * 지연으로 괜히 재시작하지 않게 한다.
+ */
+const HEALTH_CHECK_FAILURE_THRESHOLD = 2;
+
+async function handleHealthChecks() {
+  const servers = await prisma.server.findMany({
+    where: { deletedAt: null, status: "RUNNING", healthCheckPath: { not: null }, allocationIp: { not: null }, allocationPort: { not: null } },
+  });
+
+  for (const server of servers) {
+    if (!server.allocationIp || !server.allocationPort || !server.healthCheckPath) continue;
+    const ok = await pingHealthCheck(server.allocationIp, server.allocationPort, server.healthCheckPath);
+
+    if (ok) {
+      if (server.healthCheckFailures > 0) {
+        await prisma.server.update({ where: { id: server.id }, data: { healthCheckFailures: 0, lastHealthCheckAt: new Date() } });
+      } else {
+        await prisma.server.update({ where: { id: server.id }, data: { lastHealthCheckAt: new Date() } });
+      }
+      continue;
+    }
+
+    const failures = server.healthCheckFailures + 1;
+    if (failures >= HEALTH_CHECK_FAILURE_THRESHOLD && server.pterodactylIdentifier) {
+      console.log(`[cron] ${server.name} — 헬스체크 ${failures}회 연속 실패, 자동 재시작`);
+      await PteroClient.sendPowerAction(server.pterodactylIdentifier, "restart").catch((err) =>
+        console.error(`[cron] ${server.name} 헬스체크 자동 재시작 실패:`, err),
+      );
+      await notifyOwner(server.ownerId, `🚑 **${server.name}** 헬스체크가 계속 실패해서 자동으로 재시작했어요(${server.healthCheckPath}).`);
+      await prisma.server.update({ where: { id: server.id }, data: { healthCheckFailures: 0, lastHealthCheckAt: new Date() } });
+    } else {
+      await prisma.server.update({ where: { id: server.id }, data: { healthCheckFailures: failures, lastHealthCheckAt: new Date() } });
+    }
+  }
+}
+
 async function handleScheduledTasks() {
   const tasks = await prisma.scheduledTask.findMany({
     where: { enabled: true },
@@ -743,6 +785,7 @@ async function main() {
   await handleResourceUpgradeExpiry();
   await handleScheduledBackups();
   await handleCustomDomainSsl();
+  await handleHealthChecks();
   await handleScheduledTasks();
   await handleScheduledRestarts();
   await handleNodeAlerts();

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Coins } from "lucide-react";
 import SuccessCheck from "@/components/SuccessCheck";
+import DepositorNameField from "@/components/DepositorNameField";
 import { openPaymentWindow } from "@/lib/openPaymentWindow";
 
 const PACKAGES = [
@@ -18,29 +19,34 @@ export default function PointsPurchaseCard() {
   const t = useTranslations("pointsPurchaseCard");
   const tc = useTranslations("common");
   const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState<(typeof PACKAGES)[number] | null>(null);
+  const [depositorName, setDepositorName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [payment, setPayment] = useState<{ orderId: string } | null>(null);
   const [justCharged, setJustCharged] = useState(false);
 
-  async function buy(pkg: (typeof PACKAGES)[number]) {
+  async function buy() {
+    if (!selected) return;
     setBusy(true);
     setError(null);
     try {
       const res = await fetch("/api/points/purchase", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ points: pkg.points }),
+        body: JSON.stringify({ points: selected.points, depositorName: depositorName || undefined }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       if (data.status === "PAID") {
         setOpen(false);
+        setSelected(null);
         setJustCharged(true);
         setTimeout(() => window.location.reload(), 1200);
         return;
       }
       setPayment({ orderId: data.id });
+      setSelected(null);
       openPaymentWindow(data.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("purchaseFailed"));
@@ -90,13 +96,12 @@ export default function PointsPurchaseCard() {
         </div>
       )}
 
-      {open && !payment && (
+      {open && !payment && !selected && (
         <div className="mt-3 pt-3 border-t border-border grid grid-cols-3 gap-2">
           {PACKAGES.map((pkg, i) => (
             <button
               key={pkg.points}
-              onClick={() => buy(pkg)}
-              disabled={busy}
+              onClick={() => setSelected(pkg)}
               className="rounded-xl border border-border bg-surface p-3 text-center hover:border-accent/40 hover:bg-surface-2 transition-all duration-150 active:scale-95 animate-fade-up"
               style={{ animationDelay: `${i * 0.04}s` }}
             >
@@ -104,6 +109,23 @@ export default function PointsPurchaseCard() {
               <p className="text-xs text-text-dim mt-0.5">{pkg.priceKrw.toLocaleString()}{tc("krw")}</p>
             </button>
           ))}
+        </div>
+      )}
+
+      {open && !payment && selected && (
+        <div className="mt-3 pt-3 border-t border-border space-y-3">
+          <p className="text-sm">
+            {selected.points.toLocaleString()}P · {selected.priceKrw.toLocaleString()}{tc("krw")}
+          </p>
+          <DepositorNameField value={depositorName} onChange={setDepositorName} />
+          <div className="flex gap-2">
+            <button onClick={buy} disabled={busy} className="btn-primary px-4 py-2 text-sm flex-1">
+              {busy ? tc("checking") : t("open")}
+            </button>
+            <button onClick={() => setSelected(null)} className="btn-secondary px-4 py-2 text-sm">
+              {tc("cancel")}
+            </button>
+          </div>
         </div>
       )}
 

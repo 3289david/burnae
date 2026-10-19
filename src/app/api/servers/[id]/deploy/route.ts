@@ -5,8 +5,9 @@ import { requireUser } from "@/lib/auth";
 import { authorizeServerAccess, getServerRole, hasServerRank } from "@/lib/serverAccess";
 import { prisma } from "@/lib/prisma";
 import { withApiErrorHandling } from "@/lib/apiHandler";
-import { redeployFromGit, supportsGitDeploy } from "@/lib/deploy";
+import { redeployFromGit, supportsGitDeploy, maskGitCredentials } from "@/lib/deploy";
 import { siteUrl } from "@/lib/oauth";
+import { PteroClient } from "@/lib/pterodactyl";
 
 /** Git 자동 배포 설정 조회 — 콘솔/파일 접근과 같은 기준(DEVELOPER 이상)으로 본다 */
 export const GET = withApiErrorHandling(async (
@@ -24,6 +25,16 @@ export const GET = withApiErrorHandling(async (
   }
 
   const supportsGit = await supportsGitDeploy(server.templateId);
+
+  let currentRepoUrl: string | null = null;
+  if (supportsGit && server.pterodactylIdentifier) {
+    const variables = await PteroClient.getStartupVariables(server.pterodactylIdentifier).catch(() => null);
+    const raw = variables?.find((v) => v.envVariable === "GIT_ADDRESS")?.serverValue;
+    if (raw) currentRepoUrl = maskGitCredentials(raw);
+  }
+
+  const githubConnection = await prisma.gitHubConnection.findUnique({ where: { userId: user.id } });
+
   return NextResponse.json({
     supportsGit,
     autoDeployEnabled: server.autoDeployEnabled,
@@ -31,6 +42,8 @@ export const GET = withApiErrorHandling(async (
     hasSecret: !!server.deployWebhookSecret,
     deployWebhookSecret: server.deployWebhookSecret,
     buildCommand: server.buildCommand,
+    currentRepoUrl,
+    githubLogin: githubConnection?.githubLogin ?? null,
   });
 });
 

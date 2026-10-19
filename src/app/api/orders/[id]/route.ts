@@ -151,3 +151,31 @@ export const POST = withApiErrorHandling(async (
   });
   return NextResponse.json(refreshed);
 });
+
+/**
+ * 결제 내역에서 "삭제" — 실제로 결제가 완료된(PAID) 주문은 절대 지울 수 없다(환불/세금 기록
+ * 보존 문제라 여기서 막아야 함). 아직 입금이 안 됐거나 이미 취소·만료·환불된, 더 이상 의미
+ * 없는 주문만 목록에서 치울 수 있게 해준다.
+ */
+export const DELETE = withApiErrorHandling(async (
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) => {
+  const user = await requireUser();
+  if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+
+  const { id } = await params;
+  const order = await prisma.order.findFirst({ where: { id, userId: user.id } });
+  if (!order) return NextResponse.json({ error: "주문을 찾을 수 없습니다." }, { status: 404 });
+  if (order.status === "PAID") {
+    return NextResponse.json({ error: "결제가 완료된 주문은 삭제할 수 없어요." }, { status: 409 });
+  }
+
+  // CryptoPayment가 이 주문을 필수 FK로 참조하고 있어서(onDelete 지정 없음 = RESTRICT),
+  // 코인 결제를 시도했던 주문은 먼저 그 레코드를 지워야 Order 삭제가 막히지 않는다
+  await prisma.$transaction([
+    prisma.cryptoPayment.deleteMany({ where: { orderId: order.id } }),
+    prisma.order.delete({ where: { id: order.id } }),
+  ]);
+  return NextResponse.json({ ok: true });
+});

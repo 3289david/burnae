@@ -1,13 +1,14 @@
 import { prisma } from "@/lib/prisma";
 import type { CryptoCoin } from "@/generated/prisma/enums";
-import { deriveTronAddress } from "@/lib/crypto/tronAddress";
 import { deriveBtcLtcAddress } from "@/lib/crypto/btcLtcAddress";
 
-/** xpub(공개키)만으로 입금 주소를 파생할 수 있는 코인 — secp256k1 계열 */
-const XPUB_DERIVABLE: CryptoCoin[] = ["USDT_TRC20", "TRX", "BTC", "LTC"];
-const BTC_LTC_COINS = new Set(["BTC", "LTC"]);
-/** 운영자가 오프라인에서 미리 만들어둔 주소 목록에서 하나씩 꺼내 쓰는 코인 — ed25519라 공개키만으로 자식 주소를 못 만듦 */
-const POOL_BASED: CryptoCoin[] = ["SOL", "USDT_SOL"];
+/** xpub(공개키)만으로 입금 주소를 파생할 수 있는 코인 — secp256k1 계열, 현재는 BTC/LTC만 */
+const XPUB_DERIVABLE: CryptoCoin[] = ["BTC", "LTC"];
+/** 운영자가 오프라인에서 미리 만들어둔 주소 목록에서 하나씩 꺼내 쓰는 코인.
+ * SOL/USDT_SOL은 ed25519라 공개키만으로 자식 주소를 못 만들어서 원래부터 이 방식이었고,
+ * TRX/USDT_TRC20도 TronLink 등 대부분의 TRON 지갑이 xpub 내보내기를 지원하지 않아서
+ * 같은 방식으로 옮겼다 — 지갑 하나에서 미리 여러 주소를 받아 등록해두면 된다. */
+const POOL_BASED: CryptoCoin[] = ["SOL", "USDT_SOL", "TRX", "USDT_TRC20"];
 
 interface AddressPoolEntry {
   address: string;
@@ -42,9 +43,7 @@ export async function allocateDepositAddress(
       });
       return index;
     });
-    const address = BTC_LTC_COINS.has(coin)
-      ? deriveBtcLtcAddress(config.xpub, updated, coin as "BTC" | "LTC")
-      : deriveTronAddress(config.xpub, updated);
+    const address = deriveBtcLtcAddress(config.xpub, updated, coin as "BTC" | "LTC");
     return { address, derivationIndex: updated };
   }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { CheckCircle2, Clock, Copy, Check, ShieldCheck, ShieldAlert } from "lucide-react";
 import type { ServerCustomDomainInfo } from "./ServerDetailClient";
 
@@ -18,6 +19,7 @@ export default function CustomDomainCard({
   isOwner: boolean;
   initial: ServerCustomDomainInfo[];
 }) {
+  const t = useTranslations("customDomainCard");
   const [domains, setDomains] = useState(initial);
   const [hostname, setHostname] = useState("");
   const [instructions, setInstructions] = useState<DnsInstructions | null>(null);
@@ -51,7 +53,7 @@ export default function CustomDomainCard({
       setInstructions(data.dnsInstructions);
       setHostname("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "연결 실패");
+      setError(err instanceof Error ? err.message : t("connectFailed"));
     } finally {
       setLoading(false);
     }
@@ -77,14 +79,14 @@ export default function CustomDomainCard({
       );
       setVerifyMsg(data.reason);
     } catch (err) {
-      setVerifyMsg(err instanceof Error ? err.message : "확인 실패");
+      setVerifyMsg(err instanceof Error ? err.message : t("verifyFailed"));
     } finally {
       setLoading(false);
     }
   }
 
   async function remove(id: string) {
-    if (!confirm("이 도메인 연결을 삭제할까요?")) return;
+    if (!confirm(t("deleteConfirm"))) return;
     await fetch(`/api/servers/${serverId}/custom-domain/${id}`, { method: "DELETE" });
     setDomains((prev) => prev.filter((d) => d.id !== id));
     setInstructions(null);
@@ -98,11 +100,11 @@ export default function CustomDomainCard({
 
   return (
     <div className="card-glow p-5">
-      <h3 className="font-semibold">커스텀 도메인</h3>
+      <h3 className="font-semibold">{t("title")}</h3>
       <p className="text-sm text-text-dim mt-1">
-        직접 소유한 도메인을 서버에 연결할 수 있어요. 아직 도메인이 없다면{" "}
+        {t("desc")}{" "}
         <a href="https://krl.kr/domains" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">
-          여기서 구매하기
+          {t("buyHere")}
         </a>
         .
       </p>
@@ -122,39 +124,37 @@ export default function CustomDomainCard({
               {isOwner && (
                 <div className="flex items-center gap-3 text-xs shrink-0">
                   <button onClick={() => verify(d.id)} disabled={loading} className="text-accent hover:underline active:scale-95 transition-transform">
-                    확인하기
+                    {t("verify")}
                   </button>
                   <button onClick={() => remove(d.id)} className="text-red hover:underline active:scale-95 transition-transform">
-                    삭제
+                    {t("delete")}
                   </button>
                 </div>
               )}
             </div>
             {!d.verified && (
-              <p className="text-xs text-text-dim mt-1">
-                아직 확인되지 않았어요. 아래 DNS 레코드를 자기 도메인에 등록한 뒤 확인하기를 눌러주세요.
-              </p>
+              <p className="text-xs text-text-dim mt-1">{t("notVerifiedHint")}</p>
             )}
             {d.verified && d.sslEligible && (
               <p className="text-xs mt-1 flex items-center gap-1.5">
                 {d.sslStatus === "ISSUED" ? (
                   <span className="text-green flex items-center gap-1">
-                    <ShieldCheck size={13} /> HTTPS 자동 적용됨
+                    <ShieldCheck size={13} /> {t("httpsApplied")}
                   </span>
                 ) : d.sslStatus === "FAILED" ? (
                   <span className="text-red flex items-center gap-1" title={d.sslError ?? undefined}>
-                    <ShieldAlert size={13} /> 인증서 발급 실패 — {d.sslError ?? "확인하기를 다시 눌러주세요."}
+                    <ShieldAlert size={13} /> {t("certFailed")}{d.sslError ?? t("retryVerifyHint")}
                   </span>
                 ) : (
                   <span className="text-text-dim flex items-center gap-1">
-                    <Clock size={13} /> HTTPS 설정 중...
+                    <Clock size={13} /> {t("httpsSettingUp")}
                   </span>
                 )}
               </p>
             )}
           </div>
         ))}
-        {domains.length === 0 && <p className="text-sm text-text-dim">연결된 도메인이 없어요.</p>}
+        {domains.length === 0 && <p className="text-sm text-text-dim">{t("noDomains")}</p>}
       </div>
 
       {verifyMsg && <p className="text-xs text-text-dim mt-2">{verifyMsg}</p>}
@@ -164,11 +164,11 @@ export default function CustomDomainCard({
           <input
             value={hostname}
             onChange={(e) => setHostname(e.target.value)}
-            placeholder="예: play.mydomain.com"
+            placeholder={t("hostnamePlaceholder")}
             className="input flex-1 text-sm"
           />
           <button type="submit" disabled={loading || !hostname} className="btn-secondary px-3 py-1.5 text-sm shrink-0 active:scale-95 transition-transform">
-            연결하기
+            {t("connect")}
           </button>
         </form>
       )}
@@ -177,9 +177,7 @@ export default function CustomDomainCard({
       {instructions && (
         <div className="mt-3 pt-3 border-t border-border space-y-2 text-xs font-mono animate-fade-up">
           <p className="text-text-dim font-sans">
-            {instructions.srv
-              ? "아래 두 레코드를 도메인 DNS 설정에 추가하세요 (A 레코드 먼저, SRV는 선택이지만 추천):"
-              : "아래 A 레코드를 도메인 DNS 설정에 추가하세요. 확인되는 즉시 HTTPS 인증서도 자동으로 발급돼요:"}
+            {instructions.srv ? t("instructionsBoth") : t("instructionsAOnly")}
           </p>
           <Record
             label="A"

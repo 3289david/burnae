@@ -34,13 +34,13 @@ interface PaymentRow {
 const COIN_META: Record<string, { label: string; kind: "xpub" | "pool"; help: string }> = {
   USDT_TRC20: {
     label: "USDT (TRC20)",
-    kind: "xpub",
-    help: "TRON(secp256k1) 확장 공개키(xpub) — 공개키만으로 입금 주소를 자동으로 여러 개 만들 수 있어요. 개인키/시드구문은 절대 여기 넣지 마세요.",
+    kind: "pool",
+    help: "대부분의 TRON 지갑(TronLink 등)이 xpub 내보내기를 지원하지 않아서, 오프라인에서 미리 받아둔 받기 전용 주소를 한 줄에 하나씩 붙여넣어 등록해두세요.",
   },
   TRX: {
     label: "TRON (TRX)",
-    kind: "xpub",
-    help: "USDT(TRC20)과 같은 xpub을 그대로 써도 돼요(같은 TRON 주소 체계).",
+    kind: "pool",
+    help: "USDT(TRC20)과 같은 주소 목록을 공유해도 되고 따로 둬도 돼요.",
   },
   USDT_SOL: {
     label: "USDT (Solana)",

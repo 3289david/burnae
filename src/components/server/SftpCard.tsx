@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { HardDriveDownload, Check, Copy } from "lucide-react";
 
 interface SftpInfo {
@@ -11,6 +12,7 @@ interface SftpInfo {
 }
 
 export default function SftpCard({ serverId }: { serverId: string }) {
+  const t = useTranslations("sftpCard");
   const [info, setInfo] = useState<SftpInfo | null>(null);
   const [password, setPassword] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -41,7 +43,7 @@ export default function SftpCard({ serverId }: { serverId: string }) {
       setPassword(data.password);
       setInfo((prev) => (prev ? { ...prev, hasPassword: true } : prev));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "비밀번호 재발급 실패");
+      setError(err instanceof Error ? err.message : t("reissueFailed"));
     } finally {
       setBusy(false);
     }
@@ -56,37 +58,37 @@ export default function SftpCard({ serverId }: { serverId: string }) {
           <HardDriveDownload size={15} className="text-accent" />
         </span>
         <div>
-          <h3 className="font-semibold text-sm">파일 전송 접속 정보</h3>
-          <p className="text-xs text-text-dim">내 컴퓨터의 파일 전송 프로그램(FTP 클라이언트)에 아래 정보를 입력하면 서버 파일을 직접 다룰 수 있어요.</p>
+          <h3 className="font-semibold text-sm">{t("title")}</h3>
+          <p className="text-xs text-text-dim">{t("desc")}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-y-1.5 text-sm items-center">
-        <span className="text-text-dim">호스트</span>
+        <span className="text-text-dim">{t("host")}</span>
         <button onClick={() => copy("host", `sftp://${info.host}`)} className="font-mono text-left inline-flex items-center gap-1.5 hover:text-accent active:scale-95 transition-transform w-fit">
           {info.host} {copied === "host" ? <Check size={12} className="text-green animate-toast-in" /> : <Copy size={11} className="text-text-dim" />}
         </button>
-        <span className="text-text-dim">포트</span>
+        <span className="text-text-dim">{t("port")}</span>
         <button onClick={() => copy("port", String(info.port))} className="font-mono text-left inline-flex items-center gap-1.5 hover:text-accent active:scale-95 transition-transform w-fit">
           {info.port} {copied === "port" ? <Check size={12} className="text-green animate-toast-in" /> : <Copy size={11} className="text-text-dim" />}
         </button>
-        <span className="text-text-dim">사용자명</span>
+        <span className="text-text-dim">{t("username")}</span>
         <button onClick={() => copy("username", info.username)} className="font-mono text-left break-all inline-flex items-center gap-1.5 hover:text-accent active:scale-95 transition-transform w-fit">
           {info.username} {copied === "username" ? <Check size={12} className="text-green animate-toast-in" /> : <Copy size={11} className="text-text-dim shrink-0" />}
         </button>
         {password && (
           <>
-            <span className="text-text-dim">비밀번호</span>
+            <span className="text-text-dim">{t("password")}</span>
             <span className="font-mono select-all animate-toast-in">{password}</span>
           </>
         )}
       </div>
 
       <button onClick={resetPassword} disabled={busy} className="btn-secondary px-3.5 py-2 text-xs active:scale-95 transition-transform">
-        {busy ? "발급 중..." : info.hasPassword ? "비밀번호 재발급" : "비밀번호 발급"}
+        {busy ? t("issuing") : info.hasPassword ? t("reissue") : t("issue")}
       </button>
       {!password && info.hasPassword && (
-        <p className="text-xs text-text-dim">보안을 위해 비밀번호는 발급 시 한 번만 보여줘요. 잊었다면 다시 재발급하세요.</p>
+        <p className="text-xs text-text-dim">{t("shownOnceHint")}</p>
       )}
       {error && <p className="text-xs text-red">{error}</p>}
     </div>

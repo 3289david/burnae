@@ -2,7 +2,15 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { isValidDepositorName } from "@/lib/hanabank";
+import { isValidDepositorName, resolveDepositorName } from "@/lib/hanabank";
+
+/** 결제 화면에서 "지금 쓸 입금자명"을 매번 미리 채워두기 위한 조회용 — 저장된 기본값이
+ * 없으면 이름 기반으로 자동 생성되는 값을 그대로 보여준다(실제 주문 생성 시와 동일한 로직) */
+export async function GET() {
+  const user = await requireUser();
+  if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+  return NextResponse.json({ depositorName: resolveDepositorName(user) });
+}
 
 const schema = z.object({ depositorName: z.string().min(1).max(5).nullable() });
 

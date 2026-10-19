@@ -108,3 +108,52 @@ export async function supportsGitDeploy(templateId: string): Promise<boolean> {
   const defaultEnv = template.defaultEnvironment as Record<string, unknown>;
   return "GIT_ADDRESS" in defaultEnv;
 }
+
+/** https://host/path 형태의 URL 어딘가에 credential(토큰/x-access-token:토큰)이 박혀 있으면
+ * 가려서 돌려준다 — 저장소 주소 자체는 보여줘도 되지만 그 안의 비밀값은 다시 노출하면 안 된다 */
+export function maskGitCredentials(address: string): string {
+  try {
+    const url = new URL(address);
+    if (url.username || url.password) {
+      url.username = "***";
+      url.password = "";
+    }
+    return url.toString();
+  } catch {
+    return address;
+  }
+}
+
+/** HTTPS 저장소 주소에 Personal Access Token을 끼워 넣는다 — GitHub/GitLab/Bitbucket 모두
+ * "https://<token>@host/path" 형태를 그대로 지원해서 호스트별 분기 없이 동작한다 */
+export function embedGitToken(address: string, token: string): string {
+  const url = new URL(address);
+  url.username = encodeURIComponent(token);
+  url.password = "";
+  return url.toString();
+}
+
+/**
+ * 기존 작업 디렉터리를 그대로 두고(파일 삭제 없이) git remote만 다른 저장소로 바꾼 뒤 pull —
+ * StartupVariablesCard의 "저장소에서 설치하기"(전체 재설치)보다 훨씬 가볍게 "연결된 저장소를
+ * 바꾸는" 기능. 바뀐 주소는 egg 시작 변수(GIT_ADDRESS)에도 그대로 반영해서 다음에 다시
+ * 조회했을 때(또는 재설치 시) 같은 저장소를 계속 가리키게 한다.
+ */
+export async function changeGitRemote(
+  server: Server,
+  newAddress: string,
+  actorId: string,
+): Promise<{ ok: boolean; output: string }> {
+  if (!server.pterodactylIdentifier) {
+    return { ok: false, output: "서버가 아직 준비 중이에요." };
+  }
+
+  await PteroClient.runCommandAndCapture(server.pterodactylIdentifier, `git remote set-url origin ${newAddress}`, 5000).catch(
+    (err) => console.error(`[deploy] 서버 ${server.id} git remote 변경 실패:`, err),
+  );
+  await PteroClient.updateStartupVariable(server.pterodactylIdentifier, "GIT_ADDRESS", newAddress).catch((err) =>
+    console.error(`[deploy] 서버 ${server.id} GIT_ADDRESS 시작 변수 갱신 실패:`, err),
+  );
+
+  return redeployFromGit(server, actorId, "MANUAL");
+}

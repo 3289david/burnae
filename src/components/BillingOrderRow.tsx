@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { openPaymentWindow } from "@/lib/openPaymentWindow";
+import { Trash2 } from "lucide-react";
 
 export interface BillingOrderInfo {
   id: string;
@@ -36,7 +37,9 @@ export default function BillingOrderRow({ order }: { order: BillingOrderInfo }) 
   const tc = useTranslations("common");
   const router = useRouter();
   const [watching, setWatching] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const canResume = order.status === "PENDING" && !order.preorderWaiting;
+  const canDelete = order.status !== "PAID";
 
   const statusText = order.preorderWaiting ? t("preorderWaiting") : t(STATUS_KEY[order.status]);
   const color = order.preorderWaiting ? "var(--yellow)" : STATUS_COLOR[order.status];
@@ -44,6 +47,17 @@ export default function BillingOrderRow({ order }: { order: BillingOrderInfo }) 
   function resume() {
     openPaymentWindow(order.id);
     setWatching(true);
+  }
+
+  async function remove() {
+    if (!confirm(t("confirmDelete"))) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/orders/${order.id}`, { method: "DELETE" });
+      if (res.ok) router.refresh();
+    } finally {
+      setDeleting(false);
+    }
   }
 
   useEffect(() => {
@@ -89,6 +103,16 @@ export default function BillingOrderRow({ order }: { order: BillingOrderInfo }) 
               {statusText}
             </span>
           </div>
+          {canDelete && (
+            <button
+              onClick={remove}
+              disabled={deleting}
+              title={t("delete")}
+              className="text-text-dim hover:text-red p-1.5 shrink-0 active:scale-90 transition-transform"
+            >
+              <Trash2 size={14} />
+            </button>
+          )}
         </div>
       </div>
     </div>

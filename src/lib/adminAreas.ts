@@ -17,6 +17,7 @@ export const ADMIN_NAV_AREAS: Record<string, AdminRole[]> = {
   "/admin/orders": ["GENERAL", "SUPER"],
   "/admin/preorders": ["GENERAL", "SUPER"],
   "/admin/announcements": ["GENERAL", "SUPER"],
+  "/admin/blog": ["GENERAL", "SUPER"],
   "/admin/promotions": ["PROMOTION", "SUPER"],
   "/admin/shop": ["SUPER"],
   "/admin/bank-account": ["SUPER"],

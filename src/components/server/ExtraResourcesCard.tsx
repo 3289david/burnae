@@ -13,9 +13,9 @@ interface Grant {
   metadata: { port?: number } | null;
 }
 
-function grantLabel(g: Grant): string {
-  if (g.kind === "EXTRA_PORT") return `추가 포트${g.metadata?.port ? ` ${g.metadata.port}` : ""}`;
-  if (g.kind === "EXTRA_SUBDOMAIN") return "추가 서브도메인 슬롯";
+function grantLabel(g: Grant, t: ReturnType<typeof useTranslations<"extraResourcesCard">>): string {
+  if (g.kind === "EXTRA_PORT") return `${t("extraPort")}${g.metadata?.port ? ` ${g.metadata.port}` : ""}`;
+  if (g.kind === "EXTRA_SUBDOMAIN") return t("extraSubdomain");
   return g.kind;
 }
 
@@ -36,6 +36,7 @@ const KIND_ICON: Record<string, typeof Plug> = {
 };
 
 export default function ExtraResourcesCard({ serverId }: { serverId: string }) {
+  const t = useTranslations("extraResourcesCard");
   const [items, setItems] = useState<ShopItem[]>([]);
   const [points, setPoints] = useState(0);
   const [busy, setBusy] = useState<string | null>(null);
@@ -78,7 +79,7 @@ export default function ExtraResourcesCard({ serverId }: { serverId: string }) {
       setDone(item.id);
       loadGrants();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "구매 실패");
+      setError(err instanceof Error ? err.message : t("purchaseFailed"));
     } finally {
       setBusy(null);
     }
@@ -99,10 +100,9 @@ export default function ExtraResourcesCard({ serverId }: { serverId: string }) {
   return (
     <div className="card-glow p-5 space-y-3">
       <div>
-        <h3 className="font-semibold text-sm">포인트로 추가 포트/서브도메인 구매</h3>
+        <h3 className="font-semibold text-sm">{t("title")}</h3>
         <p className="text-xs text-text-dim mt-0.5">
-          플랜과 무관하게 포인트로 포트나 서브도메인을 추가로 살 수 있어요. 120일간만 유지되고, 만료
-          전 갱신하지 않으면 자동으로 회수돼요. 보유 포인트{" "}
+          {t("desc")}{" "}
           <span className="text-accent font-medium"><CountUp value={points} />P</span>
         </p>
       </div>
@@ -119,14 +119,14 @@ export default function ExtraResourcesCard({ serverId }: { serverId: string }) {
                 style={{ animationDelay: `${i * 0.03}s` }}
               >
                 <span className="text-text-dim">
-                  {grantLabel(g)} · <span className={urgent ? "text-yellow" : ""}>D-{daysLeft}</span>
+                  {grantLabel(g, t)} · <span className={urgent ? "text-yellow" : ""}>D-{daysLeft}</span>
                 </span>
                 <button
                   onClick={() => renew(g.id)}
                   disabled={renewingId !== null}
                   className="text-accent inline-flex items-center gap-1 hover:underline active:scale-95 transition-transform shrink-0"
                 >
-                  <RefreshCw size={11} className={renewingId === g.id ? "animate-spin" : ""} /> 갱신
+                  <RefreshCw size={11} className={renewingId === g.id ? "animate-spin" : ""} /> {t("renew")}
                 </button>
               </div>
             );
@@ -149,13 +149,13 @@ export default function ExtraResourcesCard({ serverId }: { serverId: string }) {
                 <Icon size={16} className="text-accent" />
               </span>
               <span className="font-medium text-sm">{item.name}</span>
-              <span className="text-xs text-text-dim">{item.pointsCost.toLocaleString()}P · 120일</span>
-              {busy === item.id && <span className="text-xs text-text-dim">적용 중...</span>}
+              <span className="text-xs text-text-dim">{item.pointsCost.toLocaleString()}P · 120{t("daysSuffix")}</span>
+              {busy === item.id && <span className="text-xs text-text-dim">{t("applying")}</span>}
             </button>
           );
         })}
       </div>
-      {done && <p className="text-sm text-green">구매 완료!</p>}
+      {done && <p className="text-sm text-green">{t("purchaseComplete")}</p>}
       {error && <p className="text-sm text-red">{error}</p>}
     </div>
   );

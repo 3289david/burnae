@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { Crown } from "lucide-react";
 
@@ -15,14 +16,15 @@ interface Owner {
   email: string;
 }
 
-const ROLE_LABEL: Record<Member["role"], string> = {
-  ADMIN: "관리자",
-  MODERATOR: "운영자",
-  DEVELOPER: "개발자",
-  VIEWER: "뷰어",
+const ROLE_LABEL_KEY: Record<Member["role"], string> = {
+  ADMIN: "roleAdmin",
+  MODERATOR: "roleModerator",
+  DEVELOPER: "roleDeveloper",
+  VIEWER: "roleViewer",
 };
 
 export default function TeamTab({ serverId, isOwner }: { serverId: string; isOwner: boolean }) {
+  const t = useTranslations("teamTab");
   const router = useRouter();
   const [owner, setOwner] = useState<Owner | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
@@ -61,7 +63,7 @@ export default function TeamTab({ serverId, isOwner }: { serverId: string; isOwn
       setEmail("");
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "초대 실패");
+      setError(err instanceof Error ? err.message : t("inviteFailed"));
     } finally {
       setBusy(false);
     }
@@ -77,13 +79,13 @@ export default function TeamTab({ serverId, isOwner }: { serverId: string; isOwn
   }
 
   async function remove(memberId: string) {
-    if (!confirm("이 팀원을 제거할까요?")) return;
+    if (!confirm(t("removeConfirm"))) return;
     await fetch(`/api/servers/${serverId}/members/${memberId}`, { method: "DELETE" });
     await load();
   }
 
   async function transferOwnership(memberId: string, memberName: string) {
-    if (!confirm(`정말로 ${memberName}님에게 이 서버의 소유권을 넘길까요?\n넘긴 뒤에는 나는 관리자 권한으로 바뀌어요.`)) return;
+    if (!confirm(t("transferConfirm", { name: memberName }))) return;
     setTransferring(memberId);
     try {
       const res = await fetch(`/api/servers/${serverId}/transfer-ownership`, {
@@ -96,7 +98,7 @@ export default function TeamTab({ serverId, isOwner }: { serverId: string; isOwn
       await load();
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "소유권 이전 실패");
+      setError(err instanceof Error ? err.message : t("transferFailed"));
     } finally {
       setTransferring(null);
     }
@@ -106,13 +108,13 @@ export default function TeamTab({ serverId, isOwner }: { serverId: string; isOwn
     <div className="space-y-6 animate-fade-up">
       <div className="card-glow p-0 overflow-hidden">
         <div className="px-4 py-2.5 border-b border-border">
-          <h3 className="font-semibold text-sm">팀원</h3>
+          <h3 className="font-semibold text-sm">{t("membersTitle")}</h3>
         </div>
         <div className="divide-y divide-border">
           {owner && (
             <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-sm">
               <span className="min-w-0 truncate">{owner.name} ({owner.email})</span>
-              <span className="text-xs text-text-dim shrink-0">소유자</span>
+              <span className="text-xs text-text-dim shrink-0">{t("owner")}</span>
             </div>
           )}
           {members.map((m, i) => (
@@ -129,48 +131,48 @@ export default function TeamTab({ serverId, isOwner }: { serverId: string; isOwn
                     value={m.role}
                     onChange={(e) => changeRole(m.id, e.target.value as Member["role"])}
                   >
-                    {Object.entries(ROLE_LABEL).map(([v, l]) => (
-                      <option key={v} value={v}>{l}</option>
+                    {Object.entries(ROLE_LABEL_KEY).map(([v, key]) => (
+                      <option key={v} value={v}>{t(key)}</option>
                     ))}
                   </select>
                   <button
                     onClick={() => transferOwnership(m.id, m.user.name)}
                     disabled={transferring === m.id}
-                    title="소유권 이전"
+                    title={t("transferTooltip")}
                     className="text-xs text-text-dim hover:text-accent inline-flex items-center gap-1 active:scale-95 transition-transform disabled:opacity-50"
                   >
-                    <Crown size={12} /> 이전
+                    <Crown size={12} /> {t("transfer")}
                   </button>
-                  <button onClick={() => remove(m.id)} className="text-xs text-red hover:underline active:scale-95 transition-transform">제거</button>
+                  <button onClick={() => remove(m.id)} className="text-xs text-red hover:underline active:scale-95 transition-transform">{t("remove")}</button>
                 </div>
               ) : (
-                <span className="text-xs text-text-dim">{ROLE_LABEL[m.role]}</span>
+                <span className="text-xs text-text-dim">{t(ROLE_LABEL_KEY[m.role])}</span>
               )}
             </div>
           ))}
-          {members.length === 0 && <p className="px-4 py-3 text-sm text-text-dim">아직 초대한 팀원이 없어요.</p>}
+          {members.length === 0 && <p className="px-4 py-3 text-sm text-text-dim">{t("noMembers")}</p>}
         </div>
       </div>
 
       {isOwner && (
         <form onSubmit={invite} className="card-glow p-5 space-y-3">
-          <h3 className="font-semibold text-sm">팀원 초대</h3>
-          <p className="text-xs text-text-dim">초대하려는 사람이 먼저 burnae.kr에 가입돼있어야 해요.</p>
+          <h3 className="font-semibold text-sm">{t("inviteTitle")}</h3>
+          <p className="text-xs text-text-dim">{t("inviteHint")}</p>
           <div className="flex gap-2">
             <input
               type="email"
               required
               className="input flex-1"
-              placeholder="이메일"
+              placeholder={t("emailPlaceholder")}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
             <select className="input" value={role} onChange={(e) => setRole(e.target.value as Member["role"])}>
-              {Object.entries(ROLE_LABEL).map(([v, l]) => (
-                <option key={v} value={v}>{l}</option>
+              {Object.entries(ROLE_LABEL_KEY).map(([v, key]) => (
+                <option key={v} value={v}>{t(key)}</option>
               ))}
             </select>
-            <button type="submit" disabled={busy} className="btn-primary px-4 py-2 text-sm active:scale-95 transition-transform">초대</button>
+            <button type="submit" disabled={busy} className="btn-primary px-4 py-2 text-sm active:scale-95 transition-transform">{t("invite")}</button>
           </div>
           {error && <p className="text-sm text-red">{error}</p>}
         </form>

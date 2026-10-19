@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { hasServerRank, type ServerAccessRole } from "@/lib/serverRoleRank";
 
@@ -25,6 +26,7 @@ interface InstalledFile {
 }
 
 export default function PluginsTab({ serverId, myRole }: { serverId: string; myRole: ServerAccessRole | null }) {
+  const t = useTranslations("pluginsTab");
   const canEdit = hasServerRank(myRole, "DEVELOPER");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[] | null>(null);
@@ -59,7 +61,7 @@ export default function PluginsTab({ serverId, myRole }: { serverId: string; myR
       setResults(data.results);
       setLoader(data.loader);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "검색 실패");
+      setError(err instanceof Error ? err.message : t("searchFailed"));
     } finally {
       setBusy(false);
     }
@@ -87,14 +89,14 @@ export default function PluginsTab({ serverId, myRole }: { serverId: string; myR
       if (!res.ok) throw new Error(data.error);
       await loadInstalled();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "설치 실패");
+      setError(err instanceof Error ? err.message : t("installFailed"));
     } finally {
       setBusy(false);
     }
   }
 
   async function uninstall(filename: string) {
-    if (!confirm(`${filename} 을(를) 삭제할까요?`)) return;
+    if (!confirm(t("uninstallConfirm", { filename }))) return;
     await fetch(`/api/servers/${serverId}/plugins`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
@@ -107,7 +109,7 @@ export default function PluginsTab({ serverId, myRole }: { serverId: string; myR
     <div className="space-y-6 animate-fade-up">
       <div className="card-glow p-0 overflow-hidden">
         <div className="px-4 py-2.5 border-b border-border">
-          <h3 className="font-semibold text-sm">설치됨 ({installed.length})</h3>
+          <h3 className="font-semibold text-sm">{t("installedTitle", { count: installed.length })}</h3>
         </div>
         <div className="divide-y divide-border">
           {installed.map((f, i) => (
@@ -117,24 +119,24 @@ export default function PluginsTab({ serverId, myRole }: { serverId: string; myR
               style={{ animationDelay: `${Math.min(i, 10) * 0.03}s` }}
             >
               <span>{f.name}</span>
-              {canEdit && <button onClick={() => uninstall(f.name)} className="text-xs text-red hover:underline active:scale-95 transition-transform">삭제</button>}
+              {canEdit && <button onClick={() => uninstall(f.name)} className="text-xs text-red hover:underline active:scale-95 transition-transform">{t("delete")}</button>}
             </div>
           ))}
-          {installed.length === 0 && <p className="px-4 py-3 text-sm text-text-dim">아직 설치된 게 없어요.</p>}
+          {installed.length === 0 && <p className="px-4 py-3 text-sm text-text-dim">{t("noInstalled")}</p>}
         </div>
       </div>
 
       <form onSubmit={search} className="flex gap-2">
         <input
           className="input flex-1"
-          placeholder="플러그인/모드 검색 (예: LuckPerms, WorldGuard)"
+          placeholder={t("searchPlaceholder")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
-        <button type="submit" disabled={busy} className="btn-primary px-4 py-2 text-sm active:scale-95 transition-transform">검색</button>
+        <button type="submit" disabled={busy} className="btn-primary px-4 py-2 text-sm active:scale-95 transition-transform">{t("search")}</button>
       </form>
       {error && <p className="text-sm text-red">{error}</p>}
-      {loader && <p className="text-xs text-text-dim">&ldquo;{loader}&rdquo; 서버 기준으로 검색해요.</p>}
+      {loader && <p className="text-xs text-text-dim">{t("loaderNote", { loader })}</p>}
 
       <div className="space-y-2">
         {results?.map((r, i) => (
@@ -155,7 +157,7 @@ export default function PluginsTab({ serverId, myRole }: { serverId: string; myR
                 onClick={() => loadVersions(r.projectId)}
                 className="btn-secondary px-3 py-1.5 text-sm shrink-0 active:scale-95 transition-transform"
               >
-                버전 보기
+                {t("versionView")}
               </button>
             </div>
             {versions[r.projectId] && (
@@ -171,19 +173,19 @@ export default function PluginsTab({ serverId, myRole }: { serverId: string; myR
                         onClick={() => install(v.id)}
                         className="text-accent font-medium hover:underline active:scale-95 transition-transform"
                       >
-                        설치
+                        {t("install")}
                       </button>
                     )}
                   </div>
                 ))}
                 {versions[r.projectId].length === 0 && (
-                  <p className="text-xs text-text-dim">이 서버 버전에 맞는 파일이 없어요.</p>
+                  <p className="text-xs text-text-dim">{t("noMatchingFiles")}</p>
                 )}
               </div>
             )}
           </div>
         ))}
-        {results && results.length === 0 && <p className="text-sm text-text-dim">검색 결과가 없어요.</p>}
+        {results && results.length === 0 && <p className="text-sm text-text-dim">{t("noSearchResults")}</p>}
       </div>
     </div>
   );

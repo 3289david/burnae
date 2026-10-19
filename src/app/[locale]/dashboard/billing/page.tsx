@@ -8,6 +8,7 @@ const TYPE_LABEL: Record<string, string> = {
   RENEWAL: "갱신",
   UPGRADE: "플랜 변경",
   AI_CREDITS: "AI 크레딧 충전",
+  POINTS: "포인트 충전",
 };
 
 export default async function BillingPage() {
@@ -29,10 +30,12 @@ export default async function BillingPage() {
 
       <div className="mt-6 space-y-2.5">
         {orders.map((o) => {
-          const titleText = `${TYPE_LABEL[o.type]}${
+          const titleText = `${TYPE_LABEL[o.type] ?? o.type}${
             o.type === "AI_CREDITS"
               ? ` · ${o.aiCreditsAmount?.toLocaleString() ?? 0}개`
-              : ` · ${o.productNameSnapshot ?? o.product?.name ?? "삭제된 상품"}`
+              : o.type === "POINTS"
+                ? ` · ${o.pointsAmount?.toLocaleString() ?? 0}P`
+                : ` · ${o.productNameSnapshot ?? o.product?.name ?? "삭제된 상품"}`
           }${o.server ? ` (${o.server.name})` : ""}`;
           return (
             <BillingOrderRow

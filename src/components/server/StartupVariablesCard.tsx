@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { KeyRound, Share2, GitBranch, Download } from "lucide-react";
 import SuccessCheck from "@/components/SuccessCheck";
 
@@ -19,48 +20,49 @@ interface HelpInfo {
 }
 
 /** 코딩/서버를 몰라도 "이게 뭔지, 어디서 구하는지" 알 수 있게 흔한 변수 이름 패턴에 쉬운 설명을 붙여준다 */
-function friendlyHelp(envVariable: string): HelpInfo | null {
+function friendlyHelp(envVariable: string, t: ReturnType<typeof useTranslations<"startupVariablesCard">>): HelpInfo | null {
   const key = envVariable.toUpperCase();
   if (key.includes("DISCORD") && key.includes("TOKEN")) {
     return {
-      help: "디스코드 봇 토큰이에요. 디스코드 개발자 포털에서 애플리케이션을 만들고 Bot 탭에서 발급받으세요.",
-      link: { label: "발급받으러 가기", url: "https://discord.com/developers/applications" },
+      help: t("discordTokenHelp"),
+      link: { label: t("getTokenLink"), url: "https://discord.com/developers/applications" },
     };
   }
   if (["TOKEN", "BOT_TOKEN", "CLIENT_TOKEN"].includes(key)) {
     return {
-      help: "이 봇의 디스코드 토큰이에요. 디스코드 개발자 포털에서 애플리케이션을 만들고 Bot 탭에서 발급받으세요.",
-      link: { label: "발급받으러 가기", url: "https://discord.com/developers/applications" },
+      help: t("botTokenHelp"),
+      link: { label: t("getTokenLink"), url: "https://discord.com/developers/applications" },
     };
   }
   if (key.includes("OWNER") && (key.includes("UID") || key.includes("ID") || key === "OWNER")) {
-    return { help: "본인의 디스코드 사용자 ID예요. 디스코드 설정에서 개발자 모드를 켜고, 본인 프로필을 우클릭해 'ID 복사'로 확인하세요." };
+    return { help: t("ownerIdHelp") };
   }
   if (key.includes("SPOTIFY")) {
     return {
-      help: "Spotify 계정/API 정보예요.",
-      link: { label: "Spotify 개발자 포털", url: "https://developer.spotify.com/dashboard" },
+      help: t("spotifyHelp"),
+      link: { label: t("spotifyLink"), url: "https://developer.spotify.com/dashboard" },
     };
   }
   if (key.includes("IMGUR")) {
-    return { help: "Imgur API 키예요.", link: { label: "발급받으러 가기", url: "https://api.imgur.com/oauth2/addclient" } };
+    return { help: t("imgurHelp"), link: { label: t("getTokenLink"), url: "https://api.imgur.com/oauth2/addclient" } };
   }
   if (key.includes("YOUTUBE")) {
-    return { help: "YouTube Data API 키예요.", link: { label: "Google Cloud Console", url: "https://console.cloud.google.com/apis/credentials" } };
+    return { help: t("youtubeHelp"), link: { label: t("youtubeLink"), url: "https://console.cloud.google.com/apis/credentials" } };
   }
   if (key.includes("STEAM")) {
-    return { help: "Steam Web API 키예요.", link: { label: "발급받으러 가기", url: "https://steamcommunity.com/dev/apikey" } };
+    return { help: t("steamHelp"), link: { label: t("getTokenLink"), url: "https://steamcommunity.com/dev/apikey" } };
   }
   if (key.includes("MONGO")) {
-    return { help: "연결할 MongoDB 주소예요. Burnae에서 MongoDB 서버를 따로 만들었다면 그 서버의 SFTP/접속 정보를 참고해 채워주세요." };
+    return { help: t("mongoHelp") };
   }
   if (key.includes("PASSWORD") || key.includes("MASTER_KEY") || key.includes("SECRET")) {
-    return { help: "직접 정하는 비밀번호/키예요. 다른 곳에서 쓰지 않는 값으로 안전하게 정하면 돼요." };
+    return { help: t("passwordHelp") };
   }
   return null;
 }
 
 export default function StartupVariablesCard({ serverId, templateId }: { serverId: string; templateId: string }) {
+  const t = useTranslations("startupVariablesCard");
   const [variables, setVariables] = useState<StartupVariable[] | null>(null);
   const [values, setValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<string | null>(null);
@@ -107,7 +109,7 @@ export default function StartupVariablesCard({ serverId, templateId }: { serverI
       if (!res.ok) throw new Error(data.error);
       setSaved(envVariable);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "저장 실패");
+      setError(err instanceof Error ? err.message : t("saveFailed"));
     } finally {
       setSaving(null);
     }
@@ -132,7 +134,7 @@ export default function StartupVariablesCard({ serverId, templateId }: { serverI
         if (editableKeys.has(key)) parsed[key] = value;
       }
       if (Object.keys(parsed).length === 0) {
-        throw new Error("이 서버가 쓰는 변수 이름이 하나도 안 보여요. KEY=값 형식으로 넣어주세요.");
+        throw new Error(t("noVariablesDetected"));
       }
       for (const [key, value] of Object.entries(parsed)) {
         const res = await fetch(`/api/servers/${serverId}/startup`, {
@@ -140,13 +142,13 @@ export default function StartupVariablesCard({ serverId, templateId }: { serverI
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ key, value }),
         });
-        if (!res.ok) throw new Error((await res.json()).error ?? `${key} 저장 실패`);
+        if (!res.ok) throw new Error((await res.json()).error ?? t("keySaveFailed", { key }));
       }
       setValues((prev) => ({ ...prev, ...parsed }));
       setBulkText("");
       setBulkOpen(false);
     } catch (err) {
-      setBulkError(err instanceof Error ? err.message : "붙여넣기 저장 실패");
+      setBulkError(err instanceof Error ? err.message : t("bulkSaveFailed"));
     } finally {
       setBulkSaving(false);
     }
@@ -162,7 +164,7 @@ export default function StartupVariablesCard({ serverId, templateId }: { serverI
   }
 
   async function installFromRepo() {
-    if (!confirm("이 저장소 코드로 설치할까요? 서버의 기존 파일 대부분이 사라지고 이 저장소 코드로 새로 설치돼요.")) return;
+    if (!confirm(t("installConfirm"))) return;
     setInstallBusy(true);
     setInstallError(null);
     setInstallDone(false);
@@ -175,10 +177,10 @@ export default function StartupVariablesCard({ serverId, templateId }: { serverI
       const saveData = await saveRes.json();
       if (!saveRes.ok) throw new Error(saveData.error);
       const reinstallRes = await fetch(`/api/servers/${serverId}/reinstall`, { method: "POST" });
-      if (!reinstallRes.ok) throw new Error((await reinstallRes.json().catch(() => ({}))).error ?? "설치 실패");
+      if (!reinstallRes.ok) throw new Error((await reinstallRes.json().catch(() => ({}))).error ?? t("installFailed"));
       setInstallDone(true);
     } catch (err) {
-      setInstallError(err instanceof Error ? err.message : "설치 실패");
+      setInstallError(err instanceof Error ? err.message : t("installFailed"));
     } finally {
       setInstallBusy(false);
     }
@@ -201,7 +203,7 @@ export default function StartupVariablesCard({ serverId, templateId }: { serverI
       setShareName("");
       setShareBlurb("");
     } catch (err) {
-      setShareError(err instanceof Error ? err.message : "공유 실패");
+      setShareError(err instanceof Error ? err.message : t("publishFailed"));
     } finally {
       setSharePosting(false);
     }
@@ -218,27 +220,24 @@ export default function StartupVariablesCard({ serverId, templateId }: { serverI
           <KeyRound size={15} className="text-accent" />
         </span>
         <div>
-          <h3 className="font-semibold text-sm">시작 변수</h3>
-          <p className="text-xs text-text-dim">봇 토큰, API 키 등 — 바꾸면 서버를 재시작해야 적용돼요.</p>
+          <h3 className="font-semibold text-sm">{t("title")}</h3>
+          <p className="text-xs text-text-dim">{t("desc")}</p>
         </div>
       </div>
 
-      {variables === null && <p className="text-sm text-text-dim">불러오는 중...</p>}
+      {variables === null && <p className="text-sm text-text-dim">{t("loading")}</p>}
 
       {gitVar && (
         <div className="rounded-xl border border-border bg-surface-2/50 p-3.5 space-y-2 animate-fade-up">
           <p className="text-sm font-medium inline-flex items-center gap-1.5">
-            <GitBranch size={14} /> 저장소에서 설치하기
+            <GitBranch size={14} /> {t("gitInstallTitle")}
           </p>
-          <p className="text-xs text-text-dim">
-            GitHub 등 코드 저장소 주소를 넣고 설치하면, 그 저장소 코드로 서버가 새로 설치돼요
-            (기존 파일 대부분은 사라져요).
-          </p>
+          <p className="text-xs text-text-dim">{t("gitInstallDesc")}</p>
           <div className="flex flex-wrap gap-2">
             <input
               type="text"
               className="input flex-1 min-w-[200px] font-mono text-sm"
-              placeholder="https://github.com/아이디/저장소이름"
+              placeholder={t("repoPlaceholder")}
               value={values["GIT_ADDRESS"] ?? ""}
               onChange={(e) => setValues({ ...values, GIT_ADDRESS: e.target.value })}
             />
@@ -248,10 +247,10 @@ export default function StartupVariablesCard({ serverId, templateId }: { serverI
               className="btn-primary px-3.5 py-2 text-xs shrink-0 inline-flex items-center gap-1.5 active:scale-95 transition-transform"
             >
               <Download size={13} className={installBusy ? "animate-spin" : ""} />
-              {installBusy ? "설치하는 중..." : "설치하기"}
+              {installBusy ? t("installing") : t("installButton")}
             </button>
           </div>
-          {installDone && <p className="text-xs text-green animate-toast-in">설치를 시작했어요! 콘솔 탭에서 진행 상황을 볼 수 있어요.</p>}
+          {installDone && <p className="text-xs text-green animate-toast-in">{t("installStartedMsg")}</p>}
           {installError && <p className="text-xs text-red">{installError}</p>}
         </div>
       )}
@@ -259,14 +258,14 @@ export default function StartupVariablesCard({ serverId, templateId }: { serverI
       {editable.length > 1 && (
         <div className="pt-1">
           <button type="button" onClick={() => setBulkOpen((v) => !v)} className="text-xs text-accent hover:underline">
-            {bulkOpen ? "붙여넣기 닫기" : ".env 붙여넣기로 한번에 입력"}
+            {bulkOpen ? t("closeBulkPaste") : t("bulkPasteButton")}
           </button>
           {bulkOpen && (
             <div className="mt-2 space-y-2 animate-fade-up">
               <textarea
                 className="input w-full font-mono text-xs"
                 rows={4}
-                placeholder={"KEY=값\nANOTHER_KEY=값"}
+                placeholder={t("bulkPlaceholder")}
                 value={bulkText}
                 onChange={(e) => setBulkText(e.target.value)}
               />
@@ -275,7 +274,7 @@ export default function StartupVariablesCard({ serverId, templateId }: { serverI
                 disabled={bulkSaving || !bulkText.trim()}
                 className="btn-secondary px-3.5 py-1.5 text-xs"
               >
-                {bulkSaving ? "저장 중..." : "한번에 저장"}
+                {bulkSaving ? t("bulkSaving") : t("bulkSaveButton")}
               </button>
               {bulkError && <p className="text-xs text-red">{bulkError}</p>}
             </div>
@@ -285,7 +284,7 @@ export default function StartupVariablesCard({ serverId, templateId }: { serverI
 
       <div className="space-y-3">
         {editable.filter((v) => v.envVariable !== "GIT_ADDRESS").map((v, i) => {
-          const info = friendlyHelp(v.envVariable);
+          const info = friendlyHelp(v.envVariable, t);
           const isSecret = /PASSWORD|SECRET|TOKEN|KEY/i.test(v.envVariable);
           const masked = isSecret && !revealed.has(v.envVariable);
           return (
@@ -305,7 +304,7 @@ export default function StartupVariablesCard({ serverId, templateId }: { serverI
                       onClick={() => toggleReveal(v.envVariable)}
                       className="absolute right-2 bottom-2 text-[10px] text-text-dim hover:text-text px-1.5 py-1"
                     >
-                      {masked ? "보기" : "가리기"}
+                      {masked ? t("reveal") : t("hide")}
                     </button>
                   )}
                 </div>
@@ -314,7 +313,7 @@ export default function StartupVariablesCard({ serverId, templateId }: { serverI
                   disabled={saving !== null}
                   className="btn-secondary px-3.5 py-2 text-xs shrink-0"
                 >
-                  {saving === v.envVariable ? "저장 중..." : saved === v.envVariable ? "저장됨" : "저장"}
+                  {saving === v.envVariable ? t("saving") : saved === v.envVariable ? t("saved") : t("save")}
                 </button>
               </div>
               {info && (
@@ -339,8 +338,9 @@ export default function StartupVariablesCard({ serverId, templateId }: { serverI
             <div className="flex items-center gap-2 animate-toast-in">
               <SuccessCheck size={22} className="shrink-0" />
               <p className="text-xs text-green">
-                프리셋으로 공유했어요{shareResult.pointsAwarded > 0 ? ` (포인트 ${shareResult.pointsAwarded}P 적립)` : ""}!
-                다른 유저가 서버 만들 때 이 설정을 바로 골라 쓸 수 있어요.
+                {t("sharedMsg", {
+                  pointsNote: shareResult.pointsAwarded > 0 ? t("sharedPointsNote", { amount: shareResult.pointsAwarded }) : "",
+                })}
               </p>
             </div>
           ) : !sharing ? (
@@ -349,34 +349,32 @@ export default function StartupVariablesCard({ serverId, templateId }: { serverI
               onClick={() => setSharing(true)}
               className="text-xs text-accent inline-flex items-center gap-1.5 hover:underline"
             >
-              <Share2 size={13} /> 이 설정을 커뮤니티 프리셋으로 공유하기
+              <Share2 size={13} /> {t("shareAsPreset")}
             </button>
           ) : (
             <form onSubmit={publishPreset} className="space-y-2 animate-fade-up">
-              <p className="text-xs text-text-dim">
-                지금 위에 저장된 값들이 그대로 다른 유저에게 공개돼요. 접속 비밀번호류 값은 공유되지 않아요.
-              </p>
+              <p className="text-xs text-text-dim">{t("shareWarning")}</p>
               <input
                 required
                 maxLength={40}
                 className="input w-full text-sm"
-                placeholder="프리셋 이름 (예: 롤플레이용 기본 설정)"
+                placeholder={t("presetNamePlaceholder")}
                 value={shareName}
                 onChange={(e) => setShareName(e.target.value)}
               />
               <input
                 maxLength={200}
                 className="input w-full text-sm"
-                placeholder="한 줄 설명 (선택)"
+                placeholder={t("presetDescPlaceholder")}
                 value={shareBlurb}
                 onChange={(e) => setShareBlurb(e.target.value)}
               />
               <div className="flex gap-2">
                 <button type="submit" disabled={sharePosting || !shareName} className="btn-primary px-3.5 py-1.5 text-xs">
-                  {sharePosting ? "공유하는 중..." : "공개하기"}
+                  {sharePosting ? t("sharing") : t("publish")}
                 </button>
                 <button type="button" onClick={() => setSharing(false)} className="btn-secondary px-3.5 py-1.5 text-xs">
-                  취소
+                  {t("cancel")}
                 </button>
               </div>
               {shareError && <p className="text-xs text-red">{shareError}</p>}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Cpu, MemoryStick, Archive, HardDrive, RefreshCw } from "lucide-react";
 import CountUp from "@/components/CountUp";
 import { formatMb } from "@/lib/formatSize";
@@ -12,11 +13,11 @@ interface Grant {
   expiresAt: string;
 }
 
-function grantLabel(g: Grant): string {
+function grantLabel(g: Grant, t: ReturnType<typeof useTranslations<"freeUpgradeCard">>): string {
   switch (g.kind) {
-    case "RAM_UPGRADE": return `RAM +${formatMb(g.amount)}`;
-    case "CPU_UPGRADE": return `CPU +${g.amount}%`;
-    case "DISK_UPGRADE": return `저장공간 +${formatMb(g.amount)}`;
+    case "RAM_UPGRADE": return t("ram", { amount: formatMb(g.amount) });
+    case "CPU_UPGRADE": return t("cpu", { amount: g.amount });
+    case "DISK_UPGRADE": return t("disk", { amount: formatMb(g.amount) });
     default: return g.kind;
   }
 }
@@ -39,18 +40,19 @@ const KIND_ICON: Record<string, typeof Cpu> = {
   BACKUP_SLOT_UPGRADE: Archive,
 };
 
-function defaultLabel(item: ShopItem): string {
+function defaultLabel(item: ShopItem, t: ReturnType<typeof useTranslations<"freeUpgradeCard">>): string {
   if (!item.amount) return item.name;
   switch (item.kind) {
-    case "RAM_UPGRADE": return `RAM +${formatMb(item.amount)}`;
-    case "CPU_UPGRADE": return `CPU +${item.amount}%`;
-    case "DISK_UPGRADE": return `저장공간 +${formatMb(item.amount)}`;
-    case "BACKUP_SLOT_UPGRADE": return `백업 슬롯 +${item.amount}개`;
+    case "RAM_UPGRADE": return t("ram", { amount: formatMb(item.amount) });
+    case "CPU_UPGRADE": return t("cpu", { amount: item.amount });
+    case "DISK_UPGRADE": return t("disk", { amount: formatMb(item.amount) });
+    case "BACKUP_SLOT_UPGRADE": return t("backupSlots", { amount: item.amount });
     default: return item.name;
   }
 }
 
 export default function FreeUpgradeCard({ serverId }: { serverId: string }) {
+  const t = useTranslations("freeUpgradeCard");
   const [items, setItems] = useState<ShopItem[]>([]);
   const [points, setPoints] = useState(0);
   const [busy, setBusy] = useState<string | null>(null);
@@ -93,7 +95,7 @@ export default function FreeUpgradeCard({ serverId }: { serverId: string }) {
       setDone(item.id);
       loadGrants();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "증설 실패");
+      setError(err instanceof Error ? err.message : t("upgradeFailed"));
     } finally {
       setBusy(null);
     }
@@ -114,12 +116,9 @@ export default function FreeUpgradeCard({ serverId }: { serverId: string }) {
   return (
     <div className="card-glow p-5 space-y-3">
       <div>
-        <h3 className="font-semibold text-sm">포인트로 증설하기</h3>
+        <h3 className="font-semibold text-sm">{t("title")}</h3>
         <p className="text-xs text-text-dim mt-0.5">
-          무료 서버는 플랜을 통째로 바꾸지 않아도 포인트로 램/CPU/저장공간/백업 슬롯을 낱개로 늘릴 수
-          있어요(최대 RAM 1GB · CPU 1코어 · 저장공간 5GB까지). 램/CPU/저장공간 증설은 30일간만
-          유지되고, 만료 전 갱신하지 않으면 자동으로 원래 크기로 줄어들어요(백업 슬롯 증설은 영구
-          적용). 보유 포인트{" "}
+          {t("desc")}{" "}
           <span className="text-accent font-medium"><CountUp value={points} />P</span>
         </p>
       </div>
@@ -136,14 +135,14 @@ export default function FreeUpgradeCard({ serverId }: { serverId: string }) {
                 style={{ animationDelay: `${i * 0.03}s` }}
               >
                 <span className="text-text-dim">
-                  {grantLabel(g)} · <span className={urgent ? "text-yellow" : ""}>D-{daysLeft}</span>
+                  {grantLabel(g, t)} · <span className={urgent ? "text-yellow" : ""}>D-{daysLeft}</span>
                 </span>
                 <button
                   onClick={() => renew(g.id)}
                   disabled={renewingId !== null}
                   className="text-accent inline-flex items-center gap-1 hover:underline active:scale-95 transition-transform shrink-0"
                 >
-                  <RefreshCw size={11} className={renewingId === g.id ? "animate-spin" : ""} /> 갱신
+                  <RefreshCw size={11} className={renewingId === g.id ? "animate-spin" : ""} /> {t("renew")}
                 </button>
               </div>
             );
@@ -165,14 +164,14 @@ export default function FreeUpgradeCard({ serverId }: { serverId: string }) {
               <span className="w-8 h-8 rounded-lg bg-accent/15 flex items-center justify-center">
                 <Icon size={16} className="text-accent" />
               </span>
-              <span className="font-medium text-sm">{defaultLabel(item)}</span>
+              <span className="font-medium text-sm">{defaultLabel(item, t)}</span>
               <span className="text-xs text-text-dim">{item.pointsCost.toLocaleString()}P</span>
-              {busy === item.id && <span className="text-xs text-text-dim">적용 중...</span>}
+              {busy === item.id && <span className="text-xs text-text-dim">{t("applying")}</span>}
             </button>
           );
         })}
       </div>
-      {done && <p className="text-sm text-green">증설 완료! 적용을 위해 서버가 재시작돼요.</p>}
+      {done && <p className="text-sm text-green">{t("upgradeComplete")}</p>}
       {error && <p className="text-sm text-red">{error}</p>}
     </div>
   );

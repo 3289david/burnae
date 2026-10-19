@@ -98,6 +98,8 @@ model User {
   dedicatedNode            HostNode?              @relation("DedicatedNode")
   supportThreads           SupportThread[]
   apiTokens                ApiToken[]
+  blogPosts                BlogPost[]
+  githubConnection         GitHubConnection?
 
   @@index([email])
   @@index([referralCode])
@@ -680,6 +682,18 @@ model ApiToken {
   createdAt  DateTime  @default(now())
 
   @@index([userId])
+}
+
+/// 로그인용 GitHub 연동(OAuthAccount)과는 별도 — 이건 "repo" 범위로 다시 동의받은, Git 배포
+/// 기능에서 비공개 저장소까지 접근하기 위한 토큰이다. 로그인 흐름의 권한을 repo 범위까지
+/// 넓히면 모든 로그인마다 과도한 권한을 요구하게 되므로 완전히 분리했다.
+model GitHubConnection {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  githubLogin String
+  accessToken String
+  connectedAt DateTime @default(now())
 }
 
 /// 10분마다 크론이 Wings에서 읽어오는 CPU/RAM/디스크 사용량 스냅샷 — 서버 상세 페이지의
@@ -1289,4 +1303,31 @@ model AuditLog {
 
   @@index([actorUserId])
   @@index([targetType, targetId])
+}
+
+// ────────────────────────────────
+// 블로그
+// ────────────────────────────────
+
+/// 국내 호스팅사 가격 비교 같은 콘텐츠 마케팅용 블로그. titleEn/bodyEn이 비어 있으면 영어
+/// 페이지에서는 "한국어로만 제공돼요" 안내만 보여준다(legal 페이지와 같은 패턴) — 국내
+/// 호스팅사 비교처럼 애초에 한국 시장 한정인 글을 억지로 기계번역해서 보여주지 않기 위함.
+model BlogPost {
+  id           String    @id @default(cuid())
+  slug         String    @unique
+  titleKr      String
+  excerptKr    String?
+  /// 마크다운 원문
+  bodyKr       String
+  titleEn      String?
+  excerptEn    String?
+  bodyEn       String?
+  published    Boolean   @default(false)
+  publishedAt  DateTime?
+  authorUserId String?
+  author       User?     @relation(fields: [authorUserId], references: [id], onDelete: SetNull)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([published, publishedAt])
 }

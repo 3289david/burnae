@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Wrench, ExternalLink, Folder } from "lucide-react";
 import AiCreditsCard from "./AiCreditsCard";
 import MakerFilePanel from "./MakerFilePanel";
@@ -20,29 +21,29 @@ interface PendingActivity {
   input: Record<string, unknown>;
 }
 
-const TOOL_LABEL: Record<string, string> = {
-  write_file: "파일 수정",
-  execute_console_command: "콘솔 명령 실행",
-  restart_server: "서버 재시작",
-  stop_server: "서버 정지",
-  create_backup: "백업 생성",
-  delete_files: "파일 삭제",
-  restore_backup: "백업 복원",
-  generate_minecraft_plugin: "플러그인/모드 생성",
+const TOOL_LABEL_KEY: Record<string, string> = {
+  write_file: "toolWriteFile",
+  execute_console_command: "toolExecConsole",
+  restart_server: "toolRestart",
+  stop_server: "toolStop",
+  create_backup: "toolBackup",
+  delete_files: "toolDeleteFiles",
+  restore_backup: "toolRestoreBackup",
+  generate_minecraft_plugin: "toolGenPlugin",
 };
 
 type Category = "MINECRAFT" | "DISCORD_BOT" | "GENERAL";
 
-const CHAT_EXAMPLE_PROMPTS: Record<Category, string> = {
-  MINECRAFT: '서버에 원하는 걸 말해보세요. 예) "커맨드 블럭 켜줘", "최대 인원 30명으로 바꿔줘"',
-  DISCORD_BOT: '서버에 원하는 걸 말해보세요. 예) "봇 재시작해줘", "requirements.txt에 패키지 추가해줘"',
-  GENERAL: '서버에 원하는 걸 말해보세요. 예) "포트 열려있는지 확인해줘", "로그 파일 보여줘", "설정 파일 고쳐줘"',
+const CHAT_EXAMPLE_KEY: Record<Category, string> = {
+  MINECRAFT: "chatExampleMinecraft",
+  DISCORD_BOT: "chatExampleDiscord",
+  GENERAL: "chatExampleGeneral",
 };
 
-const MAKER_EXAMPLE_PROMPTS: Record<Category, string> = {
-  MINECRAFT: '어떤 플러그인/모드를 만들고 싶으세요? 예) "커맨드 블럭 켜면 폭죽 터지는 플러그인 만들어줘". 나중에 "쿨다운도 추가해줘"처럼 이어서 업그레이드도 가능해요.',
-  DISCORD_BOT: '어떤 봇을 만들고 싶으세요? 예) "/안녕 하면 인사하는 봇 만들어줘". 이미 만든 봇이 있다면 "슬래시 명령어 하나 더 추가해줘"처럼 이어서 업그레이드도 가능해요.',
-  GENERAL: '무엇을 만들고 싶으세요? 예) "심플한 방명록 웹사이트 만들어줘", "간단한 API 서버 만들어줘". 이어서 "디자인 좀 더 예쁘게 해줘"처럼 업그레이드도 가능해요.',
+const MAKER_EXAMPLE_KEY: Record<Category, string> = {
+  MINECRAFT: "makerExampleMinecraft",
+  DISCORD_BOT: "makerExampleDiscord",
+  GENERAL: "makerExampleGeneral",
 };
 
 export default function AiTab({
@@ -58,6 +59,7 @@ export default function AiTab({
   previewAddress?: string | null;
   myRole: ServerAccessRole | null;
 }) {
+  const t = useTranslations("aiTab");
   const canUseAi = hasServerRank(myRole, "DEVELOPER");
   const [showFiles, setShowFiles] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -80,13 +82,13 @@ export default function AiTab({
     try {
       const res = await fetch("/api/ai/conversations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ serverId, kind }) });
       const data = await res.json();
-      if (!res.ok || !data.id) throw new Error(data.error ?? "대화를 시작하지 못했어요.");
+      if (!res.ok || !data.id) throw new Error(data.error ?? t("startConvFailed"));
       setConversationId(data.id);
       setMessages([]);
       setPending(null);
       await loadConversationList();
     } catch (err) {
-      setLoadError(err instanceof Error ? err.message : "대화를 시작하지 못했어요.");
+      setLoadError(err instanceof Error ? err.message : t("startConvFailed"));
     }
   }
 
@@ -95,7 +97,7 @@ export default function AiTab({
     (async () => {
       const res = await fetch(`/api/ai/conversations?serverId=${serverId}&kind=${kind}`);
       if (!res.ok) {
-        setLoadError("대화 목록을 불러오지 못했어요. 새로고침해보세요.");
+        setLoadError(t("convListLoadFailed"));
         return;
       }
       const list = await res.json();
@@ -144,7 +146,7 @@ export default function AiTab({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setChatError(data.error ?? "메시지 전송에 실패했어요.");
+        setChatError(data.error ?? t("sendFailed"));
       }
       await refresh(conversationId);
     } finally {
@@ -172,8 +174,8 @@ export default function AiTab({
     return (
       <div className="card p-8 flex flex-col items-center justify-center gap-2 text-center">
         <Lock size={22} className="text-text-dim" />
-        <p className="font-medium">AI 기능을 쓸 권한이 없어요</p>
-        <p className="text-sm text-text-dim">AI가 파일을 수정하거나 콘솔 명령을 실행할 수 있어서, 초대받은 역할로는 쓸 수 없어요.</p>
+        <p className="font-medium">{t("noPermTitle")}</p>
+        <p className="text-sm text-text-dim">{t("noPermDesc")}</p>
       </div>
     );
   }
@@ -184,7 +186,7 @@ export default function AiTab({
         <AiCreditsCard />
         <div className="card-glow p-5 space-y-3 animate-fade-up">
           <p className="text-sm text-red">{loadError}</p>
-          <button onClick={startNewConversation} className="btn-secondary px-4 py-2 text-sm">다시 시도</button>
+          <button onClick={startNewConversation} className="btn-secondary px-4 py-2 text-sm">{t("retry")}</button>
         </div>
       </div>
     );
@@ -203,7 +205,7 @@ export default function AiTab({
           >
             {conversations.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.title} ({new Date(c.updatedAt).toLocaleDateString("ko-KR")})
+                {c.title} ({new Date(c.updatedAt).toLocaleDateString()})
               </option>
             ))}
           </select>
@@ -213,11 +215,11 @@ export default function AiTab({
             onClick={() => setShowFiles((v) => !v)}
             className={`text-xs shrink-0 inline-flex items-center gap-1 ${showFiles ? "text-accent" : "text-text-dim"} ${conversations.length > 1 ? "" : "ml-auto"}`}
           >
-            <Folder size={13} /> 파일
+            <Folder size={13} /> {t("files")}
           </button>
         )}
         <button onClick={startNewConversation} className={`text-xs text-accent shrink-0 ${kind === "MAKER" ? "" : "ml-auto"}`}>
-          + 새 대화
+          {t("newConversation")}
         </button>
       </div>
       {kind === "MAKER" && previewAddress && (
@@ -229,7 +231,7 @@ export default function AiTab({
             rel="noopener noreferrer"
             className="text-xs text-accent inline-flex items-center gap-1 shrink-0"
           >
-            <ExternalLink size={12} /> 미리보기
+            <ExternalLink size={12} /> {t("preview")}
           </a>
         </div>
       )}
@@ -237,7 +239,7 @@ export default function AiTab({
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.length === 0 && (
           <p className="text-sm text-text-dim">
-            {(kind === "MAKER" ? MAKER_EXAMPLE_PROMPTS : CHAT_EXAMPLE_PROMPTS)[templateCategory]}
+            {t((kind === "MAKER" ? MAKER_EXAMPLE_KEY : CHAT_EXAMPLE_KEY)[templateCategory])}
           </p>
         )}
         {messages.map((m) =>
@@ -274,8 +276,8 @@ export default function AiTab({
         {pending && (
           <div className="animate-success-ring card-glow p-4 border-yellow">
             <p className="text-sm">
-              <strong>{TOOL_LABEL[pending.toolName] ?? pending.toolName}</strong> 작업을 실행하려고 해요.
-              {pending.riskLevel === "DANGEROUS" && " 실행 전에 자동으로 백업할게요."}
+              {t("pendingActionMsg", { tool: TOOL_LABEL_KEY[pending.toolName] ? t(TOOL_LABEL_KEY[pending.toolName]) : pending.toolName })}
+              {pending.riskLevel === "DANGEROUS" && t("autoBackupNote")}
             </p>
             {typeof pending.input?.command === "string" && (
               <p className="mt-1 text-xs font-mono text-text-dim">/{String(pending.input.command)}</p>
@@ -287,8 +289,8 @@ export default function AiTab({
               <p className="mt-1 text-xs text-text-dim">{String(pending.input.description)}</p>
             )}
             <div className="mt-3 flex gap-2">
-              <button onClick={() => resolve("APPROVE")} disabled={busy} className="btn-primary px-4 py-1.5 text-sm">적용하기</button>
-              <button onClick={() => resolve("REJECT")} disabled={busy} className="btn-secondary px-4 py-1.5 text-sm">취소</button>
+              <button onClick={() => resolve("APPROVE")} disabled={busy} className="btn-primary px-4 py-1.5 text-sm">{t("apply")}</button>
+              <button onClick={() => resolve("REJECT")} disabled={busy} className="btn-secondary px-4 py-1.5 text-sm">{t("cancel")}</button>
             </div>
           </div>
         )}
@@ -300,11 +302,11 @@ export default function AiTab({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           disabled={busy || !!pending}
-          placeholder={pending ? "승인 대기 중이에요..." : busy ? (kind === "MAKER" ? "만드는 중이에요... 위에서 진행 상황을 볼 수 있어요" : "처리 중이에요...") : "메시지를 입력하세요..."}
+          placeholder={pending ? t("waitingApproval") : busy ? (kind === "MAKER" ? t("makerWorking") : t("processingPlaceholder")) : t("messagePlaceholder")}
           className="flex-1 bg-transparent px-4 py-3 text-sm outline-none"
         />
         <button type="submit" disabled={busy || !!pending} className="px-4 text-accent font-medium">
-          {busy ? "..." : "전송"}
+          {busy ? "..." : t("send")}
         </button>
       </form>
     </div>

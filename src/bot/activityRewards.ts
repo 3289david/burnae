@@ -14,7 +14,7 @@ const MIN_MESSAGE_LENGTH = 5;
 /** 같은 유저가 연속으로 포인트를 받을 수 있는 최소 간격 */
 const CHAT_REWARD_COOLDOWN_MS = 60_000;
 /** 쿨다운을 우회해도(예: 재시작) 하루에 받을 수 있는 채팅 포인트 총액을 이 이상 못 넘게 막는다 */
-const CHAT_DAILY_CAP = 200;
+const CHAT_DAILY_CAP = 100;
 
 /** 서버 태그(프로필 꾸미기) 착용 1시간당 지급 포인트 — 가만히 켜두기만 하면 되는 활동이라 낮게 유지 */
 const POINTS_PER_TAG_HOUR = 2;
@@ -32,7 +32,10 @@ function todayKey(): string {
 
 async function awardToDiscordUser(discordUserId: string, points: number, reason: string) {
   const link = await prisma.discordLink.findUnique({ where: { discordUserId } });
-  if (!link) return;
+  if (!link) {
+    console.log(`[activityRewards] ${discordUserId} 미연동 계정이라 지급 안 함 (${reason})`);
+    return;
+  }
   await prisma.user.update({ where: { id: link.userId }, data: { promotionPoints: { increment: points } } });
   console.log(`[activityRewards] ${discordUserId} +${points}P (${reason})`);
 }
@@ -42,16 +45,29 @@ function handleMessageCreate(message: Message, officialGuildId: string) {
   if (message.author.bot) return;
 
   const content = message.content.trim();
-  if (content.length < MIN_MESSAGE_LENGTH) return;
+  if (content.length < MIN_MESSAGE_LENGTH) {
+    // MessageContent 특권 인텐트가 디스코드 개발자 포털에서 꺼지면 content가 항상 빈 문자열로
+    // 와서 모든 메시지가 조용히 여기서 걸린다 — 길이가 의심스럽게 0이면 바로 알 수 있게 남긴다
+    if (content.length === 0) {
+      console.log(`[activityRewards] ${message.author.id} 메시지 content가 비어있음 — MessageContent 인텐트 확인 필요`);
+    }
+    return;
+  }
 
   const now = Date.now();
   const last = lastChatRewardAt.get(message.author.id) ?? 0;
-  if (now - last < CHAT_REWARD_COOLDOWN_MS) return;
+  if (now - last < CHAT_REWARD_COOLDOWN_MS) {
+    console.log(`[activityRewards] ${message.author.id} 쿨다운 중(${Math.ceil((CHAT_REWARD_COOLDOWN_MS - (now - last)) / 1000)}초 남음)`);
+    return;
+  }
 
   const today = todayKey();
   const record = chatDailyTotal.get(message.author.id);
   const soFar = record?.day === today ? record.points : 0;
-  if (soFar >= CHAT_DAILY_CAP) return;
+  if (soFar >= CHAT_DAILY_CAP) {
+    console.log(`[activityRewards] ${message.author.id} 오늘 일일 한도(${CHAT_DAILY_CAP}P) 도달`);
+    return;
+  }
 
   lastChatRewardAt.set(message.author.id, now);
   chatDailyTotal.set(message.author.id, { day: today, points: soFar + POINTS_PER_MESSAGE });

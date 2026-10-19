@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import SuccessCheck from "@/components/SuccessCheck";
 import { formatMb } from "@/lib/formatSize";
 
@@ -20,6 +21,8 @@ interface BankAccount {
 }
 
 export default function UpgradeCard({ serverId, currentProductId }: { serverId: string; currentProductId: string | null }) {
+  const t = useTranslations("upgradeCard");
+  const tc = useTranslations("common");
   const [products, setProducts] = useState<Product[]>([]);
   const [points, setPoints] = useState(0);
   const [selected, setSelected] = useState("");
@@ -67,7 +70,7 @@ export default function UpgradeCard({ serverId, currentProductId }: { serverId: 
         setApplied({ pointsSpent: data.pointsSpent });
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "처리 실패");
+      setError(err instanceof Error ? err.message : t("processFailed"));
     } finally {
       setBusy(false);
     }
@@ -93,8 +96,9 @@ export default function UpgradeCard({ serverId, currentProductId }: { serverId: 
       <div className="card-glow p-5 flex items-center gap-3 animate-fade-up">
         <SuccessCheck size={40} confetti className="shrink-0" />
         <p className="text-sm text-green">
-          플랜이 변경됐어요{applied.pointsSpent ? ` (포인트 ${applied.pointsSpent.toLocaleString()}P 사용)` : ""}.
-          적용을 위해 서버가 재시작될 수 있어요.
+          {t("changedMessage", {
+            pointsNote: applied.pointsSpent ? t("pointsUsedNote", { amount: applied.pointsSpent.toLocaleString() }) : "",
+          })}
         </p>
       </div>
     );
@@ -103,32 +107,32 @@ export default function UpgradeCard({ serverId, currentProductId }: { serverId: 
   if (payment) {
     return (
       <div className="card-glow p-5 space-y-2 animate-fade-up">
-        <h3 className="font-semibold text-sm">차액 입금 안내</h3>
+        <h3 className="font-semibold text-sm">{t("balanceTitle")}</h3>
         {bank && (
           <p className="text-sm">{bank.bankName} {bank.accountNumber} ({bank.accountHolder})</p>
         )}
-        <p className="text-sm">입금자명: <strong className="text-accent">{payment.depositorName}</strong></p>
-        <p className="text-sm">금액: <strong className="text-accent">{payment.amountKrw.toLocaleString()}원</strong></p>
-        <p className="text-xs text-text-dim">입금하면 자동으로 플랜이 적용돼요.</p>
+        <p className="text-sm">{t("depositorLabel")} <strong className="text-accent">{payment.depositorName}</strong></p>
+        <p className="text-sm">{t("amountLabel")} <strong className="text-accent">{payment.amountKrw.toLocaleString()}{tc("krw")}</strong></p>
+        <p className="text-xs text-text-dim">{t("autoApplyHint")}</p>
       </div>
     );
   }
 
   return (
     <div className="card-glow p-5 space-y-3">
-      <h3 className="font-semibold text-sm">플랜 변경</h3>
+      <h3 className="font-semibold text-sm">{t("title")}</h3>
       <div className="flex gap-2">
         <select className="input flex-1 min-w-0" value={selected} onChange={(e) => setSelected(e.target.value)}>
-          <option value="">플랜 선택</option>
+          <option value="">{t("selectPlan")}</option>
           {products.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.name} — RAM {formatMb(p.ramMb)} · {p.priceMonthlyKrw.toLocaleString()}원/월
-              {p.pointsRedeemable && p.pointsCost != null ? ` (포인트 ${p.pointsCost.toLocaleString()}P 가능)` : ""}
+              {p.name} — RAM {formatMb(p.ramMb)} · {p.priceMonthlyKrw.toLocaleString()}{tc("krw")}{t("perMonth")}
+              {p.pointsRedeemable && p.pointsCost != null ? t("pointsOptionSuffix", { amount: p.pointsCost.toLocaleString() }) : ""}
             </option>
           ))}
         </select>
         <button onClick={() => submit(false)} disabled={busy || !selected} className="btn-primary px-4 py-2 text-sm shrink-0 active:scale-95 transition-transform">
-          변경
+          {t("change")}
         </button>
       </div>
       {canUsePoints && (
@@ -138,11 +142,11 @@ export default function UpgradeCard({ serverId, currentProductId }: { serverId: 
           className="btn-secondary w-full py-2 text-sm active:scale-[0.98] transition-transform"
         >
           {canAffordPoints
-            ? `포인트로 변경하기 (${selectedProduct!.pointsCost!.toLocaleString()}P, 보유 ${points.toLocaleString()}P)`
-            : `포인트 부족 (필요 ${selectedProduct!.pointsCost!.toLocaleString()}P, 보유 ${points.toLocaleString()}P)`}
+            ? t("changeWithPoints", { cost: selectedProduct!.pointsCost!.toLocaleString(), balance: points.toLocaleString() })
+            : t("insufficientPoints", { cost: selectedProduct!.pointsCost!.toLocaleString(), balance: points.toLocaleString() })}
         </button>
       )}
-      <p className="text-xs text-text-dim">더 비싼 플랜은 차액 입금 후 적용, 더 싼 플랜은 즉시 적용돼요(환불 없음).</p>
+      <p className="text-xs text-text-dim">{t("footerHint")}</p>
       {error && <p className="text-sm text-red">{error}</p>}
     </div>
   );

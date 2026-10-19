@@ -1,11 +1,11 @@
 import { prisma } from "@/lib/prisma";
-import { SERVER_ACTIVITY_LABELS } from "@/lib/serverActivityLabels";
+import { SERVER_ACTIVITY_LABEL_KEYS } from "@/lib/serverActivityLabels";
 
 /** 실패해도 원래 작업(전원 조작 등)을 막으면 안 되므로 조용히 무시한다 */
 export async function logServerActivity(
   serverId: string,
   actorId: string | null,
-  action: keyof typeof SERVER_ACTIVITY_LABELS,
+  action: keyof typeof SERVER_ACTIVITY_LABEL_KEYS,
   detail?: string,
 ) {
   try {

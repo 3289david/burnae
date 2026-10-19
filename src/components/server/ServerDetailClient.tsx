@@ -1,6 +1,8 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
+import { useSearchParams } from "next/navigation";
 import {
   LayoutGrid, Terminal, Users, Puzzle, Folder, RefreshCw, UserPlus, Settings, Bot, Wand2, Pencil, Check, X,
 } from "lucide-react";
@@ -65,16 +67,16 @@ export interface ServerInfo {
 }
 
 const TABS = [
-  { key: "overview", label: "개요", icon: LayoutGrid },
-  { key: "console", label: "콘솔", icon: Terminal },
-  { key: "players", label: "플레이어", icon: Users },
-  { key: "plugins", label: "플러그인", icon: Puzzle },
-  { key: "maker", label: "메이커", icon: Wand2 },
-  { key: "files", label: "파일", icon: Folder },
-  { key: "backups", label: "백업", icon: RefreshCw },
-  { key: "team", label: "팀", icon: UserPlus },
-  { key: "settings", label: "설정", icon: Settings },
-  { key: "ai", label: "AI", icon: Bot },
+  { key: "overview", labelKey: "tabOverview", icon: LayoutGrid },
+  { key: "console", labelKey: "tabConsole", icon: Terminal },
+  { key: "players", labelKey: "tabPlayers", icon: Users },
+  { key: "plugins", labelKey: "tabPlugins", icon: Puzzle },
+  { key: "maker", labelKey: "tabMaker", icon: Wand2 },
+  { key: "files", labelKey: "tabFiles", icon: Folder },
+  { key: "backups", labelKey: "tabBackups", icon: RefreshCw },
+  { key: "team", labelKey: "tabTeam", icon: UserPlus },
+  { key: "settings", labelKey: "tabSettings", icon: Settings },
+  { key: "ai", labelKey: "tabAi", icon: Bot },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -84,8 +86,15 @@ type TabKey = (typeof TABS)[number]["key"];
 // 뭔가를 만드는 채팅이라 모든 종류에서 보여준다.
 const MINECRAFT_ONLY_TABS = new Set(["players", "plugins"]);
 
+const TAB_KEYS = new Set(TABS.map((t) => t.key));
+
 export default function ServerDetailClient({ server }: { server: ServerInfo }) {
-  const [tab, setTab] = useState<TabKey>("overview");
+  const t = useTranslations("serverDetailClient");
+  const searchParams = useSearchParams();
+  const requestedTab = searchParams.get("tab");
+  const [tab, setTab] = useState<TabKey>(
+    requestedTab && TAB_KEYS.has(requestedTab as TabKey) ? (requestedTab as TabKey) : "overview",
+  );
   const [name, setName] = useState(server.name);
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(server.name);
@@ -121,7 +130,7 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
       setName(data.name);
       setEditingName(false);
     } catch (err) {
-      setNameError(err instanceof Error ? err.message : "이름 변경 실패");
+      setNameError(err instanceof Error ? err.message : t("renameFailed"));
     } finally {
       setNameSaving(false);
     }
@@ -147,7 +156,7 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
                   onChange={(e) => setNameInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && saveName()}
                 />
-                <button onClick={saveName} disabled={nameSaving} className="text-green p-1 active:scale-90 transition-transform" aria-label="저장">
+                <button onClick={saveName} disabled={nameSaving} className="text-green p-1 active:scale-90 transition-transform" aria-label={t("saveAria")}>
                   <Check size={18} />
                 </button>
                 <button
@@ -157,7 +166,7 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
                     setNameError(null);
                   }}
                   className="text-text-dim p-1 active:scale-90 transition-transform"
-                  aria-label="취소"
+                  aria-label={t("cancelAria")}
                 >
                   <X size={18} />
                 </button>
@@ -169,7 +178,7 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
                   <button
                     onClick={() => setEditingName(true)}
                     className="text-text-dim hover:text-accent active:scale-90 transition-transform"
-                    aria-label="이름 바꾸기"
+                    aria-label={t("renameAria")}
                   >
                     <Pencil size={15} />
                   </button>
@@ -194,19 +203,19 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
             style={{ left: indicator.left, width: indicator.width }}
           />
         )}
-        {visibleTabs.map((t) => (
+        {visibleTabs.map((tabDef) => (
           <button
-            key={t.key}
+            key={tabDef.key}
             ref={(el) => {
-              tabRefs.current[t.key] = el;
+              tabRefs.current[tabDef.key] = el;
             }}
-            onClick={() => setTab(t.key)}
+            onClick={() => setTab(tabDef.key)}
             className={`relative z-10 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors duration-150 shrink-0 ${
-              tab === t.key ? "text-white" : "text-text-dim hover:text-text"
+              tab === tabDef.key ? "text-white" : "text-text-dim hover:text-text"
             }`}
           >
-            <t.icon size={15} />
-            {t.label}
+            <tabDef.icon size={15} />
+            {t(tabDef.labelKey)}
           </button>
         ))}
       </div>

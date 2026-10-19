@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations, useLocale } from "next-intl";
 import { AlertTriangle, RefreshCw, RotateCcw, Trash2, Lock, Unlock } from "lucide-react";
 import { hasServerRank, type ServerAccessRole } from "@/lib/serverRoleRank";
 
@@ -22,6 +23,9 @@ export default function BackupsTab({
   backupSlots: number;
   myRole: ServerAccessRole | null;
 }) {
+  const t = useTranslations("backupsTab");
+  const locale = useLocale();
+  const dateLocale = locale === "en" ? "en-US" : "ko-KR";
   const canCreate = hasServerRank(myRole, "DEVELOPER");
   const canManage = hasServerRank(myRole, "ADMIN");
   const [backups, setBackups] = useState<Backup[]>([]);
@@ -47,14 +51,14 @@ export default function BackupsTab({
       if (!res.ok) throw new Error(data.error);
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "백업 생성 실패");
+      setError(err instanceof Error ? err.message : t("createFailed"));
     } finally {
       setLoading(false);
     }
   }
 
   async function restore(uuid: string) {
-    if (!confirm("이 백업으로 복원하면 현재 데이터를 덮어씁니다. 계속할까요?")) return;
+    if (!confirm(t("restoreConfirm"))) return;
     setLoading(true);
     try {
       await fetch(`/api/servers/${serverId}/backups/${uuid}/restore`, { method: "POST" });
@@ -64,18 +68,18 @@ export default function BackupsTab({
   }
 
   async function remove(uuid: string) {
-    if (!confirm("이 백업을 삭제할까요?")) return;
+    if (!confirm(t("deleteConfirm"))) return;
     setLoading(true);
     setError(null);
     try {
       const res = await fetch(`/api/servers/${serverId}/backups/${uuid}`, { method: "DELETE" });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? "삭제 실패");
+        throw new Error(data.error ?? t("deleteFailed"));
       }
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "삭제 실패");
+      setError(err instanceof Error ? err.message : t("deleteFailed"));
     } finally {
       setLoading(false);
     }
@@ -86,10 +90,10 @@ export default function BackupsTab({
     setError(null);
     try {
       const res = await fetch(`/api/servers/${serverId}/backups/${uuid}/lock`, { method: "POST" });
-      if (!res.ok) throw new Error("잠금 변경 실패");
+      if (!res.ok) throw new Error(t("lockToggleFailed"));
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "잠금 변경 실패");
+      setError(err instanceof Error ? err.message : t("lockToggleFailed"));
     } finally {
       setLoading(false);
     }
@@ -98,10 +102,10 @@ export default function BackupsTab({
   return (
     <div className="animate-fade-up">
       <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-text-dim">{backups.length} / {backupSlots}개 사용 중</p>
+        <p className="text-sm text-text-dim">{t("usageLine", { used: backups.length, total: backupSlots })}</p>
         {canCreate && (
           <button onClick={createBackup} disabled={loading} className="btn-primary px-4 py-2 text-sm inline-flex items-center gap-1.5 active:scale-95 transition-transform">
-            <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> 지금 백업
+            <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> {t("backupNow")}
           </button>
         )}
       </div>
@@ -116,15 +120,15 @@ export default function BackupsTab({
             <div className="min-w-0">
               <p className="font-medium text-sm truncate">{b.name}</p>
               <p className="text-xs text-text-dim mt-0.5 flex items-center gap-1 flex-wrap">
-                {new Date(b.created_at).toLocaleString("ko-KR")} · {(b.bytes / 1024 / 1024).toFixed(0)}MB
+                {new Date(b.created_at).toLocaleString(dateLocale)} · {(b.bytes / 1024 / 1024).toFixed(0)}MB
                 {!b.is_successful && (
                   <span className="inline-flex items-center gap-1 text-red">
-                    · <AlertTriangle size={12} /> 실패
+                    · <AlertTriangle size={12} /> {t("failed")}
                   </span>
                 )}
                 {b.is_locked && (
                   <span className="inline-flex items-center gap-1 text-yellow">
-                    · <Lock size={11} /> 잠김
+                    · <Lock size={11} /> {t("locked")}
                   </span>
                 )}
               </p>
@@ -132,34 +136,34 @@ export default function BackupsTab({
             {canManage && (
               <div className="flex gap-2 shrink-0">
                 <button onClick={() => restore(b.uuid)} className="btn-secondary px-3 py-1.5 text-sm inline-flex items-center gap-1 active:scale-95 transition-transform">
-                  <RotateCcw size={13} /> 복원
+                  <RotateCcw size={13} /> {t("restore")}
                 </button>
                 <button
                   onClick={() => toggleLock(b.uuid)}
                   disabled={loading}
                   className="btn-secondary px-3 py-1.5 text-sm inline-flex items-center gap-1 active:scale-95 transition-transform"
-                  title={b.is_locked ? "잠금 해제하면 삭제할 수 있어요" : "잠그면 실수로 삭제되지 않아요"}
+                  title={b.is_locked ? t("unlockHint") : t("lockHint")}
                 >
                   {b.is_locked ? (
                     <Unlock size={13} key="unlocked" className="animate-star-pop" />
                   ) : (
                     <Lock size={13} key="locked" />
                   )}{" "}
-                  {b.is_locked ? "잠금 해제" : "잠그기"}
+                  {b.is_locked ? t("unlock") : t("lock")}
                 </button>
                 <button
                   onClick={() => remove(b.uuid)}
                   disabled={b.is_locked}
                   className="rounded-full px-3 py-1.5 text-sm text-red bg-red/10 hover:bg-red/20 transition-colors inline-flex items-center gap-1 disabled:opacity-40 active:scale-95"
                 >
-                  <Trash2 size={13} /> 삭제
+                  <Trash2 size={13} /> {t("delete")}
                 </button>
               </div>
             )}
           </div>
         ))}
         {backups.length === 0 && (
-          <div className="card-glow p-8 text-center text-sm text-text-dim">아직 백업이 없어요.</div>
+          <div className="card-glow p-8 text-center text-sm text-text-dim">{t("noBackups")}</div>
         )}
       </div>
     </div>

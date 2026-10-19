@@ -57,7 +57,7 @@ export function getRedirectUri(provider: OAuthProviderKey): string {
   return `${siteUrl()}/api/auth/oauth/${provider}/callback`;
 }
 
-export function buildAuthorizeUrl(provider: OAuthProviderKey, state: string): string {
+export function buildAuthorizeUrl(provider: OAuthProviderKey, state: string, scopeOverride?: string): string {
   const config = getConfig(provider);
   if (!config.clientId) {
     throw new Error(`${provider} OAuth Client ID가 설정되지 않았습니다.`);
@@ -66,13 +66,13 @@ export function buildAuthorizeUrl(provider: OAuthProviderKey, state: string): st
     client_id: config.clientId,
     redirect_uri: getRedirectUri(provider),
     response_type: "code",
-    scope: config.scope,
+    scope: scopeOverride ?? config.scope,
     state,
   });
   return `${config.authUrl}?${params.toString()}`;
 }
 
-async function exchangeCodeForToken(provider: OAuthProviderKey, code: string): Promise<string> {
+export async function exchangeCodeForToken(provider: OAuthProviderKey, code: string): Promise<string> {
   const config = getConfig(provider);
   if (!config.clientId || !config.clientSecret) {
     throw new Error(`${provider} OAuth 설정이 완료되지 않았습니다.`);

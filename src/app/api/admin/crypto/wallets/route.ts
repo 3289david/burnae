@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdminRole } from "@/lib/auth";
-import { isValidXpub } from "@/lib/crypto/tronAddress";
+import { isValidTronAddress } from "@/lib/crypto/tronAddress";
 import { isValidBtcLtcXpub } from "@/lib/crypto/btcLtcAddress";
 import { isValidSolanaAddress } from "@/lib/crypto/solanaAddress";
 
@@ -38,9 +38,9 @@ const schema = z.object({
   enabled: z.boolean().optional(),
 });
 
-const XPUB_COINS = new Set(["USDT_TRC20", "TRX"]);
 const BTC_LTC_COINS = new Set(["BTC", "LTC"]);
-const POOL_COINS = new Set(["SOL", "USDT_SOL"]);
+const SOLANA_POOL_COINS = new Set(["SOL", "USDT_SOL"]);
+const TRON_POOL_COINS = new Set(["TRX", "USDT_TRC20"]);
 
 export async function PUT(request: Request) {
   const admin = await requireAdminRole(["SUPER"]);
@@ -52,9 +52,6 @@ export async function PUT(request: Request) {
   }
   const { coin, xpub, addressPoolText, confirmationsRequired, enabled } = parsed.data;
 
-  if (XPUB_COINS.has(coin) && xpub && !isValidXpub(xpub)) {
-    return NextResponse.json({ error: "올바른 확장 공개키(xpub)가 아니에요. 개인키(xprv)가 아닌 공개키인지 확인해주세요." }, { status: 422 });
-  }
   if (BTC_LTC_COINS.has(coin) && xpub && !isValidBtcLtcXpub(xpub)) {
     return NextResponse.json({ error: "올바른 확장 공개키(xpub)가 아니에요. 개인키(xprv)가 아닌 공개키인지 확인해주세요." }, { status: 422 });
   }
@@ -68,11 +65,20 @@ export async function PUT(request: Request) {
       .split(/[\s,;]+/)
       .map((s) => s.trim())
       .filter((s) => s.length > 0 && !existingAddresses.has(s));
-    if (POOL_COINS.has(coin)) {
+    if (SOLANA_POOL_COINS.has(coin)) {
       const invalid = newAddresses.filter((a) => !isValidSolanaAddress(a));
       if (invalid.length > 0) {
         return NextResponse.json(
           { error: `올바른 Solana 주소가 아니에요: ${invalid.join(", ")}` },
+          { status: 422 },
+        );
+      }
+    }
+    if (TRON_POOL_COINS.has(coin)) {
+      const invalid = newAddresses.filter((a) => !isValidTronAddress(a));
+      if (invalid.length > 0) {
+        return NextResponse.json(
+          { error: `올바른 TRON 주소가 아니에요: ${invalid.join(", ")}` },
           { status: 422 },
         );
       }

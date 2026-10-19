@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { TrendingUp } from "lucide-react";
 
 interface Snapshot {
@@ -10,9 +11,21 @@ interface Snapshot {
   recordedAt: string;
 }
 
-function Sparkline({ points, max, color, unit }: { points: number[]; max: number; color: string; unit: string }) {
+function Sparkline({
+  points,
+  max,
+  color,
+  unit,
+  t,
+}: {
+  points: number[];
+  max: number;
+  color: string;
+  unit: string;
+  t: ReturnType<typeof useTranslations<"usageHistoryChart">>;
+}) {
   if (points.length < 2) {
-    return <p className="text-xs text-text-dim py-6 text-center">아직 데이터가 쌓이는 중이에요 (10분마다 기록돼요).</p>;
+    return <p className="text-xs text-text-dim py-6 text-center">{t("collecting")}</p>;
   }
   const w = 100;
   const h = 32;
@@ -29,7 +42,9 @@ function Sparkline({ points, max, color, unit }: { points: number[]; max: number
         <path d={area} fill={color} opacity={0.12} />
         <path d={path} fill="none" stroke={color} strokeWidth={1.2} vectorEffect="non-scaling-stroke" />
       </svg>
-      <p className="text-[11px] text-text-dim mt-1">최근 {latest.toFixed(0)}{unit} · 최고 {Math.max(...points).toFixed(0)}{unit}</p>
+      <p className="text-[11px] text-text-dim mt-1">
+        {t("recentMax", { latest: latest.toFixed(0), max: Math.max(...points).toFixed(0), unit })}
+      </p>
     </div>
   );
 }
@@ -43,6 +58,7 @@ export default function UsageHistoryChart({
   ramMbLimit: number;
   cpuPercentLimit: number;
 }) {
+  const t = useTranslations("usageHistoryChart");
   const [snapshots, setSnapshots] = useState<Snapshot[] | null>(null);
 
   useEffect(() => {
@@ -62,16 +78,16 @@ export default function UsageHistoryChart({
   return (
     <div className="card-glow p-5 animate-fade-up">
       <h3 className="font-semibold mb-3 flex items-center gap-1.5">
-        <TrendingUp size={16} className="text-accent" /> 최근 24시간 사용량
+        <TrendingUp size={16} className="text-accent" /> {t("title")}
       </h3>
       <div className="grid sm:grid-cols-2 gap-4">
         <div>
           <span className="text-xs text-text-dim">CPU</span>
-          <Sparkline points={snapshots.map((s) => s.cpuPercent)} max={Math.max(100, cpuPercentLimit)} color="var(--purple)" unit="%" />
+          <Sparkline points={snapshots.map((s) => s.cpuPercent)} max={Math.max(100, cpuPercentLimit)} color="var(--purple)" unit="%" t={t} />
         </div>
         <div>
           <span className="text-xs text-text-dim">RAM</span>
-          <Sparkline points={snapshots.map((s) => s.ramMb)} max={ramMbLimit} color="var(--blue)" unit="MB" />
+          <Sparkline points={snapshots.map((s) => s.ramMb)} max={ramMbLimit} color="var(--blue)" unit="MB" t={t} />
         </div>
       </div>
     </div>

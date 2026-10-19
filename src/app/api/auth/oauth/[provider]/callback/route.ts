@@ -7,6 +7,7 @@ import { rewardReferralSignup } from "@/lib/promotions";
 import { extractClientIp } from "@/lib/altAccountDetection";
 import { addDiscordRole } from "@/lib/discordNotify";
 import { localizedPath } from "@/lib/localeFromRequest";
+import { parseGithubConnectState, exchangeGithubConnectCode } from "@/lib/githubConnect";
 
 const VALID_PROVIDERS: OAuthProviderKey[] = ["google", "github", "discord"];
 const PROVIDER_ENUM: Record<OAuthProviderKey, "GOOGLE" | "GITHUB" | "DISCORD"> = {
@@ -38,6 +39,32 @@ export async function GET(
 
   if (!code || !state || !expectedState || state !== expectedState) {
     return loginError("로그인 요청이 만료되었거나 올바르지 않습니다. 다시 시도해주세요.");
+  }
+
+  // GitHub 저장소 연동(repo scope) — 로그인이 아니라 Git 배포 기능에서 비공개 저장소 접근을
+  // 허용받는 흐름. OAuth App이 콜백 URL을 하나만 등록할 수 있어서 이 고정 콜백을 재사용하고,
+  // state 안의 접두사로 로그인 흐름과 구분한다.
+  if (provider === "github") {
+    const connectState = parseGithubConnectState(state);
+    if (connectState) {
+      const currentUser = await getCurrentUser();
+      if (!currentUser) {
+        return NextResponse.redirect(new URL(localizedPath(preLocale, "/login"), siteUrl()));
+      }
+      const settingsPath = `${localizedPath(preLocale, `/dashboard/servers/${connectState.serverId}`)}?tab=settings`;
+      try {
+        const { accessToken, githubLogin } = await exchangeGithubConnectCode(code);
+        await prisma.gitHubConnection.upsert({
+          where: { userId: currentUser.id },
+          update: { accessToken, githubLogin },
+          create: { userId: currentUser.id, accessToken, githubLogin },
+        });
+        return NextResponse.redirect(new URL(`${settingsPath}&githubConnected=1`, siteUrl()));
+      } catch (err) {
+        console.error("[oauth:github] 저장소 연동 실패:", err);
+        return NextResponse.redirect(new URL(`${settingsPath}&githubError=1`, siteUrl()));
+      }
+    }
   }
 
   const linkMode = store.get(`oauth_link_${provider}`)?.value === "1";

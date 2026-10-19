@@ -53,11 +53,19 @@ client.on(Events.GuildMemberAdd, async (member) => {
   if (member.guild.id !== officialGuildId) return;
 
   const settings = await prisma.botSettings.findUnique({ where: { id: 1 } }).catch(() => null);
-  const rulesHint = settings?.rulesChannelId ? ` <#${settings.rulesChannelId}> 에서 규칙 확인 후 인증도 해주세요.` : "";
+
+  // 더 이상 "인증하기" 버튼을 눌러야 채널이 열리는 구조가 아니라, 들어오면 바로 전체 채널을
+  // 볼 수 있게 인증 역할을 자동으로 준다. 이용약관 채널 안내만 환영 메시지에 남겨둔다.
+  if (settings?.verifiedRoleId) {
+    await member.roles.add(settings.verifiedRoleId).catch((err) => {
+      console.error("[bot] 신규 멤버 인증 역할 자동 부여 실패:", err);
+    });
+  }
+  const termsHint = settings?.rulesChannelId ? ` <#${settings.rulesChannelId}> 에서 이용약관도 확인해주세요.` : "";
 
   await member
     .send(
-      `🔥 Burnae 공식 서버에 오신 걸 환영해요!\n\`/도움말\` 을 입력하면 사용법을 볼 수 있어요. \`/요금제\`로 플랜도 바로 확인해보세요.${rulesHint}`,
+      `🔥 Burnae 공식 서버에 오신 걸 환영해요!\n\`/도움말\` 을 입력하면 사용법을 볼 수 있어요. \`/요금제\`로 플랜도 바로 확인해보세요.${termsHint}`,
     )
     .catch(() => {
       // DM을 막아둔 유저면 조용히 무시

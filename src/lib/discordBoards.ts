@@ -14,10 +14,15 @@ import {
 } from "@/lib/discordComponentsV2";
 
 /**
- * 규칙+인증 패널과 링크트리 패널을 "관리자가 설정을 저장할 때마다" 다시 그려서 올린다.
- * 새로 만들지 않고 저장된 메시지 id가 있으면 그 메시지를 그대로 수정한다(핀 고정이 풀리지 않고,
- * 채널이 도배되지 않는다). 버튼 클릭(인증하기)에 실제로 반응하는 건 봇 프로세스(src/bot)의 몫이고,
- * 여기서는 REST로 Components V2 패널만 채널에 올려둔다.
+ * 이용약관/규칙 패널을 "관리자가 설정을 저장할 때마다" 다시 그려서 올린다. 새로 만들지 않고
+ * 저장된 메시지 id가 있으면 그 메시지를 그대로 수정한다(핀 고정이 풀리지 않고, 채널이
+ * 도배되지 않는다).
+ *
+ * 전에는 이 패널에 "✅ 인증하기" 버튼이 있어서 눌러야 서버 전체 채널이 보였다 — 이제는 가입하면
+ * 바로 전체 채널이 보이게 바뀌어서(src/bot/index.ts의 GuildMemberAdd에서 자동으로 역할을 준다)
+ * 이 패널은 순수 안내용(이용약관 + 링크)으로만 남는다. verify_rules 버튼 핸들러 자체는
+ * 하위호환으로 코드에 남겨뒀지만(기존에 안 눌렀던 극소수가 나중에 눌러도 에러 없이
+ * "이미 인증되어 있어요"가 뜨게) 더 이상 이 메시지에는 버튼을 붙이지 않는다.
  */
 export async function syncRulesMessage(): Promise<void> {
   const settings = await prisma.botSettings.findUnique({ where: { id: 1 } });
@@ -25,10 +30,7 @@ export async function syncRulesMessage(): Promise<void> {
 
   const container = panel()
     .addTextDisplayComponents(heading(settings.rulesTitle))
-    .addTextDisplayComponents(text(settings.rulesContent || "아직 규칙이 등록되지 않았어요."))
-    .addSeparatorComponents(divider())
-    .addActionRowComponents(buttonRow(actionButton("verify_rules", "✅ 인증하기", ButtonStyle.Success)))
-    .addTextDisplayComponents(subtext("위 버튼을 눌러 규칙에 동의하고 인증을 완료하세요."));
+    .addTextDisplayComponents(text(settings.rulesContent || "아직 이용약관이 등록되지 않았어요."));
 
   const messageId = await upsertDiscordChannelMessage(settings.rulesChannelId, settings.rulesMessageId, {
     components: [container.toJSON()],

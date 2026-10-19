@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Bot, Copy, Check, ExternalLink, RefreshCw } from "lucide-react";
 
 interface InviteInfo {
@@ -12,6 +13,7 @@ interface InviteInfo {
 const HIDE_ERRORS = ["봇 토큰 항목이 없어서"];
 
 export default function DiscordInviteCard({ serverId }: { serverId: string }) {
+  const t = useTranslations("discordInviteCard");
   const [invite, setInvite] = useState<InviteInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,13 +31,13 @@ export default function DiscordInviteCard({ serverId }: { serverId: string }) {
         if (HIDE_ERRORS.some((s) => data.error?.includes(s))) {
           setHidden(true);
         } else {
-          setError(data.error ?? "초대 링크를 만들지 못했어요.");
+          setError(data.error ?? t("createFailed"));
         }
         return;
       }
       setInvite(data);
     } catch {
-      setError("초대 링크를 만들지 못했어요.");
+      setError(t("createFailed"));
     } finally {
       setLoading(false);
     }
@@ -55,17 +57,17 @@ export default function DiscordInviteCard({ serverId }: { serverId: string }) {
           <Bot size={15} className="text-accent" />
         </span>
         <div>
-          <h3 className="font-semibold text-sm">디스코드에 봇 초대하기</h3>
-          <p className="text-xs text-text-dim">클라이언트 ID를 직접 찾을 필요 없이 초대 링크를 자동으로 만들어줘요.</p>
+          <h3 className="font-semibold text-sm">{t("title")}</h3>
+          <p className="text-xs text-text-dim">{t("desc")}</p>
         </div>
       </div>
 
-      {loading && <p className="text-sm text-text-dim">확인하는 중...</p>}
+      {loading && <p className="text-sm text-text-dim">{t("checking")}</p>}
 
       {!loading && invite && (
         <div className="animate-toast-in space-y-3">
           <p className="text-sm">
-            <strong>{invite.appName}</strong> 봇을 찾았어요. 아래 링크로 원하는 서버에 초대하세요.
+            <strong>{invite.appName}</strong> {t("foundBot")}
           </p>
           <div className="flex flex-wrap gap-2">
             <a
@@ -74,7 +76,7 @@ export default function DiscordInviteCard({ serverId }: { serverId: string }) {
               rel="noopener noreferrer"
               className="btn-primary px-4 py-2 text-sm inline-flex items-center gap-1.5"
             >
-              <ExternalLink size={14} /> 서버에 초대하기
+              <ExternalLink size={14} /> {t("inviteButton")}
             </a>
             <button
               onClick={() => {
@@ -83,13 +85,10 @@ export default function DiscordInviteCard({ serverId }: { serverId: string }) {
               }}
               className="btn-secondary px-4 py-2 text-sm inline-flex items-center gap-1.5"
             >
-              {copied ? <Check size={14} className="text-green animate-toast-in" /> : <Copy size={14} />} {copied ? "복사됨" : "링크 복사"}
+              {copied ? <Check size={14} className="text-green animate-toast-in" /> : <Copy size={14} />} {copied ? t("copied") : t("copyLink")}
             </button>
           </div>
-          <p className="text-xs text-text-dim">
-            기본적으로 관리자 권한으로 초대돼요. 필요한 권한만 따로 설정하고 싶다면 디스코드 개발자
-            포털에서 직접 초대 링크를 만들어 쓰셔도 돼요.
-          </p>
+          <p className="text-xs text-text-dim">{t("permissionHint")}</p>
         </div>
       )}
 
@@ -97,7 +96,7 @@ export default function DiscordInviteCard({ serverId }: { serverId: string }) {
         <>
           <p className="text-sm text-yellow">{error}</p>
           <button onClick={load} className="btn-secondary px-3.5 py-2 text-xs inline-flex items-center gap-1.5">
-            <RefreshCw size={13} /> 다시 확인
+            <RefreshCw size={13} /> {t("retry")}
           </button>
         </>
       )}

@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 
 export default function EmailLoginForm() {
+  const t = useTranslations("emailLoginForm");
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -29,7 +31,7 @@ export default function EmailLoginForm() {
       if (!res.ok) {
         if (data.code === "EMAIL_NOT_VERIFIED") setNeedsVerification(true);
         if (data.requiresTwoFactor) setNeedsTwoFactor(true);
-        setError(data.error ?? "로그인에 실패했어요.");
+        setError(data.error ?? t("loginFailed"));
         return;
       }
       if (data.requiresTwoFactor) {
@@ -39,7 +41,7 @@ export default function EmailLoginForm() {
       router.push("/dashboard");
       router.refresh();
     } catch {
-      setError("로그인 중 오류가 발생했어요.");
+      setError(t("loginError"));
     } finally {
       setBusy(false);
     }
@@ -58,7 +60,7 @@ export default function EmailLoginForm() {
       if (!res.ok) throw new Error(data.error);
       setResendDone(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "재전송 실패");
+      setError(err instanceof Error ? err.message : t("resendFailed"));
     } finally {
       setBusy(false);
     }
@@ -69,7 +71,7 @@ export default function EmailLoginForm() {
       <input
         type="email"
         className="input w-full text-sm"
-        placeholder="이메일"
+        placeholder={t("emailPlaceholder")}
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         required
@@ -77,7 +79,7 @@ export default function EmailLoginForm() {
       <input
         type="password"
         className="input w-full text-sm"
-        placeholder="비밀번호"
+        placeholder={t("passwordPlaceholder")}
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         required
@@ -87,7 +89,7 @@ export default function EmailLoginForm() {
           type="text"
           inputMode="numeric"
           className="input w-full text-sm font-mono tracking-widest"
-          placeholder="2단계 인증 코드 (6자리 또는 복구 코드)"
+          placeholder={t("twoFactorPlaceholder")}
           value={code}
           onChange={(e) => setCode(e.target.value)}
           autoFocus
@@ -98,7 +100,7 @@ export default function EmailLoginForm() {
         disabled={busy || !email || !password}
         className="btn-primary w-full py-2.5 text-sm active:scale-[0.98] transition-transform disabled:opacity-40"
       >
-        {busy ? "확인 중..." : "이메일로 로그인"}
+        {busy ? t("submitBusy") : t("submit")}
       </button>
       {needsVerification && (
         <button
@@ -107,11 +109,11 @@ export default function EmailLoginForm() {
           disabled={busy || resendDone}
           className="btn-secondary w-full py-2 text-xs active:scale-95 transition-transform disabled:opacity-40"
         >
-          {resendDone ? "인증 메일을 다시 보냈어요" : "인증 메일 다시 받기"}
+          {resendDone ? t("resendDone") : t("resend")}
         </button>
       )}
       {needsVerification && (
-        <p className="text-xs text-text-dim">메일이 안 보이면 스팸함(스팸 메일함)도 확인해주세요.</p>
+        <p className="text-xs text-text-dim">{t("checkSpam")}</p>
       )}
       {error && <p className="text-xs text-red">{error}</p>}
     </form>

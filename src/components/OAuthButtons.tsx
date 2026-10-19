@@ -1,12 +1,14 @@
+import { useTranslations } from "next-intl";
 import { GoogleLogo, GithubLogo, DiscordLogo } from "@/components/ProviderIcons";
 
 const PROVIDERS = [
-  { key: "google", label: "Google로 계속하기", Icon: GoogleLogo },
-  { key: "github", label: "GitHub로 계속하기", Icon: GithubLogo },
-  { key: "discord", label: "Discord로 계속하기", Icon: DiscordLogo },
+  { key: "google", labelKey: "google", Icon: GoogleLogo },
+  { key: "github", labelKey: "github", Icon: GithubLogo },
+  { key: "discord", labelKey: "discord", Icon: DiscordLogo },
 ] as const;
 
 export default function OAuthButtons({ referralCode }: { referralCode?: string }) {
+  const t = useTranslations("oauthButtons");
   return (
     <div className="space-y-2">
       {PROVIDERS.map((p, i) => (
@@ -17,7 +19,7 @@ export default function OAuthButtons({ referralCode }: { referralCode?: string }
           style={{ animationDelay: `${i * 0.06}s` }}
         >
           <p.Icon size={18} />
-          {p.label}
+          {t(p.labelKey)}
         </a>
       ))}
     </div>

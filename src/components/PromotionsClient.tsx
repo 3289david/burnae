@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Copy, Check, CheckCircle2, Clock, Gift } from "lucide-react";
 import SuccessCheck from "@/components/SuccessCheck";
 import CountUp from "@/components/CountUp";
@@ -30,14 +31,14 @@ interface ServerOption {
   name: string;
 }
 
-const AUTO_LABEL: Record<VerifyMethod, string> = {
-  URL_CONTAINS_LINK: "URL 제출 → 자동 확인",
-  SERVER_MOTD_BRANDED: "내 서버 확인 → 자동 확인",
-  DISCORD_MEMBER: "디스코드 확인 → 자동 확인",
-  REFERRAL_SIGNUP: "친구 가입 시 자동 지급",
-  REFERRAL_FIRST_PAYMENT: "친구 첫 결제 시 자동 지급",
-  MANUAL_REVIEW: "관리자 확인 필요",
-  CUSTOM_PRESET_PUBLISHED: "프리셋 공개 시 자동 지급",
+const AUTO_LABEL_KEY: Record<VerifyMethod, string> = {
+  URL_CONTAINS_LINK: "autoUrlSubmit",
+  SERVER_MOTD_BRANDED: "autoMotd",
+  DISCORD_MEMBER: "autoDiscord",
+  REFERRAL_SIGNUP: "autoReferralSignup",
+  REFERRAL_FIRST_PAYMENT: "autoReferralPayment",
+  MANUAL_REVIEW: "manualReview",
+  CUSTOM_PRESET_PUBLISHED: "autoPreset",
 };
 
 export default function PromotionsClient({
@@ -51,6 +52,7 @@ export default function PromotionsClient({
   servers: ServerOption[];
   tasks: Task[];
 }) {
+  const t = useTranslations("promotionsClient");
   const [currentPoints, setCurrentPoints] = useState(points);
   const [taskState, setTaskState] = useState(tasks);
   const [copied, setCopied] = useState(false);
@@ -71,10 +73,10 @@ export default function PromotionsClient({
       <div className="blob w-72 h-72 bg-pink -top-28 -right-16 animate-float pointer-events-none" />
 
       <h1 className="text-2xl font-bold font-display animate-fade-up">
-        서버 <span className="text-gradient">홍보</span>하고 포인트 받기
+        {t("titlePrefix")}<span className="text-gradient">{t("titleHighlight")}</span>{t("titleSuffix")}
       </h1>
       <p className="text-sm text-text-dim mt-1 animate-fade-up" style={{ animationDelay: "0.05s" }}>
-        아래 방법으로 Burnae를 홍보하면 포인트가 쌓여요. 모은 포인트로 무료 체험 서버를 받을 수 있어요.
+        {t("subtitle")}
       </p>
 
       <div
@@ -86,14 +88,14 @@ export default function PromotionsClient({
             <Gift size={20} className="text-accent" />
           </span>
           <div>
-            <p className="text-xs text-text-dim">내 포인트</p>
+            <p className="text-xs text-text-dim">{t("myPoints")}</p>
             <p className="text-2xl font-bold font-display text-gradient">
               <CountUp value={currentPoints} />P
             </p>
           </div>
         </div>
         <div className="min-w-0">
-          <p className="text-xs text-text-dim mb-1">내 추천 링크</p>
+          <p className="text-xs text-text-dim mb-1">{t("myReferralLink")}</p>
           <div className="flex items-center gap-2">
             <code className="text-xs bg-surface-2 rounded-lg px-2.5 py-1.5 truncate max-w-[220px]">{referralLink}</code>
             <button onClick={copyReferralLink} className="text-text-dim hover:text-text shrink-0 active:scale-90 transition-transform">
@@ -103,15 +105,15 @@ export default function PromotionsClient({
         </div>
       </div>
 
-      <h2 className="font-semibold mt-8 mb-3 animate-fade-up" style={{ animationDelay: "0.15s" }}>홍보 방법</h2>
+      <h2 className="font-semibold mt-8 mb-3 animate-fade-up" style={{ animationDelay: "0.15s" }}>{t("sectionTitle")}</h2>
       <div className="space-y-2.5">
-        {taskState.map((t, i) => (
+        {taskState.map((task, i) => (
           <TaskRow
-            key={t.id}
-            task={t}
+            key={task.id}
+            task={task}
             servers={servers}
             delay={0.15 + Math.min(i, 8) * 0.04}
-            onDone={(patch) => updateTask(t.id, patch)}
+            onDone={(patch) => updateTask(task.id, patch)}
             onPoints={(p) => setCurrentPoints((c) => c + p)}
           />
         ))}
@@ -134,6 +136,7 @@ function TaskRow({
   onDone: (patch: Partial<Task>) => void;
   onPoints: (p: number) => void;
 }) {
+  const t = useTranslations("promotionsClient");
   const [url, setUrl] = useState("");
   const [serverId, setServerId] = useState(servers[0]?.id ?? "");
   const [loading, setLoading] = useState(false);
@@ -162,7 +165,7 @@ function TaskRow({
       }
       setUrl("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "제출 실패");
+      setError(err instanceof Error ? err.message : t("submitFailed"));
     } finally {
       setLoading(false);
     }
@@ -180,7 +183,7 @@ function TaskRow({
             {task.title}
           </p>
           <p className="text-xs text-text-dim mt-0.5">{task.description}</p>
-          <p className="text-xs text-text-dim mt-0.5">{AUTO_LABEL[task.verifyMethod]}</p>
+          <p className="text-xs text-text-dim mt-0.5">{t(AUTO_LABEL_KEY[task.verifyMethod])}</p>
         </div>
         <span className="text-sm font-semibold text-accent shrink-0">+{task.pointsAwarded}P</span>
       </div>
@@ -189,7 +192,7 @@ function TaskRow({
         <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-border">
           {task.verifyMethod === "SERVER_MOTD_BRANDED" ? (
             <select className="input flex-1 text-sm" value={serverId} onChange={(e) => setServerId(e.target.value)}>
-              {servers.length === 0 && <option value="">보유한 서버가 없어요</option>}
+              {servers.length === 0 && <option value="">{t("noServers")}</option>}
               {servers.map((s) => (
                 <option key={s.id} value={s.id}>{s.name}</option>
               ))}
@@ -197,7 +200,7 @@ function TaskRow({
           ) : task.verifyMethod === "DISCORD_MEMBER" ? null : (
             <input
               className="input flex-1 text-sm"
-              placeholder="https://..."
+              placeholder={t("urlPlaceholder")}
               value={url}
               onChange={(e) => setUrl(e.target.value)}
             />
@@ -207,12 +210,12 @@ function TaskRow({
             disabled={loading || (task.verifyMethod === "SERVER_MOTD_BRANDED" && !serverId) || (task.verifyMethod !== "SERVER_MOTD_BRANDED" && task.verifyMethod !== "DISCORD_MEMBER" && !url)}
             className="btn-secondary px-4 py-1.5 text-sm shrink-0 active:scale-95 transition-transform"
           >
-            {loading ? "확인 중..." : "확인하기"}
+            {loading ? t("checking") : t("checkButton")}
           </button>
         </div>
       )}
       {error && <p className="text-xs text-red mt-2">{error}</p>}
-      {task.pending && <p className="text-xs text-yellow mt-2">관리자 확인을 기다리고 있어요.</p>}
+      {task.pending && <p className="text-xs text-yellow mt-2">{t("pendingReview")}</p>}
     </div>
   );
 }

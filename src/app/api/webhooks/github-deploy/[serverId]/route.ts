@@ -27,7 +27,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ ser
   if (event !== "push") return NextResponse.json({ ok: true, ignored: event });
 
   // 응답은 바로 돌려주고(GitHub는 10초 안에 응답 없으면 실패로 기록함) 배포는 비동기로 진행한다
-  redeployFromGit(server, null).catch((err) => {
+  redeployFromGit(server, null, "WEBHOOK").catch((err) => {
     console.error(`[github-deploy] 서버 ${server.id} 배포 실패:`, err);
   });
 

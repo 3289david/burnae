@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import SuccessCheck from "@/components/SuccessCheck";
 
 export default function DepositorNameCard({ initial }: { initial: string | null }) {
+  const t = useTranslations("depositorNameCard");
   const [value, setValue] = useState(initial ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -24,7 +26,7 @@ export default function DepositorNameCard({ initial }: { initial: string | null 
       if (!res.ok) throw new Error(data.error);
       setSaved(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "저장 실패");
+      setError(err instanceof Error ? err.message : t("saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -32,11 +34,8 @@ export default function DepositorNameCard({ initial }: { initial: string | null 
 
   return (
     <div className="card-glow p-5 animate-fade-up">
-      <h3 className="font-semibold">결제 입금자명</h3>
-      <p className="text-sm text-text-dim mt-1">
-        무통장입금 시 사용할 입금자명이에요. 공백 없이 1~5자여야 하고, 비워두면 이름 기반으로 자동
-        생성돼요.
-      </p>
+      <h3 className="font-semibold">{t("title")}</h3>
+      <p className="text-sm text-text-dim mt-1">{t("desc")}</p>
       <form onSubmit={save} className="flex gap-2 mt-3">
         <input
           value={value}
@@ -45,16 +44,16 @@ export default function DepositorNameCard({ initial }: { initial: string | null 
             setSaved(false);
           }}
           maxLength={5}
-          placeholder="예: 홍길동"
+          placeholder={t("placeholder")}
           className="input flex-1 text-sm"
         />
         <button type="submit" disabled={saving} className="btn-secondary px-4 py-1.5 text-sm shrink-0 active:scale-95 transition-transform">
-          {saving ? "저장 중..." : "저장"}
+          {saving ? t("savingLabel") : t("saveLabel")}
         </button>
       </form>
       {saved && (
         <p className="animate-toast-in text-xs text-green mt-2 flex items-center gap-1">
-          <SuccessCheck size={16} /> 저장됐어요.
+          <SuccessCheck size={16} /> {t("saved")}
         </p>
       )}
       {error && <p className="text-xs text-red mt-2">{error}</p>}

@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Sun, Moon } from "lucide-react";
 
 export default function ThemeToggle({ className = "" }: { className?: string }) {
+  const t = useTranslations("themeToggle");
   const [theme, setTheme] = useState<"dark" | "light" | null>(null);
 
   useEffect(() => {
@@ -21,7 +23,7 @@ export default function ThemeToggle({ className = "" }: { className?: string }) 
   return (
     <button
       onClick={toggle}
-      aria-label="화면 모드 전환"
+      aria-label={t("ariaLabel")}
       className={`w-8 h-8 rounded-full flex items-center justify-center text-text-dim hover:text-text hover:bg-surface-2 transition-colors active:scale-90 ${className}`}
     >
       {theme === "light" ? (

@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Coins } from "lucide-react";
 import SuccessCheck from "@/components/SuccessCheck";
-import CryptoPaymentOption from "@/components/CryptoPaymentOption";
+import { openPaymentWindow } from "@/lib/openPaymentWindow";
 
 const PACKAGES = [
   { points: 500, priceKrw: 500 },
@@ -11,19 +12,15 @@ const PACKAGES = [
   { points: 10000, priceKrw: 10000 },
 ];
 
-interface BankAccount {
-  bankName: string;
-  accountNumber: string;
-  accountHolder: string;
-}
-
-/** 돈으로 포인트를 직접 충전 — AI 크레딧 충전 카드와 동일한 하나은행 입금 확인 패턴 */
+/** 돈으로 포인트를 직접 충전 — 결제 자체는 새 창(openPaymentWindow)에서 진행하고, 여기서는
+ * 완료 여부만 폴링해서 반영한다(화면에 입금 안내가 그대로 펼쳐져 있는 게 산만하다는 피드백 반영) */
 export default function PointsPurchaseCard() {
+  const t = useTranslations("pointsPurchaseCard");
+  const tc = useTranslations("common");
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [payment, setPayment] = useState<{ orderId: string; amountKrw: number; depositorName: string } | null>(null);
-  const [bank, setBank] = useState<BankAccount | null>(null);
+  const [payment, setPayment] = useState<{ orderId: string } | null>(null);
   const [justCharged, setJustCharged] = useState(false);
 
   async function buy(pkg: (typeof PACKAGES)[number]) {
@@ -43,11 +40,10 @@ export default function PointsPurchaseCard() {
         setTimeout(() => window.location.reload(), 1200);
         return;
       }
-      setPayment({ orderId: data.id, amountKrw: data.amountKrw, depositorName: data.depositorName });
-      const bankRes = await fetch("/api/payment/bank-account");
-      if (bankRes.ok) setBank(await bankRes.json());
+      setPayment({ orderId: data.id });
+      openPaymentWindow(data.id);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "결제 요청 실패");
+      setError(err instanceof Error ? err.message : t("purchaseFailed"));
     } finally {
       setBusy(false);
     }
@@ -78,19 +74,19 @@ export default function PointsPurchaseCard() {
             <Coins size={15} className="text-yellow" />
           </span>
           <div>
-            <p className="text-sm font-medium">포인트 충전</p>
-            <p className="text-xs text-text-dim">1원 = 1포인트 · 입금 확인 후 자동 충전</p>
+            <p className="text-sm font-medium">{t("title")}</p>
+            <p className="text-xs text-text-dim">{t("subtitle")}</p>
           </div>
         </div>
         <button onClick={() => setOpen((v) => !v)} className="btn-secondary px-3.5 py-1.5 text-xs shrink-0 active:scale-95 transition-transform">
-          {open ? "닫기" : "충전하기"}
+          {open ? tc("close") : t("open")}
         </button>
       </div>
 
       {justCharged && (
         <div className="animate-toast-in mt-3 pt-3 border-t border-border flex items-center gap-2 text-sm text-green">
           <SuccessCheck size={24} confetti />
-          충전됐어요!
+          {t("charged")}
         </div>
       )}
 
@@ -105,7 +101,7 @@ export default function PointsPurchaseCard() {
               style={{ animationDelay: `${i * 0.04}s` }}
             >
               <p className="font-semibold text-sm">{pkg.points.toLocaleString()}P</p>
-              <p className="text-xs text-text-dim mt-0.5">{pkg.priceKrw.toLocaleString()}원</p>
+              <p className="text-xs text-text-dim mt-0.5">{pkg.priceKrw.toLocaleString()}{tc("krw")}</p>
             </button>
           ))}
         </div>
@@ -113,13 +109,12 @@ export default function PointsPurchaseCard() {
 
       {payment && (
         <div className="mt-3 pt-3 border-t border-border space-y-1.5 text-sm">
-          {bank && <p>{bank.bankName} {bank.accountNumber} ({bank.accountHolder})</p>}
-          <p>입금자명: <strong className="text-accent">{payment.depositorName}</strong></p>
-          <p>금액: <strong className="text-accent">{payment.amountKrw.toLocaleString()}원</strong></p>
           <p className="text-xs text-text-dim flex items-center gap-1.5">
-            <span className="animate-pulse">●</span> 입금 확인 대기 중... (자동으로 충전돼요)
+            <span className="animate-pulse">●</span> {t("waiting")}
           </p>
-          <CryptoPaymentOption orderId={payment.orderId} amountKrw={payment.amountKrw} />
+          <button onClick={() => openPaymentWindow(payment.orderId)} className="text-xs text-accent hover:underline">
+            {t("reopenWindow")}
+          </button>
         </div>
       )}
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import QRCode from "qrcode";
 import { Coins, Copy, Check, ExternalLink } from "lucide-react";
 
@@ -30,15 +31,15 @@ const EXPLORER_URL: Record<string, (address: string) => string> = {
   LTC: (a) => `https://blockchair.com/litecoin/address/${a}`,
 };
 
-const STATUS_LABEL: Record<string, string> = {
-  PENDING: "입금 대기 중",
-  DETECTED: "입금 감지됨 — 확인 중",
-  CONFIRMING: "확인 중",
-  UNDERPAID: "입금액이 부족해요 — 관리자 확인 중",
-  CONFIRMED: "결제 확인 완료!",
-  EXPIRED: "결제 시간이 초과됐어요",
-  FAILED: "결제 처리에 실패했어요",
-  MANUAL_REVIEW: "관리자 확인이 필요해요",
+const STATUS_KEY: Record<string, string> = {
+  PENDING: "statusPending",
+  DETECTED: "statusDetected",
+  CONFIRMING: "statusConfirming",
+  UNDERPAID: "statusUnderpaid",
+  CONFIRMED: "statusConfirmed",
+  EXPIRED: "statusExpired",
+  FAILED: "statusFailed",
+  MANUAL_REVIEW: "statusManualReview",
 };
 
 function useCountdown(expiresAt: string | undefined) {
@@ -69,6 +70,7 @@ export default function CryptoPaymentOption({
   amountKrw: number;
   onConfirmed?: () => void;
 }) {
+  const t = useTranslations("cryptoPaymentOption");
   const [open, setOpen] = useState(false);
   const [coins, setCoins] = useState<CoinOption[] | null>(null);
   const [payment, setPayment] = useState<CryptoPayment | null>(null);
@@ -116,7 +118,7 @@ export default function CryptoPaymentOption({
       if (!res.ok) throw new Error(data.error);
       setPayment(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "결제 생성에 실패했어요.");
+      setError(err instanceof Error ? err.message : t("createFailed"));
     } finally {
       setBusy(false);
     }
@@ -136,7 +138,7 @@ export default function CryptoPaymentOption({
         onClick={() => setOpen(true)}
         className="w-full btn-secondary py-2.5 text-sm inline-flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
       >
-        <Coins size={15} /> 코인으로 결제하기
+        <Coins size={15} /> {t("payWithCrypto")}
       </button>
     );
   }
@@ -144,9 +146,9 @@ export default function CryptoPaymentOption({
   if (!payment) {
     return (
       <div className="card p-5 space-y-3 animate-fade-up">
-        <p className="text-sm font-medium">결제 수단 선택</p>
-        {coins === null && <p className="text-sm text-text-dim">불러오는 중...</p>}
-        {coins?.length === 0 && <p className="text-sm text-text-dim">지금은 코인 결제를 받을 수 없어요.</p>}
+        <p className="text-sm font-medium">{t("choosePayment")}</p>
+        {coins === null && <p className="text-sm text-text-dim">{t("loading")}</p>}
+        {coins?.length === 0 && <p className="text-sm text-text-dim">{t("noneAvailable")}</p>}
         <div className="space-y-2">
           {coins?.map((c) => (
             <button
@@ -164,7 +166,7 @@ export default function CryptoPaymentOption({
         </div>
         {error && <p className="text-xs text-red">{error}</p>}
         <button onClick={() => setOpen(false)} className="text-xs text-text-dim hover:underline">
-          계좌이체로 돌아가기
+          {t("backToBank")}
         </button>
       </div>
     );
@@ -174,11 +176,11 @@ export default function CryptoPaymentOption({
 
   return (
     <div className="card p-5 space-y-3 animate-fade-up text-center">
-      <p className="text-sm font-medium">{STATUS_LABEL[payment.status] ?? payment.status}</p>
+      <p className="text-sm font-medium">{t(STATUS_KEY[payment.status] ?? "statusPending")}</p>
 
       {payment.status === "PENDING" && (
         <>
-          {qr && <img src={qr} alt="입금 주소 QR 코드" className="mx-auto rounded-lg" width={180} height={180} />}
+          {qr && <img src={qr} alt={t("qrAlt")} className="mx-auto rounded-lg" width={180} height={180} />}
           <div
             onClick={copyAddress}
             className="font-mono text-xs break-all bg-surface-2 rounded-lg px-3 py-2 cursor-pointer hover:bg-surface-2/70 inline-flex items-center gap-1.5"
@@ -187,22 +189,22 @@ export default function CryptoPaymentOption({
             {copied ? <Check size={13} className="text-green shrink-0" /> : <Copy size={13} className="text-text-dim shrink-0" />}
           </div>
           <p className="text-sm">
-            보낼 금액: <strong className="font-mono">{payment.amountCrypto}</strong>
+            {t("sendAmount")} <strong className="font-mono">{payment.amountCrypto}</strong>
           </p>
-          <p className="text-xs text-text-dim">남은 시간: {countdown}</p>
-          <p className="text-xs text-text-dim">입금을 확인하면 자동으로 다음 단계로 넘어가요.</p>
+          <p className="text-xs text-text-dim">{t("timeRemaining", { time: countdown })}</p>
+          <p className="text-xs text-text-dim">{t("autoConfirmHint")}</p>
         </>
       )}
 
       {payment.status === "UNDERPAID" && (
         <p className="text-sm text-text-dim">
-          {payment.receivedCrypto} / {payment.amountCrypto} 입금 확인됨 — 부족한 만큼 추가로 같은 주소에 보내주세요.
+          {t("underpaidMessage", { received: payment.receivedCrypto, amount: payment.amountCrypto })}
         </p>
       )}
 
       {explorer && (
         <a href={explorer} target="_blank" rel="noopener noreferrer" className="text-xs text-accent inline-flex items-center gap-1 hover:underline">
-          블록 탐색기에서 보기 <ExternalLink size={11} />
+          {t("viewExplorer")} <ExternalLink size={11} />
         </a>
       )}
 
@@ -214,7 +216,7 @@ export default function CryptoPaymentOption({
           }}
           className="btn-secondary px-4 py-2 text-sm"
         >
-          다시 시도
+          {t("retry")}
         </button>
       )}
     </div>

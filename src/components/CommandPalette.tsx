@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { Search, Server, Plus, CreditCard, User, Users, Gift, ShieldCheck, CornerDownLeft } from "lucide-react";
 
@@ -20,21 +21,22 @@ interface StaticAction {
 
 export const OPEN_COMMAND_PALETTE_EVENT = "open-command-palette";
 
-function buildStaticActions(showAdminLink: boolean): StaticAction[] {
+function buildStaticActions(showAdminLink: boolean, t: ReturnType<typeof useTranslations<"commandPalette">>): StaticAction[] {
   const actions: StaticAction[] = [
-    { id: "new-server", label: "새 서버 만들기", href: "/dashboard/servers/new", icon: Plus },
-    { id: "dashboard", label: "대시보드", href: "/dashboard", icon: Server },
-    { id: "community-eggs", label: "커뮤니티 프리셋", href: "/dashboard/community-eggs", icon: Users },
-    { id: "promotions", label: "홍보 포인트", href: "/dashboard/promotions", icon: Gift },
-    { id: "billing", label: "결제 내역", href: "/dashboard/billing", icon: CreditCard },
-    { id: "account", label: "계정 설정", href: "/dashboard/account", icon: User },
+    { id: "new-server", label: t("newServer"), href: "/dashboard/servers/new", icon: Plus },
+    { id: "dashboard", label: t("dashboard"), href: "/dashboard", icon: Server },
+    { id: "community-eggs", label: t("communityEggs"), href: "/dashboard/community-eggs", icon: Users },
+    { id: "promotions", label: t("promotions"), href: "/dashboard/promotions", icon: Gift },
+    { id: "billing", label: t("billing"), href: "/dashboard/billing", icon: CreditCard },
+    { id: "account", label: t("account"), href: "/dashboard/account", icon: User },
   ];
-  if (showAdminLink) actions.push({ id: "admin", label: "관리자 페이지", href: "/admin", icon: ShieldCheck });
+  if (showAdminLink) actions.push({ id: "admin", label: t("admin"), href: "/admin", icon: ShieldCheck });
   return actions;
 }
 
 /** 대시보드 전역에서 Cmd/Ctrl+K로 여는 빠른 이동 팔레트 — 서버 검색 + 주요 액션 바로가기 */
 export default function CommandPalette({ showAdminLink }: { showAdminLink: boolean }) {
+  const t = useTranslations("commandPalette");
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -42,7 +44,7 @@ export default function CommandPalette({ showAdminLink }: { showAdminLink: boole
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const staticActions = buildStaticActions(showAdminLink);
+  const staticActions = buildStaticActions(showAdminLink, t);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -89,7 +91,7 @@ export default function CommandPalette({ showAdminLink }: { showAdminLink: boole
     ...matchedServers.map((s) => ({
       key: `server-${s.id}`,
       label: s.name,
-      hint: s.status === "RUNNING" ? "온라인" : undefined,
+      hint: s.status === "RUNNING" ? t("online") : undefined,
       icon: Server,
       go: () => router.push(`/dashboard/servers/${s.id}`),
     })),
@@ -141,7 +143,7 @@ export default function CommandPalette({ showAdminLink }: { showAdminLink: boole
                 select(activeIndex);
               }
             }}
-            placeholder="서버 검색 또는 이동할 페이지..."
+            placeholder={t("searchPlaceholder")}
             className="flex-1 bg-transparent outline-none text-sm"
           />
           <kbd className="text-[10px] text-text-dim bg-surface-2 rounded px-1.5 py-0.5 shrink-0">ESC</kbd>
@@ -149,7 +151,7 @@ export default function CommandPalette({ showAdminLink }: { showAdminLink: boole
 
         <div className="max-h-80 overflow-y-auto py-1.5">
           {results.length === 0 && (
-            <p className="text-sm text-text-dim text-center py-6">결과가 없어요.</p>
+            <p className="text-sm text-text-dim text-center py-6">{t("noResults")}</p>
           )}
           {results.map((r, i) => {
             const Icon = r.icon;

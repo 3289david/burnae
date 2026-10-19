@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 export default function EmailRegisterForm({ referralCode }: { referralCode?: string }) {
+  const t = useTranslations("emailRegisterForm");
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
@@ -24,7 +26,7 @@ export default function EmailRegisterForm({ referralCode }: { referralCode?: str
       if (!res.ok) throw new Error(data.error);
       setSent(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "가입 중 오류가 발생했어요.");
+      setError(err instanceof Error ? err.message : t("registerError"));
     } finally {
       setBusy(false);
     }
@@ -33,8 +35,8 @@ export default function EmailRegisterForm({ referralCode }: { referralCode?: str
   if (sent) {
     return (
       <div className="card-glow p-4 text-sm animate-toast-in">
-        <p><strong>{email}</strong>로 인증 메일을 보냈어요. 메일의 버튼을 누르면 바로 로그인돼요.</p>
-        <p className="text-xs text-text-dim mt-1.5">메일이 안 보이면 스팸함(스팸 메일함)도 확인해주세요.</p>
+        <p>{t.rich("sentMessage", { email, b: (chunks) => <strong>{chunks}</strong> })}</p>
+        <p className="text-xs text-text-dim mt-1.5">{t("checkSpam")}</p>
       </div>
     );
   }
@@ -44,7 +46,7 @@ export default function EmailRegisterForm({ referralCode }: { referralCode?: str
       <input
         type="text"
         className="input w-full text-sm"
-        placeholder="이름"
+        placeholder={t("namePlaceholder")}
         maxLength={20}
         value={name}
         onChange={(e) => setName(e.target.value)}
@@ -53,7 +55,7 @@ export default function EmailRegisterForm({ referralCode }: { referralCode?: str
       <input
         type="email"
         className="input w-full text-sm"
-        placeholder="이메일"
+        placeholder={t("emailPlaceholder")}
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         required
@@ -61,7 +63,7 @@ export default function EmailRegisterForm({ referralCode }: { referralCode?: str
       <input
         type="password"
         className="input w-full text-sm"
-        placeholder="비밀번호 (8자 이상)"
+        placeholder={t("passwordPlaceholder")}
         minLength={8}
         value={password}
         onChange={(e) => setPassword(e.target.value)}
@@ -72,7 +74,7 @@ export default function EmailRegisterForm({ referralCode }: { referralCode?: str
         disabled={busy || !email || !name || password.length < 8}
         className="btn-primary w-full py-2.5 text-sm active:scale-[0.98] transition-transform disabled:opacity-40"
       >
-        {busy ? "처리 중..." : "이메일로 시작하기"}
+        {busy ? t("submitBusy") : t("submit")}
       </button>
       {error && <p className="text-xs text-red">{error}</p>}
     </form>

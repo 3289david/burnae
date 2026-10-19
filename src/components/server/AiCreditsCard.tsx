@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Sparkles } from "lucide-react";
 import SuccessCheck from "@/components/SuccessCheck";
 import CountUp from "@/components/CountUp";
-import CryptoPaymentOption from "@/components/CryptoPaymentOption";
+import { openPaymentWindow } from "@/lib/openPaymentWindow";
 
 /** 40원 = 1크레딧 */
 const PACKAGES = [
@@ -13,19 +14,14 @@ const PACKAGES = [
   { credits: 1500, priceKrw: 60000 },
 ];
 
-interface BankAccount {
-  bankName: string;
-  accountNumber: string;
-  accountHolder: string;
-}
-
 export default function AiCreditsCard() {
+  const t = useTranslations("aiCreditsCard");
+  const tc = useTranslations("common");
   const [credits, setCredits] = useState<number | null>(null);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [payment, setPayment] = useState<{ orderId: string; amountKrw: number; depositorName: string } | null>(null);
-  const [bank, setBank] = useState<BankAccount | null>(null);
+  const [payment, setPayment] = useState<{ orderId: string } | null>(null);
   const [justCharged, setJustCharged] = useState(false);
 
   function loadBalance() {
@@ -53,11 +49,10 @@ export default function AiCreditsCard() {
         setTimeout(() => setJustCharged(false), 3000);
         return;
       }
-      setPayment({ orderId: data.id, amountKrw: data.amountKrw, depositorName: data.depositorName });
-      const bankRes = await fetch("/api/payment/bank-account");
-      if (bankRes.ok) setBank(await bankRes.json());
+      setPayment({ orderId: data.id });
+      openPaymentWindow(data.id);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "결제 요청 실패");
+      setError(err instanceof Error ? err.message : t("purchaseFailed"));
     } finally {
       setBusy(false);
     }
@@ -89,22 +84,22 @@ export default function AiCreditsCard() {
             <Sparkles size={15} className="text-purple" />
           </span>
           <div>
-            <p className="text-sm font-medium">AI 크레딧</p>
+            <p className="text-sm font-medium">{t("title")}</p>
             <p className="text-xs text-text-dim">
-              메시지 1건당 1크레딧 소모 · 보유{" "}
-              {credits === null ? "-" : <CountUp value={credits} format={(n) => n.toLocaleString("ko-KR")} />}개
+              {t("subtitlePrefix")}{" "}
+              {credits === null ? "-" : <CountUp value={credits} format={(n) => n.toLocaleString("en-US")} />} {t("subtitleSuffix")}
             </p>
           </div>
         </div>
         <button onClick={() => setOpen((v) => !v)} className="btn-secondary px-3.5 py-1.5 text-xs shrink-0 active:scale-95 transition-transform">
-          {open ? "닫기" : "충전하기"}
+          {open ? tc("close") : t("open")}
         </button>
       </div>
 
       {justCharged && (
         <div className="animate-toast-in mt-3 pt-3 border-t border-border flex items-center gap-2 text-sm text-green">
           <SuccessCheck size={24} confetti />
-          충전됐어요!
+          {t("charged")}
         </div>
       )}
 
@@ -118,8 +113,8 @@ export default function AiCreditsCard() {
               className="rounded-xl border border-border bg-surface p-3 text-center hover:border-accent/40 hover:bg-surface-2 transition-all duration-150 active:scale-95 animate-fade-up"
               style={{ animationDelay: `${i * 0.04}s` }}
             >
-              <p className="font-semibold text-sm">{pkg.credits.toLocaleString()}개</p>
-              <p className="text-xs text-text-dim mt-0.5">{pkg.priceKrw.toLocaleString()}원</p>
+              <p className="font-semibold text-sm">{pkg.credits.toLocaleString()}{t("creditsUnit")}</p>
+              <p className="text-xs text-text-dim mt-0.5">{pkg.priceKrw.toLocaleString()}{tc("krw")}</p>
             </button>
           ))}
         </div>
@@ -127,13 +122,12 @@ export default function AiCreditsCard() {
 
       {payment && (
         <div className="mt-3 pt-3 border-t border-border space-y-1.5 text-sm">
-          {bank && <p>{bank.bankName} {bank.accountNumber} ({bank.accountHolder})</p>}
-          <p>입금자명: <strong className="text-accent">{payment.depositorName}</strong></p>
-          <p>금액: <strong className="text-accent">{payment.amountKrw.toLocaleString()}원</strong></p>
           <p className="text-xs text-text-dim flex items-center gap-1.5">
-            <span className="animate-pulse">●</span> 입금 확인 대기 중... (자동으로 충전돼요)
+            <span className="animate-pulse">●</span> {t("waiting")}
           </p>
-          <CryptoPaymentOption orderId={payment.orderId} amountKrw={payment.amountKrw} />
+          <button onClick={() => openPaymentWindow(payment.orderId)} className="text-xs text-accent hover:underline">
+            {t("reopenWindow")}
+          </button>
         </div>
       )}
 

@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useRouter } from "@/i18n/navigation";
 import SuccessCheck from "@/components/SuccessCheck";
 import FullScreenCelebration from "@/components/FullScreenCelebration";
-import CryptoPaymentOption from "@/components/CryptoPaymentOption";
+import { openPaymentWindow } from "@/lib/openPaymentWindow";
 import { formatMb } from "@/lib/formatSize";
 import {
   Check,
@@ -605,9 +605,12 @@ function NewServerPageInner() {
             <span className="animate-pulse">●</span> 입금 확인 대기 중...
           </div>
         </div>
-        <div className="mt-4">
-          <CryptoPaymentOption orderId={order.id} amountKrw={order.amountKrw} />
-        </div>
+        <button
+          onClick={() => openPaymentWindow(order.id)}
+          className="btn-secondary w-full mt-4 py-2.5 text-sm"
+        >
+          코인으로 결제하기 (새 창에서 열기)
+        </button>
       </div>
     );
   }

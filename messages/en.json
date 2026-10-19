@@ -1,6 +1,11 @@
 {
   "common": {
-    "brand": "Burnae"
+    "close": "Close",
+    "save": "Save",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "krw": " KRW",
+    "checking": "Checking..."
   },
   "home": {
     "nav": {
@@ -26,17 +31,50 @@
     "features": {
       "title": "Everything hosting needs",
       "subtitle": "We handle the complicated server management — all you see are simple buttons.",
-      "create": { "title": "1-minute server creation", "desc": "Pay and your server is created automatically — connection address included." },
-      "console": { "title": "Live console", "desc": "Type commands and watch logs in real time, right from the browser." },
-      "backup": { "title": "Automatic backups", "desc": "Set a schedule and we back up for you, with automatic snapshots before risky actions." },
-      "subdomain": { "title": "Automatic subdomain", "desc": "Create a server and get a name.krl.kr address instantly." },
-      "team": { "title": "Team collaboration", "desc": "Invite friends and split up moderator/developer permissions." },
-      "mcAi": { "title": "AI server management", "desc": "Say \"enable command blocks\" in chat and the AI checks and changes the actual setting." },
-      "mcPlayers": { "title": "Player management", "desc": "Whitelist, OP, ban, kick — all with one button. No complicated config needed." },
-      "mcPlugins": { "title": "Plugin & mod marketplace", "desc": "From Modrinth search to install in a few clicks — or just ask the AI." },
-      "genAi": { "title": "AI server management", "desc": "Say \"restart the bot\" in chat and the AI checks the actual console and files, then makes the change." },
-      "genEnv": { "title": "Startup variable editor", "desc": "Enter and edit settings like bot tokens directly from the browser." },
-      "genDeploy": { "title": "GitHub repo deploy", "desc": "Start instantly from 20+ popular presets like Red, Muse, Uptime Kuma, or your own GitHub repo." }
+      "create": {
+        "title": "1-minute server creation",
+        "desc": "Pay and your server is created automatically — connection address included."
+      },
+      "console": {
+        "title": "Live console",
+        "desc": "Type commands and watch logs in real time, right from the browser."
+      },
+      "backup": {
+        "title": "Automatic backups",
+        "desc": "Set a schedule and we back up for you, with automatic snapshots before risky actions."
+      },
+      "subdomain": {
+        "title": "Automatic subdomain",
+        "desc": "Create a server and get a name.krl.kr address instantly."
+      },
+      "team": {
+        "title": "Team collaboration",
+        "desc": "Invite friends and split up moderator/developer permissions."
+      },
+      "mcAi": {
+        "title": "AI server management",
+        "desc": "Say \"enable command blocks\" in chat and the AI checks and changes the actual setting."
+      },
+      "mcPlayers": {
+        "title": "Player management",
+        "desc": "Whitelist, OP, ban, kick — all with one button. No complicated config needed."
+      },
+      "mcPlugins": {
+        "title": "Plugin & mod marketplace",
+        "desc": "From Modrinth search to install in a few clicks — or just ask the AI."
+      },
+      "genAi": {
+        "title": "AI server management",
+        "desc": "Say \"restart the bot\" in chat and the AI checks the actual console and files, then makes the change."
+      },
+      "genEnv": {
+        "title": "Startup variable editor",
+        "desc": "Enter and edit settings like bot tokens directly from the browser."
+      },
+      "genDeploy": {
+        "title": "GitHub repo deploy",
+        "desc": "Start instantly from 20+ popular presets like Red, Muse, Uptime Kuma, or your own GitHub repo."
+      }
     },
     "steps": {
       "title": "Four steps, done",
@@ -155,5 +193,354 @@
   "legal": {
     "enNotice": "This page is only officially published in Korean — the Korean text below is the legally binding version. If there's ever a conflict between an English summary and the Korean original, the Korean original governs.",
     "lastUpdatedPrefix": "Effective date:"
+  },
+  "announcementBanner": {
+    "close": "Close"
+  },
+  "commandPalette": {
+    "newServer": "Create new server",
+    "dashboard": "Dashboard",
+    "communityEggs": "Community presets",
+    "promotions": "Promo points",
+    "billing": "Billing",
+    "account": "Account settings",
+    "admin": "Admin page",
+    "online": "Online",
+    "searchPlaceholder": "Search servers or jump to a page...",
+    "noResults": "No results."
+  },
+  "depositorNameCard": {
+    "title": "Payment depositor name",
+    "desc": "The name used for bank transfers. Must be 1-5 characters with no spaces — leave it blank to auto-generate one from your name.",
+    "placeholder": "e.g. John",
+    "saveLabel": "Save",
+    "savingLabel": "Saving...",
+    "saved": "Saved.",
+    "saveFailed": "Save failed"
+  },
+  "discordLinkCard": {
+    "linkedTitle": "Discord linked",
+    "linkedDesc": "You can use /서버목록 and /상태 commands on Burnae's official Discord server.",
+    "justLinked": "Linked just now.",
+    "title": "Link Discord",
+    "desc": "However you logged in (Google/GitHub/Discord), you can link your account with the button below. Get server status checks and notifications via our bot on Burnae's official Discord.",
+    "inviteCta": "Not in the server yet? Join Burnae's official Discord →",
+    "linkCta": "Link Discord account"
+  },
+  "discordPromoBanner": {
+    "title": "Join Burnae's official Discord server!",
+    "desc": "Earn points by chatting, server tagging, and boosting — and start/stop/restart your server right from Discord.",
+    "cta": "Join",
+    "close": "Close"
+  },
+  "emailLoginForm": {
+    "emailPlaceholder": "Email",
+    "passwordPlaceholder": "Password",
+    "twoFactorPlaceholder": "2FA code (6 digits or a recovery code)",
+    "submitBusy": "Checking...",
+    "submit": "Log in with email",
+    "resendDone": "Verification email resent",
+    "resend": "Resend verification email",
+    "checkSpam": "If you don't see the email, check your spam folder too.",
+    "loginFailed": "Login failed.",
+    "loginError": "An error occurred while logging in.",
+    "resendFailed": "Resend failed"
+  },
+  "emailRegisterForm": {
+    "sentMessage": "We sent a verification email to <b>{email}</b>. Click the button in the email to log in instantly.",
+    "checkSpam": "If you don't see the email, check your spam folder too.",
+    "namePlaceholder": "Name",
+    "emailPlaceholder": "Email",
+    "passwordPlaceholder": "Password (8+ characters)",
+    "submitBusy": "Processing...",
+    "submit": "Get started with email",
+    "registerError": "An error occurred while signing up."
+  },
+  "favoriteButton": {
+    "add": "Add to favorites",
+    "remove": "Remove from favorites"
+  },
+  "logoutButton": {
+    "label": "Log out"
+  },
+  "oauthButtons": {
+    "google": "Continue with Google",
+    "github": "Continue with GitHub",
+    "discord": "Continue with Discord"
+  },
+  "pendingGrantBanner": {
+    "cancelConfirm": "Cancel this granted server? You won't be able to get it back later.",
+    "adminGrantTitle": "You have a granted server!",
+    "paidTitle": "Payment complete!",
+    "desc": "Pick a server type and version to create it right away — {name}",
+    "cancelTooltip": "Cancel"
+  },
+  "phoneVerificationCard": {
+    "verifiedTitle": "Phone verified",
+    "verifiedDesc": "You can create a free server.",
+    "title": "Phone verification",
+    "desc": "Phone verification is required to create a free server. Each number can only verify one account.",
+    "phonePlaceholder": "01012345678",
+    "startButton": "Start verification",
+    "sendTo": "Text the code below to <b>{number}</b>.",
+    "copyTitle": "Copy",
+    "sendSms": "Send text now",
+    "smsHint": "This opens your messaging app with the content already filled in — just press send (standard text rates apply).",
+    "confirmButton": "I sent it - check now",
+    "confirmBusy": "Checking...",
+    "notYetConfirmed": "We haven't seen the text yet. Wait a few seconds after sending, then try again.",
+    "requestFailed": "Request failed",
+    "confirmFailed": "Check failed"
+  },
+  "pointsPurchaseCard": {
+    "title": "Top up points",
+    "subtitle": "1 KRW = 1 point · auto-credited once payment is confirmed",
+    "open": "Top up",
+    "charged": "Credited!",
+    "depositorLabel": "Depositor name:",
+    "amountLabel": "Amount:",
+    "waiting": "Waiting for payment confirmation... (credited automatically)",
+    "purchaseFailed": "Payment request failed",
+    "reopenWindow": "Reopen payment window"
+  },
+  "aiCreditsCard": {
+    "title": "AI credits",
+    "subtitlePrefix": "1 credit per message ·",
+    "subtitleSuffix": "remaining",
+    "open": "Top up",
+    "charged": "Credited!",
+    "depositorLabel": "Depositor name:",
+    "amountLabel": "Amount:",
+    "waiting": "Waiting for payment confirmation... (credited automatically)",
+    "purchaseFailed": "Payment request failed",
+    "creditsUnit": "",
+    "reopenWindow": "Reopen payment window"
+  },
+  "promotionsClient": {
+    "titlePrefix": "",
+    "titleHighlight": "Promote",
+    "titleSuffix": " your server, earn points",
+    "subtitle": "Promote Burnae using the methods below to earn points. Redeem points for a free trial server.",
+    "myPoints": "My points",
+    "myReferralLink": "My referral link",
+    "sectionTitle": "Ways to promote",
+    "noServers": "You don't have any servers",
+    "urlPlaceholder": "https://...",
+    "checkButton": "Check",
+    "checking": "Checking...",
+    "submitFailed": "Submit failed",
+    "pendingReview": "Waiting for admin review.",
+    "autoUrlSubmit": "Submit URL → auto-verified",
+    "autoMotd": "Verify your server → auto-verified",
+    "autoDiscord": "Verify Discord → auto-verified",
+    "autoReferralSignup": "Auto-granted when a friend signs up",
+    "autoReferralPayment": "Auto-granted on a friend's first payment",
+    "manualReview": "Needs admin review",
+    "autoPreset": "Auto-granted when a preset is published"
+  },
+  "shopSection": {
+    "title": "Point shop",
+    "validDays": "Valid for {days} days",
+    "redeeming": "Redeeming...",
+    "redeem": "Redeem",
+    "insufficientPoints": "Not enough points",
+    "redeemedTitle": "Redeemed!",
+    "couponCodeLabel": " Coupon code: {code}",
+    "redeemFailed": "Redeem failed"
+  },
+  "supportChat": {
+    "title": "Support",
+    "smsLine": "📱 Text support 070-8970-6766",
+    "faxLine": "📠 Fax 0504-417-2275",
+    "discordJoin": "Join our official Discord",
+    "emptyHint": "Send us a message and our team will reply.",
+    "placeholder": "Type a message",
+    "send": "Send",
+    "sendFailed": "Send failed"
+  },
+  "themeToggle": {
+    "ariaLabel": "Toggle light/dark mode"
+  },
+  "twoFactorCard": {
+    "enabledTitle": "Two-factor authentication is on",
+    "backupCodesDesc": "Recovery codes for when you lose your phone. These are shown only once, so save them somewhere safe.",
+    "savedButton": "I saved them",
+    "inUseTitle": "Two-factor authentication is active",
+    "inUseDesc": "You'll need an extra code from your authenticator app when logging in.",
+    "turnOff": "Turn off",
+    "turnOffTitle": "Turn off two-factor authentication",
+    "turnOffDesc": "Enter a code from your authenticator app or a recovery code.",
+    "codePlaceholder": "Code",
+    "turnOffBusy": "Checking...",
+    "cancelButton": "Cancel",
+    "setupTitle": "Set up two-factor authentication",
+    "setupDesc": "Scan the QR code with an authenticator app like Google Authenticator.",
+    "qrAlt": "2FA QR code",
+    "copyTitle": "Copy",
+    "appCodePlaceholder": "6-digit code from the app",
+    "activateBusy": "Checking...",
+    "activate": "Activate",
+    "title": "Two-factor authentication",
+    "desc": "Turn on authenticator-app-based two-factor authentication for extra account security.",
+    "startSetup": "Start setup",
+    "startingBusy": "Preparing...",
+    "setupStartFailed": "Failed to start setup",
+    "activationFailed": "Activation failed",
+    "disableFailed": "Failed to turn off"
+  },
+  "billingOrderRow": {
+    "statusPending": "Awaiting payment",
+    "statusPaid": "Paid",
+    "statusCancelled": "Cancelled",
+    "statusExpired": "Expired",
+    "statusRefunded": "Refunded",
+    "preorderWaiting": "Preorder waiting",
+    "depositorLabel": "Depositor",
+    "discountLabel": "{amount} KRW discount",
+    "resume": "Continue payment",
+    "collapse": "Collapse",
+    "waitingShort": "Waiting..."
+  },
+  "cryptoPaymentOption": {
+    "payWithCrypto": "Pay with crypto",
+    "choosePayment": "Choose a payment method",
+    "loading": "Loading...",
+    "noneAvailable": "Crypto payment isn't available right now.",
+    "backToBank": "Back to bank transfer",
+    "createFailed": "Failed to create the payment.",
+    "sendAmount": "Amount to send:",
+    "timeRemaining": "Time remaining: {time}",
+    "autoConfirmHint": "Once we see your deposit, you'll move to the next step automatically.",
+    "underpaidMessage": "{received} / {amount} received so far — please send the remaining amount to the same address.",
+    "viewExplorer": "View on block explorer",
+    "retry": "Try again",
+    "qrAlt": "Deposit address QR code",
+    "statusPending": "Awaiting payment",
+    "statusDetected": "Payment detected — confirming",
+    "statusConfirming": "Confirming",
+    "statusUnderpaid": "Underpaid — under admin review",
+    "statusConfirmed": "Payment confirmed!",
+    "statusExpired": "Payment window expired",
+    "statusFailed": "Payment processing failed",
+    "statusManualReview": "Needs admin review"
+  },
+  "addressActions": {
+    "copyAddress": "Copy address",
+    "viewQr": "View QR code"
+  },
+  "automationCard": {
+    "title": "Automation",
+    "saving": "Saving...",
+    "autoBackupTitle": "Automatic backups",
+    "autoBackupDesc": "Skipped if the backup slots are full.",
+    "every6h": "Every 6 hours",
+    "every12h": "Every 12 hours",
+    "every24h": "Every 24 hours",
+    "every3d": "Every 3 days",
+    "autoRestartTitle": "Scheduled restart",
+    "autoRestartDesc": "Automatically restarts at a set time every day (Korea time).",
+    "hourOption": "{hour}:00"
+  },
+  "discordInviteCard": {
+    "title": "Invite the bot to Discord",
+    "desc": "No need to look up the client ID yourself — we generate the invite link automatically.",
+    "checking": "Checking...",
+    "foundBot": "Found your bot. Use the link below to invite it to a server.",
+    "inviteButton": "Invite to server",
+    "copied": "Copied",
+    "copyLink": "Copy link",
+    "permissionHint": "By default it's invited with admin permissions. If you want to set specific permissions, you can create your own invite link in the Discord developer portal.",
+    "retry": "Check again",
+    "createFailed": "Couldn't create an invite link."
+  },
+  "extraResourcesCard": {
+    "title": "Buy extra ports/subdomains with points",
+    "desc": "Regardless of your plan, you can buy extra ports or subdomains with points. These last 120 days and are automatically reclaimed if not renewed before expiry. Points balance",
+    "renew": "Renew",
+    "applying": "Applying...",
+    "purchaseComplete": "Purchase complete!",
+    "purchaseFailed": "Purchase failed",
+    "extraPort": "Extra port",
+    "extraSubdomain": "Extra subdomain slot",
+    "daysSuffix": " days"
+  },
+  "freeUpgradeCard": {
+    "title": "Upgrade with points",
+    "desc": "Free servers can boost RAM/CPU/disk/backup slots individually with points without switching plans entirely (up to +1GB RAM, +1 CPU core, +5GB disk). RAM/CPU/disk boosts last 30 days and automatically shrink back if not renewed before expiry (backup slot boosts are permanent). Points balance",
+    "renew": "Renew",
+    "applying": "Applying...",
+    "upgradeComplete": "Upgrade complete! The server will restart to apply it.",
+    "upgradeFailed": "Upgrade failed",
+    "ram": "RAM +{amount}",
+    "cpu": "CPU +{amount}%",
+    "disk": "Disk +{amount}",
+    "backupSlots": "+{amount} backup slots"
+  },
+  "gettingStartedCard": {
+    "title": "New here? Getting started",
+    "mcStep1": "Start the server from the Overview tab and share the address with friends.",
+    "mcStep2": "Change difficulty, game mode, whitelist, and more from the Settings tab.",
+    "mcStep3": "Install plugins just by searching, from the Plugins tab.",
+    "mcStep4": "Try the AI tab — say something like \"enable command blocks\" to manage the server by chat.",
+    "botStep1": "Enter and save your bot token under Settings → Startup Variables.",
+    "botStep2": "Once the token is saved, an invite link appears automatically in Settings — click it to invite the bot to your Discord server.",
+    "botStep3": "Check the Console tab to confirm the bot started up correctly.",
+    "botStep4": "Stuck? Just ask the AI tab — it checks the logs directly and helps out.",
+    "genStepPassword": "Check the connection password on the server info card.",
+    "genStepStartup": "Enter and save the required values under Settings → Startup Variables.",
+    "genStep2": "You can open the address directly in your browser.",
+    "genStep3": "Use Settings → File Transfer info to work with server files directly from your computer.",
+    "genStep4": "Stuck? Just ask the AI tab — it checks the logs directly and helps out."
+  },
+  "serverActivityFeed": {
+    "title": "Recent activity",
+    "justNow": "just now",
+    "minutesAgo": "{n}m ago",
+    "hoursAgo": "{n}h ago",
+    "daysAgo": "{n}d ago"
+  },
+  "sftpCard": {
+    "title": "File transfer info",
+    "desc": "Enter this info into an FTP client on your computer to work with server files directly.",
+    "host": "Host",
+    "port": "Port",
+    "username": "Username",
+    "password": "Password",
+    "issuing": "Issuing...",
+    "reissue": "Reissue password",
+    "issue": "Issue password",
+    "shownOnceHint": "For security, the password is only shown once when issued. If you forgot it, reissue a new one.",
+    "reissueFailed": "Failed to reissue password"
+  },
+  "upgradeCard": {
+    "changedMessage": "Your plan has changed{pointsNote}. The server may restart to apply it.",
+    "pointsUsedNote": " (used {amount}P)",
+    "balanceTitle": "Balance payment info",
+    "depositorLabel": "Depositor name:",
+    "amountLabel": "Amount:",
+    "autoApplyHint": "Once paid, the plan is applied automatically.",
+    "title": "Change plan",
+    "selectPlan": "Select a plan",
+    "change": "Change",
+    "perMonth": "/mo",
+    "pointsOptionSuffix": " ({amount}P available)",
+    "changeWithPoints": "Change with points ({cost}P, you have {balance}P)",
+    "insufficientPoints": "Not enough points (need {cost}P, you have {balance}P)",
+    "footerHint": "More expensive plans apply after the balance is paid; cheaper plans apply instantly (no refund).",
+    "processFailed": "Processing failed"
+  },
+  "usageHistoryChart": {
+    "title": "Usage over the last 24 hours",
+    "collecting": "Still collecting data (recorded every 10 minutes).",
+    "recentMax": "Latest {latest}{unit} · Peak {max}{unit}"
+  },
+  "resumePaymentPanel": {
+    "bank": "Bank",
+    "accountNumber": "Account number",
+    "accountHolder": "Account holder",
+    "depositorName": "Depositor name",
+    "depositAmount": "Deposit amount",
+    "matchHint": "The depositor name and amount must match exactly to be confirmed automatically.",
+    "waiting": "Waiting for payment confirmation..."
   }
 }

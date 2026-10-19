@@ -2,9 +2,11 @@
 
 import { useRouter } from "@/i18n/navigation";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Star } from "lucide-react";
 
 export default function FavoriteButton({ serverId, initial }: { serverId: string; initial: boolean }) {
+  const t = useTranslations("favoriteButton");
   const [isFavorite, setIsFavorite] = useState(initial);
   const [busy, setBusy] = useState(false);
   const [popKey, setPopKey] = useState(0);
@@ -36,7 +38,7 @@ export default function FavoriteButton({ serverId, initial }: { serverId: string
   return (
     <button
       onClick={toggle}
-      aria-label={isFavorite ? "즐겨찾기 해제" : "즐겨찾기 추가"}
+      aria-label={isFavorite ? t("remove") : t("add")}
       className={`shrink-0 p-1 rounded-full transition-colors active:scale-90 ${isFavorite ? "text-yellow" : "text-text-dim hover:text-yellow"}`}
     >
       <Star key={popKey} size={16} fill={isFavorite ? "currentColor" : "none"} className={popKey > 0 ? "animate-star-pop" : ""} />

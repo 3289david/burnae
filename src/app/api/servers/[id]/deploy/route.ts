@@ -92,6 +92,6 @@ export const POST = withApiErrorHandling(async (
     return NextResponse.json({ error: "배포할 권한이 없어요." }, { status: 403 });
   }
 
-  const result = await redeployFromGit(server, user.id);
+  const result = await redeployFromGit(server, user.id, "MANUAL");
   return NextResponse.json(result);
 });

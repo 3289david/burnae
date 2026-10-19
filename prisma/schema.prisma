@@ -97,6 +97,7 @@ model User {
   emailVerificationToken EmailVerificationToken?
   dedicatedNode            HostNode?              @relation("DedicatedNode")
   supportThreads           SupportThread[]
+  apiTokens                ApiToken[]
 
   @@index([email])
   @@index([referralCode])
@@ -617,6 +618,7 @@ model Server {
   usageSnapshots  ServerUsageSnapshot[]
   activityLogs    ServerActivityLog[]
   scheduledTasks  ScheduledTask[]
+  deploymentLogs  DeploymentLog[]
 
   @@index([ownerId])
   @@index([status])
@@ -638,6 +640,46 @@ model ScheduledTask {
   createdAt       DateTime  @default(now())
 
   @@index([serverId])
+}
+
+enum DeployTrigger {
+  MANUAL
+  WEBHOOK
+}
+
+/// Git 배포(redeployFromGit) 1회 실행 기록 — GitDeployCard의 "배포 이력" 화면에서 보여준다.
+/// Render/Railway의 deploy log 화면과 같은 개념
+model DeploymentLog {
+  id        String        @id @default(cuid())
+  serverId  String
+  server    Server        @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  trigger   DeployTrigger
+  /// 수동 배포를 누른 유저 — 웹훅 배포는 null
+  actorUserId String?
+  success   Boolean
+  /// 콘솔에서 캡처한 git pull(+빌드 명령) 출력, 최대 2000자로 잘라서 저장
+  output    String
+  startedAt DateTime      @default(now())
+  durationMs Int
+
+  @@index([serverId, startedAt])
+}
+
+/// Render/Railway/Fly.io처럼 CLI·스크립트에서 자기 서버를 관리할 수 있게 해주는 개인 API 토큰.
+/// 토큰 원문은 생성 시 한 번만 보여주고 저장하지 않는다 — DB에는 해시만 남긴다(비밀번호와 동일한 이유).
+model ApiToken {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  /// sha256(토큰 원문) — 원문은 생성 응답에만 담기고 어디에도 저장되지 않는다
+  tokenHash  String    @unique
+  /// 사용자가 토큰값을 알아볼 수 있게 보여주는 앞 8자 (burn_xxxxxxxx...)
+  prefix     String
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
 }
 
 /// 10분마다 크론이 Wings에서 읽어오는 CPU/RAM/디스크 사용량 스냅샷 — 서버 상세 페이지의

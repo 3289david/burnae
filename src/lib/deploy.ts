@@ -12,7 +12,12 @@ const FAILURE_PATTERN = /fatal:|error:|Permission denied|Could not resolve host|
  * 이어서 최신 커밋만 받아오는 가벼운 갱신이다. 그래서 GIT_ADDRESS로 이미 한 번 설치된 적
  * 있는 서버에서만 의미가 있다 — egg 설치 스크립트가 처음 설치할 때 그 디렉터리에 .git을 만든다.
  */
-export async function redeployFromGit(server: Server, actorId: string | null): Promise<{ ok: boolean; output: string }> {
+export async function redeployFromGit(
+  server: Server,
+  actorId: string | null,
+  trigger: "MANUAL" | "WEBHOOK" = "MANUAL",
+): Promise<{ ok: boolean; output: string }> {
+  const startedAt = Date.now();
   if (!server.pterodactylIdentifier) {
     return { ok: false, output: "서버가 아직 준비 중이에요." };
   }
@@ -25,6 +30,7 @@ export async function redeployFromGit(server: Server, actorId: string | null): P
   if (pullLines === null) {
     await logServerActivity(server.id, actorId, "GIT_DEPLOY_FAILED", "git pull 명령 전송 실패");
     await notifyDeployResult(server, false, "git pull 명령 전송 실패");
+    await recordDeploymentLog(server.id, trigger, actorId, false, "git pull 명령 전송 실패", startedAt);
     return { ok: false, output: "콘솔에 명령을 보내지 못했어요." };
   }
 
@@ -57,8 +63,32 @@ export async function redeployFromGit(server: Server, actorId: string | null): P
     output.slice(0, 500),
   );
   await notifyDeployResult(server, !looksFailed, output.slice(0, 300));
+  await recordDeploymentLog(server.id, trigger, actorId, !looksFailed, output, startedAt);
 
   return { ok: !looksFailed, output };
+}
+
+/** Render/Railway 스타일 "배포 이력" 화면용 — GitDeployCard가 서버당 최근 기록을 보여준다 */
+async function recordDeploymentLog(
+  serverId: string,
+  trigger: "MANUAL" | "WEBHOOK",
+  actorUserId: string | null,
+  success: boolean,
+  output: string,
+  startedAt: number,
+) {
+  await prisma.deploymentLog
+    .create({
+      data: {
+        serverId,
+        trigger,
+        actorUserId,
+        success,
+        output: output.slice(0, 2000),
+        durationMs: Date.now() - startedAt,
+      },
+    })
+    .catch((err) => console.error(`[deploy] 배포 기록 저장 실패(배포 자체는 정상 진행됨):`, err));
 }
 
 /** 배포 결과를 소유자에게 디스코드 DM으로 알린다 — 연동 안 돼 있으면 조용히 건너뛴다 */

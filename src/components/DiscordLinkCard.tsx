@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import { Bot } from "lucide-react";
 
 const SERVER_INVITE_URL = process.env.NEXT_PUBLIC_DISCORD_SERVER_INVITE_URL;
@@ -11,34 +12,31 @@ export default function DiscordLinkCard({
   error?: string;
   justLinked?: boolean;
 }) {
+  const t = useTranslations("discordLinkCard");
   if (linked) {
     return (
       <div className="card-glow p-5 animate-fade-up">
-        <p className="font-semibold text-sm flex items-center gap-1.5"><Bot size={16} className="text-purple" /> 디스코드 연동됨</p>
-        <p className="text-xs text-text-dim mt-1">
-          Burnae 공식 디스코드 서버에서 /서버목록, /상태 명령어를 쓸 수 있어요.
-        </p>
-        {justLinked && <p className="text-xs text-green mt-2 animate-toast-in">방금 연동이 완료됐어요.</p>}
+        <p className="font-semibold text-sm flex items-center gap-1.5"><Bot size={16} className="text-purple" /> {t("linkedTitle")}</p>
+        <p className="text-xs text-text-dim mt-1">{t("linkedDesc")}</p>
+        {justLinked && <p className="text-xs text-green mt-2 animate-toast-in">{t("justLinked")}</p>}
       </div>
     );
   }
 
   return (
     <div className="card-glow p-5 animate-fade-up">
-      <p className="font-semibold text-sm flex items-center gap-1.5"><Bot size={16} className="text-purple" /> 디스코드 연동</p>
-      <p className="text-xs text-text-dim mt-1">
-        Google/GitHub/Discord 중 어떤 방법으로 로그인했든 아래 버튼으로 연동할 수 있어요. Burnae 공식 디스코드 서버에서 봇으로 서버 상태 확인, 알림을 받을 수 있어요.
-      </p>
+      <p className="font-semibold text-sm flex items-center gap-1.5"><Bot size={16} className="text-purple" /> {t("title")}</p>
+      <p className="text-xs text-text-dim mt-1">{t("desc")}</p>
       {SERVER_INVITE_URL && (
         <a href={SERVER_INVITE_URL} target="_blank" rel="noreferrer" className="block text-xs text-accent mt-2 hover:underline">
-          아직 서버에 없다면 Burnae 공식 디스코드 참여하기 →
+          {t("inviteCta")}
         </a>
       )}
       <a
         href="/api/auth/oauth/discord/start?mode=link"
         className="btn-primary inline-flex items-center gap-1.5 px-4 py-2 text-sm mt-3 active:scale-95 transition-transform"
       >
-        <Bot size={14} /> 디스코드 계정 연동하기
+        <Bot size={14} /> {t("linkCta")}
       </a>
       {error && <p className="text-sm text-red mt-2">{error}</p>}
     </div>

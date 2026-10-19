@@ -1,9 +1,11 @@
 "use client";
 
 import { useRouter } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
 
 export default function LogoutButton() {
   const router = useRouter();
+  const t = useTranslations("logoutButton");
   return (
     <button
       onClick={async () => {
@@ -13,7 +15,7 @@ export default function LogoutButton() {
       }}
       className="text-sm text-text-dim hover:text-text active:scale-95 transition-transform inline-block"
     >
-      로그아웃
+      {t("label")}
     </button>
   );
 }

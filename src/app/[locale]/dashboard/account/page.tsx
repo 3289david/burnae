@@ -4,6 +4,7 @@ import DiscordLinkCard from "@/components/DiscordLinkCard";
 import DepositorNameCard from "@/components/DepositorNameCard";
 import PhoneVerificationCard from "@/components/PhoneVerificationCard";
 import TwoFactorCard from "@/components/TwoFactorCard";
+import ApiTokensCard from "@/components/ApiTokensCard";
 import { UserCircle2 } from "lucide-react";
 
 export default async function AccountPage({
@@ -43,6 +44,10 @@ export default async function AccountPage({
 
       <div className="mt-4 animate-fade-up" style={{ animationDelay: "0.18s" }}>
         <TwoFactorCard enabled={user!.twoFactorEnabled} />
+      </div>
+
+      <div className="mt-4 animate-fade-up" style={{ animationDelay: "0.2s" }}>
+        <ApiTokensCard />
       </div>
     </div>
   );

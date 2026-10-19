@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import Toggle from "@/components/Toggle";
 
 interface Props {
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export default function AutomationCard({ serverId, ...initial }: Props) {
+  const t = useTranslations("automationCard");
   const [state, setState] = useState(initial);
   const [saving, setSaving] = useState(false);
 
@@ -33,13 +35,13 @@ export default function AutomationCard({ serverId, ...initial }: Props) {
   return (
     <div className="card-glow p-5 space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-sm">자동화 {saving && <span className="text-xs text-text-dim">저장 중...</span>}</h3>
+        <h3 className="font-semibold text-sm">{t("title")} {saving && <span className="text-xs text-text-dim">{t("saving")}</span>}</h3>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-sm">자동 백업</p>
-          <p className="text-xs text-text-dim">백업 슬롯이 가득 차면 건너뛰어요.</p>
+          <p className="text-sm">{t("autoBackupTitle")}</p>
+          <p className="text-xs text-text-dim">{t("autoBackupDesc")}</p>
         </div>
         <div className="flex items-center gap-2">
           {state.autoBackupEnabled && (
@@ -48,10 +50,10 @@ export default function AutomationCard({ serverId, ...initial }: Props) {
               value={state.autoBackupIntervalHours}
               onChange={(e) => update({ autoBackupIntervalHours: Number(e.target.value) })}
             >
-              <option value={6}>6시간마다</option>
-              <option value={12}>12시간마다</option>
-              <option value={24}>24시간마다</option>
-              <option value={72}>3일마다</option>
+              <option value={6}>{t("every6h")}</option>
+              <option value={12}>{t("every12h")}</option>
+              <option value={24}>{t("every24h")}</option>
+              <option value={72}>{t("every3d")}</option>
             </select>
           )}
           <Toggle checked={state.autoBackupEnabled} onChange={(next) => update({ autoBackupEnabled: next })} />
@@ -60,8 +62,8 @@ export default function AutomationCard({ serverId, ...initial }: Props) {
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-sm">예약 재시작</p>
-          <p className="text-xs text-text-dim">매일 지정한 시각(한국 시간)에 자동으로 재시작해요.</p>
+          <p className="text-sm">{t("autoRestartTitle")}</p>
+          <p className="text-xs text-text-dim">{t("autoRestartDesc")}</p>
         </div>
         <div className="flex items-center gap-2">
           {state.autoRestartEnabled && (
@@ -71,7 +73,7 @@ export default function AutomationCard({ serverId, ...initial }: Props) {
               onChange={(e) => update({ autoRestartHour: Number(e.target.value) })}
             >
               {Array.from({ length: 24 }, (_, h) => (
-                <option key={h} value={h}>{h}시</option>
+                <option key={h} value={h}>{t("hourOption", { hour: h })}</option>
               ))}
             </select>
           )}

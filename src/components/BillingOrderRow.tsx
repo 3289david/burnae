@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
-import ResumePaymentPanel from "@/components/ResumePaymentPanel";
+import { openPaymentWindow } from "@/lib/openPaymentWindow";
 
 export interface BillingOrderInfo {
   id: string;
@@ -15,12 +16,12 @@ export interface BillingOrderInfo {
   titleText: string;
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  PENDING: "입금 대기",
-  PAID: "결제 완료",
-  CANCELLED: "취소됨",
-  EXPIRED: "만료됨",
-  REFUNDED: "환불됨",
+const STATUS_KEY: Record<string, string> = {
+  PENDING: "statusPending",
+  PAID: "statusPaid",
+  CANCELLED: "statusCancelled",
+  EXPIRED: "statusExpired",
+  REFUNDED: "statusRefunded",
 };
 const STATUS_COLOR: Record<string, string> = {
   PENDING: "var(--yellow)",
@@ -31,12 +32,34 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 export default function BillingOrderRow({ order }: { order: BillingOrderInfo }) {
+  const t = useTranslations("billingOrderRow");
+  const tc = useTranslations("common");
   const router = useRouter();
-  const [expanded, setExpanded] = useState(false);
+  const [watching, setWatching] = useState(false);
   const canResume = order.status === "PENDING" && !order.preorderWaiting;
 
-  const statusText = order.preorderWaiting ? "선주문 대기중" : STATUS_LABEL[order.status];
+  const statusText = order.preorderWaiting ? t("preorderWaiting") : t(STATUS_KEY[order.status]);
   const color = order.preorderWaiting ? "var(--yellow)" : STATUS_COLOR[order.status];
+
+  function resume() {
+    openPaymentWindow(order.id);
+    setWatching(true);
+  }
+
+  useEffect(() => {
+    if (!watching) return;
+    const interval = setInterval(async () => {
+      const res = await fetch(`/api/orders/${order.id}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.status === "PAID") {
+        clearInterval(interval);
+        setWatching(false);
+        router.refresh();
+      }
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [watching, order.id, router]);
 
   return (
     <div className="card-glow p-4 animate-fade-up">
@@ -44,21 +67,21 @@ export default function BillingOrderRow({ order }: { order: BillingOrderInfo }) 
         <div className="min-w-0">
           <p className="font-medium text-sm truncate">{order.titleText}</p>
           <p className="text-xs text-text-dim mt-0.5">
-            {order.createdAtText} · 입금자명 {order.depositorName}
-            {order.discountKrw > 0 && ` · 할인 ${order.discountKrw.toLocaleString()}원`}
+            {order.createdAtText} · {t("depositorLabel")} {order.depositorName}
+            {order.discountKrw > 0 && ` · ${t("discountLabel", { amount: order.discountKrw.toLocaleString() })}`}
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {canResume && (
             <button
-              onClick={() => setExpanded((v) => !v)}
+              onClick={resume}
               className="btn-secondary px-3 py-1.5 text-xs active:scale-95 transition-transform"
             >
-              {expanded ? "접기" : "결제 계속하기"}
+              {watching ? t("waitingShort") : t("resume")}
             </button>
           )}
           <div className="text-right">
-            <p className="font-semibold text-sm">{order.amountKrw.toLocaleString()}원</p>
+            <p className="font-semibold text-sm">{order.amountKrw.toLocaleString()}{tc("krw")}</p>
             <span
               className="inline-block mt-1 text-[11px] font-medium rounded-full px-2.5 py-0.5"
               style={{ background: `color-mix(in srgb, ${color} 16%, transparent)`, color }}
@@ -68,18 +91,6 @@ export default function BillingOrderRow({ order }: { order: BillingOrderInfo }) 
           </div>
         </div>
       </div>
-
-      {expanded && canResume && (
-        <ResumePaymentPanel
-          orderId={order.id}
-          amountKrw={order.amountKrw}
-          depositorName={order.depositorName}
-          onPaid={() => {
-            setExpanded(false);
-            router.refresh();
-          }}
-        />
-      )}
     </div>
   );
 }

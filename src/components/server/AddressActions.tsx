@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Copy, Check, QrCode } from "lucide-react";
 import QRCode from "qrcode";
 
 /** 접속 주소 원클릭 복사 + QR코드 보기 — 모바일에서 친구에게 주소 공유할 때 쓰기 쉽게 */
 export default function AddressActions({ address }: { address: string }) {
+  const t = useTranslations("addressActions");
   const [copied, setCopied] = useState(false);
   const [qr, setQr] = useState<string | null>(null);
 
@@ -33,7 +35,7 @@ export default function AddressActions({ address }: { address: string }) {
       <button
         type="button"
         onClick={copy}
-        title="주소 복사"
+        title={t("copyAddress")}
         className="text-text-dim hover:text-text shrink-0 active:scale-90 transition-transform"
       >
         {copied ? <Check size={14} className="text-green animate-toast-in" /> : <Copy size={14} />}
@@ -41,7 +43,7 @@ export default function AddressActions({ address }: { address: string }) {
       <button
         type="button"
         onClick={toggleQr}
-        title="QR코드 보기"
+        title={t("viewQr")}
         className="text-text-dim hover:text-text shrink-0 active:scale-90 transition-transform"
       >
         <QrCode size={14} />

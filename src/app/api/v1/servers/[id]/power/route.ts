@@ -1,0 +1,42 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { authorizeServerAccess, getServerRole, hasServerRank } from "@/lib/serverAccess";
+import { requireApiUser } from "@/lib/apiAuth";
+import { PteroClient } from "@/lib/pterodactyl";
+import { withApiErrorHandling } from "@/lib/apiHandler";
+import { logServerActivity } from "@/lib/serverActivityLog";
+
+const schema = z.object({ signal: z.enum(["start", "stop", "restart", "kill"]) });
+
+const POWER_ACTION_LOG = {
+  start: "POWER_START",
+  stop: "POWER_STOP",
+  restart: "POWER_RESTART",
+  kill: "POWER_KILL",
+} as const;
+
+export const POST = withApiErrorHandling(async (
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) => {
+  const user = await requireApiUser(request);
+  if (!user) return NextResponse.json({ error: "유효하지 않은 토큰이에요." }, { status: 401 });
+
+  const { id } = await params;
+  const server = await authorizeServerAccess(user, id);
+  if (!server) return NextResponse.json({ error: "서버를 찾을 수 없습니다." }, { status: 404 });
+  if (!server.pterodactylIdentifier) {
+    return NextResponse.json({ error: "서버가 아직 준비 중입니다." }, { status: 409 });
+  }
+  if (!hasServerRank(await getServerRole(user, server), "MODERATOR")) {
+    return NextResponse.json({ error: "전원을 조작할 권한이 없어요." }, { status: 403 });
+  }
+
+  const parsed = schema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 422 });
+
+  await PteroClient.sendPowerAction(server.pterodactylIdentifier, parsed.data.signal);
+  await logServerActivity(server.id, user.id, POWER_ACTION_LOG[parsed.data.signal], "API 토큰으로 실행");
+
+  return NextResponse.json({ ok: true });
+});

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { useRouter } from "@/i18n/navigation";
 import { Gift, CheckCircle2, ArrowRight, X } from "lucide-react";
@@ -12,6 +13,7 @@ export interface PendingGrant {
 }
 
 export default function PendingGrantBanner({ grant }: { grant: PendingGrant }) {
+  const t = useTranslations("pendingGrantBanner");
   const router = useRouter();
   const [cancelling, setCancelling] = useState(false);
   const [hidden, setHidden] = useState(false);
@@ -19,7 +21,7 @@ export default function PendingGrantBanner({ grant }: { grant: PendingGrant }) {
   async function cancel(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    if (!confirm("지급된 서버를 취소할까요? 나중에 다시 받을 수 없어요.")) return;
+    if (!confirm(t("cancelConfirm"))) return;
     setCancelling(true);
     try {
       const res = await fetch(`/api/orders/${grant.id}/cancel`, { method: "POST" });
@@ -44,15 +46,15 @@ export default function PendingGrantBanner({ grant }: { grant: PendingGrant }) {
       </span>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold">
-          {grant.isAdminGrant ? "지급된 서버가 있어요!" : "결제가 완료됐어요!"}
+          {grant.isAdminGrant ? t("adminGrantTitle") : t("paidTitle")}
         </p>
-        <p className="text-xs text-text-dim mt-0.5">서버 종류와 버전을 고르면 바로 만들어져요 — {grant.serverNameRequested}</p>
+        <p className="text-xs text-text-dim mt-0.5">{t("desc", { name: grant.serverNameRequested ?? "" })}</p>
       </div>
       {grant.isAdminGrant && (
         <button
           onClick={cancel}
           disabled={cancelling}
-          title="취소하기"
+          title={t("cancelTooltip")}
           className="text-text-dim hover:text-red shrink-0 p-1 active:scale-90 transition-transform"
         >
           <X size={16} />

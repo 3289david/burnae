@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Plug, Globe2, RefreshCw } from "lucide-react";
 import CountUp from "@/components/CountUp";
 

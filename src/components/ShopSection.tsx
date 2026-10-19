@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Gift, Sparkles, Ticket, Package, Server as ServerIcon } from "lucide-react";
 import SuccessCheck from "@/components/SuccessCheck";
 import CountUp from "@/components/CountUp";
@@ -23,6 +24,7 @@ const KIND_ICON: Record<string, typeof Sparkles> = {
 };
 
 export default function ShopSection({ points }: { points: number }) {
+  const t = useTranslations("shopSection");
   const [items, setItems] = useState<ShopItem[]>([]);
   const [remainingPoints, setRemainingPoints] = useState(points);
   const [busy, setBusy] = useState<string | null>(null);
@@ -52,7 +54,7 @@ export default function ShopSection({ points }: { points: number }) {
       setRemainingPoints((p) => p - item.pointsCost);
       setResult({ itemId: item.id, couponCode: data.couponCode });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "교환 실패");
+      setError(err instanceof Error ? err.message : t("redeemFailed"));
     } finally {
       setBusy(null);
     }
@@ -66,7 +68,7 @@ export default function ShopSection({ points }: { points: number }) {
         <span className="w-8 h-8 rounded-xl bg-purple/15 flex items-center justify-center">
           <Gift size={16} className="text-purple" />
         </span>
-        <h2 className="font-semibold text-[15px]">포인트 상점</h2>
+        <h2 className="font-semibold text-[15px]">{t("title")}</h2>
       </div>
 
       <div className="grid sm:grid-cols-2 gap-3">
@@ -88,7 +90,7 @@ export default function ShopSection({ points }: { points: number }) {
                   <p className="font-medium text-sm">{item.name}</p>
                   {item.description && <p className="text-xs text-text-dim mt-0.5">{item.description}</p>}
                   {item.durationDays != null && (
-                    <p className="text-xs text-purple mt-0.5">{item.durationDays}일간 유효</p>
+                    <p className="text-xs text-purple mt-0.5">{t("validDays", { days: item.durationDays })}</p>
                   )}
                 </div>
               </div>
@@ -101,13 +103,13 @@ export default function ShopSection({ points }: { points: number }) {
                   disabled={busy !== null || !affordable}
                   className="btn-secondary px-3.5 py-1.5 text-xs active:scale-95 transition-transform"
                 >
-                  {busy === item.id ? "교환 중..." : affordable ? "교환하기" : "포인트 부족"}
+                  {busy === item.id ? t("redeeming") : affordable ? t("redeem") : t("insufficientPoints")}
                 </button>
               </div>
               {redeemedHere && (
                 <p className="text-xs text-green mt-2 flex items-center gap-1">
                   <SuccessCheck size={16} />
-                  교환 완료!{result?.couponCode && ` 쿠폰 코드: ${result.couponCode}`}
+                  {t("redeemedTitle")}{result?.couponCode && t("couponCodeLabel", { code: result.couponCode })}
                 </p>
               )}
             </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Info, AlertTriangle, Siren, X } from "lucide-react";
 
 interface Announcement {
@@ -27,6 +28,7 @@ function getDismissed(): string[] {
 }
 
 export default function AnnouncementBanner({ maxWidthClass = "max-w-5xl" }: { maxWidthClass?: string }) {
+  const t = useTranslations("announcementBanner");
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
 
   useEffect(() => {
@@ -58,7 +60,7 @@ export default function AnnouncementBanner({ maxWidthClass = "max-w-5xl" }: { ma
               <p className="font-semibold">{a.title}</p>
               <p className="text-text-dim mt-0.5">{a.body}</p>
             </div>
-            <button onClick={() => dismiss(a.id)} className="text-text-dim hover:text-text shrink-0 active:scale-90 transition-transform" aria-label="닫기">
+            <button onClick={() => dismiss(a.id)} className="text-text-dim hover:text-text shrink-0 active:scale-90 transition-transform" aria-label={t("close")}>
               <X size={16} />
             </button>
           </div>

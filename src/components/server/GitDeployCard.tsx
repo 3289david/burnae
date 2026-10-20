@@ -44,6 +44,8 @@ export default function GitDeployCard({ serverId }: { serverId: string }) {
   const [repoToken, setRepoToken] = useState("");
   const [repoBusy, setRepoBusy] = useState(false);
   const [repoError, setRepoError] = useState<string | null>(null);
+  const [testingWebhook, setTestingWebhook] = useState(false);
+  const [testWebhookResult, setTestWebhookResult] = useState<"ok" | "error" | null>(null);
 
   function load() {
     fetch(`/api/servers/${serverId}/deploy`)
@@ -89,6 +91,20 @@ export default function GitDeployCard({ serverId }: { serverId: string }) {
       if (res.ok) setConfig((prev) => (prev ? { ...prev, ...data, hasSecret: !!data.deployWebhookSecret } : prev));
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function sendTestWebhook() {
+    setTestingWebhook(true);
+    setTestWebhookResult(null);
+    try {
+      const res = await fetch(`/api/servers/${serverId}/notify-webhook/test`, { method: "POST" });
+      setTestWebhookResult(res.ok ? "ok" : "error");
+    } catch {
+      setTestWebhookResult("error");
+    } finally {
+      setTestingWebhook(false);
+      setTimeout(() => setTestWebhookResult(null), 3000);
     }
   }
 
@@ -327,7 +343,18 @@ export default function GitDeployCard({ serverId }: { serverId: string }) {
             >
               {t("save")}
             </button>
+            {config.deployNotifyWebhookUrl && (
+              <button
+                onClick={sendTestWebhook}
+                disabled={testingWebhook}
+                className="btn-secondary px-3 py-1.5 text-xs shrink-0"
+              >
+                {testingWebhook ? t("webhookTesting") : t("webhookTest")}
+              </button>
+            )}
           </div>
+          {testWebhookResult === "ok" && <p className="text-green mt-1">{t("webhookTestOk")}</p>}
+          {testWebhookResult === "error" && <p className="text-red-500 mt-1">{t("webhookTestError")}</p>}
         </div>
       </div>
 

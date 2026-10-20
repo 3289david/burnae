@@ -10,6 +10,7 @@ import { ProvisioningError } from "../src/lib/provisioning";
 import { syncAppProxyMap } from "../src/lib/appProxy";
 import { provisionCustomDomainSsl } from "../src/lib/customDomainSsl";
 import { pingHealthCheck } from "../src/lib/healthCheck";
+import { notifyServerEvent } from "../src/lib/notify";
 
 /**
  * 주기적으로(예: 5~10분마다) 실행하는 운영 크론.
@@ -90,35 +91,6 @@ async function handleServerStatusSync() {
       // Wings가 일시적으로 응답 없을 수 있음 — 조용히 스킵하고 다음 크론에서 재시도
     }
   }
-}
-
-/** RUNNING 서버의 CPU/RAM/디스크 사용량을 스냅샷으로 기록 — 서버 상세 페이지 사용량 그래프용 */
-async function handleUsageSnapshots() {
-  const servers = await prisma.server.findMany({
-    where: { deletedAt: null, status: "RUNNING", pterodactylIdentifier: { not: null } },
-    select: { id: true, pterodactylIdentifier: true },
-  });
-
-  for (const server of servers) {
-    try {
-      const { resources } = await PteroClient.getServerResources(server.pterodactylIdentifier!);
-      await prisma.serverUsageSnapshot.create({
-        data: {
-          serverId: server.id,
-          cpuPercent: resources.cpu_absolute,
-          ramMb: Math.round(resources.memory_bytes / 1024 / 1024),
-          diskMb: Math.round(resources.disk_bytes / 1024 / 1024),
-        },
-      });
-    } catch {
-      // Wings 일시 응답 없음 등 — 조용히 스킵하고 다음 크론에서 재시도
-    }
-  }
-
-  // 30일 지난 스냅샷은 그래프에 안 쓰이니 계속 쌓아둘 이유가 없다
-  await prisma.serverUsageSnapshot.deleteMany({
-    where: { recordedAt: { lt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } },
-  });
 }
 
 async function handleRenewals() {
@@ -487,6 +459,7 @@ async function handleHealthChecks() {
       const openIncident = await prisma.uptimeIncident.findFirst({ where: { serverId: server.id, endedAt: null } });
       if (openIncident) {
         await prisma.uptimeIncident.update({ where: { id: openIncident.id }, data: { endedAt: new Date() } });
+        await notifyServerEvent(server, `✅ **${server.name}** 다시 정상적으로 응답하고 있어요.`);
       }
       if (server.healthCheckFailures > 0) {
         await prisma.server.update({ where: { id: server.id }, data: { healthCheckFailures: 0, lastHealthCheckAt: new Date() } });
@@ -501,19 +474,73 @@ async function handleHealthChecks() {
       const openIncident = await prisma.uptimeIncident.findFirst({ where: { serverId: server.id, endedAt: null } });
       if (!openIncident) {
         await prisma.uptimeIncident.create({ data: { serverId: server.id } });
+        await notifyServerEvent(server, `🔴 **${server.name}** 헬스체크(${server.healthCheckPath})가 응답하지 않아요.`);
       }
       if (server.pterodactylIdentifier) {
         console.log(`[cron] ${server.name} — 헬스체크 ${failures}회 연속 실패, 자동 재시작`);
         await PteroClient.sendPowerAction(server.pterodactylIdentifier, "restart").catch((err) =>
           console.error(`[cron] ${server.name} 헬스체크 자동 재시작 실패:`, err),
         );
-        await notifyOwner(server.ownerId, `🚑 **${server.name}** 헬스체크가 계속 실패해서 자동으로 재시작했어요(${server.healthCheckPath}).`);
+        await notifyServerEvent(server, `🚑 **${server.name}** 헬스체크가 계속 실패해서 자동으로 재시작했어요(${server.healthCheckPath}).`);
       }
       await prisma.server.update({ where: { id: server.id }, data: { healthCheckFailures: 0, lastHealthCheckAt: new Date() } });
     } else {
       await prisma.server.update({ where: { id: server.id }, data: { healthCheckFailures: failures, lastHealthCheckAt: new Date() } });
     }
   }
+}
+
+/** 사용량 그래프(UsageHistoryChart)용 스냅샷을 쌓고, 디스크/램이 플랜 한도의 90%를 넘으면
+ * 소유자에게 경고한다(Render/Railway의 "nearing resource limit" 알림과 같은 역할) */
+const USAGE_ALERT_THRESHOLD_PERCENT = 90;
+const USAGE_ALERT_COOLDOWN_HOURS = 24;
+const USAGE_SNAPSHOT_RETENTION_DAYS = 30;
+
+async function handleUsageSnapshots() {
+  const servers = await prisma.server.findMany({
+    where: { deletedAt: null, status: "RUNNING", pterodactylIdentifier: { not: null } },
+  });
+
+  for (const server of servers) {
+    if (!server.pterodactylIdentifier) continue;
+    let resources;
+    try {
+      resources = await PteroClient.getServerResources(server.pterodactylIdentifier);
+    } catch (err) {
+      console.error(`[cron] ${server.name} 리소스 조회 실패:`, err);
+      continue;
+    }
+
+    const cpuPercent = resources.resources.cpu_absolute;
+    const ramMb = Math.round(resources.resources.memory_bytes / 1024 / 1024);
+    const diskMb = Math.round(resources.resources.disk_bytes / 1024 / 1024);
+
+    await prisma.serverUsageSnapshot.create({ data: { serverId: server.id, cpuPercent, ramMb, diskMb } });
+
+    const diskPercent = server.diskMb > 0 ? (diskMb / server.diskMb) * 100 : 0;
+    const ramPercent = server.ramMb > 0 ? (ramMb / server.ramMb) * 100 : 0;
+    const cooldownOk = (last: Date | null) =>
+      !last || Date.now() - last.getTime() > USAGE_ALERT_COOLDOWN_HOURS * 60 * 60 * 1000;
+
+    if (diskPercent >= USAGE_ALERT_THRESHOLD_PERCENT && cooldownOk(server.lastDiskUsageAlertAt)) {
+      await notifyServerEvent(
+        server,
+        `💾 **${server.name}** 디스크 사용량이 ${diskPercent.toFixed(0)}%예요. 파일을 정리하거나 플랜을 업그레이드해주세요.`,
+      );
+      await prisma.server.update({ where: { id: server.id }, data: { lastDiskUsageAlertAt: new Date() } });
+    }
+    if (ramPercent >= USAGE_ALERT_THRESHOLD_PERCENT && cooldownOk(server.lastRamUsageAlertAt)) {
+      await notifyServerEvent(
+        server,
+        `🧠 **${server.name}** 메모리 사용량이 ${ramPercent.toFixed(0)}%예요. 계속 넘으면 서버가 강제 종료될 수 있어요 — 플랜 업그레이드를 고려해주세요.`,
+      );
+      await prisma.server.update({ where: { id: server.id }, data: { lastRamUsageAlertAt: new Date() } });
+    }
+  }
+
+  await prisma.serverUsageSnapshot.deleteMany({
+    where: { recordedAt: { lt: new Date(Date.now() - USAGE_SNAPSHOT_RETENTION_DAYS * 24 * 60 * 60 * 1000) } },
+  });
 }
 
 async function handleScheduledTasks() {
@@ -784,7 +811,6 @@ async function main() {
   await handleServerStatusSync();
   await handleStuckProvisioning();
   await handleStuckFulfillment();
-  await handleUsageSnapshots();
   try {
     const result = await syncAppProxyMap(prisma);
     if (result.changed) console.log(`[cron] app.krl.kr 프록시 맵 갱신 (${result.count}개 서버)`);
@@ -796,6 +822,7 @@ async function main() {
   await handleScheduledBackups();
   await handleCustomDomainSsl();
   await handleHealthChecks();
+  await handleUsageSnapshots();
   await handleScheduledTasks();
   await handleScheduledRestarts();
   await handleNodeAlerts();

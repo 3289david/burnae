@@ -544,8 +544,12 @@
     "otherHostDetails": "다른 호스트(GitLab 등)나 직접 토큰으로 연결",
     "branchLabel": "추적할 브랜치 (선택) — 비워두면 저장소를 처음 설치했을 때 브랜치를 계속 써요",
     "branchPlaceholder": "예: main, develop",
-    "notifyWebhookLabel": "외부 배포 알림 웹훅 (선택) — Slack/Discord Incoming Webhook URL",
-    "notifyWebhookPlaceholder": "https://discord.com/api/webhooks/... 또는 Slack 웹훅 URL"
+    "notifyWebhookLabel": "외부 알림 웹훅 (선택) — 배포 결과·리소스 경고·장애 알림, Slack/Discord Incoming Webhook URL",
+    "notifyWebhookPlaceholder": "https://discord.com/api/webhooks/... 또는 Slack 웹훅 URL",
+    "webhookTest": "테스트 전송",
+    "webhookTesting": "보내는 중...",
+    "webhookTestOk": "테스트 메시지를 보냈어요. 확인해보세요.",
+    "webhookTestError": "전송에 실패했어요. URL을 확인해주세요."
   },
   "scheduledTasksCard": {
     "addFailed": "추가 실패",
@@ -557,7 +561,8 @@
     "noTasks": "아직 예약 작업이 없어요.",
     "namePlaceholder": "이름 (예: 매일 저장)",
     "commandPlaceholder": "콘솔 명령어 (예: save-all)",
-    "add": "추가"
+    "add": "추가",
+    "runNow": "지금 실행"
   },
   "startupVariablesCard": {
     "discordTokenHelp": "디스코드 봇 토큰이에요. 디스코드 개발자 포털에서 애플리케이션을 만들고 Bot 탭에서 발급받으세요.",

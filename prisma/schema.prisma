@@ -610,8 +610,8 @@ model Server {
   /// 특정 브랜치를 계속 추적하고 싶을 때(기본 브랜치가 아닌 다른 브랜치로 배포). null이면
   /// 저장소를 처음 설치했을 때 체크아웃된 브랜치(보통 기본 브랜치)를 그대로 쓴다
   gitBranch           String?
-  /// 배포 결과(성공/실패)를 디스코드 DM 말고 외부로도 알리고 싶을 때 — Slack/Discord 둘 다
-  /// 호환되는 웹훅 URL(Incoming Webhook)
+  /// 서버 알림(배포 결과, 리소스 사용량 경고 등)을 디스코드 DM 말고 외부로도 받고 싶을 때 —
+  /// Slack/Discord 둘 다 호환되는 웹훅 URL(Incoming Webhook). notify.ts의 notifyServerEvent가 공용으로 씀
   deployNotifyWebhookUrl String?
 
   /// HTTP로 서비스하는 서버(GENERAL/DISCORD_BOT)의 헬스체크 경로(예: "/health"). 설정하면
@@ -624,6 +624,11 @@ model Server {
   /// 공개 상태 페이지(/status/[slug]) — healthCheckPath가 있어야 의미 있다. 끄면 404
   statusPageEnabled Boolean @default(false)
   statusPageSlug    String? @unique
+
+  /// 리소스 사용량이 플랜 한도의 90%를 넘으면 소유자에게 경고한다 — 한 번 보내면 24시간 동안은
+  /// 계속 넘고 있어도 다시 안 보낸다(스팸 방지). 종류별로 따로 관리(디스크 꽉 찬 거랑 램 부족은 별개 문제)
+  lastDiskUsageAlertAt DateTime?
+  lastRamUsageAlertAt  DateTime?
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt

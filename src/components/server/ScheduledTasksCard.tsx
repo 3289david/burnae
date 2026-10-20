@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
-import { Timer, Trash2, Plus } from "lucide-react";
+import { Timer, Trash2, Plus, Play } from "lucide-react";
 import Toggle from "@/components/Toggle";
 
 interface Task {
@@ -24,6 +24,7 @@ export default function ScheduledTasksCard({ serverId }: { serverId: string }) {
   const [interval, setInterval_] = useState(60);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [runningId, setRunningId] = useState<string | null>(null);
 
   async function load() {
     const res = await fetch(`/api/servers/${serverId}/scheduled-tasks`);
@@ -66,6 +67,16 @@ export default function ScheduledTasksCard({ serverId }: { serverId: string }) {
     await load();
   }
 
+  async function runNow(id: string) {
+    setRunningId(id);
+    try {
+      const res = await fetch(`/api/servers/${serverId}/scheduled-tasks/${id}/run`, { method: "POST" });
+      if (res.ok) await load();
+    } finally {
+      setRunningId(null);
+    }
+  }
+
   async function remove(id: string) {
     if (!confirm(t("deleteConfirm"))) return;
     await fetch(`/api/servers/${serverId}/scheduled-tasks/${id}`, { method: "DELETE" });
@@ -97,6 +108,14 @@ export default function ScheduledTasksCard({ serverId }: { serverId: string }) {
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => runNow(task.id)}
+                disabled={runningId === task.id}
+                title={t("runNow")}
+                className="text-accent hover:text-accent/80 disabled:opacity-40"
+              >
+                <Play size={14} />
+              </button>
               <Toggle checked={task.enabled} onChange={(next) => toggleTask(task.id, next)} size="sm" />
               <button onClick={() => remove(task.id)} className="text-red hover:text-red/80">
                 <Trash2 size={14} />

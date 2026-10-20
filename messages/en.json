@@ -544,8 +544,12 @@
     "otherHostDetails": "Connect to another host (GitLab, etc) or with a manual token",
     "branchLabel": "Branch to track (optional) — leave blank to keep whatever branch was checked out on install",
     "branchPlaceholder": "e.g. main, develop",
-    "notifyWebhookLabel": "Outgoing deploy notification webhook (optional) — Slack/Discord Incoming Webhook URL",
-    "notifyWebhookPlaceholder": "https://discord.com/api/webhooks/... or a Slack webhook URL"
+    "notifyWebhookLabel": "Outgoing notification webhook (optional) — deploy results, resource alerts, downtime alerts, Slack/Discord Incoming Webhook URL",
+    "notifyWebhookPlaceholder": "https://discord.com/api/webhooks/... or a Slack webhook URL",
+    "webhookTest": "Send test",
+    "webhookTesting": "Sending...",
+    "webhookTestOk": "Test message sent — check it out.",
+    "webhookTestError": "Failed to send. Double-check the URL."
   },
   "scheduledTasksCard": {
     "addFailed": "Failed to add",
@@ -557,7 +561,8 @@
     "noTasks": "No scheduled tasks yet.",
     "namePlaceholder": "Name (e.g. daily save)",
     "commandPlaceholder": "Console command (e.g. save-all)",
-    "add": "Add"
+    "add": "Add",
+    "runNow": "Run now"
   },
   "startupVariablesCard": {
     "discordTokenHelp": "This is a Discord bot token. Create an application in the Discord developer portal and get it from the Bot tab.",

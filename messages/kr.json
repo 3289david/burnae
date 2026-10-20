@@ -660,7 +660,9 @@
     "makerWorking": "만드는 중이에요... 위에서 진행 상황을 볼 수 있어요",
     "processingPlaceholder": "처리 중이에요...",
     "messagePlaceholder": "메시지를 입력하세요...",
-    "send": "전송"
+    "send": "전송",
+    "modeChat": "채팅",
+    "modeMaker": "메이커"
   },
   "serverDetailClient": {
     "tabOverview": "개요",

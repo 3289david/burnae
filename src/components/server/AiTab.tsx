@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Wrench, ExternalLink, Folder } from "lucide-react";
+import { Wrench, ExternalLink, Folder, MessageCircle, Wand2 } from "lucide-react";
 import AiCreditsCard from "./AiCreditsCard";
 import MakerFilePanel from "./MakerFilePanel";
 import { hasServerRank, type ServerAccessRole } from "@/lib/serverRoleRank";
@@ -49,18 +49,20 @@ const MAKER_EXAMPLE_KEY: Record<Category, string> = {
 export default function AiTab({
   serverId,
   templateCategory = "MINECRAFT",
-  kind = "CHAT",
   previewAddress = null,
   myRole,
 }: {
   serverId: string;
   templateCategory?: Category;
-  kind?: "CHAT" | "MAKER";
   previewAddress?: string | null;
   myRole: ServerAccessRole | null;
 }) {
   const t = useTranslations("aiTab");
   const canUseAi = hasServerRank(myRole, "DEVELOPER");
+  // 예전엔 "AI"/"메이커"가 서로 다른 탭이었다 — OpenCode/Claude Code처럼 탭을 늘리는 대신 한
+  // 화면 안에서 모드만 바꾸는 쪽으로 통합했다. 대화 자체는 모드별로 완전히 분리돼서(서버
+  // kind="CHAT"|"MAKER") 모드를 바꾸면 그 모드의 별도 대화 목록을 불러온다.
+  const [kind, setKind] = useState<"CHAT" | "MAKER">("CHAT");
   const [showFiles, setShowFiles] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [conversations, setConversations] = useState<{ id: string; title: string; updatedAt: string }[]>([]);
@@ -94,6 +96,9 @@ export default function AiTab({
 
   useEffect(() => {
     if (!canUseAi) return;
+    setMessages([]);
+    setPending(null);
+    setChatError(null);
     (async () => {
       const res = await fetch(`/api/ai/conversations?serverId=${serverId}&kind=${kind}`);
       if (!res.ok) {
@@ -196,8 +201,26 @@ export default function AiTab({
     <div>
     <AiCreditsCard />
     <div className="card-glow p-0 overflow-hidden flex flex-col h-[32rem] animate-fade-up">
-      <div className="px-4 py-2 border-b border-border flex items-center gap-2">
-        {conversations.length > 1 && (
+      <div className="px-4 pt-3 pb-2 border-b border-border flex items-center gap-2">
+        <div className="inline-flex rounded-lg bg-surface-2 p-0.5 text-xs shrink-0">
+          <button
+            onClick={() => setKind("CHAT")}
+            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md transition-colors ${
+              kind === "CHAT" ? "bg-bg text-text shadow-sm" : "text-text-dim"
+            }`}
+          >
+            <MessageCircle size={12} /> {t("modeChat")}
+          </button>
+          <button
+            onClick={() => setKind("MAKER")}
+            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md transition-colors ${
+              kind === "MAKER" ? "bg-bg text-text shadow-sm" : "text-text-dim"
+            }`}
+          >
+            <Wand2 size={12} /> {t("modeMaker")}
+          </button>
+        </div>
+        {conversations.length > 1 ? (
           <select
             value={conversationId ?? ""}
             onChange={(e) => setConversationId(e.target.value)}
@@ -209,16 +232,18 @@ export default function AiTab({
               </option>
             ))}
           </select>
+        ) : (
+          <div className="flex-1" />
         )}
         {kind === "MAKER" && (
           <button
             onClick={() => setShowFiles((v) => !v)}
-            className={`text-xs shrink-0 inline-flex items-center gap-1 ${showFiles ? "text-accent" : "text-text-dim"} ${conversations.length > 1 ? "" : "ml-auto"}`}
+            className={`text-xs shrink-0 inline-flex items-center gap-1 ${showFiles ? "text-accent" : "text-text-dim"}`}
           >
             <Folder size={13} /> {t("files")}
           </button>
         )}
-        <button onClick={startNewConversation} className={`text-xs text-accent shrink-0 ${kind === "MAKER" ? "" : "ml-auto"}`}>
+        <button onClick={startNewConversation} className="text-xs text-accent shrink-0">
           {t("newConversation")}
         </button>
       </div>

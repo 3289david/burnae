@@ -1,38 +1,15 @@
 import OpenAI from "openai";
 import { prisma } from "@/lib/prisma";
 import { AI_TOOLS, openAiToolList } from "@/lib/ai/tools";
-import { recordUsage, withUsageTracking, AiTurnFailedError } from "@/lib/ai/usageTracking";
+import { withUsageTracking, AiTurnFailedError, type UsageAccumulator } from "@/lib/ai/usageTracking";
 import { creditsForUsage, InsufficientCreditsError } from "@/lib/ai/pricing";
+import { createChatCompletion } from "@/lib/ai/provider";
 import type { Server } from "@/generated/prisma/client";
 import type { AiMessage } from "@/generated/prisma/client";
 import type { ServerCategory } from "@/generated/prisma/enums";
 
 export { InsufficientCreditsError };
 
-/**
- * OpenRouter(OpenAI 호환 API)를 통해 저렴한 오픈소스 모델을 사용한다.
- * 기본값 Qwen3 235B A22B Instruct — Apache-2.0 오픈소스, tool-calling 지원, 저렴함.
- * https://openrouter.ai/qwen/qwen3-235b-a22b-2507
- *
- * 클라이언트는 첫 호출 시점에 생성한다 — OpenAI SDK는 apiKey가 없으면 생성자에서
- * 바로 예외를 던지는데, 빌드 시점(next build의 route 정적 분석)에는 아직 .env가
- * 없을 수 있으므로 모듈 로드 시점에 즉시 생성하면 빌드가 깨진다.
- */
-let _client: OpenAI | null = null;
-function getClient(): OpenAI {
-  if (!_client) {
-    _client = new OpenAI({
-      apiKey: process.env.OPENROUTER_API_KEY || "unset",
-      baseURL: "https://openrouter.ai/api/v1",
-      defaultHeaders: {
-        "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL ?? "https://burnae.kr",
-        "X-Title": "Burnae AI",
-      },
-    });
-  }
-  return _client;
-}
-const MODEL = process.env.OPENROUTER_MODEL ?? "qwen/qwen3-235b-a22b-2507";
 const MAX_STEPS_CHAT = 6;
 // 메이커는 웹사이트/봇 하나 만드는 데 파일 여러 개 + 재시작까지 한 번에 필요해서 스텝을 넉넉히 준다
 const MAX_STEPS_MAKER = 20;
@@ -180,10 +157,12 @@ export interface AiTurnResult {
   pendingActivityLogId?: string;
 }
 
-/** usage에 쌓인 실제 토큰 사용량만큼 사용자 크레딧을 깎는다 (0 아래로는 내려가지 않음). */
-async function chargeForUsage(userId: string, usage: { promptTokens: number; completionTokens: number }) {
-  if (usage.promptTokens === 0 && usage.completionTokens === 0) return;
-  const credits = creditsForUsage(usage.promptTokens, usage.completionTokens);
+/** usage에 쌓인 실제 토큰 사용량만큼 사용자 크레딧을 깎는다 (0 아래로는 내려가지 않음).
+ * primary(monken.cloud)/fallback(OpenRouter) 중 어느 쪽을 썼는지에 따라 단가가 달라서
+ * pricing.ts가 두 버킷을 합쳐서 계산한다. */
+async function chargeForUsage(userId: string, usage: UsageAccumulator) {
+  const credits = creditsForUsage(usage);
+  if (credits <= 0) return;
   await prisma.$executeRaw`UPDATE "User" SET "aiCreditsRemaining" = GREATEST(0, "aiCreditsRemaining" - ${credits}) WHERE id = ${userId}`;
 }
 
@@ -244,14 +223,12 @@ export async function runAiTurn(
         orderBy: { createdAt: "asc" },
       });
 
-      const response = await getClient().chat.completions.create({
-        model: MODEL,
+      const response = await createChatCompletion({
         messages: toOpenAiMessages(rows, template.category, kind),
         tools: openAiToolList(template.category),
         tool_choice: "auto",
         parallel_tool_calls: false,
       });
-      recordUsage(response.usage);
 
       const message = response.choices[0]?.message;
       if (!message) {

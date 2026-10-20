@@ -4,7 +4,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import {
-  LayoutGrid, Terminal, Users, Puzzle, Folder, RefreshCw, UserPlus, Settings, Bot, Wand2, Pencil, Check, X,
+  LayoutGrid, Terminal, Users, Puzzle, Folder, RefreshCw, UserPlus, Settings, Bot, Pencil, Check, X,
 } from "lucide-react";
 import OverviewTab from "./OverviewTab";
 import ConsoleTab from "./ConsoleTab";
@@ -71,11 +71,11 @@ const TABS = [
   { key: "console", labelKey: "tabConsole", icon: Terminal },
   { key: "players", labelKey: "tabPlayers", icon: Users },
   { key: "plugins", labelKey: "tabPlugins", icon: Puzzle },
-  { key: "maker", labelKey: "tabMaker", icon: Wand2 },
   { key: "files", labelKey: "tabFiles", icon: Folder },
   { key: "backups", labelKey: "tabBackups", icon: RefreshCw },
   { key: "team", labelKey: "tabTeam", icon: UserPlus },
   { key: "settings", labelKey: "tabSettings", icon: Settings },
+  // AI 탭 하나에 채팅(승인 필요)/메이커(자동 실행) 모드를 모두 담는다 — 예전엔 별개 탭이었다
   { key: "ai", labelKey: "tabAi", icon: Bot },
 ] as const;
 
@@ -225,9 +225,6 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
         {tab === "console" && <ConsoleTab serverId={server.id} templateCategory={server.templateCategory} myRole={server.myRole} />}
         {tab === "players" && <PlayersTab serverId={server.id} myRole={server.myRole} />}
         {tab === "plugins" && <PluginsTab serverId={server.id} myRole={server.myRole} />}
-        {tab === "maker" && (
-          <AiTab serverId={server.id} templateCategory={server.templateCategory} kind="MAKER" previewAddress={previewAddress} myRole={server.myRole} />
-        )}
         {tab === "files" && <FilesTab serverId={server.id} myRole={server.myRole} />}
         {tab === "backups" && <BackupsTab serverId={server.id} backupSlots={server.backupSlots} myRole={server.myRole} />}
         {tab === "team" && <TeamTab serverId={server.id} isOwner={server.isOwner} />}
@@ -245,7 +242,9 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
             ownerNote={server.ownerNote}
           />
         )}
-        {tab === "ai" && <AiTab serverId={server.id} templateCategory={server.templateCategory} myRole={server.myRole} />}
+        {tab === "ai" && (
+          <AiTab serverId={server.id} templateCategory={server.templateCategory} previewAddress={previewAddress} myRole={server.myRole} />
+        )}
       </div>
     </div>
   );

@@ -1,27 +1,10 @@
-import OpenAI from "openai";
-import { recordUsage } from "@/lib/ai/usageTracking";
+import { createChatCompletion } from "@/lib/ai/provider";
 
 /**
  * 컴파일된 자바 플러그인은 고객의 실제 서버에서 실행되므로, 컴파일 전에 AI가 코드를 읽고
  * 위험한 의도가 있는지 검토한다. (generate 시점 + apply 직전, 두 번 검사 — 클라이언트가
  * 왕복시키는 값은 변조될 수 있으므로 적용 직전 재검증이 항상 최종 판단이다.)
  */
-
-let _client: OpenAI | null = null;
-function getClient(): OpenAI {
-  if (!_client) {
-    _client = new OpenAI({
-      apiKey: process.env.OPENROUTER_API_KEY || "unset",
-      baseURL: "https://openrouter.ai/api/v1",
-      defaultHeaders: {
-        "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL ?? "https://burnae.kr",
-        "X-Title": "Burnae AI Plugin Safety Review",
-      },
-    });
-  }
-  return _client;
-}
-const MODEL = process.env.OPENROUTER_MODEL ?? "qwen/qwen3-235b-a22b-2507";
 
 const REVIEW_SYSTEM_PROMPT = `너는 마인크래프트 플러그인 자바 코드의 보안 검토자야. 아래 코드가 실제 고객 서버에
 설치되기 전에 위험한지 검사해. 다음을 위험으로 판단해:
@@ -35,15 +18,13 @@ const REVIEW_SYSTEM_PROMPT = `너는 마인크래프트 플러그인 자바 코�
 
 export async function reviewJavaSourceSafety(javaSource: string): Promise<{ safe: boolean; reasons: string[] }> {
   try {
-    const res = await getClient().chat.completions.create({
-      model: MODEL,
+    const res = await createChatCompletion({
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: REVIEW_SYSTEM_PROMPT },
         { role: "user", content: javaSource },
       ],
     });
-    recordUsage(res.usage);
     const raw = res.choices[0]?.message?.content;
     if (!raw) return { safe: false, reasons: ["안전성 검사 응답을 받지 못했어요."] };
     const parsed = JSON.parse(raw) as { safe?: boolean; reasons?: string[] };

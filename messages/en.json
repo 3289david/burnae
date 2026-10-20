@@ -660,7 +660,9 @@
     "makerWorking": "Building... you can watch progress above",
     "processingPlaceholder": "Processing...",
     "messagePlaceholder": "Type a message...",
-    "send": "Send"
+    "send": "Send",
+    "modeChat": "Chat",
+    "modeMaker": "Maker"
   },
   "serverDetailClient": {
     "tabOverview": "Overview",

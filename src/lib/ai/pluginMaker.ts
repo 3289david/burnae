@@ -1,7 +1,6 @@
-import OpenAI from "openai";
 import { reviewJavaSourceSafety } from "@/lib/ai/javaSafety";
 import { hasBukkitApi } from "@/lib/minecraftLoaders";
-import { recordUsage } from "@/lib/ai/usageTracking";
+import { createChatCompletion } from "@/lib/ai/provider";
 
 /**
  * "AI 플러그인/모드 메이커".
@@ -19,22 +18,6 @@ import { recordUsage } from "@/lib/ai/usageTracking";
  * NeoForge/Vanilla는 바이트코드 리매핑 전용 빌드체계(ForgeGradle/Loom/NeoGradle)가 있어야만 진짜
  * 모드를 컴파일할 수 있어 지원 범위 밖 — datapack만 적용 가능하다.
  */
-
-let _client: OpenAI | null = null;
-function getClient(): OpenAI {
-  if (!_client) {
-    _client = new OpenAI({
-      apiKey: process.env.OPENROUTER_API_KEY || "unset",
-      baseURL: "https://openrouter.ai/api/v1",
-      defaultHeaders: {
-        "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL ?? "https://burnae.kr",
-        "X-Title": "Burnae AI Plugin Maker",
-      },
-    });
-  }
-  return _client;
-}
-const MODEL = process.env.OPENROUTER_MODEL ?? "qwen/qwen3-235b-a22b-2507";
 
 export function isBukkitFamilyTemplate(templateKey: string): boolean {
   return hasBukkitApi(templateKey);
@@ -108,8 +91,7 @@ export async function generatePluginContent(params: {
 }): Promise<PluginMakerResult> {
   const allowJavaFamily = isBukkitFamilyTemplate(params.templateKey);
 
-  const res = await getClient().chat.completions.create({
-    model: MODEL,
+  const res = await createChatCompletion({
     response_format: { type: "json_object" },
     messages: [
       { role: "system", content: buildSystemPrompt(allowJavaFamily) },
@@ -119,7 +101,6 @@ export async function generatePluginContent(params: {
       },
     ],
   });
-  recordUsage(res.usage);
 
   const raw = res.choices[0]?.message?.content;
   if (!raw) throw new Error("AI가 응답하지 않았어요. 잠시 후 다시 시도해주세요.");

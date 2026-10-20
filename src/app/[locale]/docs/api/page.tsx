@@ -53,6 +53,17 @@ const ENDPOINTS: { method: string; path: string; desc: string; body?: string; sa
     desc: "Git 저장소에서 수동 배포 트리거 (DEVELOPER 이상 권한 필요, Git 배포를 지원하는 서버만)",
     sample: `{ "ok": true, "output": "Already up to date.\\n..." }`,
   },
+  {
+    method: "GET",
+    path: "/api/v1/servers/{id}/usage",
+    desc: "최근 CPU/RAM/디스크 사용량 스냅샷과 플랜 한도 (10분 간격으로 갱신)",
+    sample: `{
+  "recordedAt": "2026-10-20T09:40:00.000Z",
+  "cpu": { "usedPercent": 34.2, "limitPercent": 100 },
+  "ram": { "usedMb": 612, "limitMb": 1024 },
+  "disk": { "usedMb": 2048, "limitMb": 20480 }
+}`,
+  },
 ];
 
 export default function ApiDocsPage() {
@@ -130,6 +141,30 @@ curl -X POST -H "Authorization: Bearer burn_xxxx" \\
   -H "Content-Type: application/json" \\
   -d '{"signal":"restart"}' \\
   https://burnae.kr/api/v1/servers/SERVER_ID/power`}
+          </pre>
+        </section>
+
+        <section className="mt-8">
+          <h2 className="text-lg font-semibold font-display">CLI</h2>
+          <p className="text-sm text-text-dim mt-2">
+            공식 CLI는 아직 없지만, 아래 스크립트를 <code className="font-mono text-xs bg-surface-2 px-1 py-0.5 rounded">burnae</code>{" "}
+            로 저장하고 <code className="font-mono text-xs bg-surface-2 px-1 py-0.5 rounded">chmod +x burnae</code> 하면 바로 커맨드처럼 쓸 수 있어요.
+          </p>
+          <pre className="mt-3 text-xs font-mono bg-surface-2 rounded-lg px-3 py-2.5 overflow-x-auto whitespace-pre">
+{`#!/bin/bash
+# burnae CLI — 사용법: BURNAE_TOKEN=burn_xxxx ./burnae <list|get|power|deploy|usage> [server_id] [arg]
+set -e
+API="https://burnae.kr/api/v1"
+AUTH="Authorization: Bearer $BURNAE_TOKEN"
+case "$1" in
+  list) curl -s -H "$AUTH" "$API/servers" | python3 -m json.tool ;;
+  get) curl -s -H "$AUTH" "$API/servers/$2" | python3 -m json.tool ;;
+  usage) curl -s -H "$AUTH" "$API/servers/$2/usage" | python3 -m json.tool ;;
+  power) curl -s -X POST -H "$AUTH" -H "Content-Type: application/json" \\
+    -d "{\\"signal\\":\\"$3\\"}" "$API/servers/$2/power" ;;
+  deploy) curl -s -X POST -H "$AUTH" "$API/servers/$2/deploy" | python3 -m json.tool ;;
+  *) echo "usage: burnae <list|get|usage|power|deploy> [server_id] [arg]"; exit 1 ;;
+esac`}
           </pre>
         </section>
 

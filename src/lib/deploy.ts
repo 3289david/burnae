@@ -247,9 +247,33 @@ export async function changeGitRemote(
     return { ok: false, output: "저장소 주소가 올바르지 않아요." };
   }
 
-  await PteroClient.runCommandAndCapture(server.pterodactylIdentifier, `git remote set-url origin ${shellQuote(remoteUrl.toString())}`, 5000).catch(
-    (err) => console.error(`[deploy] 서버 ${server.id} git remote 변경 실패:`, err),
-  );
+  // 빈 서버(blank-server) 등 install 스크립트가 git clone을 하지 않는 템플릿은 .git이 아예
+  // 없을 수 있다 — 그럴 땐 remote만 바꿔봐야 소용없으니(다음 git pull이 "not a git repository"로
+  // 실패) 처음 연결하는 거면 그 자리에 바로 clone한다
+  const probeLines = await PteroClient.runCommandAndCapture(
+    server.pterodactylIdentifier,
+    "test -d .git && echo __BURNAE_HAS_GIT__ || echo __BURNAE_NO_GIT__",
+    5000,
+  ).catch(() => null);
+  const hasGit = probeLines?.some((l) => l.includes("__BURNAE_HAS_GIT__")) ?? true;
+
+  if (hasGit) {
+    await PteroClient.runCommandAndCapture(server.pterodactylIdentifier, `git remote set-url origin ${shellQuote(remoteUrl.toString())}`, 5000).catch(
+      (err) => console.error(`[deploy] 서버 ${server.id} git remote 변경 실패:`, err),
+    );
+  } else {
+    const cloneLines = await PteroClient.runCommandAndCapture(server.pterodactylIdentifier, `git clone ${shellQuote(remoteUrl.toString())} .`, 30000).catch(
+      (err) => {
+        console.error(`[deploy] 서버 ${server.id} git clone 실패:`, err);
+        return null;
+      },
+    );
+    const cloneOutput = cloneLines?.join("\n") ?? "";
+    if (cloneLines === null || FAILURE_PATTERN.test(cloneOutput)) {
+      return { ok: false, output: cloneOutput || "저장소를 내려받지 못했어요." };
+    }
+  }
+
   await PteroClient.updateStartupVariable(server.pterodactylIdentifier, "GIT_ADDRESS", newAddress).catch((err) =>
     console.error(`[deploy] 서버 ${server.id} GIT_ADDRESS 시작 변수 갱신 실패:`, err),
   );

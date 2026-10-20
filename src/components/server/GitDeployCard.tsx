@@ -17,6 +17,7 @@ interface DeployConfig {
   githubLogin: string | null;
   gitBranch: string | null;
   deployNotifyWebhookUrl: string | null;
+  gitDeployHidden: boolean;
 }
 
 interface GithubRepoSummary {
@@ -89,6 +90,21 @@ export default function GitDeployCard({ serverId }: { serverId: string }) {
       });
       const data = await res.json();
       if (res.ok) setConfig((prev) => (prev ? { ...prev, ...data, hasSecret: !!data.deployWebhookSecret } : prev));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function setHidden(hidden: boolean) {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/servers/${serverId}/deploy`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gitDeployHidden: hidden }),
+      });
+      const data = await res.json();
+      if (res.ok) setConfig((prev) => (prev ? { ...prev, ...data } : prev));
     } finally {
       setSaving(false);
     }
@@ -183,6 +199,20 @@ export default function GitDeployCard({ serverId }: { serverId: string }) {
 
   if (!config || !config.supportsGit) return null;
 
+  if (config.gitDeployHidden) {
+    return (
+      <div className="card-glow p-4 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-sm text-text-dim">
+          <GitBranch size={15} />
+          {t("hiddenNotice")}
+        </div>
+        <button onClick={() => setHidden(false)} disabled={saving} className="text-accent text-xs hover:underline shrink-0">
+          {t("unhide")}
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="card-glow p-5 space-y-3">
       <div className="flex items-center justify-between">
@@ -195,7 +225,12 @@ export default function GitDeployCard({ serverId }: { serverId: string }) {
             <p className="text-xs text-text-dim">{t("desc")}</p>
           </div>
         </div>
-        <Toggle checked={config.autoDeployEnabled} onChange={(next) => toggle(next)} />
+        <div className="flex items-center gap-3 shrink-0">
+          <button onClick={() => setHidden(true)} disabled={saving} className="text-text-dim text-xs hover:underline">
+            {t("hideCard")}
+          </button>
+          <Toggle checked={config.autoDeployEnabled} onChange={(next) => toggle(next)} />
+        </div>
       </div>
 
       <div className="rounded-xl border border-border bg-surface-2/50 p-3.5 space-y-2 text-xs">

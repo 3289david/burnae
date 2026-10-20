@@ -613,6 +613,9 @@ model Server {
   /// 서버 알림(배포 결과, 리소스 사용량 경고 등)을 디스코드 DM 말고 외부로도 받고 싶을 때 —
   /// Slack/Discord 둘 다 호환되는 웹훅 URL(Incoming Webhook). notify.ts의 notifyServerEvent가 공용으로 씀
   deployNotifyWebhookUrl String?
+  /// Git 배포를 지원하는 템플릿이라도(supportsGitDeploy) 실제로 안 쓰는 사람은 설정 탭에서
+  /// 카드 전체를 접어둘 수 있다 — "접어두기"일 뿐 기능 자체를 영구히 막는 건 아니라서 언제든 다시 펼 수 있다
+  gitDeployHidden Boolean @default(false)
 
   /// HTTP로 서비스하는 서버(GENERAL/DISCORD_BOT)의 헬스체크 경로(예: "/health"). 설정하면
   /// 유지보수 크론이 주기적으로 핑을 보내고, 연속 실패 시 자동으로 재시작한다. null이면 비활성.

@@ -484,6 +484,10 @@ async function handleHealthChecks() {
     const ok = await pingHealthCheck(server.allocationIp, server.allocationPort, server.healthCheckPath);
 
     if (ok) {
+      const openIncident = await prisma.uptimeIncident.findFirst({ where: { serverId: server.id, endedAt: null } });
+      if (openIncident) {
+        await prisma.uptimeIncident.update({ where: { id: openIncident.id }, data: { endedAt: new Date() } });
+      }
       if (server.healthCheckFailures > 0) {
         await prisma.server.update({ where: { id: server.id }, data: { healthCheckFailures: 0, lastHealthCheckAt: new Date() } });
       } else {
@@ -493,12 +497,18 @@ async function handleHealthChecks() {
     }
 
     const failures = server.healthCheckFailures + 1;
-    if (failures >= HEALTH_CHECK_FAILURE_THRESHOLD && server.pterodactylIdentifier) {
-      console.log(`[cron] ${server.name} — 헬스체크 ${failures}회 연속 실패, 자동 재시작`);
-      await PteroClient.sendPowerAction(server.pterodactylIdentifier, "restart").catch((err) =>
-        console.error(`[cron] ${server.name} 헬스체크 자동 재시작 실패:`, err),
-      );
-      await notifyOwner(server.ownerId, `🚑 **${server.name}** 헬스체크가 계속 실패해서 자동으로 재시작했어요(${server.healthCheckPath}).`);
+    if (failures >= HEALTH_CHECK_FAILURE_THRESHOLD) {
+      const openIncident = await prisma.uptimeIncident.findFirst({ where: { serverId: server.id, endedAt: null } });
+      if (!openIncident) {
+        await prisma.uptimeIncident.create({ data: { serverId: server.id } });
+      }
+      if (server.pterodactylIdentifier) {
+        console.log(`[cron] ${server.name} — 헬스체크 ${failures}회 연속 실패, 자동 재시작`);
+        await PteroClient.sendPowerAction(server.pterodactylIdentifier, "restart").catch((err) =>
+          console.error(`[cron] ${server.name} 헬스체크 자동 재시작 실패:`, err),
+        );
+        await notifyOwner(server.ownerId, `🚑 **${server.name}** 헬스체크가 계속 실패해서 자동으로 재시작했어요(${server.healthCheckPath}).`);
+      }
       await prisma.server.update({ where: { id: server.id }, data: { healthCheckFailures: 0, lastHealthCheckAt: new Date() } });
     } else {
       await prisma.server.update({ where: { id: server.id }, data: { healthCheckFailures: failures, lastHealthCheckAt: new Date() } });

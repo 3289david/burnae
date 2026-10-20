@@ -621,6 +621,10 @@ model Server {
   healthCheckFailures     Int       @default(0)
   lastHealthCheckAt       DateTime?
 
+  /// 공개 상태 페이지(/status/[slug]) — healthCheckPath가 있어야 의미 있다. 끄면 404
+  statusPageEnabled Boolean @default(false)
+  statusPageSlug    String? @unique
+
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
@@ -634,9 +638,22 @@ model Server {
   activityLogs    ServerActivityLog[]
   scheduledTasks  ScheduledTask[]
   deploymentLogs  DeploymentLog[]
+  uptimeIncidents UptimeIncident[]
 
   @@index([ownerId])
   @@index([status])
+}
+
+/// 헬스체크 연속 실패(HEALTH_CHECK_FAILURE_THRESHOLD)로 "다운"으로 판정한 구간 하나.
+/// endedAt이 null이면 아직 복구 안 된(진행 중인) 장애. 공개 상태 페이지의 가동률/장애 이력에 쓴다
+model UptimeIncident {
+  id        String    @id @default(cuid())
+  serverId  String
+  server    Server    @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+
+  @@index([serverId])
 }
 
 /// 서버 콘솔에 주기적으로 명령을 보내는 간단한 "크론 작업". 분 단위 간격만 지원하고

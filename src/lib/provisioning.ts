@@ -235,7 +235,7 @@ export async function createServerForOrder(orderId: string) {
   let server: Server;
   let node: HostNode;
   let preset: { id: string; gitRepoUrl: string | null; createdById: string } | null;
-  let template: { category: string; startupCommand: string; dockerImage: string; defaultEnvironment: unknown; pterodactylEggId: number; pterodactylNestId: number; id: string };
+  let template: { category: string; startupCommand: string; dockerImage: string; defaultEnvironment: unknown; pterodactylEggId: number; pterodactylNestId: number; id: string; key: string };
   let pteroServer: PteroApp.PteroServer;
   try {
 
@@ -460,6 +460,16 @@ export async function createServerForOrder(orderId: string) {
     });
   }
 
+  // 빈 서버(blank-server)의 SSH 비밀번호 — 시작 명령어 문자열에 그대로 박아 넣으면 Wings가
+  // 콘솔에 그 명령어 전체를 그대로 echo해서 비밀번호가 콘솔 로그에 남는다. 그래서 시작 명령어는
+  // 짧은 부트 스크립트 다운로드+실행 한 줄만 두고(public/downloads/burnae-boot.sh), 실제
+  // 비밀번호는 파일로 미리 써둔다 — 부트 스크립트는 이 파일이 이미 있으면 새로 만들지 않고 그대로 쓴다
+  if (template.key === "blank-server" && server.accessSecret) {
+    writeSshPasswordWithRetry(pteroServer.identifier, server.accessSecret).catch((err) => {
+      console.error("[provisioning] SSH 비밀번호 파일 기록 실패:", err);
+    });
+  }
+
   return server;
 }
 
@@ -493,6 +503,17 @@ async function acceptEulaWithRetry(identifier: string, attempt = 0): Promise<voi
     if (attempt >= 10) throw err;
     await new Promise((resolve) => setTimeout(resolve, 5000 + attempt * 3000));
     return acceptEulaWithRetry(identifier, attempt + 1);
+  }
+}
+
+async function writeSshPasswordWithRetry(identifier: string, password: string, attempt = 0): Promise<void> {
+  try {
+    await PteroClient.writeFile(identifier, ".burnae_ssh_pass", password);
+    return;
+  } catch (err) {
+    if (attempt >= 10) throw err;
+    await new Promise((resolve) => setTimeout(resolve, 5000 + attempt * 3000));
+    return writeSshPasswordWithRetry(identifier, password, attempt + 1);
   }
 }
 

@@ -10,6 +10,7 @@ interface Props {
   autoBackupIntervalHours: number;
   autoRestartEnabled: boolean;
   autoRestartHour: number | null;
+  autoRestartOnCrash: boolean;
 }
 
 export default function AutomationCard({ serverId, ...initial }: Props) {
@@ -82,6 +83,14 @@ export default function AutomationCard({ serverId, ...initial }: Props) {
             onChange={(next) => update({ autoRestartEnabled: next, autoRestartHour: state.autoRestartHour ?? 4 })}
           />
         </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-sm">{t("autoRestartOnCrashTitle")}</p>
+          <p className="text-xs text-text-dim">{t("autoRestartOnCrashDesc")}</p>
+        </div>
+        <Toggle checked={state.autoRestartOnCrash} onChange={(next) => update({ autoRestartOnCrash: next })} />
       </div>
     </div>
   );

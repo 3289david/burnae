@@ -41,7 +41,7 @@ const client = new Client({
 client.once(Events.ClientReady, (c) => {
   console.log(`[bot] 로그인됨: ${c.user.tag} — 공식 서버: ${officialGuildId}`);
   c.user.setActivity("/도움말", { type: ActivityType.Listening });
-  startCrashWatcher(client);
+  startCrashWatcher();
   startStatusBoard(client);
   startNodeStatusBoard(client);
   startActivityRewards(client, officialGuildId);

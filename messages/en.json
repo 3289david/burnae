@@ -791,7 +791,9 @@
     "every3d": "Every 3 days",
     "autoRestartTitle": "Scheduled restart",
     "autoRestartDesc": "Automatically restarts at a set time every day (Korea time).",
-    "hourOption": "{hour}:00"
+    "hourOption": "{hour}:00",
+    "autoRestartOnCrashTitle": "Auto-restart on crash",
+    "autoRestartOnCrashDesc": "If an unexpected shutdown is detected (within a minute), automatically turn it back on."
   },
   "discordInviteCard": {
     "title": "Invite the bot to Discord",

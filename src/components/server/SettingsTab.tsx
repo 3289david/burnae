@@ -14,6 +14,7 @@ import GitDeployCard from "./GitDeployCard";
 import DeployHistoryCard from "./DeployHistoryCard";
 import HealthCheckCard from "./HealthCheckCard";
 import StatusPageCard from "./StatusPageCard";
+import DatabaseConnectCard from "./DatabaseConnectCard";
 import ScheduledTasksCard from "./ScheduledTasksCard";
 
 const KNOWN_KEYS = [
@@ -69,6 +70,7 @@ export default function SettingsTab({
   autoBackupIntervalHours,
   autoRestartEnabled,
   autoRestartHour,
+  autoRestartOnCrash,
   ownerNote,
 }: {
   serverId: string;
@@ -80,6 +82,7 @@ export default function SettingsTab({
   autoBackupIntervalHours: number;
   autoRestartEnabled: boolean;
   autoRestartHour: number | null;
+  autoRestartOnCrash: boolean;
   ownerNote: string | null;
 }) {
   const isMinecraft = templateCategory === "MINECRAFT";
@@ -280,7 +283,8 @@ export default function SettingsTab({
     {isOwner && <DeployHistoryCard serverId={serverId} />}
 
     {isOwner && templateCategory !== "MINECRAFT" && <HealthCheckCard serverId={serverId} />}
-    {isOwner && templateCategory !== "MINECRAFT" && <StatusPageCard serverId={serverId} />}
+    {isOwner && templateCategory !== "MINECRAFT" && <DatabaseConnectCard serverId={serverId} />}
+    {isOwner && <StatusPageCard serverId={serverId} />}
 
     {isOwner && <ScheduledTasksCard serverId={serverId} />}
 
@@ -293,6 +297,7 @@ export default function SettingsTab({
         autoBackupIntervalHours={autoBackupIntervalHours}
         autoRestartEnabled={autoRestartEnabled}
         autoRestartHour={autoRestartHour}
+        autoRestartOnCrash={autoRestartOnCrash}
       />
     )}
 

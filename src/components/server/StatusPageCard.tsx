@@ -49,6 +49,15 @@ export default function StatusPageCard({ serverId }: { serverId: string }) {
     setTimeout(() => setCopied(false), 1500);
   }
 
+  function copyBadge() {
+    if (!slug) return;
+    const badgeUrl = `${window.location.origin}/api/status-badge/${slug}`;
+    const pageUrl = `${window.location.origin}/status/${slug}`;
+    navigator.clipboard.writeText(`[![status](${badgeUrl})](${pageUrl})`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
+
   if (!loaded) return null;
 
   return (
@@ -73,13 +82,24 @@ export default function StatusPageCard({ serverId }: { serverId: string }) {
       </div>
 
       {enabled && slug && (
-        <div className="flex items-center gap-2 rounded-lg border border-border bg-surface-2 px-3 py-2">
-          <code className="text-xs text-text-dim flex-1 truncate">/status/{slug}</code>
-          <button onClick={copyLink} className="shrink-0 text-xs text-accent flex items-center gap-1">
-            {copied ? <Check size={13} /> : <Copy size={13} />}
-            {copied ? "복사됨" : "복사"}
-          </button>
-        </div>
+        <>
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-surface-2 px-3 py-2">
+            <code className="text-xs text-text-dim flex-1 truncate">/status/{slug}</code>
+            <button onClick={copyLink} className="shrink-0 text-xs text-accent flex items-center gap-1">
+              {copied ? <Check size={13} /> : <Copy size={13} />}
+              {copied ? "복사됨" : "복사"}
+            </button>
+          </div>
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-surface-2 px-3 py-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={`/api/status-badge/${slug}`} alt="status badge" className="shrink-0" />
+            <span className="text-xs text-text-dim flex-1">README/디스코드 등에 바로 붙일 수 있는 배지</span>
+            <button onClick={copyBadge} className="shrink-0 text-xs text-accent flex items-center gap-1">
+              {copied ? <Check size={13} /> : <Copy size={13} />}
+              {copied ? "복사됨" : "마크다운 복사"}
+            </button>
+          </div>
+        </>
       )}
     </div>
   );

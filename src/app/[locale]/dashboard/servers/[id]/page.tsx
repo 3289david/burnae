@@ -44,6 +44,7 @@ export default async function ServerDetailPage({
         autoBackupIntervalHours: server.autoBackupIntervalHours,
         autoRestartEnabled: server.autoRestartEnabled,
         autoRestartHour: server.autoRestartHour,
+        autoRestartOnCrash: server.autoRestartOnCrash,
         subdomains: server.subdomains.map((s) => ({ id: s.id, subdomain: s.subdomain, isPrimary: s.isPrimary })),
         subdomainZone: settings.subdomainZone,
         customDomains: server.customDomains.map((d) => ({

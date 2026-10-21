@@ -9,6 +9,7 @@ const schema = z.object({
   autoBackupIntervalHours: z.number().int().min(1).max(168).optional(),
   autoRestartEnabled: z.boolean().optional(),
   autoRestartHour: z.number().int().min(0).max(23).nullable().optional(),
+  autoRestartOnCrash: z.boolean().optional(),
 });
 
 export async function PATCH(
@@ -34,5 +35,6 @@ export async function PATCH(
     autoBackupIntervalHours: updated.autoBackupIntervalHours,
     autoRestartEnabled: updated.autoRestartEnabled,
     autoRestartHour: updated.autoRestartHour,
+    autoRestartOnCrash: updated.autoRestartOnCrash,
   });
 }

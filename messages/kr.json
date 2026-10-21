@@ -791,7 +791,9 @@
     "every3d": "3일마다",
     "autoRestartTitle": "예약 재시작",
     "autoRestartDesc": "매일 지정한 시각(한국 시간)에 자동으로 재시작해요.",
-    "hourOption": "{hour}시"
+    "hourOption": "{hour}시",
+    "autoRestartOnCrashTitle": "크래시 시 자동 재시작",
+    "autoRestartOnCrashDesc": "예기치 않게 꺼진 걸 감지하면(1분 이내) 자동으로 다시 켜요."
   },
   "discordInviteCard": {
     "title": "디스코드에 봇 초대하기",

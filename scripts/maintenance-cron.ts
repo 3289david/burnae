@@ -390,10 +390,11 @@ async function handleScheduledBackups() {
       }
       await PteroClient.createBackup(server.pterodactylIdentifier, `자동 백업 ${new Date().toLocaleString("ko-KR")}`);
       await prisma.server.update({ where: { id: server.id }, data: { lastBackupAt: new Date() } });
-      await notifyOwner(server.ownerId, `💾 **${server.name}** 자동 백업이 완료됐어요.`);
+      await notifyServerEvent(server, `💾 **${server.name}** 자동 백업이 완료됐어요.`);
       console.log(`[cron] ${server.name} — 자동 백업 생성`);
     } catch (err) {
       console.error(`[cron] ${server.name} 자동 백업 실패:`, err);
+      await notifyServerEvent(server, `⚠️ **${server.name}** 자동 백업을 만들다가 문제가 생겼어요. 다음 주기에 다시 시도할게요.`);
     }
   }
 }

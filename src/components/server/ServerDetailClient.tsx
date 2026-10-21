@@ -42,6 +42,7 @@ export interface ServerInfo {
   autoBackupIntervalHours: number;
   autoRestartEnabled: boolean;
   autoRestartHour: number | null;
+  autoRestartOnCrash: boolean;
   subdomains: ServerSubdomainInfo[];
   subdomainZone: string;
   customDomains: ServerCustomDomainInfo[];
@@ -239,6 +240,7 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
             autoBackupIntervalHours={server.autoBackupIntervalHours}
             autoRestartEnabled={server.autoRestartEnabled}
             autoRestartHour={server.autoRestartHour}
+            autoRestartOnCrash={server.autoRestartOnCrash}
             ownerNote={server.ownerNote}
           />
         )}

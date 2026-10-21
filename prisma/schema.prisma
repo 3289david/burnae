@@ -598,6 +598,9 @@ model Server {
   /// KST 기준 0~23시. null이면 비활성
   autoRestartHour         Int?
   lastAutoRestartAt       DateTime?
+  /// 예기치 않게 꺼진 걸 감지하면(src/bot/watcher.ts) 자동으로 재시작할지 — 예약 재시작과는
+  /// 별개(이건 "크래시"에만 반응, 저건 매일 정해진 시각에 반응)
+  autoRestartOnCrash      Boolean   @default(false)
 
   /// Git 자동 배포 — GIT_ADDRESS로 저장소를 연결한 서버에서 GitHub가 push 웹훅을 보내면
   /// git pull + 재시작을 자동으로 한다. 끄면 웹훅이 와도 무시한다.

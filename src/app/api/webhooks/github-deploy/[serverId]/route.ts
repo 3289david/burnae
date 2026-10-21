@@ -26,6 +26,20 @@ export async function POST(request: Request, { params }: { params: Promise<{ ser
   if (event === "ping") return NextResponse.json({ ok: true, pong: true });
   if (event !== "push") return NextResponse.json({ ok: true, ignored: event });
 
+  // 추적 중인 브랜치가 따로 있으면(server.gitBranch), 그 브랜치로 push된 게 아니면 무시한다 —
+  // 안 그러면 다른 브랜치(기능 브랜치, PR 등)에 push할 때마다 불필요하게 재배포/재시작된다
+  if (server.gitBranch) {
+    let pushedRef: string | undefined;
+    try {
+      pushedRef = (JSON.parse(rawBody) as { ref?: string }).ref;
+    } catch {
+      // 파싱 실패하면 브랜치를 알 수 없으니 안전하게 그냥 진행한다(기존 동작 유지)
+    }
+    if (pushedRef && pushedRef !== `refs/heads/${server.gitBranch}`) {
+      return NextResponse.json({ ok: true, ignored: `branch mismatch (${pushedRef})` });
+    }
+  }
+
   // 응답은 바로 돌려주고(GitHub는 10초 안에 응답 없으면 실패로 기록함) 배포는 비동기로 진행한다
   redeployFromGit(server, null, "WEBHOOK").catch((err) => {
     console.error(`[github-deploy] 서버 ${server.id} 배포 실패:`, err);

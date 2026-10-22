@@ -43,6 +43,7 @@ export interface ServerInfo {
   autoRestartEnabled: boolean;
   autoRestartHour: number | null;
   autoRestartOnCrash: boolean;
+  aiAutoSetupAvailable: boolean;
   subdomains: ServerSubdomainInfo[];
   subdomainZone: string;
   customDomains: ServerCustomDomainInfo[];

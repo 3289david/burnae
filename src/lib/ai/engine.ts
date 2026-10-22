@@ -177,13 +177,17 @@ export async function runAiTurn(
   conversationId: string,
   server: Server,
   userId: string,
+  options?: { skipBilling?: boolean },
 ): Promise<AiTurnResult> {
-  const user = await prisma.user.findUniqueOrThrow({
-    where: { id: userId },
-    select: { aiCreditsRemaining: true },
-  });
-  if (user.aiCreditsRemaining <= 0) {
-    throw new InsufficientCreditsError();
+  const skipBilling = options?.skipBilling ?? false;
+  if (!skipBilling) {
+    const user = await prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { aiCreditsRemaining: true },
+    });
+    if (user.aiCreditsRemaining <= 0) {
+      throw new InsufficientCreditsError();
+    }
   }
 
   const [template, conversation] = await Promise.all([
@@ -204,13 +208,15 @@ export async function runAiTurn(
   // 쌓인 사용량만큼은 반드시 과금한 뒤 원래 에러를 그대로 다시 던진다.
   try {
     const { result, usage } = await withUsageTracking(() => runAiTurnLoop());
-    await chargeForUsage(userId, usage);
+    if (!skipBilling) await chargeForUsage(userId, usage);
     return result;
   } catch (err) {
     if (err instanceof AiTurnFailedError) {
-      await chargeForUsage(userId, err.usage).catch((chargeErr) => {
-        console.error("[ai] 실패한 턴 과금 실패:", chargeErr);
-      });
+      if (!skipBilling) {
+        await chargeForUsage(userId, err.usage).catch((chargeErr) => {
+          console.error("[ai] 실패한 턴 과금 실패:", chargeErr);
+        });
+      }
       throw err.cause;
     }
     throw err;

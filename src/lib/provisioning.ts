@@ -14,6 +14,7 @@ import { FREE_SERVER_RENEWAL_DAYS } from "@/lib/serverRenewal";
 import { panelUsernameForUser } from "@/lib/pterodactylUser";
 import { syncAppProxyMap } from "@/lib/appProxy";
 import { rewardPresetInstalled } from "@/lib/promotions";
+import { supportsSsh } from "@/lib/sshSupport";
 import type { HostNode, Server } from "@/generated/prisma/client";
 
 export class ProvisioningError extends Error {}
@@ -368,6 +369,7 @@ export async function createServerForOrder(orderId: string) {
         allocationIp: node.publicIp,
         allocationPort: allocation.port,
         accessSecret,
+        aiAutoSetupAvailable: "GIT_ADDRESS" in defaultEnv && !!gitAddressToApply,
         // 0원 상품(무료 서버)은 7일마다 직접 갱신해야 한다(방치된 무료 서버가 자원을 계속
         // 차지하는 걸 막기 위함) — 결제 상품은 기존대로 30일. pointsRedeemable(포인트 교환 가능
         // 여부)과는 별개 — 0원이면 포인트 상품이 아니어도 자동으로 무료 서버로 취급한다
@@ -460,11 +462,12 @@ export async function createServerForOrder(orderId: string) {
     });
   }
 
-  // 빈 서버(blank-server)의 SSH 비밀번호 — 시작 명령어 문자열에 그대로 박아 넣으면 Wings가
-  // 콘솔에 그 명령어 전체를 그대로 echo해서 비밀번호가 콘솔 로그에 남는다. 그래서 시작 명령어는
-  // 짧은 부트 스크립트 다운로드+실행 한 줄만 두고(public/downloads/burnae-boot.sh), 실제
-  // 비밀번호는 파일로 미리 써둔다 — 부트 스크립트는 이 파일이 이미 있으면 새로 만들지 않고 그대로 쓴다
-  if (template.key === "blank-server" && server.accessSecret) {
+  // SSH 비밀번호 — 시작 명령어 문자열에 그대로 박아 넣으면 Wings가 콘솔에 그 명령어 전체를
+  // 그대로 echo해서 비밀번호가 콘솔 로그에 남는다. 그래서 시작 명령어는 짧은 부트/사이드카
+  // 스크립트 다운로드+실행 한 줄만 두고(public/downloads/burnae-boot.sh,
+  // burnae-ssh-sidecar.sh), 실제 비밀번호는 파일로 미리 써둔다 — 그 스크립트는 이 파일이
+  // 이미 있으면 새로 만들지 않고 그대로 쓴다
+  if (supportsSsh(template.key) && server.accessSecret) {
     writeSshPasswordWithRetry(pteroServer.identifier, server.accessSecret).catch((err) => {
       console.error("[provisioning] SSH 비밀번호 파일 기록 실패:", err);
     });

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { CheckCircle2, Ban, Clock, Play, Square, RotateCw, Gauge, Cpu, MemoryStick, HardDrive } from "lucide-react";
 import type { ServerInfo } from "./ServerDetailClient";
 import { hasServerRank } from "@/lib/serverRoleRank";
+import { supportsSsh } from "@/lib/sshSupport";
 import StatusDot from "@/components/StatusDot";
 import AddressActions from "./AddressActions";
 import CustomDomainCard from "./CustomDomainCard";
@@ -12,6 +13,7 @@ import ExtraResourcesCard from "./ExtraResourcesCard";
 import FreeTierAd from "@/components/ads/FreeTierAd";
 import GoogleAdSense from "@/components/ads/GoogleAdSense";
 import GettingStartedCard from "./GettingStartedCard";
+import AiAutoSetupCard from "./AiAutoSetupCard";
 import SuccessCheck from "@/components/SuccessCheck";
 import CountUp from "@/components/CountUp";
 import { formatMb } from "@/lib/formatSize";
@@ -135,6 +137,7 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
   return (
     <div className="space-y-6">
       {server.isOwner && <GettingStartedCard server={server} />}
+      {server.isOwner && server.aiAutoSetupAvailable && <AiAutoSetupCard serverId={server.id} />}
 
       {showRenewal && (
         <div className="card p-4 border-yellow">
@@ -294,7 +297,7 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
         </div>
       </div>
 
-      {server.templateKey === "blank-server" && server.accessSecret && server.allocationIp && server.allocationPort && (
+      {supportsSsh(server.templateKey) && server.accessSecret && server.allocationIp && server.allocationPort && (
         <div className="card-glow p-5">
           <h3 className="font-semibold mb-3">SSH 접속 정보</h3>
           <p className="text-xs text-text-dim mb-3">

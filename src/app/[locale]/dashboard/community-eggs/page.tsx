@@ -101,7 +101,7 @@ export default function CommunityEggsPage() {
     if (res.ok) setReportedIds((prev) => [...prev, id]);
   }
 
-  function useThisEgg(p: CommunityPreset) {
+  function applyEgg(p: CommunityPreset) {
     const product = products.find((pr) => pr.allowedTemplates.some((t) => t.id === p.baseTemplateId));
     const qs = new URLSearchParams({ presetId: p.id, templateId: p.baseTemplateId });
     if (product) qs.set("productId", product.id);
@@ -148,7 +148,7 @@ export default function CommunityEggsPage() {
         <Users size={22} className="text-accent" /> 커뮤니티 프리셋
       </h1>
       <p className="text-sm text-text-dim mt-1">
-        다른 유저가 공개한 "일반 서버 + 내 GitHub 저장소" 조합이에요 — 예: 직접 만든 디스코드 봇
+        다른 유저가 공개한 &ldquo;일반 서버 + 내 GitHub 저장소&rdquo; 조합이에요 — 예: 직접 만든 디스코드 봇
         코드. 골라서 바로 서버를 만들거나, 직접 만들어 공개하면 다른 사람이 설치할 때마다 포인트를
         받아요.
       </p>
@@ -196,7 +196,7 @@ export default function CommunityEggsPage() {
             className="animate-fade-up rounded-2xl border border-border bg-surface p-3.5 flex flex-col gap-1.5 hover:border-accent/40 hover:bg-surface-2 transition-all duration-150 relative"
             style={{ animationDelay: `${Math.min(i, 12) * 0.025}s` }}
           >
-            <button type="button" onClick={() => useThisEgg(p)} className="text-left w-full active:scale-[0.97] transition-transform">
+            <button type="button" onClick={() => applyEgg(p)} className="text-left w-full active:scale-[0.97] transition-transform">
               <span className="font-semibold text-sm inline-flex items-center gap-1 flex-wrap pr-5">
                 {p.displayName}
                 {p.verified && (

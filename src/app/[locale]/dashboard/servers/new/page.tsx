@@ -962,7 +962,7 @@ function NewServerPageInner() {
                 <>
                   <p className="text-xs text-text-dim mb-2">
                     커뮤니티 프리셋 <strong>{selectedPreset.displayName}</strong>의 저장소로 시작해요 — 서버 종류
-                    선택 단계에서 다른 프리셋을 고르거나 "빈 서버로 시작"을 선택하면 바꿀 수 있어요.
+                    선택 단계에서 다른 프리셋을 고르거나 &ldquo;빈 서버로 시작&rdquo;을 선택하면 바꿀 수 있어요.
                   </p>
                   <p className="input w-full text-text-dim truncate">{selectedPreset.gitRepoUrl}</p>
                 </>

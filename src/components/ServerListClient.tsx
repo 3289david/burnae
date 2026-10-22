@@ -69,7 +69,9 @@ export default function ServerListClient({ servers }: { servers: DashboardServer
   const [bulkBusy, setBulkBusy] = useState(false);
   const [liveStatus, setLiveStatus] = useState<Record<string, string>>({});
   const liveStatusRef = useRef(liveStatus);
-  liveStatusRef.current = liveStatus;
+  useEffect(() => {
+    liveStatusRef.current = liveStatus;
+  }, [liveStatus]);
 
   // "생성 중"/"시작 중" 같은 과도기 상태는 새로고침해야만 바뀐 걸 볼 수 있었다 — 컨테이너가
   // 이미 있는 서버는 Wings 실시간 상태를 항상 직접 물어보고(전원 버튼을 눌러서 DB의 status는

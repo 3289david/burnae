@@ -23,6 +23,10 @@ const TAG_CHECK_INTERVAL_MS = 60 * 60 * 1000;
 /** 서버 부스트 시작 1회당 지급 포인트 — 부스트 자체가 실제 돈이 드는 행동이라 예외적으로 높게 유지 */
 const POINTS_PER_BOOST = 2000;
 
+/** "인증완료" 역할(전화번호 인증 등으로 운영자가 직접 부여) — 이 역할을 받는 순간 1회 지급 */
+const VERIFIED_TITLE_ROLE_ID = "1562815337194594406";
+const POINTS_PER_VERIFIED_TITLE = 100;
+
 const lastChatRewardAt = new Map<string, number>();
 const chatDailyTotal = new Map<string, { day: string; points: number }>();
 
@@ -77,9 +81,19 @@ function handleMessageCreate(message: Message, officialGuildId: string) {
 
 function handleGuildMemberUpdate(oldMember: GuildMember | PartialGuildMember, newMember: GuildMember, officialGuildId: string) {
   if (newMember.guild.id !== officialGuildId) return;
+
   const startedBoosting = !oldMember.premiumSince && newMember.premiumSince;
-  if (!startedBoosting) return;
-  awardToDiscordUser(newMember.id, POINTS_PER_BOOST, "서버 부스트").catch((err) => console.error("[activityRewards] 부스트 지급 실패:", err));
+  if (startedBoosting) {
+    awardToDiscordUser(newMember.id, POINTS_PER_BOOST, "서버 부스트").catch((err) => console.error("[activityRewards] 부스트 지급 실패:", err));
+  }
+
+  const gainedVerifiedTitle =
+    !oldMember.roles.cache.has(VERIFIED_TITLE_ROLE_ID) && newMember.roles.cache.has(VERIFIED_TITLE_ROLE_ID);
+  if (gainedVerifiedTitle) {
+    awardToDiscordUser(newMember.id, POINTS_PER_VERIFIED_TITLE, "인증완료").catch((err) =>
+      console.error("[activityRewards] 인증완료 지급 실패:", err),
+    );
+  }
 }
 
 /** 매 시간마다 그 순간 서버 태그를 켜둔 멤버 전원에게 한 시간치 포인트를 지급한다 */

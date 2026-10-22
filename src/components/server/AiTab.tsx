@@ -63,6 +63,7 @@ export default function AiTab({
   // 화면 안에서 모드만 바꾸는 쪽으로 통합했다. 대화 자체는 모드별로 완전히 분리돼서(서버
   // kind="CHAT"|"MAKER") 모드를 바꾸면 그 모드의 별도 대화 목록을 불러온다.
   const [kind, setKind] = useState<"CHAT" | "MAKER">("CHAT");
+  const [model, setModel] = useState<"opus" | "sonnet" | "haiku">("sonnet");
   const [showFiles, setShowFiles] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [conversations, setConversations] = useState<{ id: string; title: string; updatedAt: string }[]>([]);
@@ -82,7 +83,7 @@ export default function AiTab({
   async function startNewConversation() {
     setLoadError(null);
     try {
-      const res = await fetch("/api/ai/conversations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ serverId, kind }) });
+      const res = await fetch("/api/ai/conversations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ serverId, kind, model }) });
       const data = await res.json();
       if (!res.ok || !data.id) throw new Error(data.error ?? t("startConvFailed"));
       setConversationId(data.id);
@@ -122,6 +123,19 @@ export default function AiTab({
     const data = await res.json();
     setMessages(data.messages);
     setPending(data.pendingActivity);
+    if (data.model === "opus" || data.model === "sonnet" || data.model === "haiku") {
+      setModel(data.model);
+    }
+  }
+
+  async function changeModel(next: "opus" | "sonnet" | "haiku") {
+    setModel(next);
+    if (!conversationId) return;
+    await fetch(`/api/ai/conversations/${conversationId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: next }),
+    }).catch(() => {});
   }
 
   useEffect(() => {
@@ -220,6 +234,16 @@ export default function AiTab({
             <Wand2 size={12} /> {t("modeMaker")}
           </button>
         </div>
+        <select
+          value={model}
+          onChange={(e) => changeModel(e.target.value as "opus" | "sonnet" | "haiku")}
+          className="input text-xs py-1 px-2 shrink-0 w-auto"
+          title={t("modelPickerHint")}
+        >
+          <option value="opus">{t("modelOpus")}</option>
+          <option value="sonnet">{t("modelSonnet")}</option>
+          <option value="haiku">{t("modelHaiku")}</option>
+        </select>
         {conversations.length > 1 ? (
           <select
             value={conversationId ?? ""}

@@ -670,7 +670,11 @@
     "messagePlaceholder": "Type a message...",
     "send": "Send",
     "modeChat": "Chat",
-    "modeMaker": "Maker"
+    "modeMaker": "Maker",
+    "modelOpus": "Opus (highest quality)",
+    "modelSonnet": "Sonnet (default)",
+    "modelHaiku": "Haiku (cheap/fast)",
+    "modelPickerHint": "Credit cost varies by model — Opus 1.5x, Sonnet default, Haiku 0.8x"
   },
   "serverDetailClient": {
     "tabOverview": "Overview",

@@ -119,6 +119,7 @@ export default function AdminUsersPage() {
                   AI 크레딧
                   <input
                     type="number"
+                    step="0.01"
                     defaultValue={u.aiCreditsRemaining}
                     onBlur={(e) => updateCredits(u.id, e.target.value)}
                     className="input w-20 text-sm"

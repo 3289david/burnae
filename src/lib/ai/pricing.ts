@@ -1,4 +1,5 @@
 import type { UsageAccumulator } from "@/lib/ai/usageTracking";
+import { AI_MODEL_CATALOG, type AiModelKey } from "@/lib/ai/models";
 
 /**
  * OpenRouter qwen/qwen3-235b-a22b-2507 실제 가격 (openrouter.ai/api/v1/models에서 직접 확인,
@@ -12,31 +13,37 @@ const FALLBACK_SAFETY_MULTIPLIER = 2;
 const WON_PER_USD = 1600;
 
 /**
- * monken.cloud(기본 제공자, claude-opus-5-5 등)는 토큰당 단가를 API로 공개하지 않아서,
- * 운영 합의로 정한 원가 기준(100만 토큰당 1,000원, prompt/completion 구분 없음)에 마진을
- * 곱해서 고객 청구가로 쓴다 — 원가 그대로 받으면 마진이 전혀 없어서 안 된다.
- * 마진 비율이 바뀌면 PRIMARY_MARKUP_MULTIPLIER만 조정하면 된다.
+ * monken.cloud(기본 제공자)는 토큰당 단가를 API로 공개하지 않아서, 운영 합의로 정한 원가
+ * 기준(Sonnet 100만 토큰당 1,000원, prompt/completion 구분 없음)에 마진을 곱해서 고객
+ * 청구가로 쓴다. Opus/Haiku는 이 Sonnet 단가에 models.ts의 priceMultiplier를 곱한
+ * 상대값이다(Opus 1.5배, Haiku 0.8배) — 마진 비율이나 모델별 배율이 바뀌면 이 두 상수만
+ * 조정하면 된다.
  */
-const PRIMARY_COST_KRW_PER_MILLION_TOKENS = 1000;
-const PRIMARY_MARKUP_MULTIPLIER = 3;
-const PRIMARY_KRW_PER_MILLION_TOKENS = PRIMARY_COST_KRW_PER_MILLION_TOKENS * PRIMARY_MARKUP_MULTIPLIER;
+const SONNET_COST_KRW_PER_MILLION_TOKENS = 1000;
+const MARKUP_MULTIPLIER = 3;
+const SONNET_KRW_PER_MILLION_TOKENS = SONNET_COST_KRW_PER_MILLION_TOKENS * MARKUP_MULTIPLIER;
 
 const KRW_PER_CREDIT = 40;
 
-/** 실제 토큰 사용량 기반 청구 크레딧. 메시지 1개짜리 가벼운 턴도(사용량이 0이 아니면) 최소
- * 1크레딧은 낸다 — 제공자(primary/fallback)마다 단가가 달라서 섞여 쓰인 턴도 정확히 계산한다. */
+/** 실제 토큰 사용량 기반 청구 크레딧 — 소수점을 허용한다(Haiku 같은 저가 모델은 가벼운 턴이
+ * 1크레딧도 안 될 수 있음). 모델/제공자마다 단가가 달라서 섞여 쓰인 턴도 정확히 계산한다. */
 export function creditsForUsage(usage: UsageAccumulator): number {
-  const primaryTokens = usage.primary.promptTokens + usage.primary.completionTokens;
-  const primaryKrw = (primaryTokens / 1_000_000) * PRIMARY_KRW_PER_MILLION_TOKENS;
+  let totalKrw = 0;
+
+  for (const key of Object.keys(AI_MODEL_CATALOG) as AiModelKey[]) {
+    const bucket = usage[key];
+    const tokens = bucket.promptTokens + bucket.completionTokens;
+    const krwPerMillion = SONNET_KRW_PER_MILLION_TOKENS * AI_MODEL_CATALOG[key].priceMultiplier;
+    totalKrw += (tokens / 1_000_000) * krwPerMillion;
+  }
 
   const fallbackUsd =
     usage.fallback.promptTokens * FALLBACK_PROMPT_USD_PER_TOKEN +
     usage.fallback.completionTokens * FALLBACK_COMPLETION_USD_PER_TOKEN;
-  const fallbackKrw = fallbackUsd * WON_PER_USD * FALLBACK_SAFETY_MULTIPLIER;
+  totalKrw += fallbackUsd * WON_PER_USD * FALLBACK_SAFETY_MULTIPLIER;
 
-  const totalKrw = primaryKrw + fallbackKrw;
   if (totalKrw <= 0) return 0;
-  return Math.max(1, Math.ceil(totalKrw / KRW_PER_CREDIT));
+  return Math.round((totalKrw / KRW_PER_CREDIT) * 100) / 100;
 }
 
 export class InsufficientCreditsError extends Error {

@@ -714,7 +714,7 @@ async function handleMyInfo(interaction: PanelInteraction) {
     .addTextDisplayComponents(heading(`👤 ${user.name}님의 Burnae 정보`))
     .addTextDisplayComponents(
       text(
-        `**보유 포인트**  ${user.promotionPoints.toLocaleString()}P\n**AI 크레딧**  ${user.aiCreditsRemaining.toLocaleString()}개\n**서버**  ${servers.length}개 (가동 ${runningCount}개)`,
+        `**보유 포인트**  ${user.promotionPoints.toLocaleString()}P\n**AI 크레딧**  ${user.aiCreditsRemaining.toLocaleString(undefined, { maximumFractionDigits: 2 })}개\n**서버**  ${servers.length}개 (가동 ${runningCount}개)`,
       ),
     )
     .addSeparatorComponents(divider())

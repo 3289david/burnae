@@ -670,7 +670,11 @@
     "messagePlaceholder": "메시지를 입력하세요...",
     "send": "전송",
     "modeChat": "채팅",
-    "modeMaker": "메이커"
+    "modeMaker": "메이커",
+    "modelOpus": "Opus (고성능)",
+    "modelSonnet": "Sonnet (기본)",
+    "modelHaiku": "Haiku (저렴/빠름)",
+    "modelPickerHint": "모델마다 크레딧 단가가 달라요 — Opus 1.5배, Sonnet 기본, Haiku 0.8배"
   },
   "serverDetailClient": {
     "tabOverview": "개요",

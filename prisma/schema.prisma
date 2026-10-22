@@ -43,7 +43,8 @@ model User {
   status                 UserStatus @default(ACTIVE)
   /// 인당 총 저장공간 한도(GB). null이면 HostingSettings.defaultUserStorageGb 적용
   storageQuotaGbOverride Int?
-  aiCreditsRemaining     Int        @default(0)
+  /// Haiku 같은 저가 모델은 가벼운 턴이 1크레딧(40원)도 안 될 수 있어서 소수점을 허용한다
+  aiCreditsRemaining     Float      @default(0)
   /// 결제 안내에 쓸 입금자명 직접 설정(1~5자, 공백 불가). null이면 이름 기반 자동 생성
   preferredDepositorName String?
   /// 서버 홍보 활동으로 모은 포인트 — 무료 서버 교환 등에 사용
@@ -1128,6 +1129,9 @@ model AiConversation {
   server    Server?            @relation(fields: [serverId], references: [id])
   kind      AiConversationKind @default(CHAT)
   title     String             @default("새 대화")
+  /// src/lib/ai/models.ts의 카탈로그 키("opus"/"sonnet"/"haiku") — 모델마다 단가가 달라서
+  /// 대화별로 어느 모델을 쓰는지 기억해둔다
+  model     String             @default("sonnet")
   createdAt DateTime           @default(now())
   updatedAt DateTime           @updatedAt
 

@@ -6,7 +6,7 @@ import { addDiscordRole, removeDiscordRole } from "@/lib/discordNotify";
 
 const schema = z.object({
   status: z.enum(["ACTIVE", "SUSPENDED"]).optional(),
-  aiCreditsRemaining: z.number().int().min(0).optional(),
+  aiCreditsRemaining: z.number().min(0).optional(),
   role: z.enum(["USER", "ADMIN"]).optional(),
   adminRole: z.enum(["COMMUNITY", "PROMOTION", "GENERAL", "SUPER"]).nullable().optional(),
 });

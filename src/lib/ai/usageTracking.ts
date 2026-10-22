@@ -1,15 +1,24 @@
 import { AsyncLocalStorage } from "node:async_hooks";
+import type { AiModelKey } from "@/lib/ai/models";
 
 interface ProviderUsage {
   promptTokens: number;
   completionTokens: number;
 }
 
-export interface UsageAccumulator {
-  /** monken.cloud(claude-opus-5-5 등) — pricing.ts에서 Qwen과 다른 단가로 계산한다 */
-  primary: ProviderUsage;
-  /** OpenRouter(Qwen) — 기본 제공자가 실패했을 때만 쓰인다 */
-  fallback: ProviderUsage;
+export type UsageBucketKey = AiModelKey | "fallback";
+
+/** 모델마다(opus/sonnet/haiku) 단가가 다르고, 기본 제공자가 실패했을 때만 쓰이는
+ * OpenRouter(Qwen) 폴백은 또 별개 단가라서 버킷을 나눠서 기록한다 */
+export type UsageAccumulator = Record<UsageBucketKey, ProviderUsage>;
+
+function emptyAccumulator(): UsageAccumulator {
+  return {
+    opus: { promptTokens: 0, completionTokens: 0 },
+    sonnet: { promptTokens: 0, completionTokens: 0 },
+    haiku: { promptTokens: 0, completionTokens: 0 },
+    fallback: { promptTokens: 0, completionTokens: 0 },
+  };
 }
 
 /**
@@ -22,13 +31,12 @@ const storage = new AsyncLocalStorage<UsageAccumulator>();
 
 export function recordUsage(
   usage: { prompt_tokens?: number; completion_tokens?: number } | null | undefined,
-  provider: "PRIMARY" | "FALLBACK",
+  bucket: UsageBucketKey,
 ): void {
   const acc = storage.getStore();
   if (!acc || !usage) return;
-  const bucket = provider === "PRIMARY" ? acc.primary : acc.fallback;
-  bucket.promptTokens += usage.prompt_tokens ?? 0;
-  bucket.completionTokens += usage.completion_tokens ?? 0;
+  acc[bucket].promptTokens += usage.prompt_tokens ?? 0;
+  acc[bucket].completionTokens += usage.completion_tokens ?? 0;
 }
 
 /** fn이 중간에 실패해도 그때까지 쌓인 사용량을 잃지 않도록 에러에 실어서 다시 던진다 — 실패한
@@ -42,10 +50,7 @@ export class AiTurnFailedError extends Error {
 export async function withUsageTracking<T>(
   fn: () => Promise<T>,
 ): Promise<{ result: T; usage: UsageAccumulator }> {
-  const acc: UsageAccumulator = {
-    primary: { promptTokens: 0, completionTokens: 0 },
-    fallback: { promptTokens: 0, completionTokens: 0 },
-  };
+  const acc = emptyAccumulator();
   try {
     const result = await storage.run(acc, fn);
     return { result, usage: acc };

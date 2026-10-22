@@ -3,8 +3,13 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { authorizeServerAccess, getServerRole, hasServerRank } from "@/lib/serverAccess";
+import { isAiModelKey, DEFAULT_AI_MODEL } from "@/lib/ai/models";
 
-const schema = z.object({ serverId: z.string(), kind: z.enum(["CHAT", "MAKER"]).default("CHAT") });
+const schema = z.object({
+  serverId: z.string(),
+  kind: z.enum(["CHAT", "MAKER"]).default("CHAT"),
+  model: z.string().refine(isAiModelKey).optional(),
+});
 
 export async function POST(request: Request) {
   const user = await requireUser();
@@ -27,6 +32,7 @@ export async function POST(request: Request) {
       userId: user.id,
       serverId: server.id,
       kind: parsed.data.kind,
+      model: parsed.data.model ?? DEFAULT_AI_MODEL,
       title: parsed.data.kind === "MAKER" ? `${server.name} 메이커` : `${server.name} 대화`,
     },
   });

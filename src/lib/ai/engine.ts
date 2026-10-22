@@ -4,6 +4,7 @@ import { AI_TOOLS, openAiToolList } from "@/lib/ai/tools";
 import { withUsageTracking, AiTurnFailedError, type UsageAccumulator } from "@/lib/ai/usageTracking";
 import { creditsForUsage, InsufficientCreditsError } from "@/lib/ai/pricing";
 import { createChatCompletion } from "@/lib/ai/provider";
+import { resolveAiModelKey } from "@/lib/ai/models";
 import type { Server } from "@/generated/prisma/client";
 import type { AiMessage } from "@/generated/prisma/client";
 import type { ServerCategory } from "@/generated/prisma/enums";
@@ -197,10 +198,11 @@ export async function runAiTurn(
     }),
     prisma.aiConversation.findUniqueOrThrow({
       where: { id: conversationId },
-      select: { kind: true },
+      select: { kind: true, model: true },
     }),
   ]);
   const kind = conversation.kind;
+  const modelKey = resolveAiModelKey(conversation.model);
   const maxSteps = kind === "MAKER" ? MAX_STEPS_MAKER : MAX_STEPS_CHAT;
 
   // 모델 호출이 도중에 실패해도(OpenRouter 5xx, 도구 에러 등) 그 턴은 전부 "실패했으니 과금
@@ -229,12 +231,15 @@ export async function runAiTurn(
         orderBy: { createdAt: "asc" },
       });
 
-      const response = await createChatCompletion({
-        messages: toOpenAiMessages(rows, template.category, kind),
-        tools: openAiToolList(template.category),
-        tool_choice: "auto",
-        parallel_tool_calls: false,
-      });
+      const response = await createChatCompletion(
+        {
+          messages: toOpenAiMessages(rows, template.category, kind),
+          tools: openAiToolList(template.category),
+          tool_choice: "auto",
+          parallel_tool_calls: false,
+        },
+        modelKey,
+      );
 
       const message = response.choices[0]?.message;
       if (!message) {

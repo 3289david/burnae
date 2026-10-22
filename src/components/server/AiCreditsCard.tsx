@@ -93,7 +93,7 @@ export default function AiCreditsCard() {
             <p className="text-sm font-medium">{t("title")}</p>
             <p className="text-xs text-text-dim">
               {t("subtitlePrefix")}{" "}
-              {credits === null ? "-" : <CountUp value={credits} format={(n) => n.toLocaleString("en-US")} />} {t("subtitleSuffix")}
+              {credits === null ? "-" : <CountUp value={credits} format={(n) => n.toLocaleString("en-US", { maximumFractionDigits: 2 })} />} {t("subtitleSuffix")}
             </p>
           </div>
         </div>

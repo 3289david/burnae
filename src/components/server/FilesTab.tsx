@@ -1,7 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { FileText, Folder as FolderIcon, Search } from "lucide-react";
+import {
+  FileText,
+  Folder as FolderIcon,
+  Search,
+  Image as ImageIcon,
+  Music,
+  Video as VideoIcon,
+  Archive as ArchiveIcon,
+  FileCode,
+  Database,
+  File as FileIcon,
+} from "lucide-react";
 import { hasServerRank, type ServerAccessRole } from "@/lib/serverRoleRank";
 
 interface FileObject {
@@ -12,6 +23,27 @@ interface FileObject {
 }
 
 const ARCHIVE_EXT = /\.(zip|tar|tar\.gz|tgz|rar|7z)$/i;
+const IMAGE_EXT = /\.(png|jpe?g|gif|webp|bmp|svg|ico|avif)$/i;
+const AUDIO_EXT = /\.(mp3|wav|ogg|flac|m4a|aac)$/i;
+const VIDEO_EXT = /\.(mp4|mkv|webm|mov|avi)$/i;
+const FONT_EXT = /\.(ttf|otf|woff2?)$/i;
+/** 텍스트 에디터로 열면 깨지는(바이너리) 확장자 — 이미지/오디오/비디오는 별도 처리하고,
+ * 나머지는 열지 않고 바로 다운로드시킨다. */
+const OPAQUE_BINARY_EXT = /\.(jar|class|exe|dll|so|o|a|bin|db|sqlite3?|wasm|dat|pdf)$/i;
+const CODE_EXT = /\.(js|jsx|ts|tsx|mjs|cjs|py|go|rs|java|kt|c|cpp|h|hpp|cs|rb|php|sh|bash|html|css|scss|less|json|ya?ml|sql|xml|toml|lua|swift|dart)$/i;
+const DB_EXT = /\.(db|sqlite3?)$/i;
+
+function fileIcon(name: string, isFile: boolean) {
+  if (!isFile) return FolderIcon;
+  if (IMAGE_EXT.test(name)) return ImageIcon;
+  if (AUDIO_EXT.test(name)) return Music;
+  if (VIDEO_EXT.test(name)) return VideoIcon;
+  if (ARCHIVE_EXT.test(name)) return ArchiveIcon;
+  if (DB_EXT.test(name)) return Database;
+  if (CODE_EXT.test(name)) return FileCode;
+  if (OPAQUE_BINARY_EXT.test(name) || FONT_EXT.test(name)) return FileIcon;
+  return FileText;
+}
 
 export default function FilesTab({ serverId, myRole }: { serverId: string; myRole: ServerAccessRole | null }) {
   const canEdit = hasServerRank(myRole, "DEVELOPER");
@@ -25,6 +57,7 @@ export default function FilesTab({ serverId, myRole }: { serverId: string; myRol
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [query, setQuery] = useState("");
+  const [previewImage, setPreviewImage] = useState<{ name: string; url: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function load(d: string) {
@@ -51,6 +84,16 @@ export default function FilesTab({ serverId, myRole }: { serverId: string; myRol
   }, [serverId]);
 
   async function openFile(name: string) {
+    // 이미지는 미리보기로, 그 외 바이너리(압축/오디오/비디오/폰트/실행파일 등)는 텍스트
+    // 에디터로 열면 깨지니까 바로 다운로드시킨다 — 순수 텍스트 계열만 에디터로 연다.
+    if (IMAGE_EXT.test(name)) {
+      await previewImageFile(name);
+      return;
+    }
+    if (ARCHIVE_EXT.test(name) || AUDIO_EXT.test(name) || VIDEO_EXT.test(name) || FONT_EXT.test(name) || OPAQUE_BINARY_EXT.test(name)) {
+      await download(name);
+      return;
+    }
     const path = joinPath(dir, name);
     const res = await fetch(`/api/servers/${serverId}/files/content?file=${encodeURIComponent(path)}`);
     const data = await res.json();
@@ -58,6 +101,13 @@ export default function FilesTab({ serverId, myRole }: { serverId: string; myRol
       setEditing(path);
       setContent(data.content);
     }
+  }
+
+  async function previewImageFile(name: string) {
+    const path = joinPath(dir, name);
+    const res = await fetch(`/api/servers/${serverId}/files/download-url?file=${encodeURIComponent(path)}`);
+    const data = await res.json();
+    if (res.ok) setPreviewImage({ name, url: data.url });
   }
 
   async function save() {
@@ -259,6 +309,24 @@ export default function FilesTab({ serverId, myRole }: { serverId: string; myRol
 
   const filteredFiles = files.filter((f) => f.name.toLowerCase().includes(query.toLowerCase()));
 
+  if (previewImage) {
+    return (
+      <div className="card p-4">
+        <div className="flex items-center justify-between mb-3 gap-2">
+          <span className="font-mono text-xs sm:text-sm truncate">{previewImage.name}</span>
+          <div className="flex gap-2 shrink-0">
+            <button onClick={() => download(previewImage.name)} className="text-xs text-accent hover:underline">받기</button>
+            <button onClick={() => setPreviewImage(null)} className="btn-secondary px-3 py-1.5 text-sm">닫기</button>
+          </div>
+        </div>
+        <div className="flex justify-center bg-surface-2 rounded-lg p-3">
+          {/* eslint-disable-next-line @next/next/no-img-element -- Wings가 발급한 1회용 외부 URL, next/image 최적화 대상 아님 */}
+          <img src={previewImage.url} alt={previewImage.name} className="max-w-full max-h-[70vh] object-contain" />
+        </div>
+      </div>
+    );
+  }
+
   if (editing) {
     return (
       <div className="card p-4">
@@ -363,6 +431,7 @@ export default function FilesTab({ serverId, myRole }: { serverId: string; myRol
       <div className="divide-y divide-border">
         {filteredFiles.map((f, i) => {
           const isArchive = f.is_file && ARCHIVE_EXT.test(f.name);
+          const Icon = fileIcon(f.name, f.is_file);
           return (
             <div
               key={f.name}
@@ -381,11 +450,7 @@ export default function FilesTab({ serverId, myRole }: { serverId: string; myRol
                 onClick={() => (f.is_file ? openFile(f.name) : load(joinPath(dir, f.name)))}
                 className="flex-1 min-w-0 flex items-center gap-1.5 text-left truncate"
               >
-                {f.is_file ? (
-                  <FileText size={15} className="text-text-dim shrink-0" />
-                ) : (
-                  <FolderIcon size={15} className="text-yellow shrink-0" />
-                )}
+                <Icon size={15} className={f.is_file ? "text-text-dim shrink-0" : "text-yellow shrink-0"} />
                 {f.name}
               </button>
               {f.is_file && <span className="text-text-dim text-xs shrink-0">{(f.size / 1024).toFixed(1)}KB</span>}

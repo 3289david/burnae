@@ -480,6 +480,7 @@
     "delete": "삭제",
     "noBackups": "아직 백업이 없어요.",
     "failed": "실패",
+    "inProgress": "생성 중...",
     "locked": "잠김"
   },
   "teamTab": {

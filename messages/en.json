@@ -480,6 +480,7 @@
     "delete": "Delete",
     "noBackups": "No backups yet.",
     "failed": "Failed",
+    "inProgress": "Creating...",
     "locked": "Locked"
   },
   "teamTab": {

@@ -432,7 +432,6 @@ function NewServerPageInner() {
     pickTier(t);
     if (prefillPresetId) setPresetId(prefillPresetId);
     setCategoryFilter("COMMUNITY");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, selectedProduct, prefillTemplateId, prefillPresetId, templateId]);
 
   useEffect(() => {

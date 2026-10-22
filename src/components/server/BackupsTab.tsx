@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { AlertTriangle, Loader2, RefreshCw, RotateCcw, Trash2, Lock, Unlock } from "lucide-react";
 import { hasServerRank, type ServerAccessRole } from "@/lib/serverRoleRank";
@@ -33,15 +33,14 @@ export default function BackupsTab({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function load() {
+  const load = useCallback(async () => {
     const res = await fetch(`/api/servers/${serverId}/backups`);
     if (res.ok) setBackups(await res.json());
-  }
+  }, [serverId]);
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serverId]);
+  }, [load]);
 
   // 백업 생성은 비동기라 completed_at이 찍히기 전까진 is_successful이 그냥 false인 "진행 중" 상태다
   // — 이걸 바로 "실패"로 보여주면 사용자가 아직 끝나지도 않은 백업을 실패로 오해하고 지워버릴 수 있다.
@@ -51,7 +50,7 @@ export default function BackupsTab({
     if (!hasPending) return;
     const timer = setInterval(load, 3000);
     return () => clearInterval(timer);
-  }, [hasPending]);
+  }, [hasPending, load]);
 
   async function createBackup() {
     setLoading(true);

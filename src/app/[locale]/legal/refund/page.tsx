@@ -74,7 +74,7 @@ export default async function RefundPage({ params }: { params: Promise<{ locale:
         </Section>
 
         <Section title="7. 문의">
-          환불과 관련해 궁금한 점은 대시보드의 "고객지원"으로 언제든 문의해주세요.
+          환불과 관련해 궁금한 점은 대시보드의 &ldquo;고객지원&rdquo;으로 언제든 문의해주세요.
         </Section>
       </main>
     </div>

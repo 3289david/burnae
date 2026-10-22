@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Copy, Check, CheckCircle2, Clock, Gift } from "lucide-react";
-import SuccessCheck from "@/components/SuccessCheck";
 import CountUp from "@/components/CountUp";
 
 type VerifyMethod =

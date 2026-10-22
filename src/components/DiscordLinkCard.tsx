@@ -33,7 +33,7 @@ export default function DiscordLinkCard({
         </a>
       )}
       <a
-        href="/api/auth/oauth/discord/start?mode=link"
+        href={`/api/auth/oauth/discord/start?mode=link`}
         className="btn-primary inline-flex items-center gap-1.5 px-4 py-2 text-sm mt-3 active:scale-95 transition-transform"
       >
         <Bot size={14} /> {t("linkCta")}

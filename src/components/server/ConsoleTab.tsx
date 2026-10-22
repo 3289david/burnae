@@ -118,7 +118,7 @@ export default function ConsoleTab({
       if (reconnectTimer) clearTimeout(reconnectTimer);
       ws?.close();
     };
-  }, [serverId]);
+  }, [serverId, canUseConsole, t]);
 
   useEffect(() => {
     if (!autoScroll) return;
@@ -376,6 +376,12 @@ interface AnsiStyle {
   opacity?: number;
 }
 
+function omitKeys<T extends object, K extends keyof T>(obj: T, ...keys: K[]): Omit<T, K> {
+  const copy = { ...obj };
+  for (const k of keys) delete copy[k];
+  return copy;
+}
+
 /** Wings/마인크래프트 콘솔이 보내는 ANSI SGR 색상 코드를 실제 터미널처럼 색을 입혀서 렌더링한다 */
 function renderAnsiLine(line: string): React.ReactNode {
   const parts: { text: string; style: AnsiStyle }[] = [];
@@ -392,12 +398,12 @@ function renderAnsiLine(line: string): React.ReactNode {
       else if (code === 2) style = { ...style, opacity: 0.6 };
       else if (code === 3) style = { ...style, fontStyle: "italic" };
       else if (code === 4) style = { ...style, textDecoration: "underline" };
-      else if (code === 22) { const { fontWeight, opacity, ...rest } = style; style = rest; }
-      else if (code === 23) { const { fontStyle, ...rest } = style; style = rest; }
-      else if (code === 24) { const { textDecoration, ...rest } = style; style = rest; }
+      else if (code === 22) style = omitKeys(style, "fontWeight", "opacity");
+      else if (code === 23) style = omitKeys(style, "fontStyle");
+      else if (code === 24) style = omitKeys(style, "textDecoration");
       else if (code >= 30 && code <= 37) style = { ...style, color: BASE16_COLORS[code - 30] };
       else if (code >= 90 && code <= 97) style = { ...style, color: BASE16_COLORS[code - 90 + 8] };
-      else if (code === 39) { const { color, ...rest } = style; style = rest; }
+      else if (code === 39) style = omitKeys(style, "color");
       else if (code === 38 && codes[i + 1] === 5) { style = { ...style, color: xterm256(codes[i + 2]) }; i += 2; }
       else if (code === 38 && codes[i + 1] === 2) { style = { ...style, color: `rgb(${codes[i + 2]},${codes[i + 3]},${codes[i + 4]})` }; i += 4; }
     }

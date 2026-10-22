@@ -252,8 +252,6 @@ export async function createServerForOrder(orderId: string) {
     : product.allowedTemplates[0];
   if (!template) throw new ProvisioningError("서버 종류를 찾을 수 없습니다.");
 
-  const settings = await prisma.hostingSettings.findUniqueOrThrow({ where: { id: 1 } });
-
   node = await selectNode(
     product.ramMb,
     product.diskMb,

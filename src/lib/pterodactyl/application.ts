@@ -309,21 +309,24 @@ export async function updateServerBuild(
   pterodactylServerId: number,
   params: { memoryMb: number; diskMb: number; cpuPercent: number; backupSlots: number },
 ): Promise<PteroServer> {
+  // build API는 updateServerAllocations와 마찬가지로 부분 수정이 아니라 필드를 최상위에
+  // 평탄하게(nested limits 객체 아님) 요구하고, allocation(현재 기본 포트)도 항상 같이
+  // 보내야 한다 — 빠지면 "The allocation field is required." 에러가 난다.
+  const server = await getServer(pterodactylServerId);
   const res = await applicationRequest<PteroItemResponse<PteroServer>>(
     `/api/application/servers/${pterodactylServerId}/build`,
     {
       method: "PATCH",
       body: JSON.stringify({
-        limits: {
-          memory: params.memoryMb,
-          swap: 0,
-          disk: params.diskMb,
-          io: 500,
-          cpu: params.cpuPercent,
-        },
+        allocation: server.allocation,
+        memory: params.memoryMb,
+        swap: 0,
+        disk: params.diskMb,
+        io: 500,
+        cpu: params.cpuPercent,
         feature_limits: {
-          databases: 1,
-          allocations: 1,
+          databases: server.feature_limits.databases,
+          allocations: server.feature_limits.allocations,
           backups: params.backupSlots,
         },
       }),

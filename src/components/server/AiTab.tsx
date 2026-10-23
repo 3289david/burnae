@@ -46,6 +46,22 @@ const MAKER_EXAMPLE_KEY: Record<Category, string> = {
   GENERAL: "makerExampleGeneral",
 };
 
+/** 탭을 백그라운드로 보내거나 네트워크가 바뀌면 fetch가 응답도 에러도 없이 그냥 멈춰버릴 수
+ * 있다 — 그러면 busy가 영원히 true로 남아서 "적용하기" 버튼이 다시 들어오기 전까진 안 눌렸다.
+ * 일정 시간 뒤엔 강제로 포기해서 버튼이 다시 눌리게 한다. (서버 쪽 작업 자체는
+ * proxy_ignore_client_abort 덕에 끊기지 않고 계속 돈다 — 이건 이 fetch 요청만 끝내는 것)
+ */
+const FETCH_TIMEOUT_MS = 180_000;
+async function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export default function AiTab({
   serverId,
   templateCategory = "MINECRAFT",
@@ -158,7 +174,7 @@ export default function AiTab({
     // 대화를 다시 불러와 지금까지 만든 파일들(진행 로그)이 실시간으로 보이게 한다
     const pollTimer = setInterval(() => refresh(conversationId), 2500);
     try {
-      const res = await fetch(`/api/ai/conversations/${conversationId}/messages`, {
+      const res = await fetchWithTimeout(`/api/ai/conversations/${conversationId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: text }),
@@ -168,6 +184,12 @@ export default function AiTab({
         setChatError(data.error ?? t("sendFailed"));
       }
       await refresh(conversationId);
+    } catch {
+      // 연결이 끊긴 채 멈춰버린 경우(탭 백그라운드, 네트워크 전환 등) — 서버 쪽 작업은
+      // nginx proxy_ignore_client_abort 덕에 끝까지 돌지만, 이 fetch 자체는 응답을 못 받을 수
+      // 있다. 타임아웃으로 끝내고 다시 불러와서 결과를 반영한다 — 버튼이 영원히 안 눌리는 걸 막음
+      setChatError(t("sendFailed"));
+      await refresh(conversationId).catch(() => {});
     } finally {
       clearInterval(pollTimer);
       setBusy(false);
@@ -178,12 +200,15 @@ export default function AiTab({
     if (!pending || !conversationId) return;
     setBusy(true);
     try {
-      await fetch(`/api/ai/activity/${pending.id}/resolve`, {
+      await fetchWithTimeout(`/api/ai/activity/${pending.id}/resolve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ decision }),
       });
       await refresh(conversationId);
+    } catch {
+      setChatError(t("sendFailed"));
+      await refresh(conversationId).catch(() => {});
     } finally {
       setBusy(false);
     }

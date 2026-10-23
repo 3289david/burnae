@@ -331,7 +331,9 @@ export async function createServerForOrder(orderId: string) {
   // 무시된다 — 시작 명령어 맨 앞에 export로 직접 박아 넣어서, bash로 실행되는 사이드카/부트
   // 스크립트가 하위 프로세스로서 그 값을 그대로 물려받게 한다.
   if (sshAllocation) {
-    resolvedStartupCommand = `export SSH_PORT=${sshAllocation.port}; ${resolvedStartupCommand}`;
+    // STATIC_SERVER_ENABLED도 같은 이유로 환경변수가 아니라 시작 명령어에 직접 박아 넣는다 —
+    // 생성 시점엔 항상 꺼짐(0)이고, 소유자가 나중에 대시보드에서 켜면 재설치로 다시 박아 넣힌다.
+    resolvedStartupCommand = `export SSH_PORT=${sshAllocation.port} STATIC_SERVER_ENABLED=0; ${resolvedStartupCommand}`;
   }
 
   pteroServer = await PteroApp.createServer({

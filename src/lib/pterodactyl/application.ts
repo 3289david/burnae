@@ -47,6 +47,13 @@ export interface PteroServer {
     allocations: number;
     backups: number;
   };
+  egg: number;
+  container: {
+    startup_command: string;
+    image: string;
+    environment: Record<string, string>;
+    skip_scripts: boolean;
+  };
 }
 
 interface PteroListResponse<T> {
@@ -329,6 +336,33 @@ export async function updateServerBuild(
           allocations: server.feature_limits.allocations,
           backups: params.backupSlots,
         },
+      }),
+    },
+  );
+  return res.attributes;
+}
+
+/** 시작 명령어/환경변수를 바꾼다 — 이 API는 egg/image/skip_scripts까지 전부 같이 보내야 한다 */
+export async function updateServerStartup(
+  pterodactylServerId: number,
+  params: {
+    startupCommand: string;
+    environment: Record<string, string>;
+    eggId: number;
+    dockerImage: string;
+    skipScripts: boolean;
+  },
+): Promise<PteroServer> {
+  const res = await applicationRequest<PteroItemResponse<PteroServer>>(
+    `/api/application/servers/${pterodactylServerId}/startup`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({
+        startup: params.startupCommand,
+        environment: params.environment,
+        egg: params.eggId,
+        image: params.dockerImage,
+        skip_scripts: params.skipScripts,
       }),
     },
   );

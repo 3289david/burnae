@@ -101,6 +101,7 @@ model User {
   apiTokens                ApiToken[]
   blogPosts                BlogPost[]
   githubConnection         GitHubConnection?
+  sshGatewayCodes          SshGatewayCode[]
 
   @@index([email])
   @@index([referralCode])
@@ -532,6 +533,20 @@ enum ServerMemberRole {
   MODERATOR
   DEVELOPER
   VIEWER
+}
+
+/// ssh burnae.kr 게이트웨이 로그인용 1회용 코드 — 대시보드에서 발급하고, 짧은 유효시간
+/// 안에 한 번만 쓸 수 있다. 계정당 SSH 키 체계가 없어서 코드 방식으로 대신한다.
+model SshGatewayCode {
+  id        String    @id @default(cuid())
+  code      String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  @@index([userId])
 }
 
 model Server {

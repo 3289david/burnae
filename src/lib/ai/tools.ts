@@ -43,11 +43,7 @@ export const AI_TOOLS: Record<string, ToolDef> = {
         prisma.serverSubdomain.findFirst({ where: { serverId: server.id }, orderBy: { isPrimary: "desc" } }),
         prisma.hostingSettings.findUnique({ where: { id: 1 } }),
       ]);
-      const address =
-        subdomain && settings
-          ? `${subdomain.subdomain}.${settings.subdomainZone}` +
-            (server.allocationPort ? `:${server.allocationPort}` : "")
-          : null;
+      const address = subdomain && settings ? `${subdomain.subdomain}.${settings.subdomainZone}` : null;
 
       if (!server.pterodactylIdentifier) return { status: "PROVISIONING", address };
       const resources = await PteroClient.getServerResources(server.pterodactylIdentifier);

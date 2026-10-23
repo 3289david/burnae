@@ -23,7 +23,7 @@ fi
 # 환경에서 tar 권한 문제로 실패해서, 버전을 고정한 공식 바이너리 압축 해제 방식으로 대체함).
 # 처음 부팅할 때 한 번만 설치 — 실패해도 로그만 남기고 부팅 자체는 계속 진행한다
 NODE_VERSION="22.11.0"
-if [ ! -d ".node-v${NODE_VERSION}-linux-x64" ]; then
+if [ ! -d "node-v${NODE_VERSION}-linux-x64" ]; then
   (
     curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz" -o /tmp/burnae-node.tar.xz \
       && tar -xf /tmp/burnae-node.tar.xz \
@@ -34,6 +34,16 @@ if [ ! -d ".node-v${NODE_VERSION}-linux-x64" ]; then
   fi
 fi
 
+# 고객이 아직 자기 앱을 안 띄웠으면(SERVER_PORT가 비어있으면) index.html 같은 파일을 올려두는
+# 것만으로 바로 보이게 기본 정적 파일 서버를 띄워준다 — 진짜 앱을 띄우려면
+# `pkill -f burnae-static-server`로 이걸 끄고 원하는 포트에 직접 띄우면 된다.
+if [ ! -f ./burnae-static-server.js ]; then
+  curl -fsSL https://burnae.kr/downloads/burnae-static-server.js -o ./burnae-static-server.js
+fi
+export PATH="/home/container/node-v${NODE_VERSION}-linux-x64/bin:$PATH"
+nohup node ./burnae-static-server.js > .burnae_static_server.log 2>&1 &
+
 echo '서버 준비 완료 - 콘솔에 명령어를 입력해서 바로 쓸 수 있고, SSH로도 접속할 수 있어요. (SSH 비밀번호는 대시보드에서 확인하세요)'
+echo "참고: 지금은 기본 정적 파일 서버가 ${SERVER_PORT}번 포트에서 /home/container를 그대로 보여주고 있어요 — index.html을 올려두면 바로 보여요. 직접 앱을 띄우려면 'pkill -f burnae-static-server'로 이걸 먼저 끄세요."
 echo '참고: 루트 파일시스템이 읽기 전용이라 apt install은 안 돼요 — Node.js는 이미 설치돼 있어요(node --version, npm --version). 다른 언어도 비슷한 방식으로 /home/container 안에 압축 풀어서 쓰면 돼요.'
 exec /bin/sh

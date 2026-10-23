@@ -54,6 +54,13 @@ type apiServer struct {
 	Name       string `json:"name"`
 	Status     string `json:"status"`
 	CanControl bool   `json:"canControl"`
+	CanSsh     bool   `json:"canSsh"`
+}
+
+type connectInfo struct {
+	IP       string `json:"ip"`
+	Port     int    `json:"port"`
+	Password string `json:"password"`
 }
 
 type apiClient struct {
@@ -106,6 +113,23 @@ func (c *apiClient) power(userID, serverID, signal string) error {
 		return fmt.Errorf("power action failed: %d", res.StatusCode)
 	}
 	return nil
+}
+
+func (c *apiClient) connect(userID, serverID string) (*connectInfo, error) {
+	body, _ := json.Marshal(map[string]string{"userId": userID, "serverId": serverID})
+	res, err := c.post("/api/internal/ssh-gateway/connect", body)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	if res.StatusCode != 200 {
+		return nil, fmt.Errorf("접속 정보를 가져오지 못했습니다 (%d)", res.StatusCode)
+	}
+	var info connectInfo
+	if err := json.NewDecoder(res.Body).Decode(&info); err != nil {
+		return nil, err
+	}
+	return &info, nil
 }
 
 func (c *apiClient) post(path string, body []byte) (*http.Response, error) {
@@ -305,6 +329,9 @@ func serverSubmenu(t *termIO, client *apiClient, userID string, server apiServer
 		t.writeLine("")
 		t.writeLine(fmt.Sprintf("[%s] 상태: %s", server.Name, statusLabel(server.Status)))
 		t.writeLine("  1) 시작    2) 정지    3) 재시작")
+		if server.CanSsh {
+			t.writeLine("  4) 접속(쉘)")
+		}
 		t.writeLine("  b) 뒤로    q) 종료")
 		t.Write([]byte("선택: "))
 
@@ -324,10 +351,66 @@ func serverSubmenu(t *termIO, client *apiClient, userID string, server apiServer
 			} else {
 				t.writeLine("요청했어요 — 잠시 후 상태가 바뀝니다.")
 			}
+		case "4":
+			if !server.CanSsh {
+				t.writeLine("올바른 선택지를 입력해주세요.")
+				continue
+			}
+			if err := connectShell(t, client, userID, server); err != nil {
+				t.writeLine("접속 실패: " + err.Error())
+			}
 		default:
 			t.writeLine("올바른 선택지를 입력해주세요.")
 		}
 	}
+}
+
+// 고객이 포트/비밀번호를 몰라도 되게, 게이트웨이가 대신 그 서버의 전용 SSH 포트로 붙어서
+// 지금 이 채널과 그대로 이어준다 — 사실상 점프 호스트(bastion) 역할.
+func connectShell(t *termIO, client *apiClient, userID string, server apiServer) error {
+	info, err := client.connect(userID, server.ID)
+	if err != nil {
+		return err
+	}
+
+	config := &ssh.ClientConfig{
+		User:            "container",
+		Auth:            []ssh.AuthMethod{ssh.Password(info.Password)},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(), // 우리가 직접 관리하는 서버로의 내부 연결
+		Timeout:         10 * time.Second,
+	}
+	target := fmt.Sprintf("%s:%d", info.IP, info.Port)
+	conn, err := ssh.Dial("tcp", target, config)
+	if err != nil {
+		return fmt.Errorf("서버에 연결할 수 없습니다 — 서버가 꺼져있지 않은지 확인해주세요")
+	}
+	defer conn.Close()
+
+	session, err := conn.NewSession()
+	if err != nil {
+		return err
+	}
+	defer session.Close()
+
+	modes := ssh.TerminalModes{ssh.ECHO: 1, ssh.TTY_OP_ISPEED: 14400, ssh.TTY_OP_OSPEED: 14400}
+	if err := session.RequestPty("xterm", 40, 120, modes); err != nil {
+		return err
+	}
+	session.Stdout = t
+	session.Stderr = t
+	stdin, err := session.StdinPipe()
+	if err != nil {
+		return err
+	}
+	if err := session.Shell(); err != nil {
+		return err
+	}
+
+	t.writeLine(fmt.Sprintf("--- %s 서버 쉘에 연결됐어요. 나가려면 exit 또는 Ctrl-D ---", server.Name))
+	go io.Copy(stdin, t)
+	_ = session.Wait()
+	t.writeLine("--- 연결이 끊어졌어요 ---")
+	return nil
 }
 
 func loadOrCreateHostKey(path string) (ssh.Signer, error) {

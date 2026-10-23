@@ -14,7 +14,15 @@ export async function GET(request: Request) {
 
   const servers = await prisma.server.findMany({
     where: { ownerId: userId, deletedAt: null },
-    select: { id: true, name: true, status: true, pterodactylIdentifier: true },
+    select: {
+      id: true,
+      name: true,
+      status: true,
+      pterodactylIdentifier: true,
+      allocationIp: true,
+      sshPort: true,
+      accessSecret: true,
+    },
     orderBy: { createdAt: "asc" },
   });
 
@@ -24,6 +32,7 @@ export async function GET(request: Request) {
       name: s.name,
       status: s.status,
       canControl: !!s.pterodactylIdentifier,
+      canSsh: !!(s.allocationIp && s.sshPort && s.accessSecret),
     })),
   );
 }

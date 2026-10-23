@@ -299,24 +299,28 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
 
       {supportsSsh(server.templateKey) && server.accessSecret && server.allocationIp && server.sshPort && (
         <div className="card-glow p-5">
-          <h3 className="font-semibold mb-3">SSH 접속 정보</h3>
+          <h3 className="font-semibold mb-3">SSH 접속</h3>
           <p className="text-xs text-text-dim mb-3">
-            터미널 프로그램(macOS/리눅스는 기본 터미널, 윈도우는 PuTTY 등)에서 아래 정보로 바로 접속할 수 있어요.
-            서버를 시작한 뒤 몇 초 정도 기다렸다가 접속해주세요.
+            터미널에서 <code className="font-mono bg-surface-2 rounded px-1">ssh burnae.kr</code>로 접속하면 돼요.
+            계정 설정에서 로그인 코드를 발급받아 비밀번호 자리에 입력하고, 메뉴에서 이 서버를 고른 뒤
+            &ldquo;접속(쉘)&rdquo;을 선택하면 바로 들어가요. 호스트나 포트를 따로 외울 필요 없어요.
           </p>
-          <div className="grid grid-cols-2 gap-y-2 text-sm">
-            <span className="text-text-dim">호스트</span>
-            <span className="font-mono select-all">{server.allocationIp}</span>
-            <span className="text-text-dim">포트</span>
-            <span className="font-mono select-all">{server.sshPort}</span>
-            <span className="text-text-dim">사용자명</span>
-            <span className="font-mono select-all">container</span>
-            <span className="text-text-dim">비밀번호</span>
-            <span className="font-mono select-all">{server.accessSecret}</span>
+          <div className="mt-3 bg-black/30 rounded-lg px-3 py-2 font-mono text-xs select-all">
+            ssh burnae.kr
           </div>
-          <div className="mt-3 bg-black/30 rounded-lg px-3 py-2 font-mono text-xs select-all break-all">
-            ssh container@{server.allocationIp} -p {server.sshPort}
-          </div>
+          <details className="mt-3 text-xs">
+            <summary className="text-text-dim cursor-pointer hover:text-text">고급: scp/rsync 등 직접 접속이 필요하면</summary>
+            <div className="grid grid-cols-2 gap-y-2 mt-2">
+              <span className="text-text-dim">호스트</span>
+              <span className="font-mono select-all">{server.allocationIp}</span>
+              <span className="text-text-dim">포트</span>
+              <span className="font-mono select-all">{server.sshPort}</span>
+              <span className="text-text-dim">사용자명</span>
+              <span className="font-mono select-all">container</span>
+              <span className="text-text-dim">비밀번호</span>
+              <span className="font-mono select-all">{server.accessSecret}</span>
+            </div>
+          </details>
         </div>
       )}
 

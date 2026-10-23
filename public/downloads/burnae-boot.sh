@@ -18,10 +18,10 @@ fi
 
 ./burnae-sshd -port "${SSH_PORT}" -user container -pass "${SSH_PASS}" -shell /bin/bash -hostkey ./.burnae_ssh_host_key &
 
-# 루트 파일시스템이 읽기 전용이라 apt install이 안 된다 — /home/container 안에만 설치되는
-# 미리 컴파일된 Node.js 바이너리를 깔아둬서 바로 쓸 수 있게 한다(nvm의 소스 빌드 폴백은 이
-# 환경에서 tar 권한 문제로 실패해서, 버전을 고정한 공식 바이너리 압축 해제 방식으로 대체함).
-# 처음 부팅할 때 한 번만 설치 — 실패해도 로그만 남기고 부팅 자체는 계속 진행한다
+# apt로도 Node.js를 설치할 수 있지만, 그래도 미리 컴파일된 바이너리를 깔아둬서 바로 쓸 수
+# 있게 한다 — apt 미러가 느리거나 안 될 때도 바로 node/npm이 되고, 에그 버전과 무관하게
+# 항상 같은 Node 버전을 보장한다. 처음 부팅할 때 한 번만 설치 — 실패해도 로그만 남기고
+# 부팅 자체는 계속 진행한다
 NODE_VERSION="22.11.0"
 if [ ! -d "node-v${NODE_VERSION}-linux-x64" ]; then
   (
@@ -49,5 +49,5 @@ echo '서버 준비 완료 - 콘솔에 명령어를 입력해서 바로 쓸 수 
 if [ "${STATIC_SERVER_ENABLED}" = "1" ]; then
   echo "참고: 지금은 기본 정적 파일 서버가 ${SERVER_PORT}번 포트에서 /home/container를 그대로 보여주고 있어요 — index.html을 올려두면 바로 보여요. 직접 앱을 띄우려면 대시보드에서 이 기능을 꺼주세요."
 fi
-echo '참고: 루트 파일시스템이 읽기 전용이라 apt install은 안 돼요 — Node.js는 이미 설치돼 있어요(node --version, npm --version). 다른 언어도 비슷한 방식으로 /home/container 안에 압축 풀어서 쓰면 돼요.'
+echo '참고: apt install도 돼요(진짜 VPS처럼 쓸 수 있어요). Node.js는 이미 설치돼 있고요(node --version, npm --version) — 다른 언어/패키지는 apt install로 바로 깔거나, 비슷하게 /home/container 안에 압축 풀어서 써도 돼요.'
 exec /bin/sh

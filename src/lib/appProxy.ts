@@ -55,13 +55,15 @@ export async function syncAppProxyMap(prisma: PrismaClient) {
   // 되돌릴 게 없으면 "서버 하나도 없음"에 해당하는 빈 내용으로 되돌린다(항상 유효한 상태).
   const tmpPath = `${MAP_FILE_PATH}.tmp`;
   fs.writeFileSync(tmpPath, content);
+  fs.renameSync(tmpPath, MAP_FILE_PATH);
   try {
-    fs.renameSync(tmpPath, MAP_FILE_PATH);
-    await execFileAsync("nginx", ["-t"]);
+    // nginx -t는 이 박스의 다른 모든 vhost(타 고객 사이트 포함) 인증서까지 읽어야 해서 burnae
+    // 유저 권한으론 못 한다 — 그 검증+reload만 scope를 좁혀 root로 허용한 헬퍼를 통해 실행한다
+    // (/etc/sudoers.d/burnae-reload-app-proxy). 전체 설명은 burnae-reload-app-proxy 참고.
+    await execFileAsync("sudo", ["-n", "/usr/local/sbin/burnae-reload-app-proxy"]);
   } catch (err) {
     fs.writeFileSync(MAP_FILE_PATH, existing ?? "");
     throw err;
   }
-  await execFileAsync("systemctl", ["reload", "nginx"]);
   return { changed: true, count: lines.length };
 }

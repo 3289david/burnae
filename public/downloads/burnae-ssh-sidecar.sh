@@ -13,4 +13,4 @@ if [ ! -f ./burnae-sshd ]; then
   chmod +x ./burnae-sshd
 fi
 
-./burnae-sshd -port "${SERVER_PORT}" -user container -pass "${SSH_PASS}" -shell /bin/bash -hostkey ./.burnae_ssh_host_key &
+./burnae-sshd -port "${SSH_PORT}" -user container -pass "${SSH_PASS}" -shell /bin/bash -hostkey ./.burnae_ssh_host_key &

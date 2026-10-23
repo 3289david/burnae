@@ -271,6 +271,9 @@ export async function createServerForOrder(orderId: string) {
   }
 
   const allocation = await PteroApp.getFreeAllocation(node.pterodactylNodeId);
+  // SSH를 지원하는 템플릿은 고객 앱용 기본 포트(allocation)와 겹치지 않는 전용 포트가 필요하다 —
+  // burnae-sshd가 같은 포트를 먼저 선점해버리면 고객이 거기에 뭘 띄워도 영원히 접속할 수 없다.
+  const sshAllocation = supportsSsh(template.key) ? await allocateSshPort(node) : null;
 
   // PASSWORD 같은 egg 자체 접속 비밀번호(Postgres PGPASSWORD, Redis SERVER_PASSWORD, Mongo
   // MONGO_USER_PASS, Meilisearch MEILI_MASTER_KEY 등)는 모든 서버가 defaultEnvironment의 같은
@@ -324,6 +327,12 @@ export async function createServerForOrder(orderId: string) {
     const str = String(value);
     resolvedStartupCommand = resolvedStartupCommand.split(`{{${key}}}`).join(str).split(`\${${key}}`).join(str);
   }
+  // SSH_PORT는 egg 변수 스키마에 없는 값이라 environment로 넘겨도 같은 이유로 조용히
+  // 무시된다 — 시작 명령어 맨 앞에 export로 직접 박아 넣어서, bash로 실행되는 사이드카/부트
+  // 스크립트가 하위 프로세스로서 그 값을 그대로 물려받게 한다.
+  if (sshAllocation) {
+    resolvedStartupCommand = `export SSH_PORT=${sshAllocation.port}; ${resolvedStartupCommand}`;
+  }
 
   pteroServer = await PteroApp.createServer({
     name: order.serverNameRequested ?? `${order.user.name}의 서버`,
@@ -341,6 +350,12 @@ export async function createServerForOrder(orderId: string) {
     backupSlots: product.backupSlots,
   });
   pteroServerForCleanup = pteroServer;
+
+  // allocationId는 하나만 받아서 생성되니, SSH 포트는 생성 뒤에 추가로 붙여줘야 실제로 도커가
+  // 그 포트를 컨테이너에 매핑해준다 (포인트 상점의 EXTRA_PORT 구매 플로우와 같은 방식).
+  if (sshAllocation) {
+    await PteroApp.addServerAllocation(pteroServer.id, sshAllocation.id);
+  }
 
   try {
   server = await prisma.$transaction(async (tx) => {
@@ -366,6 +381,7 @@ export async function createServerForOrder(orderId: string) {
         backupSlots: product.backupSlots,
         allocationIp: node.publicIp,
         allocationPort: allocation.port,
+        sshPort: sshAllocation?.port ?? null,
         accessSecret,
         aiAutoSetupAvailable: "GIT_ADDRESS" in defaultEnv && !!gitAddressToApply,
         // 0원 상품(무료 서버)은 7일마다 직접 갱신해야 한다(방치된 무료 서버가 자원을 계속
@@ -613,22 +629,32 @@ export async function deleteServerFully(
 const EXTRA_PORT_RANGE_MIN = 9000;
 const EXTRA_PORT_RANGE_MAX = 9999;
 
+/// SSH 전용 포트도 같은 이유로 별도 범위(8900~8999)에서 고른다 — EXTRA_PORT(9000대, 고객이
+/// 직접 구매하는 눈에 보이는 포트)와 섞이면 안 되는, 플랫폼 내부용 포트라서 범위를 분리했다.
+const SSH_PORT_RANGE_MIN = 8900;
+const SSH_PORT_RANGE_MAX = 8999;
+
 /**
- * 노드에서 9000~9999번대 중 비어있는 포트를 하나 찾아 새 allocation을 만들고 그 id/ip/port를 반환한다.
+ * 노드에서 지정된 범위 중 비어있는 포트를 하나 찾아 새 allocation을 만들고 그 id/ip/port를 반환한다.
  * 동시 요청으로 충돌할 수 있어 생성 실패(이미 다른 요청이 같은 포트를 선점) 시 몇 번 재시도한다.
  */
-export async function allocateExtraPort(node: HostNode): Promise<{ id: number; ip: string; port: number }> {
+async function allocatePortInRange(
+  node: HostNode,
+  rangeMin: number,
+  rangeMax: number,
+  outOfPortsMessage: string,
+): Promise<{ id: number; ip: string; port: number }> {
   for (let attempt = 0; attempt < 5; attempt++) {
     const allocations = await PteroApp.listNodeAllocations(node.pterodactylNodeId);
     const used = new Set(
       allocations.filter((a) => a.ip === node.publicIp).map((a) => a.port),
     );
     const candidates: number[] = [];
-    for (let p = EXTRA_PORT_RANGE_MIN; p <= EXTRA_PORT_RANGE_MAX; p++) {
+    for (let p = rangeMin; p <= rangeMax; p++) {
       if (!used.has(p)) candidates.push(p);
     }
     if (candidates.length === 0) {
-      throw new ProvisioningError("이 노드에는 추가로 할당할 수 있는 포트(9000~9999)가 남아있지 않아요.");
+      throw new ProvisioningError(outOfPortsMessage);
     }
     const port = candidates[Math.floor(Math.random() * candidates.length)];
     try {
@@ -641,4 +667,27 @@ export async function allocateExtraPort(node: HostNode): Promise<{ id: number; i
     if (created) return { id: created.id, ip: created.ip, port: created.port };
   }
   throw new ProvisioningError("포트 생성에 실패했습니다. 다시 시도해주세요.");
+}
+
+export async function allocateExtraPort(node: HostNode): Promise<{ id: number; ip: string; port: number }> {
+  return allocatePortInRange(
+    node,
+    EXTRA_PORT_RANGE_MIN,
+    EXTRA_PORT_RANGE_MAX,
+    "이 노드에는 추가로 할당할 수 있는 포트(9000~9999)가 남아있지 않아요.",
+  );
+}
+
+/**
+ * SSH를 지원하는 템플릿은 allocationPort(고객 앱용 기본 포트)와 겹치지 않는 전용 포트가
+ * 따로 필요하다 — 안 그러면 burnae-sshd가 그 포트를 먼저 선점해버려서 고객이 거기에 뭘
+ * 띄워도 영원히 접속할 수 없다.
+ */
+export async function allocateSshPort(node: HostNode): Promise<{ id: number; ip: string; port: number }> {
+  return allocatePortInRange(
+    node,
+    SSH_PORT_RANGE_MIN,
+    SSH_PORT_RANGE_MAX,
+    "이 노드에는 SSH용으로 할당할 수 있는 포트(8900~8999)가 남아있지 않아요.",
+  );
 }

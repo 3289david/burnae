@@ -58,6 +58,7 @@ export default async function ServerDetailPage({
         })),
         allocationIp: server.allocationIp,
         allocationPort: server.allocationPort,
+        sshPort: server.sshPort,
         extraPorts: server.extraPorts as { id: number; ip: string; port: number }[],
         extraSubdomainSlots: server.extraSubdomainSlots,
         ownerNote: server.ownerId === user.id ? server.ownerNote : null,

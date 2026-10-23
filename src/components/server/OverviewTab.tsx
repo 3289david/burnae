@@ -297,7 +297,7 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
         </div>
       </div>
 
-      {supportsSsh(server.templateKey) && server.accessSecret && server.allocationIp && server.allocationPort && (
+      {supportsSsh(server.templateKey) && server.accessSecret && server.allocationIp && server.sshPort && (
         <div className="card-glow p-5">
           <h3 className="font-semibold mb-3">SSH 접속 정보</h3>
           <p className="text-xs text-text-dim mb-3">
@@ -308,14 +308,14 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
             <span className="text-text-dim">호스트</span>
             <span className="font-mono select-all">{server.allocationIp}</span>
             <span className="text-text-dim">포트</span>
-            <span className="font-mono select-all">{server.allocationPort}</span>
+            <span className="font-mono select-all">{server.sshPort}</span>
             <span className="text-text-dim">사용자명</span>
             <span className="font-mono select-all">container</span>
             <span className="text-text-dim">비밀번호</span>
             <span className="font-mono select-all">{server.accessSecret}</span>
           </div>
           <div className="mt-3 bg-black/30 rounded-lg px-3 py-2 font-mono text-xs select-all break-all">
-            ssh container@{server.allocationIp} -p {server.allocationPort}
+            ssh container@{server.allocationIp} -p {server.sshPort}
           </div>
         </div>
       )}

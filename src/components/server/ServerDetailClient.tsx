@@ -49,6 +49,7 @@ export interface ServerInfo {
   customDomains: ServerCustomDomainInfo[];
   allocationIp: string | null;
   allocationPort: number | null;
+  sshPort: number | null;
   extraPorts: { id: number; ip: string; port: number }[];
   extraSubdomainSlots: number;
   ownerNote: string | null;

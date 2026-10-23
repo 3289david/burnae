@@ -16,7 +16,7 @@ if [ ! -f ./burnae-sshd ]; then
   chmod +x ./burnae-sshd
 fi
 
-./burnae-sshd -port "${SERVER_PORT}" -user container -pass "${SSH_PASS}" -shell /bin/bash -hostkey ./.burnae_ssh_host_key &
+./burnae-sshd -port "${SSH_PORT}" -user container -pass "${SSH_PASS}" -shell /bin/bash -hostkey ./.burnae_ssh_host_key &
 
 # 루트 파일시스템이 읽기 전용이라 apt install이 안 된다 — /home/container 안에만 설치되는
 # 미리 컴파일된 Node.js 바이너리를 깔아둬서 바로 쓸 수 있게 한다(nvm의 소스 빌드 폴백은 이

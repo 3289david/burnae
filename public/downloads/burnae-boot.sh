@@ -34,6 +34,14 @@ if [ ! -d "node-v${NODE_VERSION}-linux-x64" ]; then
   fi
 fi
 
+# 데비안은 "python" 패키지 자체가 없다(python2 EOL 이후 python3만 있음) — apt install python이
+# 바로 에러나는 게 당연하지만 헷갈리니, python3을 python 명령으로도 쓸 수 있게 해주는
+# 공식 호환 패키지를 처음 부팅할 때 한 번만 깔아둔다. 실패해도 로그만 남기고 계속 진행한다
+if [ ! -f .burnae_apt_setup_done ]; then
+  (apt-get update -y && apt-get install -y python-is-python3) > .burnae_apt_setup.log 2>&1
+  touch .burnae_apt_setup_done
+fi
+
 # 대시보드에서 켠 경우에만(기본은 꺼짐) index.html 같은 파일을 올려두는 것만으로 바로
 # 보이게 기본 정적 파일 서버를 띄워준다 — 꺼져 있으면 아무것도 안 하니 고객이 원하는 포트에
 # 자기 앱을 자유롭게 띄울 수 있다.

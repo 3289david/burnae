@@ -215,7 +215,7 @@ export default function AiTab({
     <div>
     <AiCreditsCard />
     <div className="card-glow p-0 overflow-hidden flex flex-col h-[32rem] animate-fade-up">
-      <div className="px-4 pt-3 pb-2 border-b border-border flex items-center gap-2">
+      <div className="px-4 pt-3 pb-2 border-b border-border flex items-center flex-wrap gap-2">
         <div className="inline-flex rounded-lg bg-surface-2 p-0.5 text-xs shrink-0">
           <button
             onClick={() => setKind("CHAT")}
@@ -248,7 +248,7 @@ export default function AiTab({
           <select
             value={conversationId ?? ""}
             onChange={(e) => setConversationId(e.target.value)}
-            className="input py-1 text-xs flex-1 min-w-0"
+            className="input py-1 text-xs w-full sm:flex-1 sm:w-auto min-w-0 order-last sm:order-none"
           >
             {conversations.map((c) => (
               <option key={c.id} value={c.id}>

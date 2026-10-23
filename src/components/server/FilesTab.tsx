@@ -12,6 +12,7 @@ import {
   FileCode,
   Database,
   File as FileIcon,
+  MoreVertical,
 } from "lucide-react";
 import { hasServerRank, type ServerAccessRole } from "@/lib/serverRoleRank";
 
@@ -58,6 +59,7 @@ export default function FilesTab({ serverId, myRole }: { serverId: string; myRol
   const [dragOver, setDragOver] = useState(false);
   const [query, setQuery] = useState("");
   const [previewImage, setPreviewImage] = useState<{ name: string; url: string } | null>(null);
+  const [menuOpenFor, setMenuOpenFor] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function load(d: string) {
@@ -453,21 +455,53 @@ export default function FilesTab({ serverId, myRole }: { serverId: string; myRol
                 <Icon size={15} className={f.is_file ? "text-text-dim shrink-0" : "text-yellow shrink-0"} />
                 {f.name}
               </button>
-              {f.is_file && <span className="text-text-dim text-xs shrink-0">{(f.size / 1024).toFixed(1)}KB</span>}
+              {f.is_file && <span className="text-text-dim text-xs shrink-0 hidden sm:inline">{(f.size / 1024).toFixed(1)}KB</span>}
               {f.is_file && (
                 <button onClick={() => download(f.name)} className="text-xs text-accent shrink-0 hover:underline">받기</button>
               )}
-              {canEdit && isArchive && (
-                <button onClick={() => decompress(f.name)} className="text-xs text-accent shrink-0 hover:underline">압축해제</button>
-              )}
               {canEdit && (
-                <>
-                  <button onClick={() => copyItem(f.name)} className="text-xs text-text-dim shrink-0 hover:text-text">복사</button>
-                  <button onClick={() => renameItem(f.name)} className="text-xs text-text-dim shrink-0 hover:text-text">이름변경</button>
-                  <button onClick={() => deleteFiles([f.name])} className="text-xs text-red shrink-0 hover:underline">
-                    삭제
+                <div className="relative shrink-0">
+                  <button
+                    onClick={() => setMenuOpenFor((cur) => (cur === f.name ? null : f.name))}
+                    className="p-1 -m-1 text-text-dim hover:text-text rounded active:scale-95 transition-transform"
+                    aria-label="더보기"
+                  >
+                    <MoreVertical size={15} />
                   </button>
-                </>
+                  {menuOpenFor === f.name && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setMenuOpenFor(null)} />
+                      <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg py-1 z-20 min-w-28 animate-toast-in">
+                        {isArchive && (
+                          <button
+                            onClick={() => { setMenuOpenFor(null); decompress(f.name); }}
+                            className="w-full text-left px-3 py-1.5 text-xs text-accent hover:bg-surface-2"
+                          >
+                            압축해제
+                          </button>
+                        )}
+                        <button
+                          onClick={() => { setMenuOpenFor(null); copyItem(f.name); }}
+                          className="w-full text-left px-3 py-1.5 text-xs text-text-dim hover:bg-surface-2 hover:text-text"
+                        >
+                          복사
+                        </button>
+                        <button
+                          onClick={() => { setMenuOpenFor(null); renameItem(f.name); }}
+                          className="w-full text-left px-3 py-1.5 text-xs text-text-dim hover:bg-surface-2 hover:text-text"
+                        >
+                          이름변경
+                        </button>
+                        <button
+                          onClick={() => { setMenuOpenFor(null); deleteFiles([f.name]); }}
+                          className="w-full text-left px-3 py-1.5 text-xs text-red hover:bg-surface-2"
+                        >
+                          삭제
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               )}
             </div>
           );

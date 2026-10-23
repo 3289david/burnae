@@ -43,7 +43,7 @@ model User {
   status                 UserStatus @default(ACTIVE)
   /// 인당 총 저장공간 한도(GB). null이면 HostingSettings.defaultUserStorageGb 적용
   storageQuotaGbOverride Int?
-  /// Haiku 같은 저가 모델은 가벼운 턴이 1크레딧(40원)도 안 될 수 있어서 소수점을 허용한다
+  /// Haiku 같은 저가 모델은 가벼운 턴이 1크레딧(20원)도 안 될 수 있어서 소수점을 허용한다
   aiCreditsRemaining     Float      @default(0)
   /// 결제 안내에 쓸 입금자명 직접 설정(1~5자, 공백 불가). null이면 이름 기반 자동 생성
   preferredDepositorName String?

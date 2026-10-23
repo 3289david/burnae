@@ -23,7 +23,7 @@ const SONNET_COST_KRW_PER_MILLION_TOKENS = 1000;
 const MARKUP_MULTIPLIER = 3;
 const SONNET_KRW_PER_MILLION_TOKENS = SONNET_COST_KRW_PER_MILLION_TOKENS * MARKUP_MULTIPLIER;
 
-const KRW_PER_CREDIT = 40;
+const KRW_PER_CREDIT = 20;
 
 /** 실제 토큰 사용량 기반 청구 크레딧 — 소수점을 허용한다(Haiku 같은 저가 모델은 가벼운 턴이
  * 1크레딧도 안 될 수 있음). 모델/제공자마다 단가가 달라서 섞여 쓰인 턴도 정확히 계산한다. */

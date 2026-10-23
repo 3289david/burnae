@@ -8,11 +8,11 @@ import CountUp from "@/components/CountUp";
 import DepositorNameField from "@/components/DepositorNameField";
 import { openPaymentWindow } from "@/lib/openPaymentWindow";
 
-/** 40원 = 1크레딧 */
+/** 20원 = 1크레딧 */
 const PACKAGES = [
-  { credits: 100, priceKrw: 4000 },
-  { credits: 500, priceKrw: 20000 },
-  { credits: 1500, priceKrw: 60000 },
+  { credits: 100, priceKrw: 2000 },
+  { credits: 500, priceKrw: 10000 },
+  { credits: 1500, priceKrw: 30000 },
 ];
 
 export default function AiCreditsCard() {

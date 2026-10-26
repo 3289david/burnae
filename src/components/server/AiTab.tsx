@@ -254,19 +254,21 @@ export default function AiTab({
         <div className="inline-flex rounded-lg bg-surface-2 p-0.5 text-xs shrink-0">
           <button
             onClick={() => setKind("CHAT")}
-            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md transition-colors ${
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-colors ${
               kind === "CHAT" ? "bg-bg text-text shadow-sm" : "text-text-dim"
             }`}
           >
             <MessageCircle size={12} /> {t("modeChat")}
+            <span className="text-[10px] px-1 py-0.2 rounded bg-green-500/15 text-green-500 font-semibold">무료</span>
           </button>
           <button
             onClick={() => setKind("MAKER")}
-            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md transition-colors ${
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-colors ${
               kind === "MAKER" ? "bg-bg text-text shadow-sm" : "text-text-dim"
             }`}
           >
             <Wand2 size={12} /> {t("modeMaker")}
+            <span className="text-[10px] px-1 py-0.2 rounded bg-accent/15 text-accent font-semibold">유료</span>
           </button>
         </div>
         {kind === "MAKER" ? (
@@ -281,8 +283,9 @@ export default function AiTab({
             <option value="haiku">{t("modelHaiku")}</option>
           </select>
         ) : (
-          <span className="text-xs text-text-dim px-2.5 py-1 rounded-md bg-surface-2 border border-border shrink-0">
-            claude-sonnet-4-6-free
+          <span className="text-xs text-text-dim px-2.5 py-1 rounded-md bg-surface-2 border border-border shrink-0 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+            claude-sonnet-4-6-free (무료 기본 관리)
           </span>
         )}
         {conversations.length > 1 ? (
@@ -392,7 +395,17 @@ export default function AiTab({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           disabled={busy || !!pending}
-          placeholder={pending ? t("waitingApproval") : busy ? (kind === "MAKER" ? t("makerWorking") : t("processingPlaceholder")) : t("messagePlaceholder")}
+          placeholder={
+            pending
+              ? t("waitingApproval")
+              : busy
+                ? kind === "MAKER"
+                  ? t("makerWorking")
+                  : t("processingPlaceholder")
+                : kind === "CHAT"
+                  ? "서버 상태, 로그 조회, 플레이어 관리 등 기본 문의를 입력하세요 (복잡한 개발은 메이커 이용)"
+                  : t("messagePlaceholder")
+          }
           className="flex-1 bg-transparent px-4 py-3 text-sm outline-none"
         />
         <button type="submit" disabled={busy || !!pending} className="px-4 text-accent font-medium">

@@ -57,28 +57,36 @@ const ITERATIVE_BUILD_GUIDANCE = `사용자가 "이어서", "업그레이드", "
 주소로 확인할 수 있는 걸 만들었다면, 모든 작업이 끝난 뒤 get_server_status로 주소를 가져와서
 "여기서 확인해보세요: 주소" 처럼 알려줘.`;
 
+const CHAT_SYSTEM_PROMPT = `너는 Burnae 호스팅의 무료 기본 AI 챗봇이야.
+사용자의 서버 상태 확인, 콘솔 로그 조회 및 오류 분석, 플레이어/화이트리스트 관리, 파일 목록 및 파일 내용 조회(읽기), 기본 콘솔 명령 실행, 서버 시작/정지/재시작, 백업 생성 등 일상적인 서버 관리와 기술 질문 답변을 도와주는 역할을 해.
+
+[중요 제약사항 - 메이커 전용 기능 안내]
+너는 무료 AI 챗봇이므로 플러그인/모드 제작, 디스코드 봇 개발, 웹사이트/앱 개발, 코드 작성, 파일 직접 수정 및 생성(write_file), 플러그인 설치(install_plugin) 같은 복잡하고 어려운 고난도 개발 작업은 직접 수행할 수 없어.
+사용자가 플러그인을 만들어달라거나, 봇/웹사이트를 개발해달라거나, 파일의 코드를 직접 수정/작성해달라는 등 복잡하고 난이도 높은 작업을 요청하면:
+- 절대 직접 코드를 파일로 쓰거나 생성할 수 없다고 설명해.
+- "해당 작업은 복잡한 개발/빌드 작업이므로 서버 상세 페이지의 '메이커' 탭을 이용해 주세요. 메이커 모드에서는 대화형으로 전체 코드 작성, 플러그인 자동 컴파일 및 서버 적용을 한 번에 진행할 수 있습니다."라고 정중하고 친절하게 안내해.
+
+${COMMON_PROMPT}
+${CHAT_APPROVAL_NOTE}`;
+
 function systemPromptFor(category: ServerCategory, kind: "CHAT" | "MAKER"): string {
-  const approvalNote = kind === "MAKER" ? "" : `\n${CHAT_APPROVAL_NOTE}`;
+  if (kind === "CHAT") {
+    return CHAT_SYSTEM_PROMPT;
+  }
 
   if (category === "MINECRAFT") {
-    return `너는 Burnae 호스팅의 서버 관리 도우미야. 사용자의 마인크래프트 서버를 직접 조작할 수 있는 도구를 갖고 있어.
-플러그인/모드/데이터팩을 새로 만들거나 업그레이드해달라는 요청은 generate_minecraft_plugin 도구를 써 — 이 도구는 매번
-설명을 바탕으로 처음부터 다시 생성하므로, 이전에 만든 기능이 있다면 이번 설명에 전부 포함시켜서 호출해야 사라지지 않아.${
-      kind === "MAKER" ? " 이 도구는 승인 없이 바로 실행돼." : ""
-    }
-${COMMON_PROMPT}${approvalNote}`;
+    return `너는 Burnae 호스팅의 마인크래프트 AI 메이커야. 사용자의 마인크래프트 서버에 들어갈 플러그인, 모드, 데이터팩을 대화형으로 제작하고 업그레이드하는 전문 빌더야.
+플러그인/모드/데이터팩을 새로 만들거나 업그레이드해달라는 요청은 generate_minecraft_plugin 도구를 써 — 이 도구는 승인 없이 바로 실행돼. 이 도구는 매번 설명을 바탕으로 처음부터 다시 생성하므로, 이전에 만든 기능이 있다면 이번 설명에 전부 포함시켜서 호출해야 사라지지 않아.
+${COMMON_PROMPT}`;
   }
   if (category === "DISCORD_BOT") {
-    return `너는 Burnae 호스팅의 디스코드 봇 개발/운영을 도와주는 도우미야. 사용자의 서버에 직접 파일을 쓰고 콘솔 명령을
-실행할 수 있는 도구를 갖고 있어서, 대화로 봇 코드를 처음부터 만들거나 기존 봇에 기능을 추가/수정할 수 있어.
+    return `너는 Burnae 호스팅의 디스코드 봇 전문 AI 메이커야. 사용자의 서버에 직접 파일을 쓰고 콘솔 명령을 실행할 수 있는 도구를 갖고 있어서, 대화로 봇 코드를 처음부터 만들거나 기존 봇에 기능을 추가/수정할 수 있어.
 ${ITERATIVE_BUILD_GUIDANCE}
-${COMMON_PROMPT}${approvalNote}`;
+${COMMON_PROMPT}`;
   }
-  return `너는 Burnae 호스팅의 서버 관리/개발 도우미야. 사용자의 서버(VPS, 웹사이트, DB 등 다양한 용도로 쓰일 수 있어)에
-직접 파일을 쓰고 콘솔 명령을 실행할 수 있는 도구를 갖고 있어서, 대화로 웹사이트/앱/스크립트 등 원하는 걸 처음부터
-만들거나 기존 것에 기능을 추가/수정할 수 있어.
+  return `너는 Burnae 호스팅의 전문 AI 메이커야. 사용자의 서버(VPS, 웹사이트, DB 등 다양한 용도로 쓰일 수 있어)에 직접 파일을 쓰고 콘솔 명령을 실행할 수 있는 도구를 갖고 있어서, 대화로 웹사이트/앱/스크립트 등 원하는 걸 처음부터 만들거나 기존 것에 기능을 추가/수정할 수 있어.
 ${ITERATIVE_BUILD_GUIDANCE}
-${COMMON_PROMPT}${approvalNote}`;
+${COMMON_PROMPT}`;
 }
 
 interface StoredToolCall {
@@ -186,17 +194,6 @@ export async function runAiTurn(
   userId: string,
   options?: { skipBilling?: boolean },
 ): Promise<AiTurnResult> {
-  const skipBilling = options?.skipBilling ?? false;
-  if (!skipBilling) {
-    const user = await prisma.user.findUniqueOrThrow({
-      where: { id: userId },
-      select: { aiCreditsRemaining: true },
-    });
-    if (user.aiCreditsRemaining <= 0) {
-      throw new InsufficientCreditsError();
-    }
-  }
-
   const [template, conversation] = await Promise.all([
     prisma.serverTemplate.findUniqueOrThrow({
       where: { id: server.templateId },
@@ -208,6 +205,19 @@ export async function runAiTurn(
     }),
   ]);
   const kind = conversation.kind;
+  const isFreeChat = kind === "CHAT";
+  const skipBilling = (options?.skipBilling ?? false) || isFreeChat;
+
+  if (!skipBilling) {
+    const user = await prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { aiCreditsRemaining: true },
+    });
+    if (user.aiCreditsRemaining <= 0) {
+      throw new InsufficientCreditsError();
+    }
+  }
+
   const modelKey = resolveAiModelKey(conversation.model);
   const maxSteps = kind === "MAKER" ? MAX_STEPS_MAKER : MAX_STEPS_CHAT;
 
@@ -251,7 +261,7 @@ export async function runAiTurn(
           ? await createChatCompletion(
               {
                 messages: toOpenAiMessages(rows, template.category, kind),
-                tools: openAiToolList(template.category),
+                tools: openAiToolList(template.category, kind),
                 tool_choice: "auto",
                 parallel_tool_calls: false,
               },
@@ -259,7 +269,7 @@ export async function runAiTurn(
             )
           : await createApmixChatCompletion({
               messages: toOpenAiMessages(rows, template.category, kind),
-              tools: openAiToolList(template.category),
+              tools: openAiToolList(template.category, kind),
               tool_choice: "auto",
               parallel_tool_calls: false,
             });
@@ -296,6 +306,24 @@ export async function runAiTurn(
         const tool = AI_TOOLS[call.function.name];
         if (!tool) continue;
 
+        if (kind === "CHAT" && tool.makerOnly) {
+          // 무료 기본 AI 챗에서 메이커 전용 고난도 도구를 호출하려 한 경우 차단하고 안내
+          await prisma.aiMessage.create({
+            data: {
+              conversationId,
+              role: "TOOL",
+              content: "해당 작업은 고난도 개발 작업으로 '메이커' 탭에서만 이용하실 수 있습니다.",
+              toolCalls: [
+                {
+                  tool_call_id: call.id,
+                  content: "이 작업은 고난도 개발/빌드 작업으로 '메이커' 탭에서만 사용할 수 있습니다. 사용자를 '메이커' 모드로 안내하세요.",
+                },
+              ] as unknown as object,
+            },
+          });
+          continue;
+        }
+
         const autoExecuted = tool.riskLevel === "SAFE" || (kind === "MAKER" && MAKER_AUTO_EXECUTE_TOOLS.has(tool.name));
         if (!autoExecuted) {
           let input: Record<string, unknown> = {};
@@ -325,6 +353,7 @@ export async function runAiTurn(
       for (const call of toolCalls) {
         if (call.type !== "function") continue;
         const tool = AI_TOOLS[call.function.name];
+        if (!tool || (kind === "CHAT" && tool.makerOnly)) continue;
         let resultContent: string;
         let input: Record<string, unknown> = {};
         try {
@@ -392,6 +421,11 @@ export async function resolveAiActivity(
     throw new Error("대화 컨텍스트를 찾을 수 없습니다.");
   }
 
+  const conversation = await prisma.aiConversation.findUnique({
+    where: { id: activity.conversationId },
+    select: { kind: true },
+  });
+  const isFreeChat = conversation?.kind === "CHAT";
   const tool = AI_TOOLS[activity.toolName];
 
   if (decision === "REJECT") {
@@ -409,7 +443,7 @@ export async function resolveAiActivity(
         ] as unknown as object,
       },
     });
-    return runAiTurn(activity.conversationId, activity.server, activity.userId);
+    return runAiTurn(activity.conversationId, activity.server, activity.userId, { skipBilling: isFreeChat });
   }
 
   // DANGEROUS 작업은 실행 전 자동 백업
@@ -452,7 +486,9 @@ export async function resolveAiActivity(
       });
     }
   });
-  await chargeForUsage(activity.userId, usage);
+  if (!isFreeChat) {
+    await chargeForUsage(activity.userId, usage);
+  }
 
   await prisma.aiMessage.create({
     data: {
@@ -465,5 +501,5 @@ export async function resolveAiActivity(
     },
   });
 
-  return runAiTurn(activity.conversationId, activity.server, activity.userId);
+  return runAiTurn(activity.conversationId, activity.server, activity.userId, { skipBilling: isFreeChat });
 }

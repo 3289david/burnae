@@ -94,6 +94,9 @@ export default function AiCreditsCard() {
             <p className="text-xs text-text-dim">
               {t("subtitlePrefix")}{" "}
               {credits === null ? "-" : <CountUp value={credits} format={(n) => n.toLocaleString("en-US", { maximumFractionDigits: 2 })} />} {t("subtitleSuffix")}
+              <span className="ml-2 text-[11px] text-text-dim/80">
+                (기본 AI 챗 무료 · 메이커 이용 시 차감)
+              </span>
             </p>
           </div>
         </div>

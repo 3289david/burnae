@@ -28,11 +28,14 @@ export interface ToolDef {
   run: (server: Server, input: Record<string, unknown>, conversationId: string) => Promise<unknown>;
   /** 특정 서버 종류에서만 의미 있는 도구(예: 화이트리스트는 마인크래프트뿐). 생략하면 모든 종류에서 노출 */
   categories?: ServerCategory[];
+  /** 메이커 전용 고난도/복잡한 도구 (무료 AI 챗에서는 제외) */
+  makerOnly?: boolean;
 }
 
 export const AI_TOOLS: Record<string, ToolDef> = {
   plan_tasks: {
     riskLevel: "SAFE",
+    makerOnly: true,
     name: "plan_tasks",
     description:
       "복잡한 요청(웹사이트/봇을 새로 만들거나 여러 기능을 추가하는 등)을 작은 작업 목록으로 나눠서 등록한다. " +
@@ -63,6 +66,7 @@ export const AI_TOOLS: Record<string, ToolDef> = {
 
   complete_task: {
     riskLevel: "SAFE",
+    makerOnly: true,
     name: "complete_task",
     description: "방금 끝낸 작업을 작업 목록에서 완료 처리한다. 작업을 하나 끝낼 때마다 다음 작업으로 넘어가기 전에 꼭 불러야 한다.",
     parameters: {
@@ -218,6 +222,7 @@ export const AI_TOOLS: Record<string, ToolDef> = {
 
   install_plugin: {
     riskLevel: "CONFIRM",
+    makerOnly: true,
     name: "install_plugin",
     description: "search_plugins로 찾은 projectId의 플러그인/모드를, 이 서버 버전에 맞는 최신 버전으로 설치한다.",
     parameters: {
@@ -284,6 +289,7 @@ export const AI_TOOLS: Record<string, ToolDef> = {
 
   write_file: {
     riskLevel: "CONFIRM",
+    makerOnly: true,
     name: "write_file",
     description: "서버의 특정 파일 내용을 새로 작성/수정한다.",
     parameters: {
@@ -374,6 +380,7 @@ export const AI_TOOLS: Record<string, ToolDef> = {
 
   delete_files: {
     riskLevel: "DANGEROUS",
+    makerOnly: true,
     name: "delete_files",
     description: "서버의 파일/폴더를 삭제한다. 되돌릴 수 없으니 신중하게 사용.",
     parameters: {
@@ -397,6 +404,7 @@ export const AI_TOOLS: Record<string, ToolDef> = {
 
   restore_backup: {
     riskLevel: "DANGEROUS",
+    makerOnly: true,
     name: "restore_backup",
     description: "지정한 백업으로 서버를 복원한다. 현재 데이터를 덮어쓴다.",
     parameters: {
@@ -414,6 +422,7 @@ export const AI_TOOLS: Record<string, ToolDef> = {
 
   generate_minecraft_plugin: {
     riskLevel: "CONFIRM",
+    makerOnly: true,
     name: "generate_minecraft_plugin",
     description:
       "새 마인크래프트 플러그인/모드/데이터팩을 만들거나, 지금까지 대화에서 같이 만든 걸 업그레이드한다. " +
@@ -448,11 +457,20 @@ export const AI_TOOLS: Record<string, ToolDef> = {
   },
 };
 
-export function openAiToolList(category?: ServerCategory): OpenAI.Chat.Completions.ChatCompletionTool[] {
+export function openAiToolList(
+  category?: ServerCategory,
+  kind?: "CHAT" | "MAKER",
+): OpenAI.Chat.Completions.ChatCompletionTool[] {
   return Object.values(AI_TOOLS)
-    .filter((t) => !t.categories || !category || t.categories.includes(category))
+    .filter((t) => (!t.categories || !category || t.categories.includes(category)) && (kind !== "CHAT" || !t.makerOnly))
     .map((t) => ({
       type: "function" as const,
       function: { name: t.name, description: t.description, parameters: t.parameters },
     }));
 }
+
+export const CHAT_ALLOWED_TOOL_NAMES = new Set(
+  Object.values(AI_TOOLS)
+    .filter((t) => !t.makerOnly)
+    .map((t) => t.name),
+);

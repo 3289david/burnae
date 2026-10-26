@@ -436,7 +436,7 @@ export async function resolveAiActivity(
       const result = await tool.run(
         activity.server,
         activity.input as Record<string, unknown>,
-        activity.conversationId,
+        activity.conversationId!,
       );
       resultContent = JSON.stringify(result);
       await prisma.aiActivityLog.update({

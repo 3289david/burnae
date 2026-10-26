@@ -71,10 +71,8 @@ export default async function StatusPage({ params }: PageProps<"/[locale]/status
                   </span>
                   <span className={inc.endedAt ? "text-text-dim" : "text-red-500 font-medium"}>
                     {inc.endedAt
-                      ? formatDuration(durationMs, locale)
-                      : isEn
-                        ? "ongoing"
-                        : "진행 중"}
+                      ? formatDuration(durationMs)
+                      : "진행 중"}
                   </span>
                 </li>
               );

@@ -5,20 +5,20 @@ import BrandMark from "@/components/BrandMark";
 // 다운/복구가 실시간으로 바뀌어야 해서 매 요청마다 새로 조회한다
 export const revalidate = 0;
 
-function formatDuration(ms: number, locale: string): string {
+function formatDuration(ms: number): string {
   const minutes = Math.round(ms / 60000);
-  if (minutes < 60) return locale === "en" ? `${minutes}m` : `${minutes}분`;
+  if (minutes < 60) return `${minutes}분`;
   const hours = Math.floor(minutes / 60);
   const rem = minutes % 60;
-  return locale === "en" ? `${hours}h ${rem}m` : `${hours}시간 ${rem}분`;
+  return `${hours}시간 ${rem}분`;
 }
 
 export default async function StatusPage({ params }: PageProps<"/[locale]/status/[slug]">) {
-  const { locale, slug } = await params;
+  const { slug } = await params;
   const data = await getStatusPageData(slug);
   if (!data) notFound();
 
-  const isEn = locale === "en";
+  const isEn = false;
 
   return (
     <div className="min-h-screen flex flex-col items-center bg-bg">

@@ -26,26 +26,26 @@ export default async function BlogListPage({ params }: PageProps<"/[locale]/blog
       </header>
 
       <main className="max-w-3xl mx-auto px-6 py-12 flex-1 w-full">
-        <h1 className="text-3xl font-bold font-display">{locale === "en" ? "Blog" : "블로그"}</h1>
+        <h1 className="text-3xl font-bold font-display">블로그</h1>
 
         <div className="mt-8 space-y-6">
           {posts.map((p) => {
-            const title = locale === "en" && p.titleEn ? p.titleEn : p.titleKr;
-            const excerpt = locale === "en" ? p.excerptEn ?? p.excerptKr : p.excerptKr;
+            const title = p.titleKr || p.titleEn || "";
+            const excerpt = p.excerptKr ?? p.excerptEn;
             return (
               <Link key={p.slug} href={`/blog/${p.slug}`} className="block card-glow p-5 hover:border-accent/40 transition-colors">
                 <h2 className="font-semibold text-lg font-display">{title}</h2>
                 {excerpt && <p className="text-sm text-text-dim mt-1.5">{excerpt}</p>}
                 {p.publishedAt && (
                   <p className="text-xs text-text-dim mt-2">
-                    {new Date(p.publishedAt).toLocaleDateString(locale === "en" ? "en-US" : "ko-KR")}
+                    {new Date(p.publishedAt).toLocaleDateString("ko-KR")}
                   </p>
                 )}
               </Link>
             );
           })}
           {posts.length === 0 && (
-            <p className="text-sm text-text-dim">{locale === "en" ? "No posts yet." : "아직 글이 없어요."}</p>
+            <p className="text-sm text-text-dim">아직 글이 없어요.</p>
           )}
         </div>
       </main>

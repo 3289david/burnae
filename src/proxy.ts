@@ -25,29 +25,16 @@ async function readSession(request: NextRequest) {
 }
 
 /**
- * 처음 방문한 사람의 언어를 고른다 — 쿠키(한 번 정해지면 그다음부터는 이걸 따름) → Cloudflare가
- * 붙여주는 접속 국가 헤더(한국이면 kr, 그 외엔 en) → 브라우저 Accept-Language → 기본값(kr) 순.
- * 사용자가 "위치 기반으로" 언어를 정해달라고 명시적으로 요청해서 Accept-Language보다 국가
- * 헤더를 우선한다(VPN 등으로 브라우저 언어와 실제 접속 위치가 다른 경우가 흔해서).
+ * 영어 지원 제거 — 한국어(/kr)만 단독 지원하므로 항상 "kr"을 반환한다.
  */
-function detectLocale(request: NextRequest): "kr" | "en" {
-  const cookieLocale = request.cookies.get(LOCALE_COOKIE)?.value;
-  if (cookieLocale === "kr" || cookieLocale === "en") return cookieLocale;
-
-  const country = request.headers.get("cf-ipcountry");
-  if (country) return country.toUpperCase() === "KR" ? "kr" : "en";
-
-  const acceptLanguage = request.headers.get("accept-language") ?? "";
-  if (acceptLanguage.toLowerCase().includes("ko")) return "kr";
-  if (acceptLanguage.length > 0) return "en";
-
-  return routing.defaultLocale;
+function detectLocale(): "kr" {
+  return "kr";
 }
 
-function stripLocalePrefix(pathname: string): { locale: "kr" | "en"; rest: string } | null {
+function stripLocalePrefix(pathname: string): { locale: "kr"; rest: string } | null {
   for (const locale of routing.locales) {
-    if (pathname === `/${locale}`) return { locale, rest: "/" };
-    if (pathname.startsWith(`/${locale}/`)) return { locale, rest: pathname.slice(locale.length + 1) };
+    if (pathname === `/${locale}`) return { locale: "kr", rest: "/" };
+    if (pathname.startsWith(`/${locale}/`)) return { locale: "kr", rest: pathname.slice(locale.length + 1) };
   }
   return null;
 }
@@ -64,9 +51,18 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // /en 또는 /en/* 요청은 즉시 /kr 또는 /kr/* 로 308 영구 리디렉트
+  if (pathname === "/en" || pathname.startsWith("/en/")) {
+    const rest = pathname === "/en" ? "" : pathname.slice(3);
+    const url = new URL(`/kr${rest}${search}`, request.url);
+    const response = NextResponse.redirect(url, 308);
+    response.cookies.set(LOCALE_COOKIE, "kr", { maxAge: 60 * 60 * 24 * 365, path: "/" });
+    return response;
+  }
+
   const stripped = stripLocalePrefix(pathname);
   if (!stripped) {
-    const locale = detectLocale(request);
+    const locale = "kr";
     const url = new URL(`/${locale}${pathname}${search}`, request.url);
     const response = NextResponse.redirect(url);
     response.cookies.set(LOCALE_COOKIE, locale, { maxAge: 60 * 60 * 24 * 365, path: "/" });
@@ -98,8 +94,8 @@ export async function proxy(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set(NEXT_INTL_LOCALE_HEADER, locale);
   const response = NextResponse.next({ request: { headers: requestHeaders } });
-  if (!request.cookies.get(LOCALE_COOKIE)) {
-    response.cookies.set(LOCALE_COOKIE, locale, { maxAge: 60 * 60 * 24 * 365, path: "/" });
+  if (request.cookies.get(LOCALE_COOKIE)?.value !== "kr") {
+    response.cookies.set(LOCALE_COOKIE, "kr", { maxAge: 60 * 60 * 24 * 365, path: "/" });
   }
   return response;
 }

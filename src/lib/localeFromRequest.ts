@@ -4,7 +4,7 @@
  * 없으면 "kr"로 기본 처리한다(어차피 proxy.ts가 다시 감지해서 맞는 언어로 보내주지만,
  * 쿠키가 있는 경우엔 리다이렉트 한 번으로 바로 맞는 언어 페이지로 가게 해준다).
  */
-export function localizedPath(localeCookie: string | undefined, path: string): string {
-  const prefix = localeCookie === "en" ? "en" : "kr";
-  return `/${prefix}${path}`;
+export function localizedPath(_localeCookie: string | undefined, path: string): string {
+  return `/kr${path.startsWith("/") ? path : `/${path}`}`;
 }
+

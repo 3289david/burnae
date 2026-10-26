@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Link } from "@/i18n/navigation";
 import Toggle from "@/components/Toggle";
 
 type SiteMode = "MINECRAFT_ONLY" | "GENERAL_ONLY" | "BOTH";
@@ -142,6 +143,18 @@ export default function AdminSettingsPage() {
           켜두면 노드 자리 여유와 상관없이 모든 신규 결제 주문이 무조건 &ldquo;선주문&rdquo;으로
           처리돼요 (즉시 서버가 만들어지지 않고 대기열에 들어감). 점검, 용량 제한, 대기 접수 등에 써요.
         </p>
+      </div>
+
+      <div className="card-glow p-5 mt-4 flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-semibold text-text">AI API 키 설정 (apmix.ai)</h3>
+          <p className="text-xs text-text-dim mt-0.5">
+            서버 대시보드 AI 탭의 claude-sonnet-4-6-free API 키를 여러 개 등록하고 자동 전환(Failover)을 관리해요.
+          </p>
+        </div>
+        <Link href="/admin/ai" className="btn-secondary text-xs px-3.5 py-2 shrink-0">
+          AI 키 관리 이동 →
+        </Link>
       </div>
 
       <div className="mt-4 flex items-center gap-3">

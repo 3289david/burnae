@@ -25,8 +25,7 @@ export default function BackupsTab({
   myRole: ServerAccessRole | null;
 }) {
   const t = useTranslations("backupsTab");
-  const locale = useLocale();
-  const dateLocale = locale === "en" ? "en-US" : "ko-KR";
+  const dateLocale = "ko-KR";
   const canCreate = hasServerRank(myRole, "DEVELOPER");
   const canManage = hasServerRank(myRole, "ADMIN");
   const [backups, setBackups] = useState<Backup[]>([]);

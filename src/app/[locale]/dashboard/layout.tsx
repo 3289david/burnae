@@ -10,7 +10,7 @@ export default async function DashboardLayout({ children, params }: LayoutProps<
   const { locale } = await params;
   const user = await getCurrentUser();
   if (!user) {
-    redirect({ href: "/login", locale: locale as "kr" | "en" });
+    redirect({ href: "/login", locale: "kr" });
     return null;
   }
 

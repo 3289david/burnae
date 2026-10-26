@@ -28,6 +28,7 @@ const NAV = [
   { href: "/admin/surveys", label: "설문/피드백" },
   { href: "/admin/support", label: "고객지원" },
   { href: "/admin/settings", label: "호스팅 설정" },
+  { href: "/admin/ai", label: "AI 설정" },
 ];
 
 export const dynamic = "force-dynamic";
@@ -36,7 +37,7 @@ export default async function AdminLayout({ children, params }: LayoutProps<"/[l
   const { locale } = await params;
   const user = await requireAdmin();
   if (!user) {
-    redirect({ href: "/login", locale: locale as "kr" | "en" });
+    redirect({ href: "/login", locale: "kr" });
     return null;
   }
 

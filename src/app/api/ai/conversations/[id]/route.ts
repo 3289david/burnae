@@ -16,6 +16,7 @@ export async function GET(
     where: { id, userId: user.id },
     include: {
       messages: { orderBy: { createdAt: "asc" } },
+      tasks: { orderBy: { order: "asc" } },
     },
   });
   if (!conversation) return NextResponse.json({ error: "대화를 찾을 수 없습니다." }, { status: 404 });

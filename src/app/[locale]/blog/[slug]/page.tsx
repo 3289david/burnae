@@ -10,9 +10,8 @@ export default async function BlogPostPage({ params }: PageProps<"/[locale]/blog
   const post = await prisma.blogPost.findUnique({ where: { slug } });
   if (!post || !post.published) notFound();
 
-  const title = locale === "en" && post.titleEn ? post.titleEn : post.titleKr;
-  const hasEnglish = locale === "en" && !!post.bodyEn;
-  const body = hasEnglish ? post.bodyEn! : post.bodyKr;
+  const title = post.titleKr || post.titleEn || "";
+  const body = post.bodyKr || post.bodyEn || "";
   const html = await marked.parse(body);
 
   return (
@@ -27,19 +26,13 @@ export default async function BlogPostPage({ params }: PageProps<"/[locale]/blog
 
       <main className="max-w-3xl mx-auto px-6 py-12 flex-1 w-full">
         <Link href="/blog" className="text-sm text-accent hover:underline">
-          {locale === "en" ? "← Back to blog" : "← 블로그 목록"}
+          ← 블로그 목록
         </Link>
         <h1 className="text-3xl font-bold font-display mt-4">{title}</h1>
         {post.publishedAt && (
           <p className="text-sm text-text-dim mt-2">
-            {new Date(post.publishedAt).toLocaleDateString(locale === "en" ? "en-US" : "ko-KR")}
+            {new Date(post.publishedAt).toLocaleDateString("ko-KR")}
           </p>
-        )}
-
-        {locale === "en" && !hasEnglish && (
-          <div className="mt-6 rounded-lg border border-border bg-surface-2 px-4 py-3 text-sm text-text-dim">
-            This post hasn&apos;t been translated into English yet — showing the original Korean below.
-          </div>
         )}
 
         <article

@@ -7,14 +7,15 @@ import { defineRouting } from "next-intl/routing";
  * 변환해서 써야 한다(localeToIntlTag 참고) — "kr"은 유효한 BCP-47 언어 태그가 아니다.
  */
 export const routing = defineRouting({
-  locales: ["kr", "en"],
+  locales: ["kr"],
   defaultLocale: "kr",
   localePrefix: "always",
 });
 
 export type AppLocale = (typeof routing.locales)[number];
 
-/** next-intl 라우트 locale("kr"/"en")을 실제 Intl API용 BCP-47 태그로 변환한다 */
-export function localeToIntlTag(locale: string): string {
-  return locale === "en" ? "en-US" : "ko-KR";
+/** next-intl 라우트 locale("kr")을 실제 Intl API용 BCP-47 태그로 변환한다 */
+export function localeToIntlTag(_locale?: string): string {
+  return "ko-KR";
 }
+

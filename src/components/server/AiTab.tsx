@@ -20,6 +20,12 @@ interface PendingActivity {
   riskLevel: "SAFE" | "CONFIRM" | "DANGEROUS";
   input: Record<string, unknown>;
 }
+interface AiTask {
+  id: string;
+  title: string;
+  status: "PENDING" | "DONE";
+  order: number;
+}
 
 const TOOL_LABEL_KEY: Record<string, string> = {
   write_file: "toolWriteFile",
@@ -85,6 +91,7 @@ export default function AiTab({
   const [conversations, setConversations] = useState<{ id: string; title: string; updatedAt: string }[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [pending, setPending] = useState<PendingActivity | null>(null);
+  const [tasks, setTasks] = useState<AiTask[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
@@ -105,6 +112,7 @@ export default function AiTab({
       setConversationId(data.id);
       setMessages([]);
       setPending(null);
+      setTasks([]);
       await loadConversationList();
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : t("startConvFailed"));
@@ -115,6 +123,7 @@ export default function AiTab({
     if (!canUseAi) return;
     setMessages([]);
     setPending(null);
+    setTasks([]);
     setChatError(null);
     (async () => {
       const res = await fetch(`/api/ai/conversations?serverId=${serverId}&kind=${kind}`);
@@ -139,6 +148,7 @@ export default function AiTab({
     const data = await res.json();
     setMessages(data.messages);
     setPending(data.pendingActivity);
+    setTasks(data.tasks ?? []);
     if (data.model === "opus" || data.model === "sonnet" || data.model === "haiku") {
       setModel(data.model);
     }
@@ -259,16 +269,22 @@ export default function AiTab({
             <Wand2 size={12} /> {t("modeMaker")}
           </button>
         </div>
-        <select
-          value={model}
-          onChange={(e) => changeModel(e.target.value as "opus" | "sonnet" | "haiku")}
-          className="input text-xs py-1 px-2 shrink-0 w-auto"
-          title={t("modelPickerHint")}
-        >
-          <option value="opus">{t("modelOpus")}</option>
-          <option value="sonnet">{t("modelSonnet")}</option>
-          <option value="haiku">{t("modelHaiku")}</option>
-        </select>
+        {kind === "MAKER" ? (
+          <select
+            value={model}
+            onChange={(e) => changeModel(e.target.value as "opus" | "sonnet" | "haiku")}
+            className="input text-xs py-1 px-2 shrink-0 w-auto"
+            title={t("modelPickerHint")}
+          >
+            <option value="opus">{t("modelOpus")}</option>
+            <option value="sonnet">{t("modelSonnet")}</option>
+            <option value="haiku">{t("modelHaiku")}</option>
+          </select>
+        ) : (
+          <span className="text-xs text-text-dim px-2.5 py-1 rounded-md bg-surface-2 border border-border shrink-0">
+            claude-sonnet-4-6-free
+          </span>
+        )}
         {conversations.length > 1 ? (
           <select
             value={conversationId ?? ""}

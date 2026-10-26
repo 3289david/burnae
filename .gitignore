@@ -51,3 +51,4 @@ android/*/.gradle/
 android/*/app/build/
 android/*/local.properties
 .local/
+.claude/

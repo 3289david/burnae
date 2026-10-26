@@ -59,3 +59,5 @@ export async function createChatCompletion(
   recordUsage(res.usage, "fallback");
   return res;
 }
+
+export { createApmixChatCompletion, APMIX_MODEL, APMIX_BASE_URL } from "@/lib/ai/apmix";

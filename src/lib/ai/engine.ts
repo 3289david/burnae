@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { AI_TOOLS, openAiToolList } from "@/lib/ai/tools";
 import { withUsageTracking, AiTurnFailedError, type UsageAccumulator } from "@/lib/ai/usageTracking";
 import { creditsForUsage, InsufficientCreditsError } from "@/lib/ai/pricing";
-import { createChatCompletion } from "@/lib/ai/provider";
+import { createChatCompletion, createApmixChatCompletion } from "@/lib/ai/provider";
 import { resolveAiModelKey } from "@/lib/ai/models";
 import type { Server } from "@/generated/prisma/client";
 import type { AiMessage } from "@/generated/prisma/client";
@@ -14,6 +14,9 @@ export { InsufficientCreditsError };
 const MAX_STEPS_CHAT = 6;
 // 메이커는 웹사이트/봇 하나 만드는 데 파일 여러 개 + 재시작까지 한 번에 필요해서 스텝을 넉넉히 준다
 const MAX_STEPS_MAKER = 20;
+// plan_tasks로 등록한 작업이 아직 남아있으면 MAX_STEPS_MAKER를 넘어서도 끊지 않고 계속
+// 진행한다 — 그래도 버그 있는 응답이 무한히 도는 걸 막기 위한 절대 상한선
+const MAX_STEPS_MAKER_WITH_PENDING_TASKS = 100;
 
 /**
  * CONFIRM 등급인 도구 중, "메이커"(뭔가를 만들고 업그레이드하는) 대화에서는 파일 하나하나 승인받게
@@ -45,11 +48,14 @@ const ITERATIVE_BUILD_GUIDANCE = `사용자가 "이어서", "업그레이드", "
 만든 파일을 확인한 뒤, 기존 코드에 자연스럽게 새 기능을 더한 완전한 코드로 다시 써. 처음부터 새로 만들면서
 이전에 만든 부분을 지우면 안 돼. 완성된 결과물(실행 가능한 전체 코드)을 만드는 게 목표야 — 짧은 스니펫만
 주고 끝내지 마.
-새로 만들 때는 먼저 뭘 만들지 한두 문장으로 계획을 말한 다음, 필요한 파일들을 전부(HTML/CSS/JS, 설정 파일,
-package.json 등) 순서대로 write_file로 작성해. 파일 하나 쓸 때마다 멈추지 말고, 다 만들었으면 마지막에
-실행/재시작까지 끝내고 나서 뭘 만들었는지 요약해줘. 파일 쓰기·명령 실행·재시작은 승인 없이 바로 실행되니
-거리낌 없이 이어서 진행해. 웹사이트/API처럼 접속 주소로 확인할 수 있는 걸 만들었다면, 마지막에
-get_server_status로 주소를 가져와서 "여기서 확인해보세요: 주소" 처럼 알려줘.`;
+웹사이트/봇을 새로 만들거나 여러 기능을 한꺼번에 추가하는 것처럼 단계가 여러 개로 나뉘는 요청이면, 가장
+먼저 plan_tasks로 작은 작업들로 나눠서 등록해(예: ["package.json 작성", "index.html 작성", "서버 재시작"]).
+그 다음 하나씩 순서대로 처리하면서, 작업을 끝낼 때마다 complete_task로 체크해 나가. 한 턴 안에 다 못 끝내도
+시스템이 자동으로 이어서 진행하니 멈추지 말고 끝까지 밀어붙여도 돼 — 중간에 끊길 걱정 없이 작업 목록에 있는
+걸 전부 끝내는 게 목표야. 간단한 요청(파일 하나만 고치기 등)이면 plan_tasks 없이 바로 처리해도 돼.
+파일 쓰기·명령 실행·재시작은 승인 없이 바로 실행되니 거리낌 없이 이어서 진행해. 웹사이트/API처럼 접속
+주소로 확인할 수 있는 걸 만들었다면, 모든 작업이 끝난 뒤 get_server_status로 주소를 가져와서
+"여기서 확인해보세요: 주소" 처럼 알려줘.`;
 
 function systemPromptFor(category: ServerCategory, kind: "CHAT" | "MAKER"): string {
   const approvalNote = kind === "MAKER" ? "" : `\n${CHAT_APPROVAL_NOTE}`;
@@ -225,21 +231,38 @@ export async function runAiTurn(
   }
 
   async function runAiTurnLoop(): Promise<AiTurnResult> {
-    for (let step = 0; step < maxSteps; step++) {
+    const hardCap = kind === "MAKER" ? MAX_STEPS_MAKER_WITH_PENDING_TASKS : maxSteps;
+    for (let step = 0; step < hardCap; step++) {
+      // 기본 스텝 한도(maxSteps)를 넘겼어도, plan_tasks로 등록해둔 작업이 아직 남아있으면
+      // 끊지 않고 하드 캡까지 계속 진행한다 — "요청이 복잡해서 여기까지만" 하고 멈추는 대신
+      // 작업 목록을 다 끝낼 때까지 자동으로 이어간다.
+      if (step >= maxSteps) {
+        const pendingCount = await prisma.aiTask.count({ where: { conversationId, status: "PENDING" } });
+        if (pendingCount === 0) break;
+      }
+
       const rows = await prisma.aiMessage.findMany({
         where: { conversationId },
         orderBy: { createdAt: "asc" },
       });
 
-      const response = await createChatCompletion(
-        {
-          messages: toOpenAiMessages(rows, template.category, kind),
-          tools: openAiToolList(template.category),
-          tool_choice: "auto",
-          parallel_tool_calls: false,
-        },
-        modelKey,
-      );
+      const response =
+        kind === "MAKER"
+          ? await createChatCompletion(
+              {
+                messages: toOpenAiMessages(rows, template.category, kind),
+                tools: openAiToolList(template.category),
+                tool_choice: "auto",
+                parallel_tool_calls: false,
+              },
+              modelKey,
+            )
+          : await createApmixChatCompletion({
+              messages: toOpenAiMessages(rows, template.category, kind),
+              tools: openAiToolList(template.category),
+              tool_choice: "auto",
+              parallel_tool_calls: false,
+            });
 
       const message = response.choices[0]?.message;
       if (!message) {
@@ -310,7 +333,7 @@ export async function runAiTurn(
           // 무시하고 빈 입력으로 진행
         }
         try {
-          const result = await tool.run(server, input);
+          const result = await tool.run(server, input, conversationId);
           resultContent = JSON.stringify(result);
           await prisma.aiActivityLog.create({
             data: {
@@ -345,7 +368,10 @@ export async function runAiTurn(
 
     return {
       status: "DONE",
-      assistantText: "요청이 복잡해서 여기까지만 처리했어요. 이어서 다시 말씀해주시면 계속 진행할게요.",
+      assistantText:
+        kind === "MAKER"
+          ? "작업이 예상보다 많아서 여기까지만 진행했어요. 남은 작업은 \"계속해줘\"라고 말씀하시면 이어서 진행할게요."
+          : "요청이 복잡해서 여기까지만 처리했어요. 이어서 다시 말씀해주시면 계속 진행할게요.",
     };
   }
 }
@@ -410,6 +436,7 @@ export async function resolveAiActivity(
       const result = await tool.run(
         activity.server,
         activity.input as Record<string, unknown>,
+        activity.conversationId,
       );
       resultContent = JSON.stringify(result);
       await prisma.aiActivityLog.update({

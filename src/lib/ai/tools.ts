@@ -25,12 +25,67 @@ export interface ToolDef {
   name: string;
   description: string;
   parameters: JsonSchema;
-  run: (server: Server, input: Record<string, unknown>) => Promise<unknown>;
+  run: (server: Server, input: Record<string, unknown>, conversationId: string) => Promise<unknown>;
   /** 특정 서버 종류에서만 의미 있는 도구(예: 화이트리스트는 마인크래프트뿐). 생략하면 모든 종류에서 노출 */
   categories?: ServerCategory[];
 }
 
 export const AI_TOOLS: Record<string, ToolDef> = {
+  plan_tasks: {
+    riskLevel: "SAFE",
+    name: "plan_tasks",
+    description:
+      "복잡한 요청(웹사이트/봇을 새로 만들거나 여러 기능을 추가하는 등)을 작은 작업 목록으로 나눠서 등록한다. " +
+      "한 턴 안에 다 못 끝내도 시스템이 자동으로 이어서 진행하니, 작게 나눠 등록해두면 중간에 끊기지 않는다. " +
+      "이미 등록된 작업 목록이 있으면 통째로 교체된다 — 이어서 작업할 때는 완료되지 않은 항목을 그대로 포함해서 다시 등록해야 한다.",
+    parameters: {
+      type: "object",
+      properties: {
+        tasks: {
+          type: "array",
+          items: { type: "string" },
+          description: "순서대로 처리할 작은 작업 제목 목록 (예: ['package.json 작성', 'index.html 작성', '서버 재시작'])",
+        },
+      },
+      required: ["tasks"],
+    },
+    run: async (_server, input, conversationId) => {
+      const tasks = (input.tasks as string[] | undefined) ?? [];
+      await prisma.$transaction([
+        prisma.aiTask.deleteMany({ where: { conversationId, status: "PENDING" } }),
+        prisma.aiTask.createMany({
+          data: tasks.map((title, i) => ({ conversationId, title, order: i })),
+        }),
+      ]);
+      return { ok: true, count: tasks.length };
+    },
+  },
+
+  complete_task: {
+    riskLevel: "SAFE",
+    name: "complete_task",
+    description: "방금 끝낸 작업을 작업 목록에서 완료 처리한다. 작업을 하나 끝낼 때마다 다음 작업으로 넘어가기 전에 꼭 불러야 한다.",
+    parameters: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "완료한 작업의 제목 — plan_tasks에 등록한 제목과 정확히 일치해야 한다" },
+      },
+      required: ["title"],
+    },
+    run: async (_server, input, conversationId) => {
+      const title = input.title as string | undefined;
+      if (!title) return { ok: false, error: "title이 필요합니다." };
+      const task = await prisma.aiTask.findFirst({
+        where: { conversationId, title, status: "PENDING" },
+        orderBy: { order: "asc" },
+      });
+      if (!task) return { ok: false, error: "해당 제목의 미완료 작업을 찾을 수 없습니다." };
+      await prisma.aiTask.update({ where: { id: task.id }, data: { status: "DONE", completedAt: new Date() } });
+      const remaining = await prisma.aiTask.count({ where: { conversationId, status: "PENDING" } });
+      return { ok: true, remainingTasks: remaining };
+    },
+  },
+
   get_server_status: {
     riskLevel: "SAFE",
     name: "get_server_status",

@@ -28,4 +28,5 @@ export const ADMIN_NAV_AREAS: Record<string, AdminRole[]> = {
   "/admin/surveys": ["COMMUNITY", "SUPER"],
   "/admin/support": ["COMMUNITY", "SUPER"],
   "/admin/settings": ["SUPER"],
+  "/admin/ai": ["SUPER"],
 };

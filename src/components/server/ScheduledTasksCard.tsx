@@ -16,8 +16,7 @@ interface Task {
 
 export default function ScheduledTasksCard({ serverId }: { serverId: string }) {
   const t = useTranslations("scheduledTasksCard");
-  const locale = useLocale();
-  const dateLocale = locale === "en" ? "en-US" : "ko-KR";
+  const dateLocale = "ko-KR";
   const [tasks, setTasks] = useState<Task[] | null>(null);
   const [name, setName] = useState("");
   const [command, setCommand] = useState("");

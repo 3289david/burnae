@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Wrench, ExternalLink, Folder, MessageCircle, Wand2 } from "lucide-react";
+import { Wrench, ExternalLink, Folder, MessageCircle, Wand2, CheckCircle2, Circle } from "lucide-react";
 import AiCreditsCard from "./AiCreditsCard";
 import MakerFilePanel from "./MakerFilePanel";
 import { hasServerRank, type ServerAccessRole } from "@/lib/serverRoleRank";
@@ -57,7 +57,7 @@ const MAKER_EXAMPLE_KEY: Record<Category, string> = {
  * 일정 시간 뒤엔 강제로 포기해서 버튼이 다시 눌리게 한다. (서버 쪽 작업 자체는
  * proxy_ignore_client_abort 덕에 끊기지 않고 계속 돈다 — 이건 이 fetch 요청만 끝내는 것)
  */
-const FETCH_TIMEOUT_MS = 180_000;
+const FETCH_TIMEOUT_MS = 600_000;
 async function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
@@ -326,6 +326,20 @@ export default function AiTab({
           >
             <ExternalLink size={12} /> {t("preview")}
           </a>
+        </div>
+      )}
+      {kind === "MAKER" && tasks.length > 0 && (
+        <div className="px-4 py-2 border-b border-border bg-surface-2/50 space-y-1 max-h-32 overflow-y-auto">
+          {tasks.map((task) => (
+            <div key={task.id} className="flex items-center gap-1.5 text-xs">
+              {task.status === "DONE" ? (
+                <CheckCircle2 size={13} className="text-green shrink-0" />
+              ) : (
+                <Circle size={13} className="text-text-dim shrink-0" />
+              )}
+              <span className={task.status === "DONE" ? "text-text-dim line-through" : ""}>{task.title}</span>
+            </div>
+          ))}
         </div>
       )}
       {kind === "MAKER" && showFiles && <MakerFilePanel serverId={serverId} refreshKey={messages.length} />}

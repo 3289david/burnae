@@ -5,6 +5,7 @@ import { authorizeServerAccess, getServerRole, hasServerRank } from "@/lib/serve
 import { PteroClient } from "@/lib/pterodactyl";
 import { withApiErrorHandling } from "@/lib/apiHandler";
 import { logServerActivity } from "@/lib/serverActivityLog";
+import { prisma } from "@/lib/prisma";
 
 const POWER_ACTION_LOG = {
   start: "POWER_START",
@@ -39,5 +40,8 @@ export const POST = withApiErrorHandling(async (
 
   await PteroClient.sendPowerAction(server.pterodactylIdentifier, parsed.data.signal);
   await logServerActivity(server.id, user.id, POWER_ACTION_LOG[parsed.data.signal]);
+  if (parsed.data.signal === "start" && server.autoSleptAt) {
+    await prisma.server.update({ where: { id: server.id }, data: { autoSleptAt: null } });
+  }
   return NextResponse.json({ ok: true });
 });

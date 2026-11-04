@@ -1,8 +1,61 @@
+import net from "node:net";
 import { prisma } from "@/lib/prisma";
 import { PteroClient } from "@/lib/pterodactyl";
 import { logServerActivity } from "@/lib/serverActivityLog";
 import { notifyServerEvent } from "@/lib/notify";
 import type { Server } from "@/generated/prisma/client";
+
+const DOWNTIME_POLL_INTERVAL_MS = 400;
+const DOWNTIME_POLL_TIMEOUT_MS = 20_000;
+
+/**
+ * Pterodactyl은 컨테이너당 프로세스를 하나만 관리해서(진짜 블루그린 전환 불가), 재시작으로
+ * 인한 다운타임을 없애는 대신 정확히 측정해서 숨기지 않고 보여준다 — 재시작 명령을 보낸
+ * 시점부터 서버가 다시 응답하기 시작한 시점까지 걸린 시간. healthCheckPath가 있으면 그
+ * 경로로 HTTP 요청을, 없으면 포트로 TCP 연결만 시도한다. 측정할 포트/주소가 없거나 제한
+ * 시간(20초) 안에 복구를 확인 못 하면 null(다운타임 모름 — "측정 불가"와 "0초"는 다르다).
+ */
+async function measureRestartDowntime(server: Server): Promise<number | null> {
+  if (!server.allocationIp || !server.allocationPort) return null;
+  const { allocationIp, allocationPort } = server;
+  const healthCheckPath = server.healthCheckPath;
+
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < DOWNTIME_POLL_TIMEOUT_MS) {
+    const reachable = healthCheckPath
+      ? await probeHttp(allocationIp, allocationPort, healthCheckPath)
+      : await probeTcp(allocationIp, allocationPort);
+    if (reachable) return Date.now() - startedAt;
+    await new Promise((r) => setTimeout(r, DOWNTIME_POLL_INTERVAL_MS));
+  }
+  return null;
+}
+
+function probeTcp(ip: string, port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = net.createConnection({ host: ip, port, timeout: 1500 });
+    socket.once("connect", () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.once("error", () => resolve(false));
+    socket.once("timeout", () => {
+      socket.destroy();
+      resolve(false);
+    });
+  });
+}
+
+async function probeHttp(ip: string, port: number, path: string): Promise<boolean> {
+  try {
+    const res = await fetch(`http://${ip}:${port}${path.startsWith("/") ? path : `/${path}`}`, {
+      signal: AbortSignal.timeout(1500),
+    });
+    return res.status < 500;
+  } catch {
+    return false;
+  }
+}
 
 const FAILURE_PATTERN = /fatal:|error:|Permission denied|Could not resolve host|command not found|failed|failure/i;
 const BRANCH_PATTERN = /^[A-Za-z0-9._/-]{1,200}$/;
@@ -36,7 +89,7 @@ export async function redeployFromGit(
   if (server.gitBranch) {
     if (!validBranch(server.gitBranch)) {
       const output = "설정된 브랜치 이름이 올바르지 않아요.";
-      await recordDeploymentLog(server.id, trigger, actorId, false, output, startedAt, null);
+      await recordDeploymentLog(server.id, trigger, actorId, false, output, startedAt, null, null);
       return { ok: false, output };
     }
     const branchLines = await PteroClient.runCommandAndCapture(
@@ -49,7 +102,7 @@ export async function redeployFromGit(
     });
     if (branchLines === null || FAILURE_PATTERN.test(branchLines.join("\\n"))) {
       const output = branchLines?.join("\\n") || "브랜치 전환 명령을 실행하지 못했어요.";
-      await recordDeploymentLog(server.id, trigger, actorId, false, output, startedAt, null);
+      await recordDeploymentLog(server.id, trigger, actorId, false, output, startedAt, null, null);
       return { ok: false, output };
     }
   }
@@ -62,7 +115,7 @@ export async function redeployFromGit(
   if (pullLines === null) {
     await logServerActivity(server.id, actorId, "GIT_DEPLOY_FAILED", "git pull 명령 전송 실패");
     await notifyDeployResult(server, false, "git pull 명령 전송 실패");
-    await recordDeploymentLog(server.id, trigger, actorId, false, "git pull 명령 전송 실패", startedAt, null);
+    await recordDeploymentLog(server.id, trigger, actorId, false, "git pull 명령 전송 실패", startedAt, null, null);
     return { ok: false, output: "콘솔에 명령을 보내지 못했어요." };
   }
 
@@ -81,14 +134,14 @@ export async function redeployFromGit(
       const failureOutput = `${output}\n빌드 명령을 실행하지 못했어요.`;
       await logServerActivity(server.id, actorId, "GIT_DEPLOY_FAILED", failureOutput.slice(0, 500));
       await notifyDeployResult(server, false, failureOutput.slice(0, 300));
-      await recordDeploymentLog(server.id, trigger, actorId, false, failureOutput, startedAt, null);
+      await recordDeploymentLog(server.id, trigger, actorId, false, failureOutput, startedAt, null, null);
       return { ok: false, output: failureOutput };
     }
     output += "\n" + buildLines.join("\n");
     if (FAILURE_PATTERN.test(buildLines.join("\n"))) {
       await logServerActivity(server.id, actorId, "GIT_DEPLOY_FAILED", output.slice(0, 500));
       await notifyDeployResult(server, false, output.slice(0, 300));
-      await recordDeploymentLog(server.id, trigger, actorId, false, output, startedAt, null);
+      await recordDeploymentLog(server.id, trigger, actorId, false, output, startedAt, null, null);
       return { ok: false, output };
     }
   }
@@ -107,6 +160,7 @@ export async function redeployFromGit(
   await PteroClient.sendPowerAction(server.pterodactylIdentifier, "restart").catch((err) => {
     console.error(`[deploy] 서버 ${server.id} 재시작 실패(배포 자체는 진행됨):`, err);
   });
+  const downtimeMs = await measureRestartDowntime(server).catch(() => null);
 
   await logServerActivity(
     server.id,
@@ -115,7 +169,7 @@ export async function redeployFromGit(
     output.slice(0, 500),
   );
   await notifyDeployResult(server, !looksFailed, output.slice(0, 300));
-  await recordDeploymentLog(server.id, trigger, actorId, !looksFailed, output, startedAt, commitSha);
+  await recordDeploymentLog(server.id, trigger, actorId, !looksFailed, output, startedAt, commitSha, downtimeMs);
 
   return { ok: !looksFailed, output };
 }
@@ -142,7 +196,7 @@ export async function rollbackToCommit(server: Server, commitSha: string, actorI
   );
 
   if (lines === null) {
-    await recordDeploymentLog(server.id, "MANUAL", actorId, false, "롤백 명령 전송 실패", startedAt, null);
+    await recordDeploymentLog(server.id, "MANUAL", actorId, false, "롤백 명령 전송 실패", startedAt, null, null);
     return { ok: false, output: "콘솔에 명령을 보내지 못했어요." };
   }
 
@@ -152,10 +206,11 @@ export async function rollbackToCommit(server: Server, commitSha: string, actorI
   await PteroClient.sendPowerAction(server.pterodactylIdentifier, "restart").catch((err) => {
     console.error(`[deploy] 서버 ${server.id} 재시작 실패(롤백 자체는 진행됨):`, err);
   });
+  const downtimeMs = await measureRestartDowntime(server).catch(() => null);
 
   await logServerActivity(server.id, actorId, looksFailed ? "GIT_DEPLOY_FAILED" : "GIT_DEPLOY_SUCCESS", `롤백 → ${commitSha.slice(0, 7)}`);
   await notifyDeployResult(server, !looksFailed, `롤백(${commitSha.slice(0, 7)}): ${output.slice(0, 200)}`);
-  await recordDeploymentLog(server.id, "MANUAL", actorId, !looksFailed, output, startedAt, commitSha);
+  await recordDeploymentLog(server.id, "MANUAL", actorId, !looksFailed, output, startedAt, commitSha, downtimeMs);
 
   return { ok: !looksFailed, output };
 }
@@ -169,6 +224,7 @@ async function recordDeploymentLog(
   output: string,
   startedAt: number,
   commitSha: string | null,
+  downtimeMs: number | null,
 ) {
   await prisma.deploymentLog
     .create({
@@ -180,6 +236,7 @@ async function recordDeploymentLog(
         output: output.slice(0, 2000),
         durationMs: Date.now() - startedAt,
         commitSha,
+        downtimeMs,
       },
     })
     .catch((err) => console.error(`[deploy] 배포 기록 저장 실패(배포 자체는 정상 진행됨):`, err));

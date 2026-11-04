@@ -13,6 +13,7 @@ interface DeployLogEntry {
   startedAt: string;
   durationMs: number;
   commitSha: string | null;
+  downtimeMs: number | null;
 }
 
 /** Render/Railway의 "deploy log" 화면과 같은 개념 — 서버가 git 배포를 지원할 때만 보인다.
@@ -105,6 +106,11 @@ export default function DeployHistoryCard({ serverId }: { serverId: string }) {
                   </button>
                 )}
                 <span className="text-text-dim">{(log.durationMs / 1000).toFixed(1)}{t("secondsUnit")}</span>
+                {log.downtimeMs != null && (
+                  <span className="text-yellow" title="재시작 명령을 보낸 뒤 서버가 다시 응답하기까지 걸린 시간">
+                    ⏱ {(log.downtimeMs / 1000).toFixed(1)}{t("secondsUnit")} 다운타임
+                  </span>
+                )}
               </div>
             </div>
             {expandedId === log.id && (

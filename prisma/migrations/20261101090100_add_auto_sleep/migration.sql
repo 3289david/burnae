@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Server" ADD COLUMN "autoSleepEnabled" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Server" ADD COLUMN "autoSleepAfterMinutes" INTEGER NOT NULL DEFAULT 30;
+ALTER TABLE "Server" ADD COLUMN "autoSleptAt" TIMESTAMP(3);

@@ -7,6 +7,7 @@ import SuccessCheck from "@/components/SuccessCheck";
 import FullScreenCelebration from "@/components/FullScreenCelebration";
 import { openPaymentWindow } from "@/lib/openPaymentWindow";
 import { formatMb } from "@/lib/formatSize";
+import { isDatabaseTemplate } from "@/lib/databaseConnect";
 import {
   Check,
   Search,
@@ -194,11 +195,12 @@ function loaderMeta(baseKey: string) {
 
 const TIER_ORDER: Record<string, number> = { 최신: 0, 중간: 1, 레거시: 2 };
 
-const CATEGORY_FILTER_LABEL: Record<"ALL" | "MINECRAFT" | "DISCORD_BOT" | "GENERAL" | "COMMUNITY", string> = {
+const CATEGORY_FILTER_LABEL: Record<"ALL" | "MINECRAFT" | "DISCORD_BOT" | "GENERAL" | "COMMUNITY" | "DATABASE", string> = {
   ALL: "전체",
   MINECRAFT: "마인크래프트",
   DISCORD_BOT: "디스코드 봇",
   GENERAL: "일반 서버",
+  DATABASE: "데이터베이스",
   COMMUNITY: "커뮤니티",
 };
 
@@ -257,7 +259,7 @@ function NewServerPageInner() {
   // 서버 종류가 38개까지 늘어나서 한 화면에 다 보여주면 찾기 어려우니, 카테고리별로 걸러 볼 수 있게 한다.
   // 소스(공식/커뮤니티)와 카테고리를 각자 다른 필터로 나누면 한 화면에 필터가 2개 생겨 복잡해지니,
   // "커뮤니티"를 카테고리 필터의 선택지 중 하나로 합쳐서 필터를 하나로 유지한다
-  const [categoryFilter, setCategoryFilter] = useState<"ALL" | Template["category"] | "COMMUNITY">("ALL");
+  const [categoryFilter, setCategoryFilter] = useState<"ALL" | Template["category"] | "COMMUNITY" | "DATABASE">("ALL");
   const eggSource: "official" | "community" = categoryFilter === "COMMUNITY" ? "community" : "official";
 
   const [allPresets, setAllPresets] = useState<CommunityPreset[]>([]);
@@ -399,13 +401,14 @@ function NewServerPageInner() {
     const set = new Set(loaderGroups.map((g) => g.templates[0]?.category).filter(Boolean));
     return [...set] as Template["category"][];
   }, [loaderGroups]);
-  const filteredLoaderGroups = useMemo(
-    () =>
-      categoryFilter === "ALL" || categoryFilter === "COMMUNITY"
-        ? loaderGroups
-        : loaderGroups.filter((g) => g.templates[0]?.category === categoryFilter),
-    [loaderGroups, categoryFilter],
-  );
+  const filteredLoaderGroups = useMemo(() => {
+    if (categoryFilter === "ALL" || categoryFilter === "COMMUNITY") return loaderGroups;
+    if (categoryFilter === "DATABASE") return loaderGroups.filter((g) => isDatabaseTemplate(g.templates[0]?.key ?? ""));
+    // 일반 서버(GENERAL) 필터에서는 데이터베이스를 따로 전용 필터로 빼뒀으니 중복으로 또 안 보여준다
+    return loaderGroups.filter(
+      (g) => g.templates[0]?.category === categoryFilter && !isDatabaseTemplate(g.templates[0]?.key ?? ""),
+    );
+  }, [loaderGroups, categoryFilter]);
 
   function pickLoader(base: string) {
     const group = loaderGroups.find((g) => g.base === base);
@@ -681,7 +684,7 @@ function NewServerPageInner() {
           {selectedProduct && loaderGroups.length > 0 && (
             <Section step={1} title="서버 종류">
               <div className="flex flex-wrap gap-1.5 mb-3 p-1 bg-surface-2 rounded-full w-fit">
-                {(["ALL", ...availableCategories, "COMMUNITY"] as const).map((c) => (
+                {(["ALL", ...availableCategories, "DATABASE", "COMMUNITY"] as const).map((c) => (
                   <button
                     type="button"
                     key={c}
@@ -691,6 +694,7 @@ function NewServerPageInner() {
                     }`}
                   >
                     {c === "COMMUNITY" && <Users size={12} />}
+                    {c === "DATABASE" && <Database size={12} />}
                     {CATEGORY_FILTER_LABEL[c]}
                   </button>
                 ))}

@@ -544,6 +544,46 @@ async function handleUsageSnapshots() {
   });
 }
 
+/** Fly.io/Render 무료 티어의 "비활성 시 자동 절전"과 같은 개념 — 소유자가 직접 켜야만(opt-in)
+ * 동작한다. ServerUsageSnapshot(10분 간격)을 기준으로 autoSleepAfterMinutes 동안 CPU 사용량이
+ * 계속 낮았으면(2% 미만) 트래픽이 없다고 보고 자동으로 정지시킨다. */
+const AUTO_SLEEP_CPU_THRESHOLD_PERCENT = 2;
+
+async function handleAutoSleep() {
+  const servers = await prisma.server.findMany({
+    where: { deletedAt: null, autoSleepEnabled: true, status: "RUNNING", pterodactylIdentifier: { not: null } },
+  });
+
+  for (const server of servers) {
+    const since = new Date(Date.now() - server.autoSleepAfterMinutes * 60 * 1000);
+    const snapshots = await prisma.serverUsageSnapshot.findMany({
+      where: { serverId: server.id, recordedAt: { gte: since } },
+      orderBy: { recordedAt: "asc" },
+    });
+
+    // 설정한 기간 전체를 판단할 만큼 데이터가 쌓이기 전(막 시작했거나 방금 꺼냈다 켠 경우)엔
+    // 성급하게 재우지 않는다 — 최소 2개(시작/끝) 이상 있어야 "그 기간 내내 유휴였다"고 볼 수 있음
+    if (snapshots.length < 2) continue;
+    const coversWholeWindow = snapshots[0].recordedAt.getTime() - since.getTime() < 15 * 60 * 1000;
+    if (!coversWholeWindow) continue;
+
+    const allIdle = snapshots.every((s) => s.cpuPercent < AUTO_SLEEP_CPU_THRESHOLD_PERCENT);
+    if (!allIdle) continue;
+
+    try {
+      await PteroClient.sendPowerAction(server.pterodactylIdentifier!, "stop");
+      await prisma.server.update({ where: { id: server.id }, data: { autoSleptAt: new Date() } });
+      await notifyServerEvent(
+        server,
+        `💤 **${server.name}** 서버가 ${server.autoSleepAfterMinutes}분간 트래픽이 없어서 자동 절전 모드로 꺼졌어요. 대시보드에서 바로 깨울 수 있어요.`,
+      );
+      console.log(`[cron] ${server.name} — 자동 절전(유휴 ${server.autoSleepAfterMinutes}분)`);
+    } catch (err) {
+      console.error(`[cron] ${server.name} 자동 절전 실패:`, err);
+    }
+  }
+}
+
 async function handleScheduledTasks() {
   const tasks = await prisma.scheduledTask.findMany({
     where: { enabled: true },
@@ -824,6 +864,7 @@ async function main() {
   await handleCustomDomainSsl();
   await handleHealthChecks();
   await handleUsageSnapshots();
+  await handleAutoSleep();
   await handleScheduledTasks();
   await handleScheduledRestarts();
   await handleNodeAlerts();

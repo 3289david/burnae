@@ -139,6 +139,21 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
       {server.isOwner && <GettingStartedCard server={server} />}
       {server.isOwner && server.aiAutoSetupAvailable && <AiAutoSetupCard serverId={server.id} />}
 
+      {server.autoSleptAt && (
+        <div className="card p-4 border-accent flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm flex items-center gap-1.5">
+            💤 트래픽이 없어서 자동 절전 모드로 꺼져 있어요 (설정에서 언제든 끌 수 있어요).
+          </p>
+          <button
+            disabled={actionLoading}
+            onClick={() => power("start")}
+            className="btn-primary px-3.5 py-1.5 text-sm inline-flex items-center gap-1.5 active:scale-95 transition-transform"
+          >
+            <Play size={14} /> 지금 깨우기
+          </button>
+        </div>
+      )}
+
       {showRenewal && (
         <div className="card p-4 border-yellow">
           {renewRequested ? (

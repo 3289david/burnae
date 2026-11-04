@@ -11,6 +11,8 @@ interface Props {
   autoRestartEnabled: boolean;
   autoRestartHour: number | null;
   autoRestartOnCrash: boolean;
+  autoSleepEnabled: boolean;
+  autoSleepAfterMinutes: number;
 }
 
 export default function AutomationCard({ serverId, ...initial }: Props) {
@@ -91,6 +93,28 @@ export default function AutomationCard({ serverId, ...initial }: Props) {
           <p className="text-xs text-text-dim">{t("autoRestartOnCrashDesc")}</p>
         </div>
         <Toggle checked={state.autoRestartOnCrash} onChange={(next) => update({ autoRestartOnCrash: next })} />
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-sm">{t("autoSleepTitle")}</p>
+          <p className="text-xs text-text-dim">{t("autoSleepDesc")}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {state.autoSleepEnabled && (
+            <select
+              className="input text-sm"
+              value={state.autoSleepAfterMinutes}
+              onChange={(e) => update({ autoSleepAfterMinutes: Number(e.target.value) })}
+            >
+              <option value={10}>{t("after10min")}</option>
+              <option value={30}>{t("after30min")}</option>
+              <option value={60}>{t("after1h")}</option>
+              <option value={360}>{t("after6h")}</option>
+            </select>
+          )}
+          <Toggle checked={state.autoSleepEnabled} onChange={(next) => update({ autoSleepEnabled: next })} />
+        </div>
       </div>
     </div>
   );

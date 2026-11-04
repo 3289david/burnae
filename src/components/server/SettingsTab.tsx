@@ -71,6 +71,8 @@ export default function SettingsTab({
   autoRestartEnabled,
   autoRestartHour,
   autoRestartOnCrash,
+  autoSleepEnabled,
+  autoSleepAfterMinutes,
   ownerNote,
 }: {
   serverId: string;
@@ -83,6 +85,8 @@ export default function SettingsTab({
   autoRestartEnabled: boolean;
   autoRestartHour: number | null;
   autoRestartOnCrash: boolean;
+  autoSleepEnabled: boolean;
+  autoSleepAfterMinutes: number;
   ownerNote: string | null;
 }) {
   const isMinecraft = templateCategory === "MINECRAFT";
@@ -298,6 +302,8 @@ export default function SettingsTab({
         autoRestartEnabled={autoRestartEnabled}
         autoRestartHour={autoRestartHour}
         autoRestartOnCrash={autoRestartOnCrash}
+        autoSleepEnabled={autoSleepEnabled}
+        autoSleepAfterMinutes={autoSleepAfterMinutes}
       />
     )}
 

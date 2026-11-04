@@ -43,6 +43,9 @@ export interface ServerInfo {
   autoRestartEnabled: boolean;
   autoRestartHour: number | null;
   autoRestartOnCrash: boolean;
+  autoSleepEnabled: boolean;
+  autoSleepAfterMinutes: number;
+  autoSleptAt: string | null;
   aiAutoSetupAvailable: boolean;
   subdomains: ServerSubdomainInfo[];
   subdomainZone: string;
@@ -243,6 +246,8 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
             autoRestartEnabled={server.autoRestartEnabled}
             autoRestartHour={server.autoRestartHour}
             autoRestartOnCrash={server.autoRestartOnCrash}
+            autoSleepEnabled={server.autoSleepEnabled}
+            autoSleepAfterMinutes={server.autoSleepAfterMinutes}
             ownerNote={server.ownerNote}
           />
         )}

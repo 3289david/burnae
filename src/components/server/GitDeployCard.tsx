@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { GitBranch, Copy, Check, RefreshCw, Lock, Unlink } from "lucide-react";
 import Toggle from "@/components/Toggle";
 import { GithubLogo } from "@/components/ProviderIcons";
+import LiveDeployLog from "./LiveDeployLog";
 
 interface DeployConfig {
   supportsGit: boolean;
@@ -47,6 +48,7 @@ export default function GitDeployCard({ serverId }: { serverId: string }) {
   const [repoError, setRepoError] = useState<string | null>(null);
   const [testingWebhook, setTestingWebhook] = useState(false);
   const [testWebhookResult, setTestWebhookResult] = useState<"ok" | "error" | null>(null);
+  const [liveLogOpen, setLiveLogOpen] = useState(false);
 
   function load() {
     fetch(`/api/servers/${serverId}/deploy`)
@@ -127,6 +129,7 @@ export default function GitDeployCard({ serverId }: { serverId: string }) {
   async function deployNow() {
     setDeploying(true);
     setDeployResult(null);
+    setLiveLogOpen(true);
     try {
       const res = await fetch(`/api/servers/${serverId}/deploy`, { method: "POST" });
       const data = await res.json();
@@ -441,13 +444,22 @@ export default function GitDeployCard({ serverId }: { serverId: string }) {
         </div>
       )}
 
-      <button
-        onClick={deployNow}
-        disabled={deploying}
-        className="btn-secondary px-3.5 py-2 text-xs inline-flex items-center gap-1.5 active:scale-95 transition-transform"
-      >
-        <RefreshCw size={13} className={deploying ? "animate-spin" : ""} /> {deploying ? t("deploying") : t("deployNow")}
-      </button>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={deployNow}
+          disabled={deploying}
+          className="btn-secondary px-3.5 py-2 text-xs inline-flex items-center gap-1.5 active:scale-95 transition-transform"
+        >
+          <RefreshCw size={13} className={deploying ? "animate-spin" : ""} /> {deploying ? t("deploying") : t("deployNow")}
+        </button>
+        <button
+          onClick={() => setLiveLogOpen((v) => !v)}
+          className="text-xs text-text-dim hover:text-accent"
+        >
+          {liveLogOpen ? "실시간 로그 닫기" : "실시간 로그 보기"}
+        </button>
+      </div>
+      <LiveDeployLog serverId={serverId} active={liveLogOpen} onClose={() => setLiveLogOpen(false)} />
       {deployResult && <p className="text-xs text-text-dim">{deployResult}</p>}
     </div>
   );

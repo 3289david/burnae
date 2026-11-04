@@ -55,6 +55,9 @@ export default function AdminDiscordPage() {
   const [linkForm, setLinkForm] = useState(emptyLink);
   const [linkError, setLinkError] = useState<string | null>(null);
 
+  const [provisioning, setProvisioning] = useState(false);
+  const [provisionResult, setProvisionResult] = useState<{ created: { field: string; channelId: string }[]; failed: { field: string; error: string }[] } | null>(null);
+
   useEffect(() => {
     fetch("/api/admin/bot-settings").then((r) => r.json()).then(setSettings);
     loadLinks();
@@ -76,6 +79,20 @@ export default function AdminDiscordPage() {
     });
     setSaving(false);
     setSaved(true);
+  }
+
+  async function provisionChannels() {
+    setProvisioning(true);
+    setProvisionResult(null);
+    try {
+      const res = await fetch("/api/admin/bot-settings/provision-channels", { method: "POST" });
+      const data = await res.json();
+      setProvisionResult(data);
+      const refreshed = await fetch("/api/admin/bot-settings").then((r) => r.json());
+      setSettings(refreshed);
+    } finally {
+      setProvisioning(false);
+    }
   }
 
   async function addLink(e: React.FormEvent) {
@@ -141,7 +158,33 @@ export default function AdminDiscordPage() {
       </div>
 
       <div className="card-glow p-5">
-        <h2 className="font-semibold mb-3">채널</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-semibold">채널</h2>
+          <button
+            type="button"
+            onClick={provisionChannels}
+            disabled={provisioning}
+            className="btn-secondary px-3.5 py-1.5 text-xs disabled:opacity-50"
+          >
+            {provisioning ? "만드는 중..." : "비어있는 채널 자동으로 만들기"}
+          </button>
+        </div>
+        <p className="text-xs text-text-dim mb-3">
+          빈 칸으로 둔 채널은 "자동으로 만들기"를 누르면 디스코드에 실제 채널을 만들어서 ID를 바로 채워줘요. 직접 만든 채널의 ID를 넣고 싶으면 그냥 입력하면 돼요.
+        </p>
+        {provisionResult && (
+          <div className="mb-3 text-xs space-y-1">
+            {provisionResult.created.length > 0 && (
+              <p className="text-green">✅ {provisionResult.created.length}개 채널을 새로 만들었어요.</p>
+            )}
+            {provisionResult.failed.length > 0 && (
+              <p className="text-red">⚠️ {provisionResult.failed.length}개 실패: {provisionResult.failed.map((f) => f.error).join(", ")}</p>
+            )}
+            {provisionResult.created.length === 0 && provisionResult.failed.length === 0 && (
+              <p className="text-text-dim">빈 채널이 없어서 새로 만들 게 없었어요.</p>
+            )}
+          </div>
+        )}
         <div className="grid sm:grid-cols-2 gap-4">
           {CHANNEL_FIELDS.map((f) => (
             <div key={f.key}>

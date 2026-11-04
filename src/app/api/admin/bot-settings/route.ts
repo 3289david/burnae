@@ -30,6 +30,7 @@ const schema = z.object({
   announcementChannelId: z.string().min(1).optional().nullable(),
   logChannelId: z.string().min(1).optional().nullable(),
   welcomeChannelId: z.string().min(1).optional().nullable(),
+  statsVoiceChannelId: z.string().min(1).optional().nullable(),
 });
 
 export async function PUT(request: Request) {

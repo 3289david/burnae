@@ -1354,6 +1354,10 @@ model BotSettings {
   announcementChannelId String?
   /// 새 멤버가 들어오면 공개 환영 메시지를 올릴 채널 (DM 환영 메시지와 별개 — 설정 안 하면 공개 메시지는 안 보냄)
   welcomeChannelId      String?
+  /// 채널 이름 자체를 "🟢 가동중 N/M"으로 주기적으로 바꿔서 채널 목록만 봐도 바로 보이게 하는
+  /// 음성 채널. 디스코드가 채널 이름 변경을 채널당 10분에 2번으로 제한해서 statusBoard보다
+  /// 느린 주기(10분)로 갱신한다
+  statsVoiceChannelId   String?
   /// 서버 생성/삭제/이전 같은 이벤트를 기록으로 남길 채널
   logChannelId          String?
   updatedAt             DateTime @updatedAt

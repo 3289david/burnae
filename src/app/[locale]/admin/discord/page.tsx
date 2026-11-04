@@ -17,6 +17,7 @@ interface BotSettings {
   announcementChannelId: string | null;
   logChannelId: string | null;
   welcomeChannelId: string | null;
+  statsVoiceChannelId: string | null;
 }
 
 interface LinktreeLink {
@@ -42,6 +43,7 @@ const CHANNEL_FIELDS: { key: keyof BotSettings; label: string; hint: string }[] 
   { key: "announcementChannelId", label: "공지사항 채널 ID", hint: "관리자 공지 등록 시 자동으로 임베드 발송" },
   { key: "logChannelId", label: "운영 로그 채널 ID", hint: "서버 생성/삭제/이전 기록" },
   { key: "welcomeChannelId", label: "환영 채널 ID", hint: "새 멤버가 들어오면 공개 환영 메시지를 올려요 (비우면 DM만 보냄)" },
+  { key: "statsVoiceChannelId", label: "통계 음성채널 ID", hint: "채널 이름 자체를 \"🟢 가동중 N/M\"으로 10분마다 바꿔서 클릭 안 해도 바로 보여요" },
 ];
 
 const emptyLink = { label: "", url: "", emoji: "", sortOrder: 0 };

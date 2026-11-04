@@ -1,9 +1,11 @@
-import { TextChannel, MessageFlags } from "discord.js";
+import { TextChannel, VoiceChannel, MessageFlags } from "discord.js";
 import type { Client } from "discord.js";
 import { prisma } from "./prismaClient";
 import { panel, heading, text, subtext } from "../lib/discordComponentsV2";
 
 const UPDATE_INTERVAL_MS = 60_000;
+/// 디스코드가 채널 이름 변경을 채널당 10분에 2번으로 제한해서 텍스트 현황판보다 느리게 돈다
+const VOICE_STATS_INTERVAL_MS = 10 * 60_000;
 
 /**
  * 실시간 집계 현황판. 개별 고객 서버의 이름/상태 같은 비공개 정보는 절대 넣지 않고,
@@ -16,24 +18,52 @@ export function startStatusBoard(client: Client) {
   setInterval(() => {
     updateStatusBoard(client).catch((err) => console.error("[statusBoard] 업데이트 실패:", err));
   }, UPDATE_INTERVAL_MS);
+
+  updateStatsVoiceChannel(client).catch((err) => console.error("[statusBoard] 음성 채널 이름 초기 갱신 실패:", err));
+  setInterval(() => {
+    updateStatsVoiceChannel(client).catch((err) => console.error("[statusBoard] 음성 채널 이름 갱신 실패:", err));
+  }, VOICE_STATS_INTERVAL_MS);
 }
 
-async function updateStatusBoard(client: Client) {
-  const settings = await prisma.botSettings.findUnique({ where: { id: 1 } });
-  if (!settings?.statusBoardChannelId) return;
-
+async function getPlatformStats() {
   const [runningCount, totalCount, nodes] = await Promise.all([
     prisma.server.count({ where: { deletedAt: null, status: "RUNNING" } }),
     prisma.server.count({ where: { deletedAt: null } }),
     prisma.hostNode.findMany({ select: { status: true } }),
   ]);
   const onlineNodes = nodes.filter((n) => n.status === "ONLINE").length;
+  return { runningCount, totalCount, onlineNodes, totalNodes: nodes.length };
+}
+
+/** 채널 목록에서 클릭 안 해도 바로 보이는 "🟢 가동중 N/M" 음성 채널 이름 — 10분마다 갱신 */
+async function updateStatsVoiceChannel(client: Client) {
+  const settings = await prisma.botSettings.findUnique({ where: { id: 1 } });
+  if (!settings?.statsVoiceChannelId) return;
+
+  const { runningCount, totalCount } = await getPlatformStats();
+  const name = `🟢 가동중 ${runningCount}/${totalCount}`;
+
+  try {
+    const channel = await client.channels.fetch(settings.statsVoiceChannelId);
+    if (!channel || !(channel instanceof VoiceChannel)) return;
+    if (channel.name === name) return; // 같으면 호출 자체를 안 해서 레이트리밋을 아낀다
+    await channel.setName(name);
+  } catch (err) {
+    console.error("[statusBoard] 음성 채널 이름 변경 실패:", err);
+  }
+}
+
+async function updateStatusBoard(client: Client) {
+  const settings = await prisma.botSettings.findUnique({ where: { id: 1 } });
+  if (!settings?.statusBoardChannelId) return;
+
+  const { runningCount, totalCount, onlineNodes, totalNodes } = await getPlatformStats();
 
   const container = panel()
     .addTextDisplayComponents(heading("🖥️ Burnae 실시간 현황"))
     .addTextDisplayComponents(
       text(
-        `**가동 중인 서버**  ${runningCount}개\n**전체 등록 서버**  ${totalCount}개\n**운영 상태**  ${onlineNodes}/${nodes.length} 정상`,
+        `**가동 중인 서버**  ${runningCount}개\n**전체 등록 서버**  ${totalCount}개\n**운영 상태**  ${onlineNodes}/${totalNodes} 정상`,
       ),
     )
     .addTextDisplayComponents(subtext(`${new Date().toLocaleTimeString("ko-KR")} 기준 · 1분마다 자동 갱신`));

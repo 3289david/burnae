@@ -13,7 +13,7 @@ const VOICE_STATS_INTERVAL_MS = 10 * 60_000;
  * 정확한 실시간 접속 플레이어 수는 서버마다 콘솔 조회(웹소켓)가 필요해 비용이 커서
  * 이번 버전에서는 포함하지 않는다 — 있는 그대로의 수치만 보여주기 위한 의도적인 선택.
  */
-const SERVER_COUNT_MILESTONE_STEP = 50;
+const SERVER_COUNT_MILESTONE_STEP = 10;
 
 export function startStatusBoard(client: Client) {
   updateStatusBoard(client).catch((err) => console.error("[statusBoard] 초기 업데이트 실패:", err));
@@ -32,7 +32,7 @@ export function startStatusBoard(client: Client) {
   }, UPDATE_INTERVAL_MS);
 }
 
-/** 전체 서버 수가 50의 배수를 새로 넘을 때마다 공지 채널에 축하 메시지를 올린다 — 핵심 성장
+/** 전체 서버 수가 10의 배수를 새로 넘을 때마다 공지 채널에 축하 메시지를 올린다 — 핵심 성장
  * 지표를 숨기지 않고 커뮤니티와 같이 축하하기 위함 */
 async function checkServerCountMilestone(client: Client) {
   const settings = await prisma.botSettings.findUnique({ where: { id: 1 } });

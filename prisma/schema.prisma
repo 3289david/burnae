@@ -1358,7 +1358,7 @@ model BotSettings {
   /// 음성 채널. 디스코드가 채널 이름 변경을 채널당 10분에 2번으로 제한해서 statusBoard보다
   /// 느린 주기(10분)로 갱신한다
   statsVoiceChannelId   String?
-  /// 전체 서버 수가 이 값보다 큰 다음 50의 배수를 넘을 때마다 공지 채널에 축하 메시지를 올린다
+  /// 전체 서버 수가 이 값보다 큰 다음 10의 배수를 넘을 때마다 공지 채널에 축하 메시지를 올린다
   lastServerCountMilestone Int @default(0)
   /// 서버 생성/삭제/이전 같은 이벤트를 기록으로 남길 채널
   logChannelId          String?

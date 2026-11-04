@@ -8,7 +8,7 @@ import { startActivityRewards } from "./activityRewards";
 import { startMentionGuard } from "./mentionGuard";
 import { startAntiSpam } from "./antiSpam";
 import { prisma } from "./prismaClient";
-import { panel, subtext, thumbnail, section } from "../lib/discordComponentsV2";
+import { panel, text, subtext, thumbnail, section } from "../lib/discordComponentsV2";
 
 /**
  * 이 봇은 Burnae 공식 디스코드 서버(burnae.kr 커뮤니티) 딱 하나에서만 동작한다.
@@ -98,7 +98,40 @@ client.on(Events.GuildMemberAdd, async (member) => {
       console.error("[bot] 공개 환영 메시지 발송 실패:", err);
     }
   }
+
+  await logMemberChange(member.guild, settings?.logChannelId, "join", member.user.tag, member.user.id, member.guild.memberCount);
 });
+
+client.on(Events.GuildMemberRemove, async (member) => {
+  if (member.guild.id !== officialGuildId) return;
+  const settings = await prisma.botSettings.findUnique({ where: { id: 1 } }).catch(() => null);
+  await logMemberChange(member.guild, settings?.logChannelId, "leave", member.user.tag, member.user.id, member.guild.memberCount);
+});
+
+/** 관리자 로그 채널에 멤버 입장/퇴장을 남긴다 — 서버 생성/삭제 기록과 같은 채널에 모아둬서
+ * 운영진이 한 곳에서 전체 흐름을 볼 수 있게 한다 */
+async function logMemberChange(
+  guild: { channels: { fetch: (id: string) => Promise<unknown> } },
+  logChannelId: string | null | undefined,
+  kind: "join" | "leave",
+  userTag: string,
+  userId: string,
+  memberCount: number,
+) {
+  if (!logChannelId) return;
+  try {
+    const channel = await guild.channels.fetch(logChannelId);
+    if (!(channel instanceof TextChannel)) return;
+    const label = kind === "join" ? "🟢 입장" : "🔴 퇴장";
+    const color = kind === "join" ? 0x22c55e : 0xef4444;
+    const container = panel(color).addTextDisplayComponents(
+      text(`${label}  **${userTag}** (${userId}) — 현재 ${memberCount.toLocaleString()}명`),
+    );
+    await channel.send({ components: [container], flags: MessageFlags.IsComponentsV2 });
+  } catch (err) {
+    console.error("[bot] 멤버 입/퇴장 로그 실패:", err);
+  }
+}
 
 client.on(Events.InteractionCreate, async (interaction) => {
   if (interaction.inGuild() && interaction.guildId !== officialGuildId) {

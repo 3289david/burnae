@@ -1,6 +1,10 @@
 import type { Client, GuildMember, Message, PartialGuildMember } from "discord.js";
-import { Events } from "discord.js";
+import { Events, MessageFlags } from "discord.js";
 import { prisma } from "./prismaClient";
+import { panel, heading, text } from "../lib/discordComponentsV2";
+
+/** 총 누적 포인트가 이 기준을 넘을 때마다 1회 DM으로 축하 메시지를 보낸다 */
+const POINT_MILESTONES = [1000, 5000, 10000, 50000, 100000];
 
 /**
  * 포인트가 1원=1포인트로 현금과 그대로 맞바꿔지는 값이 됐기 때문에(지난 글자수 기반 보상은
@@ -34,17 +38,42 @@ function todayKey(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-async function awardToDiscordUser(discordUserId: string, points: number, reason: string) {
+async function awardToDiscordUser(client: Client, discordUserId: string, points: number, reason: string) {
   const link = await prisma.discordLink.findUnique({ where: { discordUserId } });
   if (!link) {
     console.log(`[activityRewards] ${discordUserId} 미연동 계정이라 지급 안 함 (${reason})`);
     return;
   }
-  await prisma.user.update({ where: { id: link.userId }, data: { promotionPoints: { increment: points } } });
+  const before = await prisma.user.findUniqueOrThrow({ where: { id: link.userId }, select: { promotionPoints: true } });
+  const after = await prisma.user.update({
+    where: { id: link.userId },
+    data: { promotionPoints: { increment: points } },
+    select: { promotionPoints: true },
+  });
   console.log(`[activityRewards] ${discordUserId} +${points}P (${reason})`);
+
+  const crossed = POINT_MILESTONES.find((m) => before.promotionPoints < m && after.promotionPoints >= m);
+  if (crossed) {
+    await announceMilestone(client, discordUserId, crossed).catch((err) =>
+      console.error("[activityRewards] 마일스톤 DM 실패:", err),
+    );
+  }
 }
 
-function handleMessageCreate(message: Message, officialGuildId: string) {
+async function announceMilestone(client: Client, discordUserId: string, milestone: number) {
+  const user = await client.users.fetch(discordUserId).catch(() => null);
+  if (!user) return;
+  const container = panel()
+    .addTextDisplayComponents(heading("🎉 포인트 마일스톤 달성!"))
+    .addTextDisplayComponents(
+      text(`누적 홍보 포인트 **${milestone.toLocaleString()}점**을 넘었어요! \`/포인트순위\`에서 내 순위를 확인해보세요.`),
+    );
+  await user.send({ components: [container], flags: MessageFlags.IsComponentsV2 }).catch(() => {
+    // DM 막아둔 유저면 조용히 무시
+  });
+}
+
+function handleMessageCreate(client: Client, message: Message, officialGuildId: string) {
   if (message.guildId !== officialGuildId) return;
   if (message.author.bot) return;
 
@@ -76,21 +105,26 @@ function handleMessageCreate(message: Message, officialGuildId: string) {
   lastChatRewardAt.set(message.author.id, now);
   chatDailyTotal.set(message.author.id, { day: today, points: soFar + POINTS_PER_MESSAGE });
 
-  awardToDiscordUser(message.author.id, POINTS_PER_MESSAGE, "채팅").catch((err) => console.error("[activityRewards] 채팅 지급 실패:", err));
+  awardToDiscordUser(client, message.author.id, POINTS_PER_MESSAGE, "채팅").catch((err) => console.error("[activityRewards] 채팅 지급 실패:", err));
 }
 
-function handleGuildMemberUpdate(oldMember: GuildMember | PartialGuildMember, newMember: GuildMember, officialGuildId: string) {
+function handleGuildMemberUpdate(
+  client: Client,
+  oldMember: GuildMember | PartialGuildMember,
+  newMember: GuildMember,
+  officialGuildId: string,
+) {
   if (newMember.guild.id !== officialGuildId) return;
 
   const startedBoosting = !oldMember.premiumSince && newMember.premiumSince;
   if (startedBoosting) {
-    awardToDiscordUser(newMember.id, POINTS_PER_BOOST, "서버 부스트").catch((err) => console.error("[activityRewards] 부스트 지급 실패:", err));
+    awardToDiscordUser(client, newMember.id, POINTS_PER_BOOST, "서버 부스트").catch((err) => console.error("[activityRewards] 부스트 지급 실패:", err));
   }
 
   const gainedVerifiedTitle =
     !oldMember.roles.cache.has(VERIFIED_TITLE_ROLE_ID) && newMember.roles.cache.has(VERIFIED_TITLE_ROLE_ID);
   if (gainedVerifiedTitle) {
-    awardToDiscordUser(newMember.id, POINTS_PER_VERIFIED_TITLE, "인증완료").catch((err) =>
+    awardToDiscordUser(client, newMember.id, POINTS_PER_VERIFIED_TITLE, "인증완료").catch((err) =>
       console.error("[activityRewards] 인증완료 지급 실패:", err),
     );
   }
@@ -107,7 +141,7 @@ async function checkServerTags(client: Client, officialGuildId: string) {
     if (member.user.bot) continue;
     const tag = member.user.primaryGuild;
     if (!tag || !tag.identityEnabled || tag.identityGuildId !== officialGuildId) continue;
-    await awardToDiscordUser(member.id, POINTS_PER_TAG_HOUR, "서버 태그 착용").catch((err) =>
+    await awardToDiscordUser(client, member.id, POINTS_PER_TAG_HOUR, "서버 태그 착용").catch((err) =>
       console.error("[activityRewards] 서버 태그 지급 실패:", err),
     );
   }
@@ -118,8 +152,8 @@ async function checkServerTags(client: Client, officialGuildId: string) {
  * 대상이며, 공식 서버(officialGuildId) 밖의 활동은 무시한다.
  */
 export function startActivityRewards(client: Client, officialGuildId: string) {
-  client.on(Events.MessageCreate, (message) => handleMessageCreate(message, officialGuildId));
-  client.on(Events.GuildMemberUpdate, (oldMember, newMember) => handleGuildMemberUpdate(oldMember, newMember, officialGuildId));
+  client.on(Events.MessageCreate, (message) => handleMessageCreate(client, message, officialGuildId));
+  client.on(Events.GuildMemberUpdate, (oldMember, newMember) => handleGuildMemberUpdate(client, oldMember, newMember, officialGuildId));
 
   setInterval(() => {
     checkServerTags(client, officialGuildId).catch((err) => console.error("[activityRewards] 서버 태그 점검 오류:", err));

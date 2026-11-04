@@ -184,27 +184,27 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
       )}
 
       {hasServerRank(server.myRole, "MODERATOR") && (
-        <div className="flex gap-2.5 animate-fade-up">
+        <div className="flex gap-1.5">
           <button
             disabled={actionLoading}
             onClick={() => power("start")}
-            className="flex-1 sm:flex-none rounded-2xl px-5 py-2.5 text-sm font-semibold inline-flex items-center justify-center gap-1.5 bg-green/15 text-green hover:bg-green/25 transition-colors disabled:opacity-50 active:scale-95 transition-transform"
+            className="flex-1 sm:flex-none rounded-lg px-3.5 py-2 text-sm inline-flex items-center justify-center gap-1.5 border border-border hover:bg-surface-2 transition-colors disabled:opacity-50"
           >
-            <Play size={15} /> 시작
+            <Play size={14} className="text-green" /> 시작
           </button>
           <button
             disabled={actionLoading}
             onClick={() => power("restart")}
-            className="flex-1 sm:flex-none rounded-2xl px-5 py-2.5 text-sm font-semibold inline-flex items-center justify-center gap-1.5 bg-yellow/15 text-yellow hover:bg-yellow/25 transition-colors disabled:opacity-50 active:scale-95 transition-transform"
+            className="flex-1 sm:flex-none rounded-lg px-3.5 py-2 text-sm inline-flex items-center justify-center gap-1.5 border border-border hover:bg-surface-2 transition-colors disabled:opacity-50"
           >
-            <RotateCw size={15} className={actionLoading ? "animate-spin" : ""} /> 재시작
+            <RotateCw size={14} className={`text-yellow ${actionLoading ? "animate-spin" : ""}`} /> 재시작
           </button>
           <button
             disabled={actionLoading}
             onClick={() => power("stop")}
-            className="flex-1 sm:flex-none rounded-2xl px-5 py-2.5 text-sm font-semibold inline-flex items-center justify-center gap-1.5 bg-red/15 text-red hover:bg-red/25 transition-colors disabled:opacity-50 active:scale-95 transition-transform"
+            className="flex-1 sm:flex-none rounded-lg px-3.5 py-2 text-sm inline-flex items-center justify-center gap-1.5 border border-border hover:bg-surface-2 transition-colors disabled:opacity-50"
           >
-            <Square size={15} /> 중지
+            <Square size={14} className="text-red" /> 중지
           </button>
         </div>
       )}

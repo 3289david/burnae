@@ -117,6 +117,18 @@ export const commandDefinitions = [
       opt.setName("내용").setDescription("의견이나 제안을 적어주세요").setRequired(true),
     ),
   new SlashCommandBuilder()
+    .setName("투표")
+    .setDescription("채널에 투표를 올립니다.")
+    .addStringOption((opt) => opt.setName("질문").setDescription("투표 질문").setRequired(true))
+    .addStringOption((opt) => opt.setName("선택1").setDescription("선택지 1").setRequired(true))
+    .addStringOption((opt) => opt.setName("선택2").setDescription("선택지 2").setRequired(true))
+    .addStringOption((opt) => opt.setName("선택3").setDescription("선택지 3").setRequired(false))
+    .addStringOption((opt) => opt.setName("선택4").setDescription("선택지 4").setRequired(false))
+    .addIntegerOption((opt) =>
+      opt.setName("기간시간").setDescription("투표 진행 시간(시간 단위, 기본 24시간, 최대 168시간)").setMinValue(1).setMaxValue(168).setRequired(false),
+    )
+    .addBooleanOption((opt) => opt.setName("복수선택").setDescription("여러 선택지를 고를 수 있게 할지(기본 false)").setRequired(false)),
+  new SlashCommandBuilder()
     .setName("알림설정")
     .setDescription("공지 알림 받기를 켜거나 끕니다."),
   new SlashCommandBuilder()
@@ -213,6 +225,8 @@ export async function handleCommand(interaction: ChatInputCommandInteraction) {
       return handlePointsLeaderboard(interaction);
     case "설문":
       return handleSurvey(interaction);
+    case "투표":
+      return handlePoll(interaction);
     case "알림설정":
       return handleNotificationSettings(interaction);
     case "내정보":
@@ -738,6 +752,29 @@ async function handleSurvey(interaction: ChatInputCommandInteraction) {
   await interaction.reply({
     components: [text("✅ 소중한 의견 감사해요! 운영진이 확인할게요.")],
     flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+  });
+}
+
+/** 디스코드 네이티브 투표 기능을 그대로 쓴다 — 집계/UI를 디스코드가 알아서 해주니 별도 저장이 필요 없다 */
+async function handlePoll(interaction: ChatInputCommandInteraction) {
+  const question = interaction.options.getString("질문", true);
+  const options = [
+    interaction.options.getString("선택1", true),
+    interaction.options.getString("선택2", true),
+    interaction.options.getString("선택3"),
+    interaction.options.getString("선택4"),
+  ].filter((o): o is string => !!o?.trim());
+
+  const duration = interaction.options.getInteger("기간시간") ?? 24;
+  const allowMultiselect = interaction.options.getBoolean("복수선택") ?? false;
+
+  await interaction.reply({
+    poll: {
+      question: { text: question },
+      answers: options.map((text) => ({ text })),
+      duration,
+      allowMultiselect,
+    },
   });
 }
 

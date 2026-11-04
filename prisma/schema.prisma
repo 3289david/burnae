@@ -1352,6 +1352,8 @@ model BotSettings {
   nodeStatusMessageId   String?
   /// 관리자가 공지를 등록하면 자동으로 임베드를 올릴 채널
   announcementChannelId String?
+  /// 새 멤버가 들어오면 공개 환영 메시지를 올릴 채널 (DM 환영 메시지와 별개 — 설정 안 하면 공개 메시지는 안 보냄)
+  welcomeChannelId      String?
   /// 서버 생성/삭제/이전 같은 이벤트를 기록으로 남길 채널
   logChannelId          String?
   updatedAt             DateTime @updatedAt

@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { ActivityType, Client, GatewayIntentBits, Events } from "discord.js";
+import { ActivityType, Client, GatewayIntentBits, Events, TextChannel, MessageFlags } from "discord.js";
 import { handleCommand, handleAutocomplete, handleButton, handleModalSubmit } from "./commands";
 import { startCrashWatcher } from "./watcher";
 import { startStatusBoard } from "./statusBoard";
@@ -8,6 +8,7 @@ import { startActivityRewards } from "./activityRewards";
 import { startMentionGuard } from "./mentionGuard";
 import { startAntiSpam } from "./antiSpam";
 import { prisma } from "./prismaClient";
+import { panel, subtext, thumbnail, section } from "../lib/discordComponentsV2";
 
 /**
  * 이 봇은 Burnae 공식 디스코드 서버(burnae.kr 커뮤니티) 딱 하나에서만 동작한다.
@@ -70,6 +71,33 @@ client.on(Events.GuildMemberAdd, async (member) => {
     .catch(() => {
       // DM을 막아둔 유저면 조용히 무시
     });
+
+  // DM 환영 메시지와는 별개로, 설정해둔 채널에 공개 환영 메시지를 올린다 — 다른 멤버들이
+  // 새로 온 사람을 알아보고 반겨줄 수 있게. 계정 생성일을 같이 보여줘서 스태프가 갓 만든
+  // 계정(어뷰징/스팸 봇 가능성)인지 바로 구분할 수 있게 한다.
+  if (settings?.welcomeChannelId) {
+    try {
+      const channel = await member.guild.channels.fetch(settings.welcomeChannelId);
+      if (channel instanceof TextChannel) {
+        const memberCount = member.guild.memberCount;
+        const accountAgeDays = Math.floor((Date.now() - member.user.createdTimestamp) / (24 * 60 * 60 * 1000));
+        const container = panel()
+          .addSectionComponents(
+            section(
+              [
+                `**${member.user.tag}** 님이 들어왔어요! (${memberCount.toLocaleString()}번째 멤버)`,
+                accountAgeDays < 3 ? `⚠️ 계정 생성 ${accountAgeDays}일 전 — 새 계정이에요` : `계정 생성 ${accountAgeDays}일 전`,
+              ],
+              thumbnail(member.user.displayAvatarURL({ size: 128 })),
+            ),
+          )
+          .addTextDisplayComponents(subtext("환영 인사 한마디 남겨주세요 🙌"));
+        await channel.send({ components: [container], flags: MessageFlags.IsComponentsV2 });
+      }
+    } catch (err) {
+      console.error("[bot] 공개 환영 메시지 발송 실패:", err);
+    }
+  }
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {

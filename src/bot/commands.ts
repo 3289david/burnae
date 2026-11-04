@@ -540,6 +540,42 @@ async function requireOwnedServer(interaction: ChatInputCommandInteraction) {
   return server;
 }
 
+const UPTIME_WINDOW_DAYS = 30;
+
+/** 최근 30일 가동률(%) — statusPage.ts와 같은 계산식이지만 statusPageSlug 없이도(공개 상태
+ * 페이지를 안 켜둔 서버라도) /상태에서 바로 보여줄 수 있게 serverId 기준으로 따로 둔다 */
+async function recentUptimePercent(serverId: string): Promise<number> {
+  const windowStart = new Date(Date.now() - UPTIME_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+  const incidents = await prisma.uptimeIncident.findMany({
+    where: { serverId, startedAt: { gte: windowStart } },
+    select: { startedAt: true, endedAt: true },
+  });
+  const now = Date.now();
+  const windowMs = now - windowStart.getTime();
+  const downMs = incidents.reduce((sum, inc) => {
+    const start = Math.max(inc.startedAt.getTime(), windowStart.getTime());
+    const end = inc.endedAt?.getTime() ?? now;
+    return sum + Math.max(0, end - start);
+  }, 0);
+  return windowMs > 0 ? Math.max(0, Math.min(100, (1 - downMs / windowMs) * 100)) : 100;
+}
+
+function formatUptimeDuration(seconds: number): string {
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  if (days > 0) return `${days}일 ${hours}시간`;
+  if (hours > 0) return `${hours}시간 ${minutes}분`;
+  return `${minutes}분`;
+}
+
+/** 디스코드 메시지에서도 바로 보이는 간단한 막대 그래프 — 임베드의 progress bar 대용 */
+function barGauge(percent: number): string {
+  const clamped = Math.max(0, Math.min(100, percent));
+  const filled = Math.round(clamped / 10);
+  return `${"█".repeat(filled)}${"░".repeat(10 - filled)} ${clamped.toFixed(0)}%`;
+}
+
 async function handleStatus(interaction: ChatInputCommandInteraction) {
   const server = await requireOwnedServer(interaction);
   if (!server) return;
@@ -552,12 +588,33 @@ async function handleStatus(interaction: ChatInputCommandInteraction) {
     return;
   }
 
-  const resources = await PteroClient.getServerResources(server.pterodactylIdentifier);
-  const container = panel(resources.current_state === "running" ? 0x22c55e : 0xef4444)
-    .addTextDisplayComponents(heading(`${server.name} 상태`))
+  const [resources, uptimePercent] = await Promise.all([
+    PteroClient.getServerResources(server.pterodactylIdentifier),
+    recentUptimePercent(server.id),
+  ]);
+  const isRunning = resources.current_state === "running";
+  const ramPercent = server.ramMb > 0 ? (resources.resources.memory_bytes / 1024 / 1024 / server.ramMb) * 100 : 0;
+  const diskPercent = server.diskMb > 0 ? (resources.resources.disk_bytes / 1024 / 1024 / server.diskMb) * 100 : 0;
+
+  const container = panel(isRunning ? 0x22c55e : 0xef4444)
+    .addTextDisplayComponents(heading(`${statusEmoji(isRunning ? "RUNNING" : "STOPPED")} ${server.name}`))
     .addTextDisplayComponents(
       text(
-        `**상태**  ${resources.current_state}\n**CPU**  ${resources.resources.cpu_absolute.toFixed(1)}%\n**RAM**  ${Math.round(resources.resources.memory_bytes / 1024 / 1024)}MB`,
+        [
+          `**상태**  ${resources.current_state}${isRunning ? ` (${formatUptimeDuration(resources.resources.uptime / 1000)} 가동 중)` : ""}`,
+          `**CPU**  ${resources.resources.cpu_absolute.toFixed(1)}%`,
+          `**RAM**  ${barGauge(ramPercent)}  (${Math.round(resources.resources.memory_bytes / 1024 / 1024)}/${server.ramMb}MB)`,
+          `**디스크**  ${barGauge(diskPercent)}  (${Math.round(resources.resources.disk_bytes / 1024 / 1024)}/${server.diskMb}MB)`,
+        ].join("\n"),
+      ),
+    )
+    .addSeparatorComponents(divider())
+    .addTextDisplayComponents(subtext(`최근 ${UPTIME_WINDOW_DAYS}일 가동률 ${uptimePercent.toFixed(2)}%`))
+    .addActionRowComponents(
+      buttonRow(
+        actionButton(`panel_power_start_${server.id}`, "시작", ButtonStyle.Success, "▶️"),
+        actionButton(`panel_power_restart_${server.id}`, "재시작", ButtonStyle.Primary, "🔁"),
+        actionButton(`panel_power_stop_${server.id}`, "정지", ButtonStyle.Danger, "⏹️"),
       ),
     );
   await interaction.reply(v2Reply(container));

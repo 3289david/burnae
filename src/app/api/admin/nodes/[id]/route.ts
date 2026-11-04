@@ -2,6 +2,30 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdminRole } from "@/lib/auth";
+import { sendDiscordChannelMessage } from "@/lib/discordNotify";
+import { panel, heading, text, COMPONENTS_V2_FLAG } from "@/lib/discordComponentsV2";
+
+const NODE_STATUS_LABEL: Record<string, string> = {
+  ONLINE: "🟢 정상 운영 중",
+  OFFLINE: "🔴 장애/점검으로 중단",
+  MAINTENANCE: "🟡 점검 중",
+};
+
+/** 관리자가 노드 상태를 바꾸면 고객들이 바로 알 수 있게 공지 채널에 투명하게 알린다 —
+ * 장애를 숨기지 않고 바로 알리는 쪽이 신뢰를 쌓는다는 판단 */
+async function announceNodeStatusChange(nodeName: string, nodeLocation: string, status: string) {
+  const settings = await prisma.botSettings.findUnique({ where: { id: 1 } });
+  if (!settings?.announcementChannelId) return;
+
+  const container = panel(status === "ONLINE" ? 0x22c55e : 0xef4444)
+    .addTextDisplayComponents(heading(`노드 상태 변경: ${nodeName} (${nodeLocation})`))
+    .addTextDisplayComponents(text(NODE_STATUS_LABEL[status] ?? status));
+
+  await sendDiscordChannelMessage(settings.announcementChannelId, {
+    components: [container.toJSON()],
+    flags: COMPONENTS_V2_FLAG,
+  }).catch((err) => console.error("[admin/nodes] 노드 상태 공지 실패:", err));
+}
 
 const schema = z.object({
   name: z.string().min(1).optional(),
@@ -43,10 +67,17 @@ export async function PUT(
     }
   }
 
+  const before = data.status ? await prisma.hostNode.findUnique({ where: { id }, select: { status: true } }) : null;
+
   const node = await prisma.hostNode.update({
     where: { id },
     data: { ...data, ...(dedicatedToUserId !== undefined ? { dedicatedToUserId } : {}) },
   });
+
+  if (data.status && before && before.status !== data.status) {
+    announceNodeStatusChange(node.name, node.location, data.status).catch(() => {});
+  }
+
   return NextResponse.json(node);
 }
 

@@ -60,6 +60,20 @@ async function awardToDiscordUser(client: Client, discordUserId: string, points:
   }
 }
 
+/** 서버 부스트는 조용히 포인트만 지급하지 말고 공개로 감사 인사를 남긴다 — welcomeChannelId를
+ * "공개 커뮤니티 긍정 이벤트" 채널로 같이 쓴다 */
+async function announceBoost(member: GuildMember) {
+  const settings = await prisma.botSettings.findUnique({ where: { id: 1 } });
+  if (!settings?.welcomeChannelId) return;
+  const channel = await member.guild.channels.fetch(settings.welcomeChannelId).catch(() => null);
+  if (!channel || !channel.isTextBased()) return;
+
+  const container = panel(0xf472b6)
+    .addTextDisplayComponents(heading("💎 서버 부스트 감사해요!"))
+    .addTextDisplayComponents(text(`**${member.user.tag}** 님이 서버를 부스트해주셨어요! 소중한 지원 감사합니다.`));
+  await channel.send({ components: [container], flags: MessageFlags.IsComponentsV2 });
+}
+
 async function announceMilestone(client: Client, discordUserId: string, milestone: number) {
   const user = await client.users.fetch(discordUserId).catch(() => null);
   if (!user) return;
@@ -119,6 +133,7 @@ function handleGuildMemberUpdate(
   const startedBoosting = !oldMember.premiumSince && newMember.premiumSince;
   if (startedBoosting) {
     awardToDiscordUser(client, newMember.id, POINTS_PER_BOOST, "서버 부스트").catch((err) => console.error("[activityRewards] 부스트 지급 실패:", err));
+    announceBoost(newMember).catch((err) => console.error("[activityRewards] 부스트 감사 메시지 실패:", err));
   }
 
   const gainedVerifiedTitle =

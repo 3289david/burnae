@@ -13,6 +13,8 @@ const VOICE_STATS_INTERVAL_MS = 10 * 60_000;
  * 정확한 실시간 접속 플레이어 수는 서버마다 콘솔 조회(웹소켓)가 필요해 비용이 커서
  * 이번 버전에서는 포함하지 않는다 — 있는 그대로의 수치만 보여주기 위한 의도적인 선택.
  */
+const SERVER_COUNT_MILESTONE_STEP = 50;
+
 export function startStatusBoard(client: Client) {
   updateStatusBoard(client).catch((err) => console.error("[statusBoard] 초기 업데이트 실패:", err));
   setInterval(() => {
@@ -23,6 +25,34 @@ export function startStatusBoard(client: Client) {
   setInterval(() => {
     updateStatsVoiceChannel(client).catch((err) => console.error("[statusBoard] 음성 채널 이름 갱신 실패:", err));
   }, VOICE_STATS_INTERVAL_MS);
+
+  checkServerCountMilestone(client).catch((err) => console.error("[statusBoard] 서버 수 마일스톤 확인 실패:", err));
+  setInterval(() => {
+    checkServerCountMilestone(client).catch((err) => console.error("[statusBoard] 서버 수 마일스톤 확인 실패:", err));
+  }, UPDATE_INTERVAL_MS);
+}
+
+/** 전체 서버 수가 50의 배수를 새로 넘을 때마다 공지 채널에 축하 메시지를 올린다 — 핵심 성장
+ * 지표를 숨기지 않고 커뮤니티와 같이 축하하기 위함 */
+async function checkServerCountMilestone(client: Client) {
+  const settings = await prisma.botSettings.findUnique({ where: { id: 1 } });
+  if (!settings?.announcementChannelId) return;
+
+  const totalCount = await prisma.server.count({ where: { deletedAt: null } });
+  const milestone = Math.floor(totalCount / SERVER_COUNT_MILESTONE_STEP) * SERVER_COUNT_MILESTONE_STEP;
+  if (milestone === 0 || milestone <= settings.lastServerCountMilestone) return;
+
+  try {
+    const channel = await client.channels.fetch(settings.announcementChannelId);
+    if (!channel || !(channel instanceof TextChannel)) return;
+    const container = panel(0xfbbf24)
+      .addTextDisplayComponents(heading("🎉 서버 수 마일스톤 달성!"))
+      .addTextDisplayComponents(text(`Burnae에서 운영 중인 서버가 **${milestone.toLocaleString()}개**를 넘었어요! 함께해주신 모든 분들 감사해요 🙌`));
+    await channel.send({ components: [container], flags: MessageFlags.IsComponentsV2 });
+    await prisma.botSettings.update({ where: { id: 1 }, data: { lastServerCountMilestone: milestone } });
+  } catch (err) {
+    console.error("[statusBoard] 서버 수 마일스톤 공지 실패:", err);
+  }
 }
 
 async function getPlatformStats() {

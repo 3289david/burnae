@@ -742,32 +742,34 @@ function NewServerPageInner() {
                   튜닝된 마인크래프트 서버 등. 골라서 바로 시작하거나, 직접 만들어 공개하면 포인트를
                   받아요.
                 </p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                <div className="flex flex-col gap-1.5">
                   {filteredCommunityPresets.map((p, i) => {
                     const active = presetId === p.id;
                     return (
                       <div
                         key={p.id}
-                        className={`animate-fade-up rounded-2xl border p-3.5 flex flex-col items-start gap-1.5 transition-all duration-150 relative ${
+                        className={`animate-fade-up rounded-xl border px-3 py-2 flex items-center gap-2 transition-all duration-150 ${
                           active
                             ? "border-accent bg-accent/[0.08] shadow-[0_0_0_1px_var(--accent)]"
                             : "border-border bg-surface hover:border-accent/40 hover:bg-surface-2"
                         }`}
                         style={{ animationDelay: `${Math.min(i, 12) * 0.025}s` }}
                       >
-                        <button type="button" onClick={() => pickCommunityEgg(p)} className="text-left w-full active:scale-[0.97] transition-transform">
-                          <span className="font-semibold text-sm inline-flex items-center gap-1 flex-wrap">
-                            {p.displayName}
-                            {p.verified && (
-                              <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-accent bg-accent/10 rounded-full px-1.5 py-0.5">
-                                <ShieldCheck size={9} /> 공식
-                              </span>
-                            )}
-                          </span>
-                          <span className="block text-text-dim text-[11px] mt-0.5">{p.baseTemplateName} 기반</span>
-                          {p.blurb && <span className="block text-text-dim text-[11px] leading-tight mt-1">{p.blurb}</span>}
-                          <span className="block text-text-dim text-[10px] mt-1">
-                            by {p.creatorName}{p.useCount > 0 ? ` · ${p.useCount}번 사용됨` : ""}
+                        <button
+                          type="button"
+                          onClick={() => pickCommunityEgg(p)}
+                          className="flex-1 min-w-0 text-left flex items-center gap-1.5 active:scale-[0.99] transition-transform"
+                          title={p.blurb ?? undefined}
+                        >
+                          <span className="font-semibold text-sm shrink-0 truncate max-w-[40%]">{p.displayName}</span>
+                          {p.verified && (
+                            <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-accent bg-accent/10 rounded-full px-1.5 py-0.5 shrink-0">
+                              <ShieldCheck size={9} /> 공식
+                            </span>
+                          )}
+                          <span className="text-text-dim text-[11px] truncate">
+                            {p.baseTemplateName} 기반{p.blurb ? ` · ${p.blurb}` : ""} · by {p.creatorName}
+                            {p.useCount > 0 ? ` · ${p.useCount}번 사용됨` : ""}
                           </span>
                         </button>
                         {!p.verified && (
@@ -776,7 +778,7 @@ function NewServerPageInner() {
                             onClick={() => reportPreset(p.id)}
                             disabled={reportedPresetIds.includes(p.id)}
                             title="신고"
-                            className="absolute top-2 right-2 text-text-dim hover:text-red p-0.5 disabled:opacity-40"
+                            className="shrink-0 text-text-dim hover:text-red p-0.5 disabled:opacity-40"
                           >
                             <Flag size={11} />
                           </button>

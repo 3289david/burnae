@@ -2,7 +2,8 @@ import "dotenv/config";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PteroApp, PteroClient } from "../src/lib/pterodactyl";
-import { sendDiscordDM } from "../src/lib/discordNotify";
+import { sendDiscordDM, sendDiscordChannelMessage } from "../src/lib/discordNotify";
+import { panel, text, COMPONENTS_V2_FLAG } from "../src/lib/discordComponentsV2";
 import { deleteServerFully, removeSubdomain, MAX_SUBDOMAINS_PER_SERVER } from "../src/lib/provisioning";
 import { getRecentDeposits, isValidDepositorName } from "../src/lib/hanabank";
 import { markOrderPaidAndFulfill, retryPreorderFulfillment } from "../src/lib/orderFulfillment";
@@ -70,6 +71,29 @@ function mapWingsState(state: string): "RUNNING" | "STARTING" | "STOPPING" | "ST
  * 절대 실행되지 않는다. 여기서 주기적으로 Wings의 실제 상태를 읽어와 DB에 동기화한다.
  * SUSPENDED/DELETING/MIGRATING 상태는 다른 흐름이 명시적으로 관리하는 상태라 건드리지 않는다.
  */
+/** GitHub 연동(autoDeployEnabled)된 서버가 RUNNING ↔ STOPPED으로 바뀌면 관리자 로그 채널에
+ * 알린다 — 배포 자동화를 켜둔 서버는 "계속 떠 있어야 하는" 서비스일 가능성이 높아서,
+ * 조용히 꺼지는 걸 운영진이 바로 알 수 있어야 한다 */
+async function announceGitDeployServerStatusChange(
+  server: { id: string; name: string },
+  from: string,
+  to: "RUNNING" | "STOPPED",
+) {
+  const settings = await prisma.botSettings.findUnique({ where: { id: 1 } });
+  if (!settings?.logChannelId) return;
+  const isOnline = to === "RUNNING";
+  const color = isOnline ? 0x22c55e : 0xef4444;
+  const label = isOnline ? "🟢 온라인으로 전환" : "🔴 오프라인으로 전환";
+  await sendDiscordChannelMessage(settings.logChannelId, {
+    components: [
+      panel(color)
+        .addTextDisplayComponents(text(`### GitHub 연동 서버 상태 변경\n**${server.name}** — ${label} (${from} → ${to})`))
+        .toJSON(),
+    ],
+    flags: COMPONENTS_V2_FLAG,
+  }).catch((err) => console.error(`[cron] ${server.name} GitHub 연동 상태 변경 알림 실패:`, err));
+}
+
 async function handleServerStatusSync() {
   const servers = await prisma.server.findMany({
     where: {
@@ -84,8 +108,13 @@ async function handleServerStatusSync() {
       const resources = await PteroClient.getServerResources(server.pterodactylIdentifier!);
       const mapped = mapWingsState(resources.current_state);
       if (mapped && mapped !== server.status) {
+        const previousStatus = server.status;
         await prisma.server.update({ where: { id: server.id }, data: { status: mapped } });
-        console.log(`[cron] ${server.name} — 상태 동기화 ${server.status} → ${mapped}`);
+        console.log(`[cron] ${server.name} — 상태 동기화 ${previousStatus} → ${mapped}`);
+
+        if (server.autoDeployEnabled && (mapped === "RUNNING" || mapped === "STOPPED")) {
+          await announceGitDeployServerStatusChange(server, previousStatus, mapped);
+        }
       }
     } catch (err) {
       // Wings가 일시적으로 응답 없을 수 있음 — 조용히 스킵하고 다음 크론에서 재시도

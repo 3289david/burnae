@@ -28,6 +28,7 @@ import {
   Database,
   Network,
   Code2,
+  GitBranch,
   Terminal,
   Radio,
   Waves,
@@ -195,14 +196,19 @@ function loaderMeta(baseKey: string) {
 
 const TIER_ORDER: Record<string, number> = { 최신: 0, 중간: 1, 레거시: 2 };
 
-const CATEGORY_FILTER_LABEL: Record<"ALL" | "MINECRAFT" | "DISCORD_BOT" | "GENERAL" | "COMMUNITY" | "DATABASE", string> = {
+const CATEGORY_FILTER_LABEL: Record<"ALL" | "MINECRAFT" | "DISCORD_BOT" | "GENERAL" | "COMMUNITY" | "DATABASE" | "GIT_REPO", string> = {
   ALL: "전체",
+  GIT_REPO: "기본",
   MINECRAFT: "마인크래프트",
   DISCORD_BOT: "디스코드 봇",
   GENERAL: "일반 서버",
   DATABASE: "데이터베이스",
   COMMUNITY: "커뮤니티",
 };
+
+function isGitRepoTemplate(t: Template | undefined): boolean {
+  return !!t && "GIT_ADDRESS" in t.defaultEnvironment;
+}
 
 const NAME_ADJECTIVES = ["즐거운", "든든한", "반짝이는", "포근한", "용감한", "느긋한", "은은한", "씩씩한", "신비한", "아늑한"];
 const NAME_NOUNS = ["감자밭", "은하수", "다락방", "탐험대", "비밀기지", "요새", "정원", "등대", "오두막", "항구"];
@@ -259,7 +265,7 @@ function NewServerPageInner() {
   // 서버 종류가 38개까지 늘어나서 한 화면에 다 보여주면 찾기 어려우니, 카테고리별로 걸러 볼 수 있게 한다.
   // 소스(공식/커뮤니티)와 카테고리를 각자 다른 필터로 나누면 한 화면에 필터가 2개 생겨 복잡해지니,
   // "커뮤니티"를 카테고리 필터의 선택지 중 하나로 합쳐서 필터를 하나로 유지한다
-  const [categoryFilter, setCategoryFilter] = useState<"ALL" | Template["category"] | "COMMUNITY" | "DATABASE">("ALL");
+  const [categoryFilter, setCategoryFilter] = useState<"ALL" | Template["category"] | "COMMUNITY" | "DATABASE" | "GIT_REPO">("ALL");
   const eggSource: "official" | "community" = categoryFilter === "COMMUNITY" ? "community" : "official";
 
   const [allPresets, setAllPresets] = useState<CommunityPreset[]>([]);
@@ -404,9 +410,14 @@ function NewServerPageInner() {
   const filteredLoaderGroups = useMemo(() => {
     if (categoryFilter === "ALL" || categoryFilter === "COMMUNITY") return loaderGroups;
     if (categoryFilter === "DATABASE") return loaderGroups.filter((g) => isDatabaseTemplate(g.templates[0]?.key ?? ""));
-    // 일반 서버(GENERAL) 필터에서는 데이터베이스를 따로 전용 필터로 빼뒀으니 중복으로 또 안 보여준다
+    if (categoryFilter === "GIT_REPO") return loaderGroups.filter((g) => isGitRepoTemplate(g.templates[0]));
+    // 일반 서버(GENERAL)/디스코드 봇 필터에서는 데이터베이스·GitHub 저장소형을 각자 전용
+    // 필터로 빼뒀으니 중복으로 또 안 보여준다
     return loaderGroups.filter(
-      (g) => g.templates[0]?.category === categoryFilter && !isDatabaseTemplate(g.templates[0]?.key ?? ""),
+      (g) =>
+        g.templates[0]?.category === categoryFilter &&
+        !isDatabaseTemplate(g.templates[0]?.key ?? "") &&
+        !isGitRepoTemplate(g.templates[0]),
     );
   }, [loaderGroups, categoryFilter]);
 
@@ -683,18 +694,19 @@ function NewServerPageInner() {
         <form onSubmit={submitTemplateChoice} className="mt-8 space-y-10">
           {selectedProduct && loaderGroups.length > 0 && (
             <Section step={1} title="서버 종류">
-              <div className="flex flex-wrap gap-1.5 mb-3 p-1 bg-surface-2 rounded-full w-fit">
-                {(["ALL", ...availableCategories, "DATABASE", "COMMUNITY"] as const).map((c) => (
+              <div className="flex flex-nowrap gap-1.5 mb-3 p-1 bg-surface-2 rounded-full overflow-x-auto max-w-full [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {(["ALL", "GIT_REPO", ...availableCategories, "DATABASE", "COMMUNITY"] as const).map((c) => (
                   <button
                     type="button"
                     key={c}
                     onClick={() => setCategoryFilter(c)}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-150 inline-flex items-center gap-1 ${
+                    className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-150 inline-flex items-center gap-1 whitespace-nowrap ${
                       categoryFilter === c ? "bg-accent text-white shadow-sm" : "text-text-dim hover:text-text"
                     }`}
                   >
                     {c === "COMMUNITY" && <Users size={12} />}
                     {c === "DATABASE" && <Database size={12} />}
+                    {c === "GIT_REPO" && <GitBranch size={12} />}
                     {CATEGORY_FILTER_LABEL[c]}
                   </button>
                 ))}

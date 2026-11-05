@@ -174,12 +174,12 @@ export default function CommunityEggsPage() {
       )}
 
       {availableCategories.length > 1 && (
-        <div className="flex flex-wrap gap-1.5 mt-3 p-1 bg-surface-2 rounded-full w-fit">
+        <div className="flex flex-nowrap gap-1.5 mt-3 p-1 bg-surface-2 rounded-full overflow-x-auto max-w-full [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {(["ALL", ...availableCategories] as const).map((c) => (
             <button
               key={c}
               onClick={() => setCategoryFilter(c)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-150 ${
+              className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-150 whitespace-nowrap ${
                 categoryFilter === c ? "bg-accent text-white shadow-sm" : "text-text-dim hover:text-text"
               }`}
             >

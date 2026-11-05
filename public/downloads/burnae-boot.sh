@@ -4,6 +4,29 @@
 # echo된다 — SSH 비밀번호 등 민감한 값이 콘솔 로그에 그대로 남지 않는다.
 cd /home/container || exit 1
 
+# GIT_ADDRESS를 설정했으면 깃 저장소를 받아온다 — 안 설정했으면 그냥 빈 서버 그대로.
+# 처음 부팅할 때(디렉토리가 비어있을 때)만 clone하고, 이후엔 같은 저장소면 pull만 한다.
+if [ -n "${GIT_ADDRESS}" ]; then
+  GIT_URL="${GIT_ADDRESS}"
+  if [[ "${GIT_URL}" != *.git ]]; then
+    GIT_URL="${GIT_URL}.git"
+  fi
+  if [ -d .git ]; then
+    ORIGIN=$(git config --get remote.origin.url 2>/dev/null)
+    if [ "${ORIGIN}" = "${GIT_URL}" ]; then
+      git pull > .burnae_git.log 2>&1
+    fi
+  else
+    # 처음부터 설정했든 나중에 켰든 상관없이, .git이 아직 없으면 그냥 클론한다 — 이미
+    # burnae-sshd 같은 관련 없는 파일이 있어도 git clone은 충돌 안 나면 그대로 받아온다
+    if [ -n "${BRANCH}" ]; then
+      git clone --single-branch --branch "${BRANCH}" "${GIT_URL}" . > .burnae_git.log 2>&1
+    else
+      git clone "${GIT_URL}" . > .burnae_git.log 2>&1
+    fi
+  fi
+fi
+
 # 서버마다 처음 부팅할 때 한 번만 랜덤 비밀번호를 만들어서 파일로 저장해둔다. 재부팅해도
 # 그대로 유지되고, 서버마다 다른 값이라 한 서버 비밀번호가 새도 다른 서버는 안전하다.
 if [ ! -f .burnae_ssh_pass ]; then

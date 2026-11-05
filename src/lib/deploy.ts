@@ -249,12 +249,11 @@ async function notifyDeployResult(server: Server, ok: boolean, detail: string) {
   await notifyServerEvent(server, message);
 }
 
-/** 이 서버가 GIT_ADDRESS를 지원하는 템플릿인지(= git 배포 기능을 보여줄 수 있는지) 확인한다 */
-export async function supportsGitDeploy(templateId: string): Promise<boolean> {
-  const template = await prisma.serverTemplate.findUnique({ where: { id: templateId } });
-  if (!template) return false;
-  const defaultEnv = template.defaultEnvironment as Record<string, unknown>;
-  return "GIT_ADDRESS" in defaultEnv;
+/** git 배포 기능을 보여줄 수 있는지 — clone/pull/build 전부 콘솔 명령으로만 하기 때문에
+ * (Pterodactyl egg 시작 변수 스키마와 무관) 콘솔이 있는 모든 서버 종류에서 켤 수 있다.
+ * git이 설치 안 된 이미지면 그냥 git 명령이 실패로 뜨는 것뿐, 막을 이유는 없다. */
+export async function supportsGitDeploy(_templateId: string): Promise<boolean> {
+  return true;
 }
 
 /** https://host/path 형태의 URL 어딘가에 credential(토큰/x-access-token:토큰)이 박혀 있으면

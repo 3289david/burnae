@@ -316,9 +316,7 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
         <div className="card-glow p-5">
           <h3 className="font-semibold mb-3">SSH 접속</h3>
           <p className="text-xs text-text-dim mb-3">
-            터미널에서 <code className="font-mono bg-surface-2 rounded px-1">ssh burnae.kr</code>로 접속하면 돼요.
-            계정 설정에서 로그인 코드를 발급받아 비밀번호 자리에 입력하고, 메뉴에서 이 서버를 고른 뒤
-            &ldquo;접속(쉘)&rdquo;을 선택하면 바로 들어가요. 호스트나 포트를 따로 외울 필요 없어요.
+            터미널에서 <code className="font-mono bg-surface-2 rounded px-1">ssh burnae.kr</code> — 계정 설정에서 발급한 코드로 로그인 후 이 서버 선택.
           </p>
           <div className="mt-3 bg-black/30 rounded-lg px-3 py-2 font-mono text-xs select-all">
             ssh burnae.kr

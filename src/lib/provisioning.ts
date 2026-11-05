@@ -336,6 +336,13 @@ export async function createServerForOrder(orderId: string) {
     resolvedStartupCommand = `export SSH_PORT=${sshAllocation.port} STATIC_SERVER_ENABLED=0; ${resolvedStartupCommand}`;
   }
 
+  // GIT_ADDRESS도 같은 이유(egg가 변수로 등록 안 해두면 environment로 넘겨도 조용히 무시됨)로
+  // 시작 명령어에 직접 박아 넣는다 — 이러면 egg 스키마와 무관하게 어떤 서버 종류든(빈 서버 포함)
+  // 부트 스크립트가 ${GIT_ADDRESS}를 그대로 읽을 수 있다.
+  if (gitAddressToApply) {
+    resolvedStartupCommand = `export GIT_ADDRESS='${gitAddressToApply.replace(/'/g, "'\\''")}'; ${resolvedStartupCommand}`;
+  }
+
   pteroServer = await PteroApp.createServer({
     name: order.serverNameRequested ?? `${order.user.name}의 서버`,
     userId: pteroUser.id,

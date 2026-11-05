@@ -56,12 +56,12 @@ export default function DatabaseConnectCard({ serverId }: { serverId: string }) 
         </span>
         <div>
           <h3 className="font-semibold text-sm">데이터베이스 연결</h3>
-          <p className="text-xs text-text-dim">내가 가진 다른 서버(Postgres/MongoDB/Redis)의 접속 정보를 이 서버의 .env 파일에 바로 써줘요.</p>
+          <p className="text-xs text-text-dim">내 DB 서버 접속 정보를 이 서버의 .env에 바로 써줘요.</p>
         </div>
       </div>
 
       {options.length === 0 ? (
-        <p className="text-xs text-text-dim">연결할 수 있는 데이터베이스 서버가 없어요. Postgres/MongoDB/Redis 서버를 먼저 만들어주세요.</p>
+        <p className="text-xs text-text-dim">연결할 DB 서버가 없어요 — 먼저 만들어주세요.</p>
       ) : (
         <div className="flex flex-wrap gap-2">
           <select className="input flex-1 min-w-[140px] text-sm" value={selected} onChange={(e) => setSelected(e.target.value)}>

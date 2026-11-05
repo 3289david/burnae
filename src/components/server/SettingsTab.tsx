@@ -248,7 +248,7 @@ export default function SettingsTab({
     {isOwner && (
       <div className="card-glow p-5 space-y-2">
         <h3 className="font-semibold text-sm">메모</h3>
-        <p className="text-xs text-text-dim">나만 볼 수 있는 비공개 메모예요. 예: &ldquo;친구 서버, 매달 15일 갱신&rdquo;</p>
+        <p className="text-xs text-text-dim">나만 볼 수 있는 비공개 메모</p>
         <textarea
           className="input w-full text-sm min-h-[70px] resize-y"
           value={note}

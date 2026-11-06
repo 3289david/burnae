@@ -79,6 +79,13 @@ async function updateStatsVoiceChannel(client: Client) {
     if (channel.name === name) return; // 같으면 호출 자체를 안 해서 레이트리밋을 아낀다
     await channel.setName(name);
   } catch (err) {
+    // 채널이 디스코드에서 직접 삭제됐으면(Unknown Channel) 매 10분마다 똑같은 에러만 계속
+    // 남기지 않도록 설정을 비워서 자가 치유한다 — 관리자가 /admin/discord에서 다시 만들면 됨
+    if (err instanceof Error && "code" in err && (err as { code?: number }).code === 10003) {
+      await prisma.botSettings.update({ where: { id: 1 }, data: { statsVoiceChannelId: null } }).catch(() => {});
+      console.warn("[statusBoard] 통계 음성 채널이 삭제됨 — 설정 초기화함 (관리자가 다시 만들어야 함)");
+      return;
+    }
     console.error("[statusBoard] 음성 채널 이름 변경 실패:", err);
   }
 }

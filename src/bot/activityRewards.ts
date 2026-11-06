@@ -38,11 +38,11 @@ function todayKey(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-async function awardToDiscordUser(client: Client, discordUserId: string, points: number, reason: string) {
+async function awardToDiscordUser(client: Client, discordUserId: string, points: number, reason: string): Promise<boolean> {
   const link = await prisma.discordLink.findUnique({ where: { discordUserId } });
   if (!link) {
     console.log(`[activityRewards] ${discordUserId} 미연동 계정이라 지급 안 함 (${reason})`);
-    return;
+    return false;
   }
   const before = await prisma.user.findUniqueOrThrow({ where: { id: link.userId }, select: { promotionPoints: true } });
   const after = await prisma.user.update({
@@ -58,6 +58,7 @@ async function awardToDiscordUser(client: Client, discordUserId: string, points:
       console.error("[activityRewards] 마일스톤 DM 실패:", err),
     );
   }
+  return true;
 }
 
 /** 서버 부스트는 조용히 포인트만 지급하지 말고 공개로 감사 인사를 남긴다 — welcomeChannelId를
@@ -119,7 +120,13 @@ function handleMessageCreate(client: Client, message: Message, officialGuildId: 
   lastChatRewardAt.set(message.author.id, now);
   chatDailyTotal.set(message.author.id, { day: today, points: soFar + POINTS_PER_MESSAGE });
 
-  awardToDiscordUser(client, message.author.id, POINTS_PER_MESSAGE, "채팅").catch((err) => console.error("[activityRewards] 채팅 지급 실패:", err));
+  // 지급 성공 시 메시지에 이모지 반응을 남긴다 — 그 전에는 로그에만 남아서 유저가 실제로
+  // 포인트를 받았는지 확인할 방법이 없었다("작동 안 하는 것 같다"는 혼란의 원인이었음)
+  awardToDiscordUser(client, message.author.id, POINTS_PER_MESSAGE, "채팅")
+    .then((awarded) => {
+      if (awarded) message.react("💰").catch(() => {});
+    })
+    .catch((err) => console.error("[activityRewards] 채팅 지급 실패:", err));
 }
 
 function handleGuildMemberUpdate(

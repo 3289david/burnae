@@ -129,13 +129,9 @@ function handleMessageCreate(client: Client, message: Message, officialGuildId: 
   lastChatRewardAt.set(message.author.id, now);
   chatDailyTotal.set(message.author.id, { day: today, points: soFar + POINTS_PER_MESSAGE });
 
-  // 지급 성공 시 메시지에 이모지 반응을 남긴다 — 그 전에는 로그에만 남아서 유저가 실제로
-  // 포인트를 받았는지 확인할 방법이 없었다("작동 안 하는 것 같다"는 혼란의 원인이었음)
-  awardToDiscordUser(client, message.author.id, POINTS_PER_MESSAGE, `채팅(ch:${message.channelId})`)
-    .then((awarded) => {
-      if (awarded) message.react("💰").catch(() => {});
-    })
-    .catch((err) => console.error("[activityRewards] 채팅 지급 실패:", err));
+  awardToDiscordUser(client, message.author.id, POINTS_PER_MESSAGE, `채팅(ch:${message.channelId})`).catch((err) =>
+    console.error("[activityRewards] 채팅 지급 실패:", err),
+  );
 }
 
 function handleGuildMemberUpdate(

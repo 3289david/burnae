@@ -61,12 +61,12 @@ async function awardToDiscordUser(client: Client, discordUserId: string, points:
   return true;
 }
 
-/** 서버 부스트는 조용히 포인트만 지급하지 말고 공개로 감사 인사를 남긴다 — welcomeChannelId를
- * "공개 커뮤니티 긍정 이벤트" 채널로 같이 쓴다 */
+/** 서버 부스트는 조용히 포인트만 지급하지 말고 공개로 감사 인사를 남긴다 — 메인 공지(업데이트/중요
+ * 사안)와 구분된 서브 공지 채널(덜 중요한 알림)에 올린다 */
 async function announceBoost(member: GuildMember) {
   const settings = await prisma.botSettings.findUnique({ where: { id: 1 } });
-  if (!settings?.welcomeChannelId) return;
-  const channel = await member.guild.channels.fetch(settings.welcomeChannelId).catch(() => null);
+  if (!settings?.subAnnouncementChannelId) return;
+  const channel = await member.guild.channels.fetch(settings.subAnnouncementChannelId).catch(() => null);
   if (!channel || !channel.isTextBased()) return;
 
   const container = panel(0xf472b6)

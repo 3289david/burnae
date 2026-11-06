@@ -28,9 +28,9 @@ const schema = z.object({
   linktreeChannelId: z.string().min(1).optional().nullable(),
   statusBoardChannelId: z.string().min(1).optional().nullable(),
   announcementChannelId: z.string().min(1).optional().nullable(),
+  subAnnouncementChannelId: z.string().min(1).optional().nullable(),
   logChannelId: z.string().min(1).optional().nullable(),
   welcomeChannelId: z.string().min(1).optional().nullable(),
-  statsVoiceChannelId: z.string().min(1).optional().nullable(),
 });
 
 export async function PUT(request: Request) {

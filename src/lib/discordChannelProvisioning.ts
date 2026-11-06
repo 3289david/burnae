@@ -11,7 +11,7 @@ const CATEGORY_NAME = "Burnae 운영";
 const VIEW_CHANNEL_BIT = "1024";
 
 interface ChannelSpec {
-  settingsField: "rulesChannelId" | "linktreeChannelId" | "statusBoardChannelId" | "announcementChannelId" | "welcomeChannelId" | "logChannelId" | "nodeStatusChannelId" | "statsVoiceChannelId";
+  settingsField: "rulesChannelId" | "linktreeChannelId" | "statusBoardChannelId" | "announcementChannelId" | "welcomeChannelId" | "logChannelId" | "nodeStatusChannelId";
   name: string;
   topic: string;
   adminOnly?: boolean;
@@ -26,7 +26,6 @@ const CHANNEL_SPECS: ChannelSpec[] = [
   { settingsField: "statusBoardChannelId", name: "실시간-현황", topic: "전체 서버 실시간 통계 (1분마다 자동 갱신)" },
   { settingsField: "logChannelId", name: "운영-로그", topic: "서버 생성/삭제/이전 기록", adminOnly: true },
   { settingsField: "nodeStatusChannelId", name: "노드-상태", topic: "노드별 RAM/CPU/저장공간 점유율 (관리자용)", adminOnly: true },
-  { settingsField: "statsVoiceChannelId", name: "🟢 가동중 0/0", topic: "", type: 2 },
 ];
 
 function botHeaders() {

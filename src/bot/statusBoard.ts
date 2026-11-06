@@ -1,11 +1,9 @@
-import { TextChannel, VoiceChannel, MessageFlags } from "discord.js";
+import { TextChannel, MessageFlags } from "discord.js";
 import type { Client } from "discord.js";
 import { prisma } from "./prismaClient";
 import { panel, heading, text, subtext } from "../lib/discordComponentsV2";
 
 const UPDATE_INTERVAL_MS = 60_000;
-/// 디스코드가 채널 이름 변경을 채널당 10분에 2번으로 제한해서 텍스트 현황판보다 느리게 돈다
-const VOICE_STATS_INTERVAL_MS = 10 * 60_000;
 
 /**
  * 실시간 집계 현황판. 개별 고객 서버의 이름/상태 같은 비공개 정보는 절대 넣지 않고,
@@ -20,11 +18,6 @@ export function startStatusBoard(client: Client) {
   setInterval(() => {
     updateStatusBoard(client).catch((err) => console.error("[statusBoard] 업데이트 실패:", err));
   }, UPDATE_INTERVAL_MS);
-
-  updateStatsVoiceChannel(client).catch((err) => console.error("[statusBoard] 음성 채널 이름 초기 갱신 실패:", err));
-  setInterval(() => {
-    updateStatsVoiceChannel(client).catch((err) => console.error("[statusBoard] 음성 채널 이름 갱신 실패:", err));
-  }, VOICE_STATS_INTERVAL_MS);
 
   checkServerCountMilestone(client).catch((err) => console.error("[statusBoard] 서버 수 마일스톤 확인 실패:", err));
   setInterval(() => {
@@ -63,31 +56,6 @@ async function getPlatformStats() {
   ]);
   const onlineNodes = nodes.filter((n) => n.status === "ONLINE").length;
   return { runningCount, totalCount, onlineNodes, totalNodes: nodes.length };
-}
-
-/** 채널 목록에서 클릭 안 해도 바로 보이는 "🟢 가동중 N/M" 음성 채널 이름 — 10분마다 갱신 */
-async function updateStatsVoiceChannel(client: Client) {
-  const settings = await prisma.botSettings.findUnique({ where: { id: 1 } });
-  if (!settings?.statsVoiceChannelId) return;
-
-  const { runningCount, totalCount } = await getPlatformStats();
-  const name = `🟢 가동중 ${runningCount}/${totalCount}`;
-
-  try {
-    const channel = await client.channels.fetch(settings.statsVoiceChannelId);
-    if (!channel || !(channel instanceof VoiceChannel)) return;
-    if (channel.name === name) return; // 같으면 호출 자체를 안 해서 레이트리밋을 아낀다
-    await channel.setName(name);
-  } catch (err) {
-    // 채널이 디스코드에서 직접 삭제됐으면(Unknown Channel) 매 10분마다 똑같은 에러만 계속
-    // 남기지 않도록 설정을 비워서 자가 치유한다 — 관리자가 /admin/discord에서 다시 만들면 됨
-    if (err instanceof Error && "code" in err && (err as { code?: number }).code === 10003) {
-      await prisma.botSettings.update({ where: { id: 1 }, data: { statsVoiceChannelId: null } }).catch(() => {});
-      console.warn("[statusBoard] 통계 음성 채널이 삭제됨 — 설정 초기화함 (관리자가 다시 만들어야 함)");
-      return;
-    }
-    console.error("[statusBoard] 음성 채널 이름 변경 실패:", err);
-  }
 }
 
 async function updateStatusBoard(client: Client) {

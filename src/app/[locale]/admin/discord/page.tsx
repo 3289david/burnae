@@ -15,9 +15,9 @@ interface BotSettings {
   linktreeChannelId: string | null;
   statusBoardChannelId: string | null;
   announcementChannelId: string | null;
+  subAnnouncementChannelId: string | null;
   logChannelId: string | null;
   welcomeChannelId: string | null;
-  statsVoiceChannelId: string | null;
 }
 
 interface LinktreeLink {
@@ -40,10 +40,10 @@ const CHANNEL_FIELDS: { key: keyof BotSettings; label: string; hint: string }[] 
   { key: "rulesChannelId", label: "규칙 채널 ID", hint: "규칙+인증 버튼 임베드가 여기 올라가요" },
   { key: "linktreeChannelId", label: "링크트리 채널 ID", hint: "아래 링크 목록이 임베드로 여기 올라가요" },
   { key: "statusBoardChannelId", label: "실시간 현황판 채널 ID", hint: "1분마다 자동 갱신되는 집계 통계 임베드" },
-  { key: "announcementChannelId", label: "공지사항 채널 ID", hint: "관리자 공지 등록 시 자동으로 임베드 발송" },
+  { key: "announcementChannelId", label: "메인 공지 채널 ID", hint: "업데이트/패치노트, 서버 수 마일스톤 등 중요 사안" },
+  { key: "subAnnouncementChannelId", label: "서브 공지 채널 ID", hint: "서버 부스트 감사 등 덜 중요한 알림" },
   { key: "logChannelId", label: "운영 로그 채널 ID", hint: "서버 생성/삭제/이전 기록" },
   { key: "welcomeChannelId", label: "환영 채널 ID", hint: "새 멤버가 들어오면 공개 환영 메시지를 올려요 (비우면 DM만 보냄)" },
-  { key: "statsVoiceChannelId", label: "통계 음성채널 ID", hint: "채널 이름 자체를 \"🟢 가동중 N/M\"으로 10분마다 바꿔서 클릭 안 해도 바로 보여요" },
 ];
 
 const emptyLink = { label: "", url: "", emoji: "", sortOrder: 0 };

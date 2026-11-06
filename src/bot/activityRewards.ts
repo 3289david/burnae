@@ -37,6 +37,9 @@ const POINTS_PER_VERIFIED_TITLE = 100;
 
 const lastChatRewardAt = new Map<string, number>();
 const chatDailyTotal = new Map<string, { day: string; points: number }>();
+/** 60초 쿨다운만으로는 "같은 문장 반복 전송"으로 느리게 도배하며 포인트를 긁는 걸 못 막는다 —
+ * 직전에 보상받은 메시지와 내용이 같으면 쿨다운을 지켰어도 보상하지 않는다 */
+const lastRewardedContent = new Map<string, string>();
 
 function todayKey(): string {
   return new Date().toISOString().slice(0, 10);
@@ -118,6 +121,12 @@ function handleMessageCreate(client: Client, message: Message, officialGuildId: 
     return;
   }
 
+  const normalizedContent = content.toLowerCase();
+  if (lastRewardedContent.get(message.author.id) === normalizedContent) {
+    console.log(`[activityRewards] ${message.author.id} 직전 보상 메시지와 내용 동일 — 반복 도배 의심, 지급 안 함 — ch:${message.channelId}`);
+    return;
+  }
+
   const today = todayKey();
   const record = chatDailyTotal.get(message.author.id);
   const soFar = record?.day === today ? record.points : 0;
@@ -127,6 +136,7 @@ function handleMessageCreate(client: Client, message: Message, officialGuildId: 
   }
 
   lastChatRewardAt.set(message.author.id, now);
+  lastRewardedContent.set(message.author.id, normalizedContent);
   chatDailyTotal.set(message.author.id, { day: today, points: soFar + POINTS_PER_MESSAGE });
 
   awardToDiscordUser(client, message.author.id, POINTS_PER_MESSAGE, `채팅(ch:${message.channelId})`).catch((err) =>

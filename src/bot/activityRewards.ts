@@ -6,6 +6,10 @@ import { panel, heading, text } from "../lib/discordComponentsV2";
 /** 총 누적 포인트가 이 기준을 넘을 때마다 1회 DM으로 축하 메시지를 보낸다 */
 const POINT_MILESTONES = [1000, 5000, 10000, 50000, 100000];
 
+/** 채팅 포인트는 이 두 카테고리(채팅 채널, 음성 채널) 안의 텍스트 채널에서만 인정한다 —
+ * 운영/관리자 채널 등 포인트 목적이 아닌 곳에서의 채팅은 대상에서 제외 */
+const CHAT_POINT_ALLOWED_CATEGORY_IDS = new Set(["1542132019818008620", "1542132020040437774"]);
+
 /**
  * 포인트가 1원=1포인트로 현금과 그대로 맞바꿔지는 값이 됐기 때문에(지난 글자수 기반 보상은
  * 이론상 "스팸 → 시간당 수십만 포인트" 수준으로 현금을 그냥 찍어내는 구멍이었다), 채팅 보상은
@@ -92,20 +96,25 @@ function handleMessageCreate(client: Client, message: Message, officialGuildId: 
   if (message.guildId !== officialGuildId) return;
   if (message.author.bot) return;
 
+  const parentId = "parentId" in message.channel ? message.channel.parentId : null;
+  if (!parentId || !CHAT_POINT_ALLOWED_CATEGORY_IDS.has(parentId)) return;
+
   const content = message.content.trim();
   if (content.length < MIN_MESSAGE_LENGTH) {
-    // MessageContent 특권 인텐트가 디스코드 개발자 포털에서 꺼지면 content가 항상 빈 문자열로
-    // 와서 모든 메시지가 조용히 여기서 걸린다 — 길이가 의심스럽게 0이면 바로 알 수 있게 남긴다
-    if (content.length === 0) {
-      console.log(`[activityRewards] ${message.author.id} 메시지 content가 비어있음 — MessageContent 인텐트 확인 필요`);
-    }
+    // 글자 수 미달(5자 미만)은 여태 조용히 넘어갔는데, "왜 포인트가 안 들어오냐"는 혼란의
+    // 큰 원인이었다 — 채널까지 같이 남겨서 어디서 무시됐는지 바로 알 수 있게 한다
+    console.log(
+      `[activityRewards] ${message.author.id} 메시지 너무 짧음(${content.length}자, 최소 ${MIN_MESSAGE_LENGTH}자) — ch:${message.channelId}`,
+    );
     return;
   }
 
   const now = Date.now();
   const last = lastChatRewardAt.get(message.author.id) ?? 0;
   if (now - last < CHAT_REWARD_COOLDOWN_MS) {
-    console.log(`[activityRewards] ${message.author.id} 쿨다운 중(${Math.ceil((CHAT_REWARD_COOLDOWN_MS - (now - last)) / 1000)}초 남음)`);
+    console.log(
+      `[activityRewards] ${message.author.id} 쿨다운 중(${Math.ceil((CHAT_REWARD_COOLDOWN_MS - (now - last)) / 1000)}초 남음) — ch:${message.channelId}`,
+    );
     return;
   }
 
@@ -113,7 +122,7 @@ function handleMessageCreate(client: Client, message: Message, officialGuildId: 
   const record = chatDailyTotal.get(message.author.id);
   const soFar = record?.day === today ? record.points : 0;
   if (soFar >= CHAT_DAILY_CAP) {
-    console.log(`[activityRewards] ${message.author.id} 오늘 일일 한도(${CHAT_DAILY_CAP}P) 도달`);
+    console.log(`[activityRewards] ${message.author.id} 오늘 일일 한도(${CHAT_DAILY_CAP}P) 도달 — ch:${message.channelId}`);
     return;
   }
 
@@ -122,7 +131,7 @@ function handleMessageCreate(client: Client, message: Message, officialGuildId: 
 
   // 지급 성공 시 메시지에 이모지 반응을 남긴다 — 그 전에는 로그에만 남아서 유저가 실제로
   // 포인트를 받았는지 확인할 방법이 없었다("작동 안 하는 것 같다"는 혼란의 원인이었음)
-  awardToDiscordUser(client, message.author.id, POINTS_PER_MESSAGE, "채팅")
+  awardToDiscordUser(client, message.author.id, POINTS_PER_MESSAGE, `채팅(ch:${message.channelId})`)
     .then((awarded) => {
       if (awarded) message.react("💰").catch(() => {});
     })

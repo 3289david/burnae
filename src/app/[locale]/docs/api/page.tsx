@@ -80,8 +80,7 @@ export default function ApiDocsPage() {
       <main className="max-w-3xl mx-auto px-6 py-12 flex-1 w-full">
         <h1 className="text-3xl font-bold font-display">API 문서</h1>
         <p className="text-sm text-text-dim mt-2">
-          CLI나 스크립트에서 내 서버를 조회하고 조작할 수 있는 공개 API예요. Render/Railway의 API와
-          비슷한 역할이에요.
+          CLI나 스크립트에서 내 서버를 조회·조작할 수 있는 공개 API예요.
         </p>
 
         <section className="mt-8">

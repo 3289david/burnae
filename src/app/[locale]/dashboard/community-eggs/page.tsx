@@ -148,9 +148,7 @@ export default function CommunityEggsPage() {
         <Users size={22} className="text-accent" /> 커뮤니티 프리셋
       </h1>
       <p className="text-sm text-text-dim mt-1">
-        다른 유저가 공개한 &ldquo;일반 서버 + 내 GitHub 저장소&rdquo; 조합이에요 — 예: 직접 만든 디스코드 봇
-        코드. 골라서 바로 서버를 만들거나, 직접 만들어 공개하면 다른 사람이 설치할 때마다 포인트를
-        받아요.
+        다른 유저가 공개한 GitHub 저장소 조합 — 설치하거나, 공개해서 포인트를 모으세요.
       </p>
 
       {presets.length > 4 && (
@@ -255,10 +253,7 @@ export default function CommunityEggsPage() {
           <div className="card-glow p-4 space-y-3 animate-fade-up">
             <h4 className="font-semibold text-sm">내 커뮤니티 프리셋 공유하기</h4>
             <p className="text-xs text-text-dim">
-              일반 실행 환경(Node.js/Python 등 — 음악봇처럼 이미 완성된 종류는 고를 수 없어요)을
-              고르고 내 코드가 있는 GitHub 저장소 주소를 붙여서 공개해요. 설정값(봇 토큰 등)는
-              여기서 넣지 않아요 — 이 프리셋으로 서버를 만드는 사람이 직접 입력해요. 다른 사람이 이
-              프리셋으로 서버를 만들 때마다 포인트가 쌓여요.
+              실행 환경을 고르고 GitHub 저장소를 붙여 공개하세요 (봇 토큰 등은 설치자가 직접 입력).
             </p>
             <select
               className="input w-full text-sm"

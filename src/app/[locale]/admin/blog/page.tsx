@@ -147,7 +147,7 @@ export default function AdminBlogPage() {
             />
           </div>
           <div>
-            <label className="text-sm text-text-dim">본문 (영어, 마크다운, 선택 — 비워두면 영어 페이지에 번역본이 없다는 안내만 보여요)</label>
+            <label className="text-sm text-text-dim">본문 (영어, 선택 — 비우면 번역 없음 안내 표시)</label>
             <textarea
               className="input w-full mt-1 font-mono text-xs"
               rows={10}

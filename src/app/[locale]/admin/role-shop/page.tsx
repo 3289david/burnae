@@ -22,6 +22,7 @@ const emptyForm = { discordRoleId: "", name: "", pointsCost: 1000, sortOrder: 0 
 export default function AdminRoleShopPage() {
   const [items, setItems] = useState<RoleShopItem[]>([]);
   const [form, setForm] = useState(emptyForm);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -33,21 +34,32 @@ export default function AdminRoleShopPage() {
     if (res.ok) setItems(await res.json());
   }
 
-  async function add(e: React.FormEvent) {
+  function startEdit(item: RoleShopItem) {
+    setEditingId(item.id);
+    setForm({ discordRoleId: item.discordRoleId, name: item.name, pointsCost: item.pointsCost, sortOrder: item.sortOrder });
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setForm(emptyForm);
+  }
+
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     try {
-      const res = await fetch("/api/admin/role-shop", {
-        method: "POST",
+      const res = await fetch(editingId ? `/api/admin/role-shop/${editingId}` : "/api/admin/role-shop", {
+        method: editingId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setForm(emptyForm);
+      setEditingId(null);
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "추가 실패");
+      setError(err instanceof Error ? err.message : "저장 실패");
     }
   }
 
@@ -84,8 +96,9 @@ export default function AdminRoleShopPage() {
               </p>
               <p className="text-xs text-text-dim mt-0.5 truncate">역할 ID: {item.discordRoleId}</p>
             </div>
-            <div className="flex gap-2 shrink-0">
+            <div className="flex gap-2 shrink-0 items-center">
               <Toggle checked={item.active} onChange={() => toggleActive(item.id, !item.active)} size="sm" />
+              <button onClick={() => startEdit(item)} className="text-sm px-2">수정</button>
               <button onClick={() => remove(item.id)} className="text-red text-sm px-2">삭제</button>
             </div>
           </div>
@@ -93,8 +106,8 @@ export default function AdminRoleShopPage() {
         {items.length === 0 && <p className="text-sm text-text-dim">등록된 상품이 없어요.</p>}
       </div>
 
-      <form onSubmit={add} className="card-glow p-5 mt-4 space-y-3">
-        <h3 className="font-semibold">새 상품 추가</h3>
+      <form onSubmit={submit} className="card-glow p-5 mt-4 space-y-3">
+        <h3 className="font-semibold">{editingId ? "상품 수정" : "새 상품 추가"}</h3>
         <div className="grid sm:grid-cols-3 gap-3">
           <div>
             <label className="text-sm text-text-dim">이름</label>
@@ -127,7 +140,12 @@ export default function AdminRoleShopPage() {
           </div>
         </div>
         {error && <p className="text-sm text-red">{error}</p>}
-        <button type="submit" className="btn-primary px-5 py-2.5">추가</button>
+        <div className="flex gap-2">
+          <button type="submit" className="btn-primary px-5 py-2.5">{editingId ? "저장" : "추가"}</button>
+          {editingId && (
+            <button type="button" onClick={cancelEdit} className="btn-secondary px-5 py-2.5">취소</button>
+          )}
+        </div>
       </form>
     </div>
   );

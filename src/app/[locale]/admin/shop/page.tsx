@@ -62,6 +62,7 @@ const empty = {
 export default function AdminShopPage() {
   const [items, setItems] = useState<ShopItem[]>([]);
   const [form, setForm] = useState(empty);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -71,28 +72,48 @@ export default function AdminShopPage() {
   }
   useEffect(() => { load(); }, []);
 
-  async function create(e: React.FormEvent) {
+  function startEdit(item: ShopItem) {
+    setEditingId(item.id);
+    setForm({
+      name: item.name,
+      description: item.description ?? "",
+      kind: item.kind,
+      pointsCost: item.pointsCost,
+      amount: item.amount ?? 0,
+      maxTotal: item.maxTotal ?? "",
+      durationDays: item.durationDays ?? "",
+    });
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setForm(empty);
+  }
+
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/shop", {
-        method: "POST",
+      const body = {
+        ...form,
+        description: form.description || undefined,
+        amount: form.kind === "CUSTOM" || form.kind === "EXTRA_FREE_SLOT" ? undefined : form.amount,
+        maxTotal: RESOURCE_KINDS.has(form.kind) && form.maxTotal !== "" ? form.maxTotal : undefined,
+        durationDays: form.kind === "EXTRA_FREE_SLOT" && form.durationDays !== "" ? form.durationDays : undefined,
+      };
+      const res = await fetch(editingId ? `/api/admin/shop/${editingId}` : "/api/admin/shop", {
+        method: editingId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          description: form.description || undefined,
-          amount: form.kind === "CUSTOM" || form.kind === "EXTRA_FREE_SLOT" ? undefined : form.amount,
-          maxTotal: RESOURCE_KINDS.has(form.kind) && form.maxTotal !== "" ? form.maxTotal : undefined,
-          durationDays: form.kind === "EXTRA_FREE_SLOT" && form.durationDays !== "" ? form.durationDays : undefined,
-        }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setForm(empty);
+      setEditingId(null);
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "생성 실패");
+      setError(err instanceof Error ? err.message : "저장 실패");
     } finally {
       setLoading(false);
     }
@@ -142,6 +163,9 @@ export default function AdminShopPage() {
             </div>
             <div className="flex items-center gap-2">
               <Toggle checked={item.active} onChange={() => toggleActive(item.id, item.active)} size="sm" />
+              <button onClick={() => startEdit(item)} className="btn-secondary px-3 py-1.5 text-sm">
+                수정
+              </button>
               <button onClick={() => remove(item.id, item.name)} className="btn-secondary px-3 py-1.5 text-sm text-red">
                 삭제
               </button>
@@ -151,8 +175,8 @@ export default function AdminShopPage() {
         {items.length === 0 && <p className="text-sm text-text-dim">아직 등록된 상품이 없어요.</p>}
       </div>
 
-      <form onSubmit={create} className="card-glow p-5 mt-6 space-y-3">
-        <h2 className="font-semibold">새 상품 추가</h2>
+      <form onSubmit={submit} className="card-glow p-5 mt-6 space-y-3">
+        <h2 className="font-semibold">{editingId ? "상품 수정" : "새 상품 추가"}</h2>
         <div className="grid sm:grid-cols-2 gap-3">
           <div>
             <label className="text-sm text-text-dim">이름</label>
@@ -222,9 +246,16 @@ export default function AdminShopPage() {
           </div>
         </div>
         {error && <p className="text-sm text-red">{error}</p>}
-        <button type="submit" disabled={loading || !form.name} className="btn-primary px-5 py-2.5">
-          추가
-        </button>
+        <div className="flex gap-2">
+          <button type="submit" disabled={loading || !form.name} className="btn-primary px-5 py-2.5">
+            {editingId ? "저장" : "추가"}
+          </button>
+          {editingId && (
+            <button type="button" onClick={cancelEdit} className="btn-secondary px-5 py-2.5">
+              취소
+            </button>
+          )}
+        </div>
       </form>
     </div>
   );

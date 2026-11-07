@@ -20,6 +20,7 @@ export default function DashboardNav({ userName, showAdminLink }: Props) {
   const LINKS = [
     { href: "/dashboard/community-eggs", label: t("communityEggs") },
     { href: "/dashboard/promotions", label: t("promotions") },
+    { href: "/dashboard/points-shop", label: t("pointsShop") },
     { href: "/dashboard/billing", label: t("billing") },
     { href: "/dashboard/support", label: t("support") },
     { href: "/dashboard/account", label: t("account") },

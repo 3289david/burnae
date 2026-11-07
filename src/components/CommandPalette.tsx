@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
-import { Search, Server, Plus, CreditCard, User, Users, Gift, ShieldCheck, CornerDownLeft } from "lucide-react";
+import { Search, Server, Plus, CreditCard, User, Users, Gift, ShoppingBag, ShieldCheck, CornerDownLeft } from "lucide-react";
 
 interface ServerOption {
   id: string;
@@ -27,6 +27,7 @@ function buildStaticActions(showAdminLink: boolean, t: ReturnType<typeof useTran
     { id: "dashboard", label: t("dashboard"), href: "/dashboard", icon: Server },
     { id: "community-eggs", label: t("communityEggs"), href: "/dashboard/community-eggs", icon: Users },
     { id: "promotions", label: t("promotions"), href: "/dashboard/promotions", icon: Gift },
+    { id: "points-shop", label: t("pointsShop"), href: "/dashboard/points-shop", icon: ShoppingBag },
     { id: "billing", label: t("billing"), href: "/dashboard/billing", icon: CreditCard },
     { id: "account", label: t("account"), href: "/dashboard/account", icon: User },
   ];

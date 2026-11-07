@@ -1,7 +1,6 @@
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import PromotionsClient from "@/components/PromotionsClient";
-import ShopSection from "@/components/ShopSection";
 import PointsPurchaseCard from "@/components/PointsPurchaseCard";
 
 export default async function PromotionsPage() {
@@ -41,7 +40,6 @@ export default async function PromotionsPage() {
         };
       })}
     />
-    <ShopSection points={user!.promotionPoints} />
     </>
   );
 }

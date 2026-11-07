@@ -173,6 +173,7 @@
   "dashboardNav": {
     "communityEggs": "커뮤니티 프리셋",
     "promotions": "홍보 포인트",
+    "pointsShop": "포인트 상점",
     "billing": "결제 내역",
     "support": "고객지원",
     "account": "계정",
@@ -204,6 +205,7 @@
     "dashboard": "대시보드",
     "communityEggs": "커뮤니티 프리셋",
     "promotions": "홍보 포인트",
+    "pointsShop": "포인트 상점",
     "billing": "결제 내역",
     "account": "계정 설정",
     "admin": "관리자 페이지",

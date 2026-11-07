@@ -188,10 +188,39 @@ export default function AiTab({
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, pending, busy]);
 
+  /** 연결이 끊기면(탭 백그라운드, 네트워크 전환 등) 같은 clientMessageId로 몇 번 더 보내본다 —
+   * 서버(messages/route.ts)가 같은 ID의 메시지를 이미 받았으면 새로 만들거나 턴을 다시 돌리지
+   * 않고 확인만 해주므로, 재전송해도 파일 중복 작성·명령 중복 실행 같은 부작용이 없다.
+   * 4xx(입력 오류·권한·크레딧 부족 등)는 재시도해도 똑같이 실패하니 바로 멈춘다. */
+  async function sendMessageWithRetry(convId: string, text: string, clientMessageId: string, attempts = 4) {
+    for (let i = 0; i < attempts; i++) {
+      let serverRejected: string | null = null;
+      try {
+        const res = await fetchWithTimeout(`/api/ai/conversations/${convId}/messages`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: text, clientMessageId }),
+        });
+        if (res.ok) return;
+        if (res.status < 500) {
+          const data = await res.json().catch(() => ({}));
+          serverRejected = data.error ?? t("sendFailed");
+        }
+        // 5xx는 그냥 아래로 내려가서 재시도
+      } catch {
+        // 네트워크 단계에서 끊긴 경우(fetch 자체가 예외) — 재시도 대상
+      }
+      if (serverRejected) throw new Error(serverRejected); // 입력 오류/권한/크레딧 부족 등은 재시도해도 똑같이 실패
+      if (i === attempts - 1) return; // 계속 네트워크/서버 오류면 포기하고 refresh 결과에 맡긴다
+      await new Promise((r) => setTimeout(r, 1500 * 2 ** i));
+    }
+  }
+
   async function send(e: React.FormEvent) {
     e.preventDefault();
     if (!conversationId || !input.trim() || busy) return;
     const text = input;
+    const clientMessageId = crypto.randomUUID();
     setInput("");
     setBusy(true);
     setChatError(null);
@@ -200,27 +229,11 @@ export default function AiTab({
     // 대화를 다시 불러와 지금까지 만든 파일들(진행 로그)이 실시간으로 보이게 한다
     const pollTimer = setInterval(() => refresh(conversationId), 2500);
     try {
-      const res = await fetchWithTimeout(`/api/ai/conversations/${conversationId}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setChatError(data.error ?? t("sendFailed"));
-      }
+      await sendMessageWithRetry(conversationId, text, clientMessageId);
+      await refreshWithRetry(conversationId);
+    } catch (err) {
+      setChatError(err instanceof Error ? err.message : t("sendFailed"));
       await refreshWithRetry(conversationId).catch(() => {});
-    } catch {
-      // 연결이 끊긴 채 멈춰버린 경우(탭 백그라운드, 네트워크 전환 등) — 서버 쪽 작업은
-      // nginx proxy_ignore_client_abort 덕에 끝까지 돌지만, 이 fetch 자체는 응답을 못 받을 수
-      // 있다. 타임아웃으로 끝내고 다시 불러와서 결과를 반영한다 — 버튼이 영원히 안 눌리는 걸 막음.
-      // 보내기 자체는 재시도하지 않고(중복 실행 위험), 결과 조회만 몇 번 더 재시도한다.
-      try {
-        await refreshWithRetry(conversationId);
-        setChatError(null);
-      } catch {
-        setChatError(t("sendFailed"));
-      }
     } finally {
       clearInterval(pollTimer);
       setBusy(false);

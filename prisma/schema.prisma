@@ -655,6 +655,11 @@ model Server {
   /// 한 번 쓰면(동의하든 넘기든) false로 돌려서 다시 안 뜨게 한다
   aiAutoSetupAvailable    Boolean   @default(false)
 
+  /// 지금 연결된 저장소 주소 — 예전엔 Pterodactyl의 egg 시작 변수(client API)만 보고 판단했는데,
+  /// GIT_ADDRESS를 egg가 변수로 등록 안 해둔 템플릿(모든 서버에서 git 지원하도록 확장한 뒤부턴
+  /// 대부분)에서는 그 API가 아예 값을 모르니 항상 "연결 안 됨"으로 잘못 나왔다. 이제 여기(우리
+  /// DB)를 진실의 원천으로 쓴다 — egg 변수 쪽은 그게 되는 템플릿에서만 보너스로 같이 맞춰준다.
+  gitAddress          String?
   /// Git 자동 배포 — GIT_ADDRESS로 저장소를 연결한 서버에서 GitHub가 push 웹훅을 보내면
   /// git pull + 재시작을 자동으로 한다. 끄면 웹훅이 와도 무시한다.
   autoDeployEnabled   Boolean @default(false)
@@ -1224,6 +1229,9 @@ model AiMessage {
   content        String
   toolCalls      Json?
   createdAt      DateTime       @default(now())
+  /// 클라이언트가 보낼 때 같이 보내는 멱등키(uuid) — 연결이 끊겨서 같은 메시지를 자동으로
+  /// 다시 보내도(AiTab.tsx) 턴이 두 번 실행(파일 중복 작성 등)되지 않도록 막는다
+  clientMessageId String?       @unique
 
   @@index([conversationId])
 }

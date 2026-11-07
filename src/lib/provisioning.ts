@@ -392,6 +392,7 @@ export async function createServerForOrder(orderId: string) {
         allocationPort: allocation.port,
         sshPort: sshAllocation?.port ?? null,
         accessSecret,
+        gitAddress: gitAddressToApply ?? null,
         aiAutoSetupAvailable: "GIT_ADDRESS" in defaultEnv && !!gitAddressToApply,
         // 0원 상품(무료 서버)은 7일마다 직접 갱신해야 한다(방치된 무료 서버가 자원을 계속
         // 차지하는 걸 막기 위함) — 결제 상품은 기존대로 30일. pointsRedeemable(포인트 교환 가능

@@ -27,10 +27,19 @@ export const GET = withApiErrorHandling(async (
   const supportsGit = await supportsGitDeploy(server.templateId);
 
   let currentRepoUrl: string | null = null;
-  if (supportsGit && server.pterodactylIdentifier) {
-    const variables = await PteroClient.getStartupVariables(server.pterodactylIdentifier).catch(() => null);
-    const raw = variables?.find((v) => v.envVariable === "GIT_ADDRESS")?.serverValue;
-    if (raw) currentRepoUrl = maskGitCredentials(raw);
+  if (supportsGit) {
+    if (server.gitAddress) {
+      currentRepoUrl = maskGitCredentials(server.gitAddress);
+    } else if (server.pterodactylIdentifier) {
+      // 레거시: egg가 GIT_ADDRESS를 변수로 등록해둔 예전 템플릿으로 연결된 서버는 아직 우리
+      // DB에 안 채워져 있을 수 있다 — 한 번 읽어서 DB에도 반영해둔다(다음부터는 위 분기로 바로 감)
+      const variables = await PteroClient.getStartupVariables(server.pterodactylIdentifier).catch(() => null);
+      const raw = variables?.find((v) => v.envVariable === "GIT_ADDRESS")?.serverValue;
+      if (raw) {
+        currentRepoUrl = maskGitCredentials(raw);
+        await prisma.server.update({ where: { id: server.id }, data: { gitAddress: raw } }).catch(() => {});
+      }
+    }
   }
 
   const githubConnection = await prisma.gitHubConnection.findUnique({ where: { userId: user.id } });

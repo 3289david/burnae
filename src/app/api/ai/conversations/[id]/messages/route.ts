@@ -4,7 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { runAiTurn, InsufficientCreditsError } from "@/lib/ai/engine";
 
-const schema = z.object({ message: z.string().min(1).max(2000) });
+const schema = z.object({
+  message: z.string().min(1).max(2000),
+  // 연결이 끊겨서 AiTab.tsx가 같은 메시지를 자동으로 다시 보낼 때, 재시도마다 같은 값을 보낸다
+  clientMessageId: z.string().min(1).max(64).optional(),
+});
 
 export async function POST(
   request: Request,
@@ -35,8 +39,17 @@ export async function POST(
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "메시지를 입력해주세요." }, { status: 422 });
 
+  // 연결이 끊겨서 클라이언트가 같은 요청을 자동으로 재시도한 경우 — 이미 받은 메시지면 새
+  // 유저 메시지를 또 만들거나 턴을 다시 돌리지 않는다(파일 중복 작성/명령 중복 실행 방지).
+  // 먼저 보낸 요청이 아직 처리 중이거나 이미 끝났을 수 있는데, 어느 쪽이든 클라이언트가 곧이어
+  // 부르는 refresh(대화 다시 불러오기)가 실제 결과를 그대로 보여준다.
+  if (parsed.data.clientMessageId) {
+    const existing = await prisma.aiMessage.findUnique({ where: { clientMessageId: parsed.data.clientMessageId } });
+    if (existing) return NextResponse.json({ ok: true, duplicate: true });
+  }
+
   await prisma.aiMessage.create({
-    data: { conversationId: id, role: "USER", content: parsed.data.message },
+    data: { conversationId: id, role: "USER", content: parsed.data.message, clientMessageId: parsed.data.clientMessageId },
   });
   await prisma.aiConversation.update({ where: { id }, data: { updatedAt: new Date() } });
 

@@ -330,9 +330,13 @@ export async function changeGitRemote(
     }
   }
 
+  // egg가 GIT_ADDRESS를 변수로 등록해둔 템플릿에서만 되는 호출이라(그렇지 않으면 Pterodactyl이
+  // 조용히 거부함) 베스트에포트로만 시도하고, "연결됨" 여부의 진짜 기준은 우리 DB(server.gitAddress)로
+  // 둔다 — 안 그러면 egg가 변수로 등록 안 해둔(거의 모든) 템플릿에서 항상 "연결 안 됨"으로 잘못 보였다.
   await PteroClient.updateStartupVariable(server.pterodactylIdentifier, "GIT_ADDRESS", newAddress).catch((err) =>
-    console.error(`[deploy] 서버 ${server.id} GIT_ADDRESS 시작 변수 갱신 실패:`, err),
+    console.error(`[deploy] 서버 ${server.id} GIT_ADDRESS 시작 변수 갱신 실패(egg가 변수로 등록 안 했으면 정상):`, err),
   );
+  await prisma.server.update({ where: { id: server.id }, data: { gitAddress: newAddress } });
 
   return redeployFromGit(server, actorId, "MANUAL");
 }

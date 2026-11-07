@@ -25,6 +25,12 @@ if [ -n "${GIT_ADDRESS}" ]; then
       git clone "${GIT_URL}" . > .burnae_git.log 2>&1
     fi
   fi
+
+  # 깃허브에 올라간 .sh 파일은 실행 권한(+x)이 그대로 안 보존된 채로 올라와 있는 경우가 많다
+  # (로컬에서 chmod 없이 커밋한 스크립트 등) — ./setup.sh 처럼 바로 실행하려다 Permission
+  # denied가 나는 걸 막기 위해, 받아올 때마다(clone/pull 둘 다) 눈에 보이는 .sh 파일을
+  # 전부 실행 가능하게 만들어둔다. 매번 해도 이미 +x면 그냥 통과라 안전하다.
+  find . -maxdepth 3 -name "*.sh" -exec chmod +x {} + 2>/dev/null
 fi
 
 # 서버마다 처음 부팅할 때 한 번만 랜덤 비밀번호를 만들어서 파일로 저장해둔다. 재부팅해도

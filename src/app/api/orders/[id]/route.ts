@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { provisionNewServerOrder } from "@/lib/orderFulfillment";
 import { withApiErrorHandling } from "@/lib/apiHandler";
 import { getRequiredCustomVariables, type EggVariableSchemaEntry } from "@/lib/eggVariableSchema";
+import { isValidDepositorName } from "@/lib/hanabank";
 
 export const GET = withApiErrorHandling(async (
   _request: Request,
@@ -46,6 +47,42 @@ export const GET = withApiErrorHandling(async (
   });
   if (!order) return NextResponse.json({ error: "주문을 찾을 수 없습니다." }, { status: 404 });
   return NextResponse.json(order);
+});
+
+const depositorNameSchema = z.object({ depositorName: z.string().min(1).max(5) });
+
+/**
+ * 결제 대기 중인 주문의 입금자명을 바꾼다 — 서버 생성 폼에서 미리 입력받던 걸 결제(입금 안내)
+ * 화면으로 옮겼다. 자동 생성된 이름이 마음에 안 들거나 겹치면 여기서 바로 바꿀 수 있다.
+ */
+export const PATCH = withApiErrorHandling(async (
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) => {
+  const user = await requireUser();
+  if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+
+  const { id } = await params;
+  const parsed = depositorNameSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success || !isValidDepositorName(parsed.data.depositorName)) {
+    return NextResponse.json({ error: "입금자명은 공백 없이 1~5자여야 해요." }, { status: 422 });
+  }
+
+  const order = await prisma.order.findFirst({ where: { id, userId: user.id } });
+  if (!order) return NextResponse.json({ error: "주문을 찾을 수 없습니다." }, { status: 404 });
+  if (order.status !== "PENDING") {
+    return NextResponse.json({ error: "입금 대기 중인 주문만 바꿀 수 있어요." }, { status: 409 });
+  }
+
+  const colliding = await prisma.order.findFirst({
+    where: { id: { not: order.id }, depositorName: parsed.data.depositorName, amountKrw: order.amountKrw, status: "PENDING" },
+  });
+  if (colliding) {
+    return NextResponse.json({ error: "같은 입금자명+금액의 대기 중인 주문이 이미 있어요. 다른 이름을 써주세요." }, { status: 409 });
+  }
+
+  const updated = await prisma.order.update({ where: { id: order.id }, data: { depositorName: parsed.data.depositorName } });
+  return NextResponse.json(updated);
 });
 
 const selectTemplateSchema = z.object({

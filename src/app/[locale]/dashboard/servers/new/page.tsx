@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useRouter } from "@/i18n/navigation";
 import SuccessCheck from "@/components/SuccessCheck";
 import FullScreenCelebration from "@/components/FullScreenCelebration";
-import { openPaymentWindow } from "@/lib/openPaymentWindow";
+import CryptoPaymentOption from "@/components/CryptoPaymentOption";
 import { formatMb } from "@/lib/formatSize";
 import { isDatabaseTemplate } from "@/lib/databaseConnect";
 import {
@@ -122,6 +122,7 @@ interface OrderState {
   status: string;
   serverId?: string | null;
   preorderWaiting?: boolean;
+  grobleProductUrl?: string | null;
 }
 
 /** 서버 종류 key(예: paper_mid, paper_legacy)에서 "기본 로더 이름"만 뽑아낸다 —
@@ -247,6 +248,13 @@ function NewServerPageInner() {
   const [loading, setLoading] = useState(false);
 
   const [order, setOrder] = useState<OrderState | null>(null);
+  const [couponApplyBusy, setCouponApplyBusy] = useState(false);
+  const [couponApplyError, setCouponApplyError] = useState<string | null>(null);
+  const [couponApplied, setCouponApplied] = useState(false);
+  const [depositorEdit, setDepositorEdit] = useState("");
+  const [depositorEditBusy, setDepositorEditBusy] = useState(false);
+  const [depositorEditError, setDepositorEditError] = useState<string | null>(null);
+  const [cryptoOpen, setCryptoOpen] = useState(false);
   const [bank, setBank] = useState<BankAccount | null>(null);
   const [stillWaitingForNode, setStillWaitingForNode] = useState(false);
 
@@ -531,11 +539,65 @@ function NewServerPageInner() {
 
       const bankRes = await fetch("/api/payment/bank-account");
       if (bankRes.ok) setBank(await bankRes.json());
+      setDepositorEdit(data.depositorName);
+
+      // POST /api/orders 응답엔 product 관계가 없어서(groble 링크 확인용) 한 번 더 가져온다
+      fetch(`/api/orders/${data.id}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((full) => {
+          if (full?.product?.grobleProductUrl) {
+            setOrder((prev) => (prev ? { ...prev, grobleProductUrl: full.product.grobleProductUrl } : prev));
+          }
+        })
+        .catch(() => {});
+
       setStep("pay");
     } catch (err) {
       setError(err instanceof Error ? err.message : "오류가 발생했습니다.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function applyCoupon() {
+    if (!order || !couponCode) return;
+    setCouponApplyBusy(true);
+    setCouponApplyError(null);
+    try {
+      const res = await fetch(`/api/orders/${order.id}/apply-coupon`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ couponCode }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "쿠폰 적용에 실패했어요.");
+      setOrder({ ...order, amountKrw: data.amountKrw, status: data.status });
+      setCouponApplied(true);
+      if (data.status === "PAID") setStep("choose");
+    } catch (err) {
+      setCouponApplyError(err instanceof Error ? err.message : "쿠폰 적용에 실패했어요.");
+    } finally {
+      setCouponApplyBusy(false);
+    }
+  }
+
+  async function updateDepositorName() {
+    if (!order || !depositorEdit) return;
+    setDepositorEditBusy(true);
+    setDepositorEditError(null);
+    try {
+      const res = await fetch(`/api/orders/${order.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ depositorName: depositorEdit }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "변경에 실패했어요.");
+      setOrder({ ...order, depositorName: data.depositorName });
+    } catch (err) {
+      setDepositorEditError(err instanceof Error ? err.message : "변경에 실패했어요.");
+    } finally {
+      setDepositorEditBusy(false);
     }
   }
 
@@ -614,12 +676,72 @@ function NewServerPageInner() {
             <span className="animate-pulse">●</span> 입금 확인 대기 중...
           </div>
         </div>
+        {order.grobleProductUrl && (
+          <a
+            href={`${order.grobleProductUrl}?ref=${order.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-primary w-full mt-4 py-2.5 text-sm text-center block"
+          >
+            카드로 결제하기
+          </a>
+        )}
+
         <button
-          onClick={() => openPaymentWindow(order.id)}
-          className="btn-secondary w-full mt-4 py-2.5 text-sm"
+          onClick={() => setCryptoOpen((v) => !v)}
+          className="btn-secondary w-full mt-2 py-2.5 text-sm flex items-center justify-center gap-1.5"
         >
-          코인으로 결제하기 (새 창에서 열기)
+          코인으로 결제하기 {cryptoOpen ? "▲" : "▼"}
         </button>
+        {cryptoOpen && (
+          <div className="card mt-2 p-4">
+            <CryptoPaymentOption orderId={order.id} amountKrw={order.amountKrw} />
+          </div>
+        )}
+
+        <div className="card mt-4 p-6 space-y-4">
+          <div>
+            <label className="text-sm text-text-dim">입금자명 바꾸기</label>
+            <div className="flex gap-2 mt-1.5">
+              <input
+                className="input flex-1"
+                maxLength={5}
+                value={depositorEdit}
+                onChange={(e) => setDepositorEdit(e.target.value.replace(/\s+/g, ""))}
+              />
+              <button
+                onClick={updateDepositorName}
+                disabled={depositorEditBusy || !depositorEdit || depositorEdit === order.depositorName}
+                className="btn-secondary px-4 text-sm shrink-0"
+              >
+                변경
+              </button>
+            </div>
+            {depositorEditError && <p className="text-xs text-red mt-1.5">{depositorEditError}</p>}
+          </div>
+
+          {!couponApplied && (
+            <div>
+              <label className="text-sm text-text-dim">쿠폰 코드 (선택)</label>
+              <div className="flex gap-2 mt-1.5">
+                <input
+                  className="input flex-1"
+                  placeholder="쿠폰 코드가 있다면 입력하세요"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                />
+                <button
+                  onClick={applyCoupon}
+                  disabled={couponApplyBusy || !couponCode}
+                  className="btn-secondary px-4 text-sm shrink-0"
+                >
+                  적용
+                </button>
+              </div>
+              {couponApplyError && <p className="text-xs text-red mt-1.5">{couponApplyError}</p>}
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -1147,28 +1269,6 @@ function NewServerPageInner() {
                 </button>
               );
             })}
-          </div>
-        </Section>
-
-        {/* 3. 쿠폰 / 입금자명 */}
-        <Section step={3} title="추가 정보 (선택)">
-          <div className="space-y-3">
-            <input
-              className="input w-full"
-              placeholder="쿠폰 코드가 있다면 입력하세요"
-              value={couponCode}
-              onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-            />
-            <div>
-              <input
-                className="input w-full"
-                placeholder="입금자명 — 비워두면 자동 생성"
-                maxLength={5}
-                value={depositorName}
-                onChange={(e) => setDepositorName(e.target.value.replace(/\s+/g, ""))}
-              />
-              <p className="text-xs text-text-dim mt-1.5">공백 없이 1~5자. 입금 시 이 이름으로 보내야 자동 확인돼요.</p>
-            </div>
           </div>
         </Section>
 

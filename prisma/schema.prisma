@@ -425,6 +425,13 @@ model Order {
   /// 생성이 시작되는 걸 막기 위한 원자적 "선점" 마커 — null이 아니면 이미 누군가 생성을 시작함
   provisioningStartedAt      DateTime?
   createdAt                 DateTime    @default(now())
+  /// groble.im 정기결제(구독)의 최초 결제 건에만 설정 — sellerReference는 구독의 전체 회차에
+  /// 걸쳐 동일하게 유지되므로(groble 문서 확인함), 2회차 이후 갱신 웹훅이 어느 구독인지
+  /// 찾아올 때 이 값으로 최초 주문을 역추적해서 serverId/productId를 알아낸다
+  grobleSellerReference     String?     @unique
+  /// groble 웹훅이 보내는 merchantUid(회차마다 새로 발급) — 같은 이벤트가 재시도로 중복 전송돼도
+  /// 이미 처리한 merchantUid면 건너뛰어서 매달 자동결제가 두 번 체결되는 걸 막는다
+  grobleMerchantUid         String?     @unique
 
   @@index([userId])
   @@index([status])
@@ -619,6 +626,11 @@ model Server {
   suspendedReason  String?
   renewalDueAt     DateTime?
   lastBackupAt     DateTime?
+  /// groble.im 정기결제로 이 서버를 결제 중이면 ACTIVE/PAST_DUE/CANCEL_REQUESTED/TERMINATED
+  /// 중 하나. null이면 정기결제가 아예 연결된 적 없음(무통장입금/코인/groble 일회성 등)
+  grobleSubscriptionStatus String?
+  /// groble이 다음에 자동으로 결제를 시도할 날짜 — 안내용. 실제 갱신 반영은 여전히 웹훅이 온 뒤에만 일어난다
+  grobleNextBillingDate    DateTime?
 
   /// 예약 백업/재시작 — 관리 크론(scripts/maintenance-cron.ts)이 주기적으로 확인해서 실행
   autoBackupEnabled       Boolean   @default(false)

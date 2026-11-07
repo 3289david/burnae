@@ -20,9 +20,7 @@ export default function GrobleCompletePage() {
         <div className="card-glow p-8 text-center space-y-4">
           <SuccessCheck size={48} confetti />
           <p className="font-semibold">결제가 완료됐어요!</p>
-          <p className="text-sm text-text-dim">
-            이 창은 닫아도 돼요. 원래 결제 창에서 자동으로 확인되고 있어요.
-          </p>
+          <p className="text-sm text-text-dim">이 창은 닫아도 돼요.</p>
           <button onClick={() => window.close()} className="btn-primary px-5 py-2.5 text-sm">
             창 닫기
           </button>

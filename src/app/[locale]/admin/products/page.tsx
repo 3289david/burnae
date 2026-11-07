@@ -220,10 +220,10 @@ export default function AdminProductsPage() {
             </div>
             <div className="w-full flex flex-wrap gap-2 mt-1">
               <label className="text-xs text-text-dim flex items-center gap-1 flex-1 min-w-[220px]">
-                groble 결제 링크
+                groble 정기결제 링크
                 <input
                   type="text"
-                  placeholder="https://groble.im/products/xxx (비우면 groble 옵션 안 보임)"
+                  placeholder="groble 콘솔에서 만든 '정기결제' 상품 URL (비우면 groble 옵션 안 보임)"
                   defaultValue={p.grobleProductUrl ?? ""}
                   onBlur={(e) => updateGrobleProductUrl(p.id, e.target.value)}
                   className="input flex-1 text-xs"

@@ -166,7 +166,9 @@ export function startAiModeration(client: Client, officialGuildId: string) {
   client.on(Events.MessageCreate, async (message) => {
     if (message.guildId !== officialGuildId) return;
     const settings = await prisma.botSettings.findUnique({ where: { id: 1 } }).catch(() => null);
-    await moderateMessage(message, settings?.logChannelId);
+    // 비속어/검열 조치 로그는 운영 로그(logChannelId, 관리자 전용)가 아니라 서브 공지(🔔-알림)에
+    // 올린다 — 모든 모더레이션(타임아웃/추방/차단 포함)을 한 채널에서 보고 싶다는 요청에 맞춤
+    await moderateMessage(message, settings?.subAnnouncementChannelId);
   });
 }
 

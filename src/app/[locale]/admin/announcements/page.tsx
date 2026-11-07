@@ -79,9 +79,7 @@ export default function AdminAnnouncementsPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold">공지사항</h1>
-      <p className="text-sm text-text-dim mt-1">
-        여기서 만든 공지는 랜딩페이지와 대시보드 상단에 배너로 노출돼요. 고객이 닫으면 그 브라우저에서는 다시 안 떠요.
-      </p>
+      <p className="text-sm text-text-dim mt-1">랜딩/대시보드 상단 배너로 노출돼요.</p>
 
       <div className="mt-6 space-y-2">
         {items.map((a, i) => (

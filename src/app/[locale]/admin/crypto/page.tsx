@@ -152,10 +152,7 @@ export default function AdminCryptoPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold">코인 결제</h1>
-        <p className="text-sm text-text-dim mt-1">
-          여기서는 공개키/주소만 등록해요 — 개인키나 시드 구문은 절대 입력하지 않아요. 자금 인출은
-          오프라인에 보관한 개인키로 직접 하세요.
-        </p>
+        <p className="text-sm text-text-dim mt-1">⚠️ 공개키/주소만 등록 — 개인키 입력 금지.</p>
       </div>
 
       <div className="space-y-4">

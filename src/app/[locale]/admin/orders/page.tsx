@@ -69,9 +69,7 @@ export default function AdminOrdersPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold">주문 (입금 대기)</h1>
-      <p className="text-sm text-text-dim mt-1">
-        하나은행 자동 매칭을 기다리지 않고, 입금을 다른 방법으로 확인했다면 여기서 직접 승인할 수 있어요.
-      </p>
+      <p className="text-sm text-text-dim mt-1">입금 확인되면 여기서 직접 승인하세요.</p>
 
       {error && <p className="text-sm text-red mt-3">{error}</p>}
 
@@ -105,9 +103,7 @@ export default function AdminOrdersPage() {
       </div>
 
       <h2 className="text-xl font-bold mt-10">지급됐지만 아직 서버를 안 만든 건</h2>
-      <p className="text-sm text-text-dim mt-1">
-        `/admin/users`에서 지급한 서버 중 유저가 아직 종류를 안 고른 건이에요. 잘못 지급했다면 여기서 취소할 수 있어요.
-      </p>
+      <p className="text-sm text-text-dim mt-1">유저가 아직 종류를 안 고른 지급 건.</p>
       <div className="mt-4 space-y-2">
         {grants.map((g, i) => (
           <div

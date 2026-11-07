@@ -597,8 +597,7 @@ function NewServerPageInner() {
         <div className="card mt-6 p-6 space-y-3">
           {order.isPreorder && (
             <p className="text-xs bg-yellow/10 border border-yellow/30 text-yellow rounded-lg px-3 py-2">
-              지금은 이 플랜의 여유 자리가 없어서 선주문으로 진행돼요. 결제가 확인되면 자리가 나는
-              대로 자동으로 서버가 생성됩니다.
+              자리 없어 선주문 — 확인되면 자동 생성돼요.
             </p>
           )}
           {bank && (
@@ -610,10 +609,7 @@ function NewServerPageInner() {
           )}
           <Row label="입금자명" value={order.depositorName} highlight />
           <Row label="입금 금액" value={`${order.amountKrw.toLocaleString()}원`} highlight />
-          <p className="text-xs text-text-dim pt-2">
-            입금자명과 금액이 정확히 일치해야 자동으로 확인돼요. 결제가 확인되면 바로 이어서 서버
-            종류와 버전을 고를 수 있어요.
-          </p>
+          <p className="text-xs text-text-dim pt-2">이름·금액이 정확히 일치해야 확인돼요.</p>
           <div className="flex items-center gap-2 text-sm text-text-dim pt-2">
             <span className="animate-pulse">●</span> 입금 확인 대기 중...
           </div>
@@ -749,11 +745,7 @@ function NewServerPageInner() {
               </div>
               ) : (
               <div className="space-y-3">
-                <p className="text-xs text-text-dim">
-                  다른 유저가 만든 서버 종류예요 — 예: 자기 코드로 만든 디스코드 봇, 특정 설정으로
-                  튜닝된 마인크래프트 서버 등. 골라서 바로 시작하거나, 직접 만들어 공개하면 포인트를
-                  받아요.
-                </p>
+                <p className="text-xs text-text-dim">다른 유저가 공개한 서버 종류예요.</p>
                 <div className="flex flex-col gap-1.5">
                   {filteredCommunityPresets.map((p, i) => {
                     const active = presetId === p.id;
@@ -822,7 +814,7 @@ function NewServerPageInner() {
                   <div className="card-glow p-4 space-y-3 animate-fade-up">
                     <h4 className="font-semibold text-sm">내 커뮤니티 프리셋 공유하기</h4>
                     <p className="text-xs text-text-dim">
-                      실행 환경을 고르고 GitHub 저장소를 붙여 공개하세요 (봇 토큰 등은 설치자가 직접 입력).
+                      실행 환경을 고르고 저장소를 붙여 공개하세요.
                     </p>
                     <select
                       className="input w-full text-sm"
@@ -858,7 +850,7 @@ function NewServerPageInner() {
                         onChange={(e) => setPresetFormGitRepoUrl(e.target.value)}
                       />
                       <p className="text-[11px] text-text-dim mt-1">
-                        이 저장소의 코드로 실행되는 서버가 만들어져요. 서버 생성 시 자동으로 clone돼요.
+                        이 저장소로 서버가 만들어져요.
                       </p>
                     </div>
                     <div className="flex gap-2">
@@ -981,10 +973,7 @@ function NewServerPageInner() {
                 </>
               ) : (
                 <>
-                  <p className="text-xs text-text-dim mb-2">
-                    비워두면 빈 서버로 시작해요 — 파일 탭이나 SFTP로 직접 코드를 올리면 돼요. GitHub
-                    저장소에 코드가 있다면 주소를 넣어주세요 — 서버 생성 시 자동으로 clone해서 시작해요.
-                  </p>
+                  <p className="text-xs text-text-dim mb-2">비워두면 빈 서버로 시작해요(선택).</p>
                   <input
                     type="url"
                     className="input w-full"
@@ -999,10 +988,7 @@ function NewServerPageInner() {
 
           {neededCustomVariables.length > 0 && (
             <Section step={stepFor("customVariables")} title="필수 설정값">
-              <p className="text-xs text-text-dim mb-3">
-                이 서버 종류는 아래 값을 직접 입력해야 만들 수 있어요(봇 토큰, API 키 등 — 서버마다
-                달라야 해서 미리 채워둘 수 없는 값들이에요).
-              </p>
+              <p className="text-xs text-text-dim mb-3">직접 입력해야 만들 수 있어요.</p>
               <div className="space-y-3">
                 {neededCustomVariables.map((v) => (
                   <div key={v.envVariable}>

@@ -52,7 +52,7 @@ export default async function AdminStatisticsPage() {
       </div>
 
       <p className="mt-6 text-xs text-text-dim">
-        MRR은 현재 활성 서버들의 상품 월 가격 합계 기준이며, 실제 결제 금액과는 쿠폰 할인 등으로 차이가 날 수 있습니다.
+        MRR은 쿠폰 할인 미반영 추정치예요.
       </p>
     </div>
   );

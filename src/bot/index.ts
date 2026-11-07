@@ -9,6 +9,7 @@ import { startMentionGuard } from "./mentionGuard";
 import { startAntiSpam } from "./antiSpam";
 import { startVoiceTrigger } from "./voiceTrigger";
 import { startAiModeration } from "./aiFeatures";
+import { startModerationAuditLog } from "./moderationAuditLog";
 import { prisma } from "./prismaClient";
 import { panel, text, subtext, thumbnail, section } from "../lib/discordComponentsV2";
 
@@ -39,6 +40,7 @@ const client = new Client({
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildVoiceStates,
+    GatewayIntentBits.GuildModeration,
   ],
 });
 
@@ -53,6 +55,7 @@ client.once(Events.ClientReady, (c) => {
   startAntiSpam(client, officialGuildId);
   startVoiceTrigger(client, officialGuildId);
   startAiModeration(client, officialGuildId);
+  startModerationAuditLog(client, officialGuildId);
 });
 
 client.on(Events.GuildMemberAdd, async (member) => {

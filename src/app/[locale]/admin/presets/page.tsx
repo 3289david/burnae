@@ -49,10 +49,7 @@ export default function AdminPresetsPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold">커뮤니티 프리셋</h1>
-      <p className="text-sm text-text-dim mt-1">
-        유저가 공개한 시작 변수 프리셋 목록이에요. 신고가 3건 쌓이면 자동으로 비공개(회수)되고
-        지급됐던 포인트도 회수돼요. 여기서 직접 비공개/재공개하거나 완전히 삭제할 수 있어요.
-      </p>
+      <p className="text-sm text-text-dim mt-1">유저가 공개한 프리셋 — 신고 3건이면 자동 비공개.</p>
 
       {items === null && <p className="text-sm text-text-dim mt-6">불러오는 중...</p>}
       {items?.length === 0 && <p className="text-sm text-text-dim mt-6">등록된 프리셋이 없어요.</p>}

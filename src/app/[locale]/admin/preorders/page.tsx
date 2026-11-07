@@ -41,11 +41,7 @@ export default function AdminPreordersPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold">선주문 대기 목록</h1>
-      <p className="text-sm text-text-dim mt-1">
-        결제(또는 포인트 교환)는 끝났지만 아직 노드 자리가 없어서 서버가 안 만들어진 주문이에요.
-        노드를 늘리거나 다른 서버를 정리한 뒤 &ldquo;지금 배치하기&rdquo;를 누르면 즉시 생성을 시도해요.
-        (호스팅 설정에서 &ldquo;선주문 자동 처리&rdquo;를 켜두면 이 화면 없이도 자리 나는 대로 자동으로 처리돼요.)
-      </p>
+      <p className="text-sm text-text-dim mt-1">결제됐지만 자리가 없어 대기 중인 주문.</p>
 
       <div className="mt-6 space-y-2">
         {items.map((o, i) => (

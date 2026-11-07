@@ -117,6 +117,29 @@ export async function syncTicketPanelMessage(): Promise<void> {
 }
 
 /**
+ * "💰 포인트 확인" 버튼 하나만 있는 패널 — /포인트 명령어 없이도 채널에서 바로 누를 수 있게.
+ * 버튼 자체(panel_open_points)는 이미 commands.ts의 handleButton이 처리하므로 여기선 그려서
+ * 올리기만 한다.
+ */
+export async function syncPointPanelMessage(): Promise<void> {
+  const settings = await prisma.botSettings.findUnique({ where: { id: 1 } });
+  if (!settings?.pointPanelChannelId) return;
+
+  const container = panel()
+    .addTextDisplayComponents(heading("💰 포인트"))
+    .addActionRowComponents(buttonRow(actionButton("panel_open_points", "💰 포인트 확인", ButtonStyle.Secondary)));
+
+  const messageId = await upsertDiscordChannelMessage(settings.pointPanelChannelId, settings.pointPanelMessageId, {
+    components: [container.toJSON()],
+    flags: COMPONENTS_V2_FLAG,
+  });
+
+  if (messageId && messageId !== settings.pointPanelMessageId) {
+    await prisma.botSettings.update({ where: { id: 1 }, data: { pointPanelMessageId: messageId } });
+  }
+}
+
+/**
  * 설문(투표) 패널을 그려서 올리거나(처음) 기존 메시지를 최신 투표수로 갱신한다.
  * 관리자가 설문을 만들 때, 그리고 봇이 투표 버튼 클릭을 처리한 직후 둘 다 호출한다.
  */

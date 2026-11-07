@@ -13,9 +13,7 @@ export default async function AdminActivityPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold">유저 활동 분석</h1>
-      <p className="text-sm text-text-dim mt-1">
-        채팅 레벨링(XP) 집계 — 포인트(현금 교환 가능)와는 별개로, Burnae 계정 연동 여부와 무관하게 디스코드에서 채팅한 모든 유저가 대상이에요.
-      </p>
+      <p className="text-sm text-text-dim mt-1">채팅 레벨링(XP) 집계 — 포인트와는 별개예요.</p>
 
       <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
         <StatTile label="추적 중인 유저" value={totalTracked} />

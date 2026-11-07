@@ -253,7 +253,7 @@ export default function CommunityEggsPage() {
           <div className="card-glow p-4 space-y-3 animate-fade-up">
             <h4 className="font-semibold text-sm">내 커뮤니티 프리셋 공유하기</h4>
             <p className="text-xs text-text-dim">
-              실행 환경을 고르고 GitHub 저장소를 붙여 공개하세요 (봇 토큰 등은 설치자가 직접 입력).
+              실행 환경을 고르고 저장소를 붙여 공개하세요.
             </p>
             <select
               className="input w-full text-sm"
@@ -289,7 +289,7 @@ export default function CommunityEggsPage() {
                 onChange={(e) => setFormGitRepoUrl(e.target.value)}
               />
               <p className="text-[11px] text-text-dim mt-1">
-                이 저장소의 코드로 실행되는 서버가 만들어져요. 서버 생성 시 자동으로 clone돼요.
+                이 저장소로 서버가 만들어져요.
               </p>
             </div>
             <div className="flex gap-2">

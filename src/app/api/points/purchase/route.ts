@@ -5,15 +5,12 @@ import { requireUser } from "@/lib/auth";
 import { resolveDepositorName, isValidDepositorName } from "@/lib/hanabank";
 import { markOrderPaidAndFulfill } from "@/lib/orderFulfillment";
 
-/** 포인트 패키지 — 1원 = 1포인트 (AI 크레딧 단독 충전과 동일한 패턴) */
-const POINT_PACKAGES = [
-  { points: 500, priceKrw: 500 },
-  { points: 2500, priceKrw: 2500 },
-  { points: 10000, priceKrw: 10000 },
-] as const;
+/** 1원 = 1포인트. 슬라이더로 직접 금액을 고르므로 패키지 대신 범위만 검증한다 */
+const MIN_POINTS = 100;
+const MAX_POINTS = 1_000_000;
 
 const schema = z.object({
-  points: z.number().int(),
+  points: z.number().int().min(MIN_POINTS).max(MAX_POINTS),
   depositorName: z.string().optional(),
 });
 
@@ -24,8 +21,7 @@ export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 422 });
 
-  const pkg = POINT_PACKAGES.find((p) => p.points === parsed.data.points);
-  if (!pkg) return NextResponse.json({ error: "존재하지 않는 포인트 패키지입니다." }, { status: 404 });
+  const pkg = { points: parsed.data.points, priceKrw: parsed.data.points };
 
   if (parsed.data.depositorName && !isValidDepositorName(parsed.data.depositorName)) {
     return NextResponse.json({ error: "입금자명은 공백 없이 1~5자여야 해요." }, { status: 422 });

@@ -1,4 +1,6 @@
-import { Client, Events, Message, PermissionFlagsBits } from "discord.js";
+import { Client, Events, Message, MessageFlags, PermissionFlagsBits } from "discord.js";
+import { prisma } from "./prismaClient";
+import { panel, heading, text } from "../lib/discordComponentsV2";
 
 /**
  * 짧은 시간에 메시지를 쏟아내거나(도배) 같은 내용을 반복해서 보내는 걸 스팸으로 간주해
@@ -71,15 +73,31 @@ async function handleMessage(message: Message, officialGuildId: string) {
         await (channel as { bulkDelete: (ids: string[]) => Promise<unknown> }).bulkDelete(ids).catch(() => {});
       }
     }
+    const reason = isSustained ? "스팸 감지(지속적인 도배)" : isDuplicateSpam ? "스팸 감지(동일 메시지 반복)" : "스팸 감지(짧은 시간 내 메시지 폭주)";
     if (message.member?.moderatable) {
-      const reason = isSustained ? "스팸 감지(지속적인 도배)" : isDuplicateSpam ? "스팸 감지(동일 메시지 반복)" : "스팸 감지(짧은 시간 내 메시지 폭주)";
       await message.member.timeout(TIMEOUT_MS, reason);
     }
     await message.author.send(`⚠️ 스팸으로 감지돼서 ${TIMEOUT_MS / 60_000}분 동안 채팅이 제한됐어요.`).catch(() => {});
     console.log(`[antiSpam] ${message.author.tag} 스팸 감지 — 메시지 ${toDelete.length}개 삭제, 타임아웃 적용`);
+    await logSpamAction(message, reason, toDelete.length);
   } catch (err) {
     console.error("[antiSpam] 처리 실패(봇에 메시지 관리/타임아웃 권한이 있는지 확인):", err);
   }
+}
+
+/** 비속어 검열(aiFeatures.ts)과 같은 채널(서브 공지, 🔔-알림)에 모아서 — 모더레이션 조치를 한 곳에서 다 볼 수 있게 */
+async function logSpamAction(message: Message, reason: string, deletedCount: number) {
+  const settings = await prisma.botSettings.findUnique({ where: { id: 1 } }).catch(() => null);
+  if (!settings?.subAnnouncementChannelId) return;
+  const channel = await message.guild?.channels.fetch(settings.subAnnouncementChannelId).catch(() => null);
+  if (!channel || !channel.isTextBased() || !("send" in channel)) return;
+
+  const container = panel(0xf59e0b)
+    .addTextDisplayComponents(heading("🚫 스팸 감지"))
+    .addTextDisplayComponents(
+      text(`**${message.author.tag}** (${message.author.id})\n사유: ${reason}\n삭제된 메시지: ${deletedCount}개`),
+    );
+  await channel.send({ components: [container], flags: MessageFlags.IsComponentsV2 }).catch(() => {});
 }
 
 export function startAntiSpam(client: Client, officialGuildId: string) {

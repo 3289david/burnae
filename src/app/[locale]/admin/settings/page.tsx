@@ -70,10 +70,7 @@ export default function AdminSettingsPage() {
 
       <div className="card-glow p-5 mt-6">
         <label className="text-sm text-text-dim">사이트 모드</label>
-        <p className="text-xs text-text-dim mt-0.5 mb-2">
-          어떤 서비스를 노출할지 정해요. &ldquo;일반 서버&rdquo;는 VPS·디스코드 봇 호스팅 등
-          마인크래프트가 아닌 서버 종류를 말해요 (서버 종류 관리에서 분류로 구분).
-        </p>
+        <p className="text-xs text-text-dim mt-0.5 mb-2">노출할 서비스 범위를 정해요.</p>
         <div className="flex flex-wrap gap-2">
           {(
             [
@@ -139,18 +136,13 @@ export default function AdminSettingsPage() {
           />
           모든 신규 주문을 선주문으로 강제
         </label>
-        <p className="text-xs text-text-dim mt-1">
-          켜두면 노드 자리 여유와 상관없이 모든 신규 결제 주문이 무조건 &ldquo;선주문&rdquo;으로
-          처리돼요 (즉시 서버가 만들어지지 않고 대기열에 들어감). 점검, 용량 제한, 대기 접수 등에 써요.
-        </p>
+        <p className="text-xs text-text-dim mt-1">점검/용량 제한 시 대기열로만 받을 때 사용.</p>
       </div>
 
       <div className="card-glow p-5 mt-4 flex items-center justify-between">
         <div>
           <h3 className="text-sm font-semibold text-text">AI API 키 설정 (apmix.ai)</h3>
-          <p className="text-xs text-text-dim mt-0.5">
-            서버 대시보드 AI 탭의 claude-sonnet-4-6-free API 키를 여러 개 등록하고 자동 전환(Failover)을 관리해요.
-          </p>
+          <p className="text-xs text-text-dim mt-0.5">API 키 자동 전환(Failover) 관리.</p>
         </div>
         <Link href="/admin/ai" className="btn-secondary text-xs px-3.5 py-2 shrink-0">
           AI 키 관리 이동 →

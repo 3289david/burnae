@@ -214,10 +214,7 @@ export default function AdminTemplatesPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold">서버 종류 (Egg)</h1>
-      <p className="text-sm text-text-dim mt-1">
-        아래에서 종류를 고르기만 하면 도커 이미지(자바 버전)·시작 명령어·기본 설정을 연결된
-        Pterodactyl 패널에서 자동으로 가져와요. Nest ID/Egg ID를 몰라도 괜찮아요.
-      </p>
+      <p className="text-sm text-text-dim mt-1">Pterodactyl에서 자동으로 가져와요.</p>
 
       <div className="mt-6 space-y-2">
         {templates.map((t) => (
@@ -242,15 +239,11 @@ export default function AdminTemplatesPage() {
 
       <form onSubmit={importEgg} className="card-glow p-5 mt-6 space-y-3">
         <h2 className="font-semibold">Egg JSON으로 완전히 새로 가져오기</h2>
-        <p className="text-xs text-text-dim">
-          Pterodactyl에 아직 없는 Egg를 JSON 파일 URL이나 내용 붙여넣기로 통째로 가져와요
-          (parkervcp/eggs 등 공개 저장소의 egg-*.json 파일을 그대로 쓸 수 있어요). 이 화면은
-          관리자 전용이에요 — 설치 스크립트가 포함된 만큼, 신뢰할 수 있는 출처의 egg만 가져오세요.
-        </p>
+        <p className="text-xs text-text-dim">신뢰할 수 있는 출처의 egg만 가져오세요.</p>
         <input
           type="url"
           className="input w-full text-sm"
-          placeholder="egg JSON 파일의 raw URL (예: https://raw.githubusercontent.com/.../egg-x.json)"
+          placeholder="egg JSON 파일 raw URL"
           value={importUrl}
           onChange={(e) => setImportUrl(e.target.value)}
         />
@@ -352,9 +345,7 @@ export default function AdminTemplatesPage() {
             )}
             {Object.keys(dockerImages).length > 1 && (
               <div className="sm:col-span-2">
-                <label className="text-sm text-text-dim">
-                  버전 여러 개 선택 가능하게 하기 (선택, 서버 생성 화면에서 유저가 고를 수 있어요)
-                </label>
+                <label className="text-sm text-text-dim">버전 여러 개 선택 가능하게(선택)</label>
                 <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-1.5">
                   {Object.keys(dockerImages).map((label) => (
                     <label key={label} className="flex items-center gap-1.5 text-xs text-text-dim">

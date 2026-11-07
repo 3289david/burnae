@@ -5,16 +5,13 @@ import { requireUser } from "@/lib/auth";
 import { resolveDepositorName, isValidDepositorName } from "@/lib/hanabank";
 import { markOrderPaidAndFulfill } from "@/lib/orderFulfillment";
 
-/** 크레딧 패키지 — 결제 없이 플랜에 딸려오는 게 아니라 단독으로 충전할 때 고를 수 있는 옵션들
- * (20원 = 1크레딧 — 원래 40원에서 반값으로 내림) */
-const AI_CREDIT_PACKAGES = [
-  { credits: 100, priceKrw: 2000 },
-  { credits: 500, priceKrw: 10000 },
-  { credits: 1500, priceKrw: 30000 },
-] as const;
+/** 20원 = 1크레딧. 슬라이더로 직접 수량을 고르므로 패키지 대신 범위만 검증한다 */
+const KRW_PER_CREDIT = 20;
+const MIN_CREDITS = 10;
+const MAX_CREDITS = 100_000;
 
 const schema = z.object({
-  credits: z.number().int(),
+  credits: z.number().int().min(MIN_CREDITS).max(MAX_CREDITS),
   depositorName: z.string().optional(),
 });
 
@@ -25,8 +22,7 @@ export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 422 });
 
-  const pkg = AI_CREDIT_PACKAGES.find((p) => p.credits === parsed.data.credits);
-  if (!pkg) return NextResponse.json({ error: "존재하지 않는 크레딧 패키지입니다." }, { status: 404 });
+  const pkg = { credits: parsed.data.credits, priceKrw: parsed.data.credits * KRW_PER_CREDIT };
 
   if (parsed.data.depositorName && !isValidDepositorName(parsed.data.depositorName)) {
     return NextResponse.json({ error: "입금자명은 공백 없이 1~5자여야 해요." }, { status: 422 });

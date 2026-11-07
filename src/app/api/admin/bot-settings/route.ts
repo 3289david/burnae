@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdminRole } from "@/lib/auth";
-import { syncRulesMessage, syncLinktreeMessage, syncTicketPanelMessage } from "@/lib/discordBoards";
+import { syncRulesMessage, syncLinktreeMessage, syncTicketPanelMessage, syncPointPanelMessage } from "@/lib/discordBoards";
 
 export async function GET() {
   const admin = await requireAdminRole(["GENERAL", "SUPER"]);
@@ -36,6 +36,7 @@ const schema = z.object({
   ticketPanelChannelId: z.string().min(1).optional().nullable(),
   ticketCategoryId: z.string().min(1).optional().nullable(),
   voiceTriggerChannelId: z.string().min(1).optional().nullable(),
+  pointPanelChannelId: z.string().min(1).optional().nullable(),
 });
 
 export async function PUT(request: Request) {
@@ -64,7 +65,7 @@ export async function PUT(request: Request) {
   });
 
   // 규칙/링크트리 내용이나 채널이 바뀌었을 수 있으니 디스코드 메시지를 최신 상태로 다시 맞춘다
-  await Promise.allSettled([syncRulesMessage(), syncLinktreeMessage(), syncTicketPanelMessage()]);
+  await Promise.allSettled([syncRulesMessage(), syncLinktreeMessage(), syncTicketPanelMessage(), syncPointPanelMessage()]);
 
   return NextResponse.json(updated);
 }

@@ -92,7 +92,7 @@ export default function AdminNodesPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold">노드</h1>
-      <p className="text-sm text-text-dim mt-1">Wings가 이미 설치되고 Pterodactyl 패널에 등록된 노드만 연결할 수 있어요.</p>
+      <p className="text-sm text-text-dim mt-1">Pterodactyl에 등록된 노드만 연결돼요.</p>
 
       <div className="mt-6 space-y-2">
         {nodes.map((n, i) => (
@@ -159,10 +159,7 @@ export default function AdminNodesPage() {
                 <button disabled={!migrateTarget} onClick={() => migrateAll(n.id)} className="btn-primary px-3 py-1.5 text-xs disabled:opacity-40">
                   전체 이전 시작
                 </button>
-                <p className="text-xs text-text-dim w-full">
-                  이 노드의 활성 서버 전부를 순서대로 대상 노드로 옮겨요. 서버마다 개별 이전과 동일하게
-                  진행 중 정지되고, 완료되면 정지 상태로 남으니 확인 후 시작해주세요.
-                </p>
+                <p className="text-xs text-text-dim w-full">완료 후 정지 상태 — 확인 후 직접 시작하세요.</p>
               </div>
             )}
             <div className="mt-2 h-2 rounded-full bg-surface-2 overflow-hidden">

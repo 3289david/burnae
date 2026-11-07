@@ -296,11 +296,7 @@ export default function AdminServersPage() {
                 >
                   이전 시작
                 </button>
-                <p className="text-xs text-text-dim w-full">
-                  서버 데이터 전체를 압축해 대상 노드로 복사합니다. 진행 중에는 서버가 정지돼요.
-                  완료되면 정지 상태로 남으니 확인 후 직접 시작해주세요. 원본은 안전을 위해 자동
-                  삭제하지 않고 정지 상태로 남으니, 확인 후 관리자가 직접 삭제해주세요.
-                </p>
+                <p className="text-xs text-text-dim w-full">완료 후 정지 상태 — 확인 후 직접 시작/삭제하세요.</p>
               </div>
             )}
 

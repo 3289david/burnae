@@ -175,9 +175,7 @@ export default function AdminAiSettingsPage() {
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Cpu className="text-accent" size={26} /> AI 설정 (apmix.ai)
         </h1>
-        <p className="text-sm text-text-dim mt-1">
-          서버 대시보드의 AI 탭(일반 대화)에서 사용할 apmix.ai API 키를 관리합니다.
-        </p>
+        <p className="text-sm text-text-dim mt-1">AI 탭 apmix.ai API 키 관리.</p>
       </div>
 
       {/* 안내 카드 */}
@@ -224,7 +222,7 @@ export default function AdminAiSettingsPage() {
         <form onSubmit={handleAddKeys} className="space-y-3">
           <div>
             <label className="text-xs text-text-dim block mb-1">
-              API 키 (여러 개를 한 번에 추가하려면 한 줄에 하나씩 입력하거나 쉼표로 구분하세요)
+              API 키 (여러 개는 줄바꿈/쉼표로 구분)
             </label>
             <textarea
               className="input w-full font-mono text-xs h-24 resize-y"

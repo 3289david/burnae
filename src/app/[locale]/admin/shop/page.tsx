@@ -119,11 +119,7 @@ export default function AdminShopPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold">포인트 상점</h1>
-      <p className="text-sm text-text-dim mt-1">
-        홍보 포인트로 교환할 수 있는 아이템을 관리해요. RAM/CPU/저장공간/백업 슬롯 증설은 무료
-        서버의 &ldquo;포인트로 증설하기&rdquo;에 뜨고, AI 크레딧·쿠폰·기타는 홍보 포인트 페이지의
-        포인트 상점에 떠요.
-      </p>
+      <p className="text-sm text-text-dim mt-1">포인트로 교환하는 아이템 관리.</p>
 
       <div className="mt-6 space-y-2">
         {items.map((item, i) => (

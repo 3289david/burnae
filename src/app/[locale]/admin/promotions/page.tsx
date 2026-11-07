@@ -72,9 +72,7 @@ export default function AdminPromotionsPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold">홍보 포인트</h1>
-      <p className="text-sm text-text-dim mt-1">
-        고객이 서버를 홍보하고 받을 수 있는 포인트 항목을 관리해요. 활성 항목만 고객 화면에 노출돼요.
-      </p>
+      <p className="text-sm text-text-dim mt-1">홍보하면 받는 포인트 항목 관리.</p>
 
       {reviews.length > 0 && (
         <>

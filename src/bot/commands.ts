@@ -20,6 +20,7 @@ import { postOrRefreshSurvey } from "../lib/discordBoards";
 import { formatMb } from "../lib/formatSize";
 import { startPhoneVerification, confirmPhoneVerification, PhoneVerificationError } from "../lib/phoneVerification";
 import { updateNodeStatusBoard } from "./nodeStatusBoard";
+import { handleTicketButton } from "./tickets";
 import {
   panel,
   heading,
@@ -1041,6 +1042,7 @@ export async function handleButton(interaction: ButtonInteraction) {
   if (interaction.customId === "panel_open_points") return handlePointsPanel(interaction);
   if (interaction.customId === "phoneverify_confirm") return handlePhoneVerifyConfirmButton(interaction);
   if (interaction.customId === "panel_open_phoneverify") return handlePhoneVerifyPanelButton(interaction);
+  if (interaction.customId.startsWith("ticket_")) return handleTicketButton(interaction);
 }
 
 /** /서버관리 패널의 시작/정지/재시작 버튼 — customId: panel_power_<signal>_<serverId> */

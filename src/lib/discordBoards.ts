@@ -9,9 +9,23 @@ import {
   actionButton,
   buttonRow,
   linkButton,
+  section,
   ButtonStyle,
   COMPONENTS_V2_FLAG,
 } from "@/lib/discordComponentsV2";
+
+/**
+ * 티켓 카테고리 4종 — 패널 버튼과 봇 쪽 인터랙션 핸들러(src/bot/tickets.ts)가 이 목록을 공유한다.
+ * 봇 프로세스에서도 그대로 쓰므로 여기(discordBoards.ts, 게이트웨이 의존성 없음)에 둔다.
+ */
+export const TICKET_CATEGORIES = [
+  { key: "SERVER", emoji: "📌", title: "서버 문의", description: "서버 이용, 역할/채널 오류, 이벤트 등 일반 서버 문의 전용 양식" },
+  { key: "REPORT", emoji: "🚨", title: "신고 문의", description: "규칙 위반 유저 신고 및 증거 캡처 제출 전용 비공개 티켓 양식" },
+  { key: "AD", emoji: "📢", title: "광고 문의", description: "서버 제휴 및 상호 홍보 검토를 위한 전용 양식" },
+  { key: "PAYMENT", emoji: "💳", title: "결제 문의", description: "후원 및 유료 멤버십 결제 내역 확인 전용 보안 상담 양식" },
+] as const;
+
+export type TicketCategoryKey = (typeof TICKET_CATEGORIES)[number]["key"];
 
 /**
  * 이용약관/규칙 패널을 "관리자가 설정을 저장할 때마다" 다시 그려서 올린다. 새로 만들지 않고
@@ -71,6 +85,34 @@ export async function syncLinktreeMessage(): Promise<void> {
 
   if (messageId && messageId !== settings.linktreeMessageId) {
     await prisma.botSettings.update({ where: { id: 1 }, data: { linktreeMessageId: messageId } });
+  }
+}
+
+/**
+ * 4개 카테고리 중 하나를 골라 여는 티켓 패널. 버튼 자체(각 섹션의 "열기" 버튼)는 눌렀을 때
+ * src/bot/tickets.ts의 handleTicketButton이 처리한다(채널 생성은 게이트웨이 클라이언트가 필요해서
+ * REST만 쓰는 이 파일에서는 할 수 없다) — 여기서는 패널 "표시"만 담당한다.
+ */
+export async function syncTicketPanelMessage(): Promise<void> {
+  const settings = await prisma.botSettings.findUnique({ where: { id: 1 } });
+  if (!settings?.ticketPanelChannelId) return;
+
+  const container = panel().addTextDisplayComponents(heading("🎫 문의하기"), subtext("아래에서 문의 종류를 골라주세요 — 운영진만 볼 수 있는 비공개 채널이 만들어져요."));
+  container.addSeparatorComponents(divider());
+  TICKET_CATEGORIES.forEach((cat, i) => {
+    if (i > 0) container.addSeparatorComponents(divider());
+    container.addSectionComponents(
+      section(`${cat.emoji} **${cat.title}**\n${cat.description}`, actionButton(`ticket_open:${cat.key}`, "열기", ButtonStyle.Secondary, cat.emoji)),
+    );
+  });
+
+  const messageId = await upsertDiscordChannelMessage(settings.ticketPanelChannelId, settings.ticketPanelMessageId, {
+    components: [container.toJSON()],
+    flags: COMPONENTS_V2_FLAG,
+  });
+
+  if (messageId && messageId !== settings.ticketPanelMessageId) {
+    await prisma.botSettings.update({ where: { id: 1 }, data: { ticketPanelMessageId: messageId } });
   }
 }
 

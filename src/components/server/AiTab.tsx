@@ -154,6 +154,22 @@ export default function AiTab({
     }
   }
 
+  /** send()가 끊겼을 때 메시지를 다시 보내면(재시도) 서버 쪽에서 이미 실행 중/완료된 턴이
+   * 두 번 처리될 수 있다(파일 쓰기·명령 실행이 중복됨) — 그래서 "보내기"는 절대 재시도하지
+   * 않고, 결과를 다시 불러오는(refresh) 쪽만 몇 번 더 시도한다. 네트워크가 잠깐 끊겼다가
+   * 돌아오는 경우 이 정도면 대부분 커버된다. */
+  async function refreshWithRetry(id: string, attempts = 4) {
+    for (let i = 0; i < attempts; i++) {
+      try {
+        await refresh(id);
+        return;
+      } catch {
+        if (i === attempts - 1) throw new Error("refresh failed");
+        await new Promise((r) => setTimeout(r, 1000 * 2 ** i));
+      }
+    }
+  }
+
   async function changeModel(next: "opus" | "sonnet" | "haiku") {
     setModel(next);
     if (!conversationId) return;
@@ -193,13 +209,18 @@ export default function AiTab({
         const data = await res.json().catch(() => ({}));
         setChatError(data.error ?? t("sendFailed"));
       }
-      await refresh(conversationId);
+      await refreshWithRetry(conversationId).catch(() => {});
     } catch {
       // 연결이 끊긴 채 멈춰버린 경우(탭 백그라운드, 네트워크 전환 등) — 서버 쪽 작업은
       // nginx proxy_ignore_client_abort 덕에 끝까지 돌지만, 이 fetch 자체는 응답을 못 받을 수
-      // 있다. 타임아웃으로 끝내고 다시 불러와서 결과를 반영한다 — 버튼이 영원히 안 눌리는 걸 막음
-      setChatError(t("sendFailed"));
-      await refresh(conversationId).catch(() => {});
+      // 있다. 타임아웃으로 끝내고 다시 불러와서 결과를 반영한다 — 버튼이 영원히 안 눌리는 걸 막음.
+      // 보내기 자체는 재시도하지 않고(중복 실행 위험), 결과 조회만 몇 번 더 재시도한다.
+      try {
+        await refreshWithRetry(conversationId);
+        setChatError(null);
+      } catch {
+        setChatError(t("sendFailed"));
+      }
     } finally {
       clearInterval(pollTimer);
       setBusy(false);
@@ -215,10 +236,13 @@ export default function AiTab({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ decision }),
       });
-      await refresh(conversationId);
+      await refreshWithRetry(conversationId).catch(() => {});
     } catch {
-      setChatError(t("sendFailed"));
-      await refresh(conversationId).catch(() => {});
+      try {
+        await refreshWithRetry(conversationId);
+      } catch {
+        setChatError(t("sendFailed"));
+      }
     } finally {
       setBusy(false);
     }

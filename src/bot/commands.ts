@@ -22,6 +22,7 @@ import { startPhoneVerification, confirmPhoneVerification, PhoneVerificationErro
 import { updateNodeStatusBoard } from "./nodeStatusBoard";
 import { handleTicketButton } from "./tickets";
 import { handleSummarize } from "./aiFeatures";
+import { xpForLevel } from "./activityRewards";
 import {
   panel,
   heading,
@@ -118,6 +119,12 @@ export const commandDefinitions = [
   new SlashCommandBuilder()
     .setName("포인트순위")
     .setDescription("홍보 포인트 랭킹을 봅니다."),
+  new SlashCommandBuilder()
+    .setName("레벨")
+    .setDescription("내 채팅 활동 레벨/XP를 봅니다."),
+  new SlashCommandBuilder()
+    .setName("레벨순위")
+    .setDescription("채팅 활동 레벨 랭킹을 봅니다."),
   new SlashCommandBuilder()
     .setName("설문")
     .setDescription("운영진에게 자유롭게 의견/제안을 보냅니다.")
@@ -233,6 +240,10 @@ export async function handleCommand(interaction: ChatInputCommandInteraction) {
       return handleRules(interaction);
     case "포인트순위":
       return handlePointsLeaderboard(interaction);
+    case "레벨":
+      return handleLevel(interaction);
+    case "레벨순위":
+      return handleLevelLeaderboard(interaction);
     case "설문":
       return handleSurvey(interaction);
     case "투표":
@@ -740,6 +751,46 @@ async function handlePointsLeaderboard(interaction: ChatInputCommandInteraction)
             const name = u.discordLink ? `<@${u.discordLink.discordUserId}>` : u.name;
             return `${medal[i] ?? `${i + 1}.`} ${name} — ${u.promotionPoints.toLocaleString()}점`;
           })
+          .join("\n"),
+      ),
+    );
+  await interaction.reply(v2Reply(container, false));
+}
+
+/** /레벨 — 채팅 활동 레벨/XP + 다음 레벨까지 남은 양 */
+async function handleLevel(interaction: ChatInputCommandInteraction) {
+  const row = await prisma.userActivityLevel.findUnique({ where: { discordUserId: interaction.user.id } });
+  const xp = row?.xp ?? 0;
+  const level = row?.level ?? 0;
+  const currentFloor = xpForLevel(level);
+  const nextCeil = xpForLevel(level + 1);
+  const progress = Math.min(100, Math.round(((xp - currentFloor) / (nextCeil - currentFloor)) * 100));
+
+  const container = panel()
+    .addTextDisplayComponents(heading(`⭐ 레벨 ${level}`))
+    .addTextDisplayComponents(
+      text(
+        `총 XP: ${xp.toLocaleString()} (메시지 ${row?.messageCount ?? 0}개)\n` +
+          `다음 레벨까지: ${(nextCeil - xp).toLocaleString()} XP (${progress}%)`,
+      ),
+    );
+  await interaction.reply(v2Reply(container, false));
+}
+
+async function handleLevelLeaderboard(interaction: ChatInputCommandInteraction) {
+  const top = await prisma.userActivityLevel.findMany({ orderBy: { xp: "desc" }, take: 10 });
+  if (top.length === 0) {
+    await interaction.reply({ components: [text("아직 채팅으로 레벨을 올린 사람이 없어요.")], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+    return;
+  }
+
+  const medal = ["🥇", "🥈", "🥉"];
+  const container = panel()
+    .addTextDisplayComponents(heading("⭐ 활동 레벨 랭킹"))
+    .addTextDisplayComponents(
+      text(
+        top
+          .map((row, i) => `${medal[i] ?? `${i + 1}.`} <@${row.discordUserId}> — 레벨 ${row.level} (${row.xp.toLocaleString()} XP)`)
           .join("\n"),
       ),
     );

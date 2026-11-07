@@ -31,6 +31,8 @@ const schema = z.object({
   subAnnouncementChannelId: z.string().min(1).optional().nullable(),
   logChannelId: z.string().min(1).optional().nullable(),
   welcomeChannelId: z.string().min(1).optional().nullable(),
+  welcomeMessageTemplate: z.string().max(300).optional().nullable(),
+  leaveMessageTemplate: z.string().max(300).optional().nullable(),
   ticketPanelChannelId: z.string().min(1).optional().nullable(),
   ticketCategoryId: z.string().min(1).optional().nullable(),
   voiceTriggerChannelId: z.string().min(1).optional().nullable(),

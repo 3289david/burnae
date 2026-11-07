@@ -35,6 +35,44 @@ const POINTS_PER_BOOST = 2000;
 const VERIFIED_TITLE_ROLE_ID = "1562815337194594406";
 const POINTS_PER_VERIFIED_TITLE = 100;
 
+/** 채팅 1건당 XP — 포인트(현금 교환 가능)와는 별개로, 연동 여부와 상관없이 누구나 쌓인다 */
+const XP_PER_MESSAGE = 10;
+
+export function xpForLevel(level: number): number {
+  // 레벨 n에 도달하는 데 필요한 총 XP — 완만하게 늘어나는 2차 곡선(레벨마다 필요량이 100씩 증가)
+  return 50 * level * (level + 1);
+}
+export function levelForXp(xp: number): number {
+  let level = 0;
+  while (xpForLevel(level + 1) <= xp) level++;
+  return level;
+}
+
+async function awardXp(client: Client, discordUserId: string, xp: number) {
+  const row = await prisma.userActivityLevel.upsert({
+    where: { discordUserId },
+    update: { xp: { increment: xp }, messageCount: { increment: 1 } },
+    create: { discordUserId, xp, messageCount: 1 },
+  });
+  const newLevel = levelForXp(row.xp);
+  if (newLevel > row.level) {
+    await prisma.userActivityLevel.update({ where: { discordUserId }, data: { level: newLevel } });
+    await announceLevelUp(client, discordUserId, newLevel).catch((err) => console.error("[activityRewards] 레벨업 알림 실패:", err));
+  }
+}
+
+async function announceLevelUp(client: Client, discordUserId: string, newLevel: number) {
+  const settings = await prisma.botSettings.findUnique({ where: { id: 1 } });
+  if (!settings?.subAnnouncementChannelId) return;
+  const channel = await client.channels.fetch(settings.subAnnouncementChannelId).catch(() => null);
+  if (!channel || !channel.isTextBased() || !("send" in channel)) return;
+
+  const container = panel(0x60a5fa)
+    .addTextDisplayComponents(heading("⭐ 레벨업!"))
+    .addTextDisplayComponents(text(`<@${discordUserId}> 님이 레벨 **${newLevel}**이 됐어요! \`/레벨순위\`에서 확인해보세요.`));
+  await channel.send({ components: [container], flags: MessageFlags.IsComponentsV2 }).catch(() => {});
+}
+
 const lastChatRewardAt = new Map<string, number>();
 const chatDailyTotal = new Map<string, { day: string; points: number }>();
 /** 60초 쿨다운만으로는 "같은 문장 반복 전송"으로 느리게 도배하며 포인트를 긁는 걸 못 막는다 —
@@ -142,6 +180,8 @@ function handleMessageCreate(client: Client, message: Message, officialGuildId: 
   awardToDiscordUser(client, message.author.id, POINTS_PER_MESSAGE, `채팅(ch:${message.channelId})`).catch((err) =>
     console.error("[activityRewards] 채팅 지급 실패:", err),
   );
+  // XP(레벨링)는 포인트와 달리 Burnae 계정 연동 여부와 무관하게 누구나 쌓인다
+  awardXp(client, message.author.id, XP_PER_MESSAGE).catch((err) => console.error("[activityRewards] XP 지급 실패:", err));
 }
 
 function handleGuildMemberUpdate(

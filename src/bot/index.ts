@@ -86,11 +86,14 @@ client.on(Events.GuildMemberAdd, async (member) => {
       if (channel instanceof TextChannel) {
         const memberCount = member.guild.memberCount;
         const accountAgeDays = Math.floor((Date.now() - member.user.createdTimestamp) / (24 * 60 * 60 * 1000));
+        const headline = settings.welcomeMessageTemplate
+          ? settings.welcomeMessageTemplate.replaceAll("{user}", `<@${member.id}>`).replaceAll("{count}", memberCount.toLocaleString())
+          : `**${member.user.tag}** 님이 들어왔어요! (${memberCount.toLocaleString()}번째 멤버)`;
         const container = panel()
           .addSectionComponents(
             section(
               [
-                `**${member.user.tag}** 님이 들어왔어요! (${memberCount.toLocaleString()}번째 멤버)`,
+                headline,
                 accountAgeDays < 3 ? `⚠️ 계정 생성 ${accountAgeDays}일 전 — 새 계정이에요` : `계정 생성 ${accountAgeDays}일 전`,
               ],
               thumbnail(member.user.displayAvatarURL({ size: 128 })),
@@ -111,6 +114,25 @@ client.on(Events.GuildMemberRemove, async (member) => {
   if (member.guild.id !== officialGuildId) return;
   const settings = await prisma.botSettings.findUnique({ where: { id: 1 } }).catch(() => null);
   await logMemberChange(member.guild, settings?.logChannelId, "leave", member.user.tag, member.user.id, member.guild.memberCount);
+
+  // 입장 카드와 같은 채널에 퇴장 카드도 공개로 올린다 — 이미 나간 유저라 멘션은 안 되니 태그로 표시
+  if (settings?.welcomeChannelId) {
+    try {
+      const channel = await member.guild.channels.fetch(settings.welcomeChannelId);
+      if (channel instanceof TextChannel) {
+        const memberCount = member.guild.memberCount;
+        const headline = settings.leaveMessageTemplate
+          ? settings.leaveMessageTemplate.replaceAll("{user}", member.user.tag).replaceAll("{count}", memberCount.toLocaleString())
+          : `**${member.user.tag}** 님이 나갔어요. (현재 ${memberCount.toLocaleString()}명)`;
+        const container = panel(0x6b7280).addSectionComponents(
+          section([headline], thumbnail(member.user.displayAvatarURL({ size: 128 }))),
+        );
+        await channel.send({ components: [container], flags: MessageFlags.IsComponentsV2 });
+      }
+    } catch (err) {
+      console.error("[bot] 공개 퇴장 메시지 발송 실패:", err);
+    }
+  }
 });
 
 /** 관리자 로그 채널에 멤버 입장/퇴장을 남긴다 — 서버 생성/삭제 기록과 같은 채널에 모아둬서

@@ -1372,8 +1372,13 @@ model BotSettings {
   announcementChannelId String?
   /// 서브 공지 채널 — 서버 부스트 감사 등 덜 중요한 알림
   subAnnouncementChannelId String?
-  /// 새 멤버가 들어오면 공개 환영 메시지를 올릴 채널 (DM 환영 메시지와 별개 — 설정 안 하면 공개 메시지는 안 보냄)
+  /// 새 멤버가 들어오면 공개 환영 메시지를 올릴 채널 (DM 환영 메시지와 별개 — 설정 안 하면 공개 메시지는 안 보냄).
+  /// 같은 채널에 퇴장 카드도 같이 올라간다
   welcomeChannelId      String?
+  /// 입장 카드 커스텀 문구. {user}=멘션, {count}=현재 인원. 비어있으면 기본 문구를 쓴다
+  welcomeMessageTemplate String?
+  /// 퇴장 카드 커스텀 문구. {user}=유저 태그(멘션 불가 — 이미 나간 유저), {count}=현재 인원. 비어있으면 기본 문구
+  leaveMessageTemplate   String?
   /// 채널 이름 자체를 "🟢 가동중 N/M"으로 주기적으로 바꿔서 채널 목록만 봐도 바로 보이게 하는
   /// 음성 채널. 디스코드가 채널 이름 변경을 채널당 10분에 2번으로 제한해서 statusBoard보다
   /// 느린 주기(10분)로 갱신한다
@@ -1435,6 +1440,19 @@ model RoleShopItem {
   createdAt     DateTime @default(now())
 
   @@index([active])
+}
+
+/// 채팅 레벨링 — promotionPoints(현금 교환 가능)와는 완전히 별개의 순수 게임화 지표라,
+/// Burnae 계정 연동 여부와 무관하게 디스코드 유저 ID 기준으로 누구나 쌓인다
+model UserActivityLevel {
+  id             String   @id @default(cuid())
+  discordUserId  String   @unique
+  xp             Int      @default(0)
+  level          Int      @default(0)
+  messageCount   Int      @default(0)
+  updatedAt      DateTime @updatedAt
+
+  @@index([xp])
 }
 
 /// "임시 개인 음성방" — voiceTriggerChannelId에 들어가면 만들어지는 전용 음성채널 한 칸당 한 줄.

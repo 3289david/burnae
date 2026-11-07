@@ -18,6 +18,8 @@ interface BotSettings {
   subAnnouncementChannelId: string | null;
   logChannelId: string | null;
   welcomeChannelId: string | null;
+  welcomeMessageTemplate: string | null;
+  leaveMessageTemplate: string | null;
   ticketPanelChannelId: string | null;
   ticketCategoryId: string | null;
   voiceTriggerChannelId: string | null;
@@ -279,6 +281,29 @@ export default function AdminDiscordPage() {
             maxLength={3800}
             value={settings.rulesContent}
             onChange={(e) => setSettings({ ...settings, rulesContent: e.target.value })}
+          />
+        </div>
+      </div>
+
+      <div className="card-glow p-5 space-y-3">
+        <h2 className="font-semibold">입장/퇴장 카드 문구</h2>
+        <p className="text-xs text-text-dim">{"{user}=멘션(퇴장은 태그만), {count}=현재 인원. 비우면 기본 문구를 써요."}</p>
+        <div>
+          <label className="text-sm text-text-dim">입장 카드</label>
+          <input
+            className="input w-full mt-1"
+            placeholder="{user} 님이 들어왔어요! ({count}번째 멤버)"
+            value={settings.welcomeMessageTemplate ?? ""}
+            onChange={(e) => setSettings({ ...settings, welcomeMessageTemplate: e.target.value || null })}
+          />
+        </div>
+        <div>
+          <label className="text-sm text-text-dim">퇴장 카드</label>
+          <input
+            className="input w-full mt-1"
+            placeholder="{user} 님이 나갔어요. (현재 {count}명)"
+            value={settings.leaveMessageTemplate ?? ""}
+            onChange={(e) => setSettings({ ...settings, leaveMessageTemplate: e.target.value || null })}
           />
         </div>
       </div>

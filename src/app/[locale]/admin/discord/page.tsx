@@ -20,6 +20,7 @@ interface BotSettings {
   welcomeChannelId: string | null;
   ticketPanelChannelId: string | null;
   ticketCategoryId: string | null;
+  voiceTriggerChannelId: string | null;
 }
 
 interface LinktreeLink {
@@ -48,6 +49,7 @@ const CHANNEL_FIELDS: { key: keyof BotSettings; label: string; hint: string }[] 
   { key: "welcomeChannelId", label: "환영 채널 ID", hint: "새 멤버가 들어오면 공개 환영 메시지를 올려요 (비우면 DM만 보냄)" },
   { key: "ticketPanelChannelId", label: "티켓 패널 채널 ID", hint: "4종 문의 버튼 패널이 여기 올라가요" },
   { key: "ticketCategoryId", label: "티켓 생성 카테고리 ID", hint: "버튼을 누르면 만들어지는 비공개 채널이 이 카테고리 밑에 생겨요 (비우면 서버 최상위)" },
+  { key: "voiceTriggerChannelId", label: "임시 음성방 트리거 채널 ID", hint: "이 음성채널에 들어가면 자기만의 임시 음성방이 새로 생겨요(비면 자동 삭제)" },
 ];
 
 const emptyLink = { label: "", url: "", emoji: "", sortOrder: 0 };

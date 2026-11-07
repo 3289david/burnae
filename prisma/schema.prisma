@@ -1387,6 +1387,9 @@ model BotSettings {
   ticketPanelMessageId  String?
   /// 티켓 버튼을 누르면 새로 만들어지는 비공개 채널이 들어갈 카테고리. 비어있으면 서버 최상위에 만든다
   ticketCategoryId      String?
+  /// 이 음성채널에 들어가면("트리거") 자기만의 임시 음성방이 새로 만들어지고 거기로 옮겨진다.
+  /// 새 방은 트리거 채널과 같은 카테고리에 생긴다
+  voiceTriggerChannelId String?
   updatedAt             DateTime @updatedAt
 
   @@map("bot_settings")
@@ -1417,6 +1420,18 @@ model SupportTicket {
   closedByDiscordId  String?
 
   @@index([openedByDiscordId, status])
+}
+
+/// "임시 개인 음성방" — voiceTriggerChannelId에 들어가면 만들어지는 전용 음성채널 한 칸당 한 줄.
+/// 안에 아무도 없으면 자동으로 삭제되고(voiceTrigger.ts), 봇이 재시작돼도 이 테이블을 보고
+/// 이미 빈 채널이 된 걸 정리할 수 있다(재시작 중 놓친 퇴장 이벤트 보정)
+model TempVoiceChannel {
+  id             String    @id @default(cuid())
+  channelId      String    @unique
+  ownerDiscordId String
+  createdAt      DateTime  @default(now())
+  /// "스마트 보이스" 자동 이름 변경 쿨다운 추적 — 디스코드가 채널 이름 변경을 10분에 2번으로 막아서 필요
+  lastRenamedAt  DateTime?
 }
 
 /// 관리자가 편집하는 링크트리 항목 — /링크트리 명령어와 채널 임베드에 그대로 반영

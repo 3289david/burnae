@@ -33,6 +33,7 @@ const schema = z.object({
   welcomeChannelId: z.string().min(1).optional().nullable(),
   ticketPanelChannelId: z.string().min(1).optional().nullable(),
   ticketCategoryId: z.string().min(1).optional().nullable(),
+  voiceTriggerChannelId: z.string().min(1).optional().nullable(),
 });
 
 export async function PUT(request: Request) {

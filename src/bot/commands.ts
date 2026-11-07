@@ -21,6 +21,7 @@ import { formatMb } from "../lib/formatSize";
 import { startPhoneVerification, confirmPhoneVerification, PhoneVerificationError } from "../lib/phoneVerification";
 import { updateNodeStatusBoard } from "./nodeStatusBoard";
 import { handleTicketButton } from "./tickets";
+import { handleSummarize } from "./aiFeatures";
 import {
   panel,
   heading,
@@ -59,6 +60,12 @@ export const commandDefinitions = [
     .setDescription("운영진에게 1:1로 문의합니다 (비공개 채널 생성).")
     .addStringOption((opt) =>
       opt.setName("내용").setDescription("문의 내용을 간단히 적어주세요").setRequired(true),
+    ),
+  new SlashCommandBuilder()
+    .setName("대화요약")
+    .setDescription("이 채널의 최근 대화를 AI로 요약합니다.")
+    .addIntegerOption((opt) =>
+      opt.setName("개수").setDescription("요약할 최근 메시지 수 (기본 50, 최대 200)").setMinValue(10).setMaxValue(200),
     ),
   new SlashCommandBuilder()
     .setName("연동")
@@ -202,6 +209,8 @@ export async function handleCommand(interaction: ChatInputCommandInteraction) {
       return handleEvents(interaction);
     case "문의":
       return handleSupport(interaction);
+    case "대화요약":
+      return handleSummarize(interaction);
     case "연동":
       return handleLink(interaction);
     case "휴대폰인증":

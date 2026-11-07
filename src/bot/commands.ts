@@ -915,8 +915,86 @@ async function handlePointsPanel(interaction: PanelInteraction) {
   }
 
   container.addSeparatorComponents(divider());
-  container.addActionRowComponents(buttonRow(linkButton("포인트 충전 / 포인트샵", `${SITE_URL}/dashboard/promotions`)));
+  container.addActionRowComponents(
+    buttonRow(
+      linkButton("포인트 충전 / 포인트샵", `${SITE_URL}/dashboard/promotions`),
+      actionButton("roleshop_list", "🏷️ 칭호/역할 구매", ButtonStyle.Secondary),
+    ),
+  );
   await interaction.reply(v2Reply(container));
+}
+
+/** "🏷️ 칭호/역할 구매" 버튼 — 활성화된 RoleShopItem 목록을 버튼으로 보여준다 */
+async function handleRoleShopList(interaction: ButtonInteraction) {
+  const items = await prisma.roleShopItem.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } });
+  if (items.length === 0) {
+    await interaction.reply({
+      components: [text("아직 등록된 칭호/역할 상품이 없어요.")],
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  const container = panel().addTextDisplayComponents(heading("🏷️ 칭호/역할 구매"), subtext("구매하면 포인트가 차감되고 역할이 바로 부여돼요."));
+  for (let i = 0; i < items.slice(0, 25).length; i += 5) {
+    container.addActionRowComponents(
+      buttonRow(
+        ...items
+          .slice(i, i + 5)
+          .map((item) => actionButton(`roleshop_buy:${item.id}`, `${item.name} (${item.pointsCost.toLocaleString()}P)`, ButtonStyle.Secondary)),
+      ),
+    );
+  }
+  await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+}
+
+/** "roleshop_buy:<id>" 버튼 — 포인트 차감 + 역할 부여를 원자적으로 처리한다 */
+async function handleRoleShopBuy(interaction: ButtonInteraction) {
+  const itemId = interaction.customId.slice("roleshop_buy:".length);
+  const user = await findLinkedUser(interaction.user.id);
+  if (!user) {
+    await interaction.reply({ components: [text("먼저 `/연동` 명령어로 계정을 연동해주세요.")], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+    return;
+  }
+  const item = await prisma.roleShopItem.findUnique({ where: { id: itemId } });
+  if (!item || !item.active) {
+    await interaction.reply({ components: [text("더 이상 구매할 수 없는 상품이에요.")], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+    return;
+  }
+  const memberRoles = interaction.member?.roles;
+  if (memberRoles && typeof memberRoles !== "string" && "cache" in memberRoles && memberRoles.cache.has(item.discordRoleId)) {
+    await interaction.reply({ components: [text("이미 가지고 있는 역할이에요.")], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+    return;
+  }
+
+  // 동시에 여러 번 눌러도 포인트가 이중 차감되지 않도록, "지금 잔액이 가격 이상일 때만" 조건부로 차감한다
+  const claimed = await prisma.user.updateMany({
+    where: { id: user.id, promotionPoints: { gte: item.pointsCost } },
+    data: { promotionPoints: { decrement: item.pointsCost } },
+  });
+  if (claimed.count === 0) {
+    await interaction.reply({
+      components: [text(`포인트가 부족해요. (필요: ${item.pointsCost.toLocaleString()}P, 보유: ${user.promotionPoints.toLocaleString()}P)`)],
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  try {
+    await interaction.guild?.members.cache.get(interaction.user.id)?.roles.add(item.discordRoleId);
+    await interaction.reply({
+      components: [text(`✅ **${item.name}** 역할을 구매했어요! (${item.pointsCost.toLocaleString()}P 차감)`)],
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+    });
+  } catch (err) {
+    // 역할 부여 실패(권한/역할 삭제 등) — 환불하고 사용자에게 알린다
+    await prisma.user.update({ where: { id: user.id }, data: { promotionPoints: { increment: item.pointsCost } } });
+    console.error("[roleshop] 역할 부여 실패, 포인트 환불함:", err);
+    await interaction.reply({
+      components: [text("역할 부여에 실패해서 포인트를 환불했어요. 관리자에게 문의해주세요.")],
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+    });
+  }
 }
 
 /**
@@ -1052,6 +1130,8 @@ export async function handleButton(interaction: ButtonInteraction) {
   if (interaction.customId === "phoneverify_confirm") return handlePhoneVerifyConfirmButton(interaction);
   if (interaction.customId === "panel_open_phoneverify") return handlePhoneVerifyPanelButton(interaction);
   if (interaction.customId.startsWith("ticket_")) return handleTicketButton(interaction);
+  if (interaction.customId === "roleshop_list") return handleRoleShopList(interaction);
+  if (interaction.customId.startsWith("roleshop_buy:")) return handleRoleShopBuy(interaction);
 }
 
 /** /서버관리 패널의 시작/정지/재시작 버튼 — customId: panel_power_<signal>_<serverId> */

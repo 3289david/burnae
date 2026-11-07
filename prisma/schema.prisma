@@ -1422,6 +1422,21 @@ model SupportTicket {
   @@index([openedByDiscordId, status])
 }
 
+/// 포인트로 교환하는 디스코드 칭호/역할 — 실제 호스팅 혜택(promotions 페이지)과는 별개로,
+/// 순수하게 디스코드 안에서 보여주는 색깔/칭호 역할을 판다. 봇의 /포인트 패널 "🏷️ 칭호/역할 구매"
+/// 버튼에서 목록이 나온다
+model RoleShopItem {
+  id            String   @id @default(cuid())
+  discordRoleId String   @unique
+  name          String
+  pointsCost    Int
+  active        Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  @@index([active])
+}
+
 /// "임시 개인 음성방" — voiceTriggerChannelId에 들어가면 만들어지는 전용 음성채널 한 칸당 한 줄.
 /// 안에 아무도 없으면 자동으로 삭제되고(voiceTrigger.ts), 봇이 재시작돼도 이 테이블을 보고
 /// 이미 빈 채널이 된 걸 정리할 수 있다(재시작 중 놓친 퇴장 이벤트 보정)

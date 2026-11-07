@@ -32,6 +32,15 @@ interface LinktreeLink {
   active: boolean;
 }
 
+interface RoleShopItem {
+  id: string;
+  discordRoleId: string;
+  name: string;
+  pointsCost: number;
+  sortOrder: number;
+  active: boolean;
+}
+
 const ROLE_FIELDS: { key: keyof BotSettings; label: string; hint: string }[] = [
   { key: "verifiedRoleId", label: "인증 완료 역할 ID", hint: "규칙 임베드의 ✅ 인증하기 버튼을 누르면 부여" },
   { key: "purchaserRoleId", label: "구매자 역할 ID", hint: "서버(유료/포인트 교환 모두)를 만들면 자동 부여" },
@@ -53,6 +62,7 @@ const CHANNEL_FIELDS: { key: keyof BotSettings; label: string; hint: string }[] 
 ];
 
 const emptyLink = { label: "", url: "", emoji: "", sortOrder: 0 };
+const emptyRoleShopItem = { discordRoleId: "", name: "", pointsCost: 1000, sortOrder: 0 };
 
 export default function AdminDiscordPage() {
   const [settings, setSettings] = useState<BotSettings | null>(null);
@@ -63,17 +73,60 @@ export default function AdminDiscordPage() {
   const [linkForm, setLinkForm] = useState(emptyLink);
   const [linkError, setLinkError] = useState<string | null>(null);
 
+  const [roleShopItems, setRoleShopItems] = useState<RoleShopItem[]>([]);
+  const [roleShopForm, setRoleShopForm] = useState(emptyRoleShopItem);
+  const [roleShopError, setRoleShopError] = useState<string | null>(null);
+
   const [provisioning, setProvisioning] = useState(false);
   const [provisionResult, setProvisionResult] = useState<{ created: { field: string; channelId: string }[]; failed: { field: string; error: string }[] } | null>(null);
 
   useEffect(() => {
     fetch("/api/admin/bot-settings").then((r) => r.json()).then(setSettings);
     loadLinks();
+    loadRoleShopItems();
   }, []);
 
   async function loadLinks() {
     const res = await fetch("/api/admin/linktree");
     if (res.ok) setLinks(await res.json());
+  }
+
+  async function loadRoleShopItems() {
+    const res = await fetch("/api/admin/role-shop");
+    if (res.ok) setRoleShopItems(await res.json());
+  }
+
+  async function addRoleShopItem(e: React.FormEvent) {
+    e.preventDefault();
+    setRoleShopError(null);
+    try {
+      const res = await fetch("/api/admin/role-shop", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(roleShopForm),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setRoleShopForm(emptyRoleShopItem);
+      await loadRoleShopItems();
+    } catch (err) {
+      setRoleShopError(err instanceof Error ? err.message : "추가 실패");
+    }
+  }
+
+  async function toggleRoleShopActive(id: string, active: boolean) {
+    await fetch(`/api/admin/role-shop/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ active }),
+    });
+    await loadRoleShopItems();
+  }
+
+  async function removeRoleShopItem(id: string) {
+    if (!confirm("이 칭호/역할 상품을 삭제할까요?")) return;
+    await fetch(`/api/admin/role-shop/${id}`, { method: "DELETE" });
+    await loadRoleShopItems();
   }
 
   async function save() {
@@ -313,6 +366,69 @@ export default function AdminDiscordPage() {
             </div>
           </div>
           {linkError && <p className="text-sm text-red">{linkError}</p>}
+          <button type="submit" className="btn-primary px-5 py-2.5">추가</button>
+        </form>
+      </div>
+
+      <div>
+        <h2 className="text-xl font-bold">칭호/역할 상점</h2>
+        <p className="text-sm text-text-dim mt-1">포인트로 교환하는 디스코드 칭호/역할. /포인트 패널의 "🏷️ 칭호/역할 구매" 버튼에 목록으로 나와요.</p>
+        <div className="mt-3 space-y-2">
+          {roleShopItems.map((item, i) => (
+            <div
+              key={item.id}
+              className="card-glow p-4 flex items-center justify-between flex-wrap gap-2 animate-fade-up"
+              style={{ animationDelay: `${Math.min(i, 10) * 0.03}s` }}
+            >
+              <div className="min-w-0">
+                <p className="font-medium text-sm">
+                  {item.name} — {item.pointsCost.toLocaleString()}P {!item.active && <span className="text-text-dim text-xs">(비활성)</span>}
+                </p>
+                <p className="text-xs text-text-dim mt-0.5 truncate">역할 ID: {item.discordRoleId}</p>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <Toggle checked={item.active} onChange={() => toggleRoleShopActive(item.id, !item.active)} size="sm" />
+                <button onClick={() => removeRoleShopItem(item.id)} className="text-red text-sm px-2">삭제</button>
+              </div>
+            </div>
+          ))}
+          {roleShopItems.length === 0 && <p className="text-sm text-text-dim">등록된 상품이 없어요.</p>}
+        </div>
+
+        <form onSubmit={addRoleShopItem} className="card-glow p-5 mt-4 space-y-3">
+          <h3 className="font-semibold">새 상품 추가</h3>
+          <div className="grid sm:grid-cols-3 gap-3">
+            <div>
+              <label className="text-sm text-text-dim">이름</label>
+              <input
+                className="input w-full mt-1"
+                placeholder="예: 빨간 칭호"
+                value={roleShopForm.name}
+                onChange={(e) => setRoleShopForm({ ...roleShopForm, name: e.target.value })}
+                required
+              />
+            </div>
+            <div>
+              <label className="text-sm text-text-dim">역할 ID</label>
+              <input
+                className="input w-full mt-1"
+                value={roleShopForm.discordRoleId}
+                onChange={(e) => setRoleShopForm({ ...roleShopForm, discordRoleId: e.target.value })}
+                required
+              />
+            </div>
+            <div>
+              <label className="text-sm text-text-dim">가격(P)</label>
+              <input
+                type="number"
+                className="input w-full mt-1"
+                value={roleShopForm.pointsCost}
+                onChange={(e) => setRoleShopForm({ ...roleShopForm, pointsCost: Number(e.target.value) })}
+                required
+              />
+            </div>
+          </div>
+          {roleShopError && <p className="text-sm text-red">{roleShopError}</p>}
           <button type="submit" className="btn-primary px-5 py-2.5">추가</button>
         </form>
       </div>

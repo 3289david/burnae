@@ -30,6 +30,8 @@ interface Product {
   preorderPriceKrw: number | null;
   aiCreditsPerMonth: number;
   requiresDedicatedNode: boolean;
+  grobleProductUrl: string | null;
+  grobleContentId: string | null;
   allowedTemplates: Template[];
 }
 
@@ -133,6 +135,24 @@ export default function AdminProductsPage() {
     await load();
   }
 
+  async function updateGrobleProductUrl(id: string, value: string) {
+    await fetch(`/api/admin/products/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ grobleProductUrl: value.trim() === "" ? null : value.trim() }),
+    });
+    await load();
+  }
+
+  async function updateGrobleContentId(id: string, value: string) {
+    await fetch(`/api/admin/products/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ grobleContentId: value.trim() === "" ? null : value.trim() }),
+    });
+    await load();
+  }
+
   async function deleteProduct(id: string, name: string) {
     if (!confirm(`"${name}" 상품을 삭제할까요?`)) return;
     const res = await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
@@ -197,6 +217,28 @@ export default function AdminProductsPage() {
               >
                 삭제
               </button>
+            </div>
+            <div className="w-full flex flex-wrap gap-2 mt-1">
+              <label className="text-xs text-text-dim flex items-center gap-1 flex-1 min-w-[220px]">
+                groble 결제 링크
+                <input
+                  type="text"
+                  placeholder="https://groble.im/products/xxx (비우면 groble 옵션 안 보임)"
+                  defaultValue={p.grobleProductUrl ?? ""}
+                  onBlur={(e) => updateGrobleProductUrl(p.id, e.target.value)}
+                  className="input flex-1 text-xs"
+                />
+              </label>
+              <label className="text-xs text-text-dim flex items-center gap-1">
+                content.id
+                <input
+                  type="text"
+                  placeholder="선택"
+                  defaultValue={p.grobleContentId ?? ""}
+                  onBlur={(e) => updateGrobleContentId(p.id, e.target.value)}
+                  className="input w-28 text-xs"
+                />
+              </label>
             </div>
           </div>
         ))}

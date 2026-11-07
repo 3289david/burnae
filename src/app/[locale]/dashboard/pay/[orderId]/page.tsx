@@ -15,6 +15,7 @@ interface OrderInfo {
   status: string;
   amountKrw: number;
   depositorName: string;
+  product?: { grobleProductUrl: string | null } | null;
 }
 
 /**
@@ -95,6 +96,19 @@ export default function PayPage({ params }: { params: Promise<{ orderId: string 
             <div className="pt-2">
               <CryptoPaymentOption orderId={orderId} amountKrw={order.amountKrw} />
             </div>
+
+            {order.product?.grobleProductUrl && (
+              <div className="pt-2">
+                <a
+                  href={`${order.product.grobleProductUrl}?ref=${orderId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-secondary w-full px-4 py-2.5 text-sm text-center block"
+                >
+                  카드로 결제하기 (groble)
+                </a>
+              </div>
+            )}
           </div>
         )}
       </div>

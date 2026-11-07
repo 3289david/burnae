@@ -329,6 +329,12 @@ model Product {
   /// true면 일반 배치 풀이 아니라 그 유저에게 전용 배정된 노드(HostNode.dedicatedToUserId)에만
   /// 배치한다. 아직 전용 노드가 없으면 선주문으로 대기하고 관리자에게 배정을 요청하는 알림이 간다
   requiresDedicatedNode Boolean @default(false)
+  /// groble.im 결제 링크(콘솔에서 이 플랜과 같은 가격으로 수동 생성한 "상품" URL). 비어있으면
+  /// 이 플랜은 groble 결제 옵션 자체가 안 보인다(무통장입금/코인만 가능)
+  grobleProductUrl String?
+  /// 웹훅으로 받은 이벤트의 content.id가 이 값과 일치하는지 확인해서, 다른 상품 결제가 실수로
+  /// 엉뚱한 주문에 매칭되지 않게 막는 안전장치. grobleProductUrl을 설정할 때 같이 입력
+  grobleContentId  String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 

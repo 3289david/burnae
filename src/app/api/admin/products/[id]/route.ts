@@ -20,6 +20,8 @@ const schema = z.object({
   pointsCost: z.number().int().min(0).optional(),
   preorderPriceKrw: z.number().int().min(0).nullable().optional(),
   requiresDedicatedNode: z.boolean().optional(),
+  grobleProductUrl: z.string().url().nullable().optional(),
+  grobleContentId: z.string().nullable().optional(),
 });
 
 export const PUT = withApiErrorHandling(async (

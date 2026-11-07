@@ -35,6 +35,7 @@ export const GET = withApiErrorHandling(async (
           diskMb: true,
           priceMonthlyKrw: true,
           description: true,
+          grobleProductUrl: true,
           allowedTemplates: {
             where: { active: true },
             select: { id: true, key: true, displayName: true, minecraftVersions: true, category: true, defaultEnvironment: true, availableDockerImages: true, variableSchema: true },

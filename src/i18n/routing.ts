@@ -9,7 +9,10 @@ import { defineRouting } from "next-intl/routing";
 export const routing = defineRouting({
   locales: ["kr"],
   defaultLocale: "kr",
-  localePrefix: "always",
+  // 로케일이 "kr" 하나뿐이라 "as-needed"면 기본 로케일(=유일한 로케일)엔 접두사를 절대 안 붙인다 —
+  // burnae.kr/kr/... 이 아니라 burnae.kr/...로 바로 보이게 하려고 always에서 바꿨다. 실제 페이지
+  // 트리는 여전히 app/[locale]/* 밑에 있으니(프록시가 내부적으로 /kr로 rewrite) 그대로 둔다.
+  localePrefix: "as-needed",
 });
 
 export type AppLocale = (typeof routing.locales)[number];

@@ -147,7 +147,7 @@ const LOADER_META: Record<string, { icon: typeof Package; color: string; blurb: 
   mohist: { icon: Sparkles, color: "var(--yellow)", blurb: "모드+플러그인 동시 지원" },
 
   // 일반 서버(VPS/디스코드 봇/유틸리티) 종류
-  "blank-server": { icon: Box, color: "var(--text-dim)", blurb: "아무것도 설치 안 된 빈 서버 — 콘솔에서 직접 명령어로 설치해요" },
+  "blank-server": { icon: Box, color: "var(--text-dim)", blurb: "아무것도 없는 빈 서버" },
   "code-server": { icon: Terminal, color: "var(--accent)", blurb: "브라우저에서 VS Code로 코딩" },
   "nodejs-bot": { icon: Bot, color: "var(--lime)", blurb: "Node.js로 직접 만드는 봇" },
   "python-bot": { icon: Bot, color: "var(--lime)", blurb: "Python으로 직접 만드는 봇" },
@@ -975,8 +975,7 @@ function NewServerPageInner() {
               {selectedPreset ? (
                 <>
                   <p className="text-xs text-text-dim mb-2">
-                    커뮤니티 프리셋 <strong>{selectedPreset.displayName}</strong>의 저장소로 시작해요 — 서버 종류
-                    선택 단계에서 다른 프리셋을 고르거나 &ldquo;빈 서버로 시작&rdquo;을 선택하면 바꿀 수 있어요.
+                    프리셋 <strong>{selectedPreset.displayName}</strong>의 저장소로 시작해요.
                   </p>
                   <p className="input w-full text-text-dim truncate">{selectedPreset.gitRepoUrl}</p>
                 </>

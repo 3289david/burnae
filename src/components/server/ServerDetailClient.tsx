@@ -4,7 +4,8 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import {
-  LayoutGrid, Terminal, Users, Puzzle, Folder, RefreshCw, UserPlus, Settings, Bot, Pencil, Check, X,
+  LayoutGrid, Terminal, Users, Puzzle, Folder, RefreshCw, UserPlus, Bot, Pencil, Check, X,
+  Network, Zap, Code2, ArrowUpCircle, AlertTriangle,
 } from "lucide-react";
 import OverviewTab from "./OverviewTab";
 import ConsoleTab from "./ConsoleTab";
@@ -13,7 +14,11 @@ import PluginsTab from "./PluginsTab";
 import FilesTab from "./FilesTab";
 import BackupsTab from "./BackupsTab";
 import TeamTab from "./TeamTab";
-import SettingsTab from "./SettingsTab";
+import NetworkTab from "./NetworkTab";
+import AutomationTab from "./AutomationTab";
+import DeveloperTab from "./DeveloperTab";
+import UpgradeTab from "./UpgradeTab";
+import DangerZoneTab from "./DangerZoneTab";
 import AiTab from "./AiTab";
 import type { ServerAccessRole } from "@/lib/serverRoleRank";
 
@@ -79,18 +84,26 @@ const TABS = [
   { key: "plugins", labelKey: "tabPlugins", icon: Puzzle },
   { key: "files", labelKey: "tabFiles", icon: Folder },
   { key: "backups", labelKey: "tabBackups", icon: RefreshCw },
+  { key: "network", labelKey: "tabNetwork", icon: Network },
+  { key: "automation", labelKey: "tabAutomation", icon: Zap },
+  { key: "developer", labelKey: "tabDeveloper", icon: Code2 },
+  { key: "upgrade", labelKey: "tabUpgrade", icon: ArrowUpCircle },
   { key: "team", labelKey: "tabTeam", icon: UserPlus },
-  { key: "settings", labelKey: "tabSettings", icon: Settings },
   // AI 탭 하나에 채팅(승인 필요)/메이커(자동 실행) 모드를 모두 담는다 — 예전엔 별개 탭이었다
   { key: "ai", labelKey: "tabAi", icon: Bot },
+  // 항상 맨 끝 — 재설치/삭제처럼 되돌릴 수 없는 작업만 모아둔다
+  { key: "danger", labelKey: "tabDanger", icon: AlertTriangle },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
 
 // 플레이어/플러그인 탭은 마인크래프트 전용 기능(화이트리스트, Modrinth 검색)이라 VPS/디스코드봇 같은
 // 일반 서버에는 의미가 없어 숨긴다. 메이커는 이제 서버 종류에 상관없이(플러그인/봇/웹사이트 등) 대화로
-// 뭔가를 만드는 채팅이라 모든 종류에서 보여준다.
+// 뭔가를 만드는 채팅이라 모든 종류에서 보여준다. 자동화/개발자 도구/업그레이드/위험 구역은 예전
+// "설정" 탭이 전부 isOwner로 감싸져 있던 것과 똑같이, 주인이 아니면 탭 자체를 숨긴다(새로 생긴
+// 제한이 아니라 기존 동작 그대로 — 협업자는 어차피 그 안의 내용을 하나도 못 봤다).
 const MINECRAFT_ONLY_TABS = new Set(["players", "plugins"]);
+const OWNER_ONLY_TABS = new Set(["automation", "developer", "upgrade", "danger"]);
 
 const TAB_KEYS = new Set(TABS.map((t) => t.key));
 
@@ -107,7 +120,11 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
   const [nameSaving, setNameSaving] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
   const addresses = server.subdomains.map((s) => `${s.subdomain}.${server.subdomainZone}`);
-  const visibleTabs = TABS.filter((t) => server.templateCategory === "MINECRAFT" || !MINECRAFT_ONLY_TABS.has(t.key));
+  const visibleTabs = TABS.filter(
+    (t) =>
+      (server.templateCategory === "MINECRAFT" || !MINECRAFT_ONLY_TABS.has(t.key)) &&
+      (server.isOwner || !OWNER_ONLY_TABS.has(t.key)),
+  );
 
   // 토스식 슬라이딩 탭 인디케이터 — 활성 탭 뒤 배경이 색 전환 없이 실제로 미끄러져 이동한다
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -217,7 +234,11 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
             }}
             onClick={() => setTab(tabDef.key)}
             className={`relative z-10 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors duration-150 shrink-0 ${
-              tab === tabDef.key ? "text-white" : "text-text-dim hover:text-text"
+              tab === tabDef.key
+                ? "text-white"
+                : tabDef.key === "danger"
+                  ? "text-red/70 hover:text-red"
+                  : "text-text-dim hover:text-text"
             }`}
           >
             <tabDef.icon size={15} />
@@ -233,27 +254,15 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
         {tab === "plugins" && <PluginsTab serverId={server.id} myRole={server.myRole} />}
         {tab === "files" && <FilesTab serverId={server.id} myRole={server.myRole} />}
         {tab === "backups" && <BackupsTab serverId={server.id} backupSlots={server.backupSlots} myRole={server.myRole} />}
+        {tab === "network" && <NetworkTab server={server} />}
+        {tab === "automation" && <AutomationTab server={server} />}
+        {tab === "developer" && <DeveloperTab server={server} />}
+        {tab === "upgrade" && <UpgradeTab server={server} />}
         {tab === "team" && <TeamTab serverId={server.id} isOwner={server.isOwner} />}
-        {tab === "settings" && (
-          <SettingsTab
-            serverId={server.id}
-            isOwner={server.isOwner}
-            productId={server.productId}
-            templateId={server.templateId}
-            templateCategory={server.templateCategory}
-            autoBackupEnabled={server.autoBackupEnabled}
-            autoBackupIntervalHours={server.autoBackupIntervalHours}
-            autoRestartEnabled={server.autoRestartEnabled}
-            autoRestartHour={server.autoRestartHour}
-            autoRestartOnCrash={server.autoRestartOnCrash}
-            autoSleepEnabled={server.autoSleepEnabled}
-            autoSleepAfterMinutes={server.autoSleepAfterMinutes}
-            ownerNote={server.ownerNote}
-          />
-        )}
         {tab === "ai" && (
           <AiTab serverId={server.id} templateCategory={server.templateCategory} previewAddress={previewAddress} myRole={server.myRole} />
         )}
+        {tab === "danger" && <DangerZoneTab server={server} />}
       </div>
     </div>
   );

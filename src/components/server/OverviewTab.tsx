@@ -4,12 +4,9 @@ import { useEffect, useState } from "react";
 import { CheckCircle2, Ban, Clock, Play, Square, RotateCw, Gauge, Cpu, MemoryStick, HardDrive } from "lucide-react";
 import type { ServerInfo } from "./ServerDetailClient";
 import { hasServerRank } from "@/lib/serverRoleRank";
-import { supportsSsh } from "@/lib/sshSupport";
 import StatusDot from "@/components/StatusDot";
+import Toggle from "@/components/Toggle";
 import AddressActions from "./AddressActions";
-import CustomDomainCard from "./CustomDomainCard";
-import FreeUpgradeCard from "./FreeUpgradeCard";
-import ExtraResourcesCard from "./ExtraResourcesCard";
 import FreeTierAd from "@/components/ads/FreeTierAd";
 import GoogleAdSense from "@/components/ads/GoogleAdSense";
 import GettingStartedCard from "./GettingStartedCard";
@@ -37,16 +34,126 @@ const stateLabel: Record<string, { text: string; dot: "green" | "yellow" | "red"
   offline: { text: "오프라인", dot: "red" },
 };
 
+const KNOWN_PROPERTIES_KEYS = [
+  { key: "difficulty", label: "난이도", type: "select", options: ["peaceful", "easy", "normal", "hard"] },
+  { key: "gamemode", label: "게임 모드", type: "select", options: ["survival", "creative", "adventure", "spectator"] },
+  { key: "pvp", label: "PVP", type: "bool" },
+  { key: "max-players", label: "최대 플레이어", type: "number" },
+  { key: "white-list", label: "화이트리스트", type: "bool" },
+  { key: "enable-command-block", label: "커맨드 블럭", type: "bool" },
+  { key: "online-mode", label: "온라인 모드(정품 인증)", type: "bool" },
+  { key: "spawn-protection", label: "스폰 보호 범위", type: "number" },
+  { key: "view-distance", label: "View Distance", type: "number" },
+] as const;
+
+function parseProperties(text: string): Record<string, string> {
+  const map: Record<string, string> = {};
+  for (const line of text.split("\n")) {
+    if (!line || line.startsWith("#")) continue;
+    const idx = line.indexOf("=");
+    if (idx === -1) continue;
+    map[line.slice(0, idx).trim()] = line.slice(idx + 1).trim();
+  }
+  return map;
+}
+
+function serializeProperties(original: string, values: Record<string, string>): string {
+  const lines = original.split("\n");
+  const seen = new Set<string>();
+  const result = lines.map((line) => {
+    if (!line || line.startsWith("#")) return line;
+    const idx = line.indexOf("=");
+    if (idx === -1) return line;
+    const key = line.slice(0, idx).trim();
+    if (key in values) {
+      seen.add(key);
+      return `${key}=${values[key]}`;
+    }
+    return line;
+  });
+  for (const [key, value] of Object.entries(values)) {
+    if (!seen.has(key)) result.push(`${key}=${value}`);
+  }
+  return result.join("\n");
+}
+
 export default function OverviewTab({ server }: { server: ServerInfo }) {
   const [resources, setResources] = useState<Resources | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
-  const [subdomains, setSubdomains] = useState(server.subdomains);
-  const [newName, setNewName] = useState("");
-  const [subError, setSubError] = useState<string | null>(null);
-  const [subLoading, setSubLoading] = useState(false);
   const [renewing, setRenewing] = useState(false);
   const [renewError, setRenewError] = useState<string | null>(null);
   const [renewRequested, setRenewRequested] = useState(false);
+  const isMinecraft = server.templateCategory === "MINECRAFT";
+  const [raw, setRaw] = useState<string | null>(null);
+  const [propsValues, setPropsValues] = useState<Record<string, string>>({});
+  const [propsLoading, setPropsLoading] = useState(false);
+  const [propsSaved, setPropsSaved] = useState(false);
+  const [propsError, setPropsError] = useState<string | null>(null);
+  const [note, setNote] = useState(server.ownerNote ?? "");
+  const [noteSaving, setNoteSaving] = useState(false);
+  const [noteSaved, setNoteSaved] = useState(false);
+  const [noteError, setNoteError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isMinecraft) return;
+    fetch(`/api/servers/${server.id}/files/content?file=${encodeURIComponent("/server.properties")}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.content) {
+          setRaw(data.content);
+          setPropsValues(parseProperties(data.content));
+        }
+      })
+      .catch(() => setPropsError("server.properties를 불러오지 못했어요. 서버 종류에 따라 없을 수 있어요."));
+  }, [server.id, isMinecraft]);
+
+  async function saveProperties() {
+    if (raw === null) return;
+    setPropsLoading(true);
+    setPropsSaved(false);
+    try {
+      const newContent = serializeProperties(raw, propsValues);
+      const res = await fetch(`/api/servers/${server.id}/files/content`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ file: "/server.properties", content: newContent }),
+      });
+      if (!res.ok) throw new Error("저장 실패");
+      setRaw(newContent);
+      setPropsSaved(true);
+    } catch (err) {
+      setPropsError(err instanceof Error ? err.message : "오류가 발생했습니다.");
+    } finally {
+      setPropsLoading(false);
+    }
+  }
+
+  async function restartAfterPropertiesSave() {
+    await fetch(`/api/servers/${server.id}/power`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ signal: "restart" }),
+    });
+  }
+
+  async function saveNote() {
+    setNoteSaving(true);
+    setNoteSaved(false);
+    setNoteError(null);
+    try {
+      const res = await fetch(`/api/servers/${server.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ownerNote: note }),
+      });
+      if (!res.ok) throw new Error();
+      setNoteSaved(true);
+    } catch {
+      setNoteError("메모 저장에 실패했어요.");
+    } finally {
+      setNoteSaving(false);
+    }
+  }
 
   useEffect(() => {
     let stopped = false;
@@ -65,33 +172,6 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
       clearInterval(interval);
     };
   }, [server.id]);
-
-  async function addSubdomain(e: React.FormEvent) {
-    e.preventDefault();
-    setSubError(null);
-    setSubLoading(true);
-    try {
-      const res = await fetch(`/api/servers/${server.id}/subdomains`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newName }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setSubdomains((prev) => [...prev, data]);
-      setNewName("");
-    } catch (err) {
-      setSubError(err instanceof Error ? err.message : "추가 실패");
-    } finally {
-      setSubLoading(false);
-    }
-  }
-
-  async function removeSubdomain(id: string) {
-    if (!confirm("이 주소를 삭제할까요?")) return;
-    await fetch(`/api/servers/${server.id}/subdomains/${id}`, { method: "DELETE" });
-    setSubdomains((prev) => prev.filter((s) => s.id !== id));
-  }
 
   async function renew() {
     setRenewing(true);
@@ -312,74 +392,89 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
         </div>
       </div>
 
-      {supportsSsh(server.templateKey) && server.accessSecret && server.allocationIp && server.sshPort && (
-        <div className="card-glow p-5">
-          <h3 className="font-semibold mb-3">SSH 접속</h3>
-          <p className="text-xs text-text-dim mb-3">
-            터미널에서 <code className="font-mono bg-surface-2 rounded px-1">ssh burnae.kr</code> — 계정 설정에서 발급한 코드로 로그인 후 이 서버 선택.
-          </p>
-          <div className="mt-3 bg-black/30 rounded-lg px-3 py-2 font-mono text-xs select-all">
-            ssh burnae.kr
-          </div>
-          <details className="mt-3 text-xs">
-            <summary className="text-text-dim cursor-pointer hover:text-text">고급: scp/rsync 등 직접 접속이 필요하면</summary>
-            <div className="grid grid-cols-2 gap-y-2 mt-2">
-              <span className="text-text-dim">호스트</span>
-              <span className="font-mono select-all">{server.allocationIp}</span>
-              <span className="text-text-dim">포트</span>
-              <span className="font-mono select-all">{server.sshPort}</span>
-              <span className="text-text-dim">사용자명</span>
-              <span className="font-mono select-all">container</span>
-              <span className="text-text-dim">비밀번호</span>
-              <span className="font-mono select-all">{server.accessSecret}</span>
-            </div>
-          </details>
-        </div>
-      )}
-
       <div className="card-glow p-5">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold">접속 주소</h3>
-          <span className="text-xs text-text-dim">{subdomains.length} / {2 + server.extraSubdomainSlots}</span>
-        </div>
+        <h3 className="font-semibold mb-3">접속 주소</h3>
         <div className="space-y-2">
-          {subdomains.map((s) => (
+          {server.subdomains.map((s) => (
             <div key={s.id} className="relative flex flex-wrap items-center justify-between gap-2 text-sm">
               <span className="font-mono min-w-0 break-all">
                 {s.subdomain}.{server.subdomainZone}
                 {" "}{s.isPrimary && <span className="text-text-dim text-xs">(기본)</span>}
               </span>
-              <div className="flex items-center gap-3 shrink-0">
-                <AddressActions address={`${s.subdomain}.${server.subdomainZone}`} />
-                {server.isOwner && (
-                  <button onClick={() => removeSubdomain(s.id)} className="text-red text-xs hover:underline active:scale-95 transition-transform">삭제</button>
-                )}
-              </div>
+              <AddressActions address={`${s.subdomain}.${server.subdomainZone}`} />
             </div>
           ))}
-          {subdomains.length === 0 && <p className="text-sm text-text-dim">주소 준비 중이에요.</p>}
+          {server.subdomains.length === 0 && <p className="text-sm text-text-dim">주소 준비 중이에요.</p>}
         </div>
-
-        {server.isOwner && subdomains.length < 2 + server.extraSubdomainSlots && (
-          <form onSubmit={addSubdomain} className="flex gap-2 mt-3 pt-3 border-t border-border">
-            <input
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder="예: play"
-              className="input flex-1 text-sm"
-            />
-            <button type="submit" disabled={subLoading || !newName} className="btn-secondary px-3 py-1.5 text-sm active:scale-95 transition-transform">
-              주소 추가
-            </button>
-          </form>
-        )}
-        {subError && <p className="text-xs text-red mt-2">{subError}</p>}
+        <p className="text-xs text-text-dim mt-3">주소 추가/삭제, 커스텀 도메인, SSH 접속은 "네트워크" 탭에서 관리해요.</p>
       </div>
 
-      <CustomDomainCard serverId={server.id} isOwner={server.isOwner} initial={server.customDomains} />
+      {isMinecraft && (
+        <div className="card-glow p-5 space-y-4">
+          <h3 className="font-semibold text-sm">게임 설정</h3>
+          {propsError && <p className="text-sm text-red">{propsError}</p>}
+          {raw === null && !propsError && <p className="text-sm text-text-dim">불러오는 중...</p>}
+          {raw !== null && (
+            <>
+              {KNOWN_PROPERTIES_KEYS.map(({ key, label, type, ...rest }) => (
+                <div key={key} className="flex items-center justify-between">
+                  <span className="text-sm">{label}</span>
+                  {type === "bool" ? (
+                    <Toggle
+                      checked={(propsValues[key] ?? "false") === "true"}
+                      onChange={(next) => setPropsValues((v) => ({ ...v, [key]: String(next) }))}
+                    />
+                  ) : type === "select" ? (
+                    <select
+                      className="input"
+                      value={propsValues[key] ?? ""}
+                      onChange={(e) => setPropsValues((v) => ({ ...v, [key]: e.target.value }))}
+                    >
+                      {"options" in rest && rest.options.map((o) => <option key={o} value={o}>{o}</option>)}
+                    </select>
+                  ) : (
+                    <input
+                      type="number"
+                      className="input w-28"
+                      value={propsValues[key] ?? ""}
+                      onChange={(e) => setPropsValues((v) => ({ ...v, [key]: e.target.value }))}
+                    />
+                  )}
+                </div>
+              ))}
+              <div className="pt-3 border-t border-border flex items-center gap-3">
+                <button onClick={saveProperties} disabled={propsLoading} className="btn-primary px-4 py-2 text-sm active:scale-95 transition-transform">
+                  {propsLoading ? "저장 중..." : "저장"}
+                </button>
+                <button onClick={restartAfterPropertiesSave} className="btn-secondary px-4 py-2 text-sm active:scale-95 transition-transform">저장 후 재시작</button>
+                {propsSaved && <span className="text-sm text-green">저장됐어요. 적용하려면 재시작하세요.</span>}
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
-      {server.isFreeServer && server.isOwner && <FreeUpgradeCard serverId={server.id} />}
-      {server.isFreeServer && server.isOwner && <ExtraResourcesCard serverId={server.id} />}
+      {server.isOwner && (
+        <div className="card-glow p-5 space-y-2">
+          <h3 className="font-semibold text-sm">메모</h3>
+          <p className="text-xs text-text-dim">나만 볼 수 있는 비공개 메모</p>
+          <textarea
+            className="input w-full text-sm min-h-[70px] resize-y"
+            value={note}
+            maxLength={500}
+            onChange={(e) => {
+              setNote(e.target.value);
+              setNoteSaved(false);
+            }}
+            placeholder="메모를 입력하세요..."
+          />
+          <button onClick={saveNote} disabled={noteSaving} className="btn-secondary px-4 py-2 text-sm active:scale-95 transition-transform">
+            {noteSaving ? "저장 중..." : noteSaved ? "저장됨" : "저장"}
+          </button>
+          {noteError && <p className="text-xs text-red">{noteError}</p>}
+        </div>
+      )}
+
       {server.isFreeServer && <FreeTierAd />}
       {server.isFreeServer && <GoogleAdSense />}
     </div>

@@ -43,11 +43,10 @@ model User {
   status                 UserStatus @default(ACTIVE)
   /// 인당 총 저장공간 한도(GB). null이면 HostingSettings.defaultUserStorageGb 적용
   storageQuotaGbOverride Int?
-  /// Haiku 같은 저가 모델은 가벼운 턴이 1크레딧(20원)도 안 될 수 있어서 소수점을 허용한다
-  aiCreditsRemaining     Float      @default(0)
   /// 결제 안내에 쓸 입금자명 직접 설정(1~5자, 공백 불가). null이면 이름 기반 자동 생성
   preferredDepositorName String?
-  /// 서버 홍보 활동으로 모은 포인트 — 무료 서버 교환 등에 사용
+  /// 통합 포인트 — 홍보 활동/채팅/구매로 모으고, AI 사용·상점 교환·무료 서버 교환에 그대로
+  /// 쓴다(예전엔 AI 크레딧이 별도 잔액이었는데 하나로 합쳤다. 1P = 1원).
   promotionPoints        Int        @default(0)
   /// 가입(최초 계정 생성) 시점의 IP — 무료 서버 1인 1개 제한을 부계정으로 우회하는지 탐지하는 데 사용.
   /// 가입 전부터 있던 계정은 null(소급 적용 안 함)
@@ -316,7 +315,8 @@ model Product {
   cpuPercent        Int
   diskMb            Int
   backupSlots       Int      @default(3)
-  aiCreditsPerMonth Int      @default(0)
+  /// 매달 갱신될 때 지급되는 보너스 포인트(예전엔 "AI 크레딧"이었는데 포인트로 통합됐다)
+  pointsPerMonth    Int      @default(0)
   priceMonthlyKrw   Int
   active            Boolean  @default(true)
   sortOrder         Int      @default(0)
@@ -1045,7 +1045,8 @@ model PromotionCompletion {
 // ────────────────────────────────
 
 enum ShopItemKind {
-  /// 즉시 aiCreditsRemaining 증가
+  /// 더 이상 안 씀(포인트로 통합되면서 "포인트로 포인트를 사는" 꼴이 돼서 의미가 없어짐) —
+  /// 과거에 만들어진 상품/교환 기록이 깨지지 않게 enum 값만 남겨둔다
   AI_CREDITS
   /// 다음 결제에 쓸 수 있는 쿠폰 발급 (Coupon 생성)
   DISCOUNT_COUPON
@@ -1455,17 +1456,16 @@ model RoleShopItem {
   @@index([active])
 }
 
-/// 채팅 레벨링 — promotionPoints(현금 교환 가능)와는 완전히 별개의 순수 게임화 지표라,
-/// Burnae 계정 연동 여부와 무관하게 디스코드 유저 ID 기준으로 누구나 쌓인다
-model UserActivityLevel {
-  id             String   @id @default(cuid())
-  discordUserId  String   @unique
-  xp             Int      @default(0)
-  level          Int      @default(0)
-  messageCount   Int      @default(0)
-  updatedAt      DateTime @updatedAt
+/// 채팅 레벨링을 포인트로 통합한 뒤(레벨 = promotionPoints에서 바로 계산, activityRewards.ts의
+/// levelForPoints) 더 이상 XP를 따로 저장할 필요가 없어졌다 — 남은 건 "레벨 n이 되면 이 역할을
+/// 준다"는 매핑뿐이라, 이 테이블은 관리자가 정하는 레벨↔칭호(역할) 매핑으로만 쓴다.
+model LevelRole {
+  id            String @id @default(cuid())
+  level         Int    @unique
+  discordRoleId String @unique
+  name          String
 
-  @@index([xp])
+  @@index([level])
 }
 
 /// "임시 개인 음성방" — voiceTriggerChannelId에 들어가면 만들어지는 전용 음성채널 한 칸당 한 줄.

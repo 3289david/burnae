@@ -15,7 +15,6 @@ export async function GET() {
       role: true,
       adminRole: true,
       status: true,
-      aiCreditsRemaining: true,
       promotionPoints: true,
       createdAt: true,
       discordLink: { select: { discordUserId: true } },

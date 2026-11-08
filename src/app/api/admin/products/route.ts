@@ -21,7 +21,7 @@ const schema = z.object({
   cpuPercent: z.number().int().min(25),
   diskMb: z.number().int().min(256),
   backupSlots: z.number().int().min(0).default(3),
-  aiCreditsPerMonth: z.number().int().min(0).default(0),
+  pointsPerMonth: z.number().int().min(0).default(0),
   priceMonthlyKrw: z.number().int().min(0),
   allowedTemplateIds: z.array(z.string()).min(1),
   sortOrder: z.number().int().default(0),

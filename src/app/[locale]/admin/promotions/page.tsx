@@ -71,7 +71,7 @@ export default function AdminPromotionsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">홍보 포인트</h1>
+      <h1 className="text-2xl font-bold">포인트 받기</h1>
       <p className="text-sm text-text-dim mt-1">홍보하면 받는 포인트 항목 관리.</p>
 
       {reviews.length > 0 && (

@@ -124,10 +124,12 @@ export async function markOrderPaidAndFulfill(orderId: string) {
   // 로그를 남겨 운영자가 직접 확인하게 한다 — "중복 지급"보다 훨씬 안전한 실패 모드다.
   try {
     if (order.type === "AI_CREDITS") {
+      // AI 크레딧은 포인트로 통합돼서 더 이상 새로 안 팔지만(ai-credits-purchase 제거됨), 예전에
+      // 만들어진 PENDING 주문이 뒤늦게 입금 확인될 수 있으니 처리는 남겨둔다 — 1크레딧=20P로 환산
       await prisma.$transaction(async (tx) => {
         if (order.couponId) await tx.coupon.update({ where: { id: order.couponId }, data: { usedCount: { increment: 1 } } });
         if (order.aiCreditsAmount) {
-          await tx.user.update({ where: { id: order.userId }, data: { aiCreditsRemaining: { increment: order.aiCreditsAmount } } });
+          await tx.user.update({ where: { id: order.userId }, data: { promotionPoints: { increment: order.aiCreditsAmount * 20 } } });
         }
       });
     } else if (order.type === "POINTS") {
@@ -162,10 +164,10 @@ export async function markOrderPaidAndFulfill(orderId: string) {
           where: { id: server.id },
           data: { renewalDueAt: nextDue, status: server.status === "SUSPENDED" ? "STOPPED" : server.status },
         });
-        if (order.product && order.product.aiCreditsPerMonth > 0) {
+        if (order.product && order.product.pointsPerMonth > 0) {
           await tx.user.update({
             where: { id: order.userId },
-            data: { aiCreditsRemaining: { increment: order.product.aiCreditsPerMonth } },
+            data: { promotionPoints: { increment: order.product.pointsPerMonth } },
           });
         }
       });

@@ -2,6 +2,9 @@ import type { Client, GuildMember, Message, PartialGuildMember } from "discord.j
 import { Events, MessageFlags } from "discord.js";
 import { prisma } from "./prismaClient";
 import { panel, heading, text } from "../lib/discordComponentsV2";
+import { pointsForLevel, levelForPoints } from "../lib/levels";
+
+export { pointsForLevel, levelForPoints };
 
 /** 총 누적 포인트가 이 기준을 넘을 때마다 1회 DM으로 축하 메시지를 보낸다 */
 const POINT_MILESTONES = [1000, 5000, 10000, 50000, 100000];
@@ -35,29 +38,30 @@ const POINTS_PER_BOOST = 2000;
 const VERIFIED_TITLE_ROLE_ID = "1562815337194594406";
 const POINTS_PER_VERIFIED_TITLE = 100;
 
-/** 채팅 1건당 XP — 포인트(현금 교환 가능)와는 별개로, 연동 여부와 상관없이 누구나 쌓인다 */
-const XP_PER_MESSAGE = 10;
+/**
+ * 레벨 n에 도달하면 관리자가 LevelRole로 정해둔 "그 레벨 이하에서 가장 높은 등급" 역할 하나만
+ * 갖도록 맞춘다 — 다른 등급 역할은 있으면 빼고, 목표 등급 역할은 없으면 더해준다. 등수가
+ * 아니라 "지금 몇 레벨인지"로 매번 다시 계산해서 적용하므로, DB에 "지금 들고 있는 역할"을
+ * 따로 저장할 필요가 없다(멤버의 실제 역할 목록을 그대로 진실의 원천으로 쓴다).
+ */
+async function applyLevelRole(client: Client, guildId: string, discordUserId: string, newLevel: number) {
+  const levelRoles = await prisma.levelRole.findMany({ orderBy: { level: "asc" } });
+  if (levelRoles.length === 0) return;
 
-export function xpForLevel(level: number): number {
-  // 레벨 n에 도달하는 데 필요한 총 XP — 완만하게 늘어나는 2차 곡선(레벨마다 필요량이 100씩 증가)
-  return 50 * level * (level + 1);
-}
-export function levelForXp(xp: number): number {
-  let level = 0;
-  while (xpForLevel(level + 1) <= xp) level++;
-  return level;
-}
+  const target = [...levelRoles].reverse().find((r) => r.level <= newLevel);
+  const guild = await client.guilds.fetch(guildId).catch(() => null);
+  if (!guild) return;
+  const member = await guild.members.fetch(discordUserId).catch(() => null);
+  if (!member) return;
 
-async function awardXp(client: Client, discordUserId: string, xp: number) {
-  const row = await prisma.userActivityLevel.upsert({
-    where: { discordUserId },
-    update: { xp: { increment: xp }, messageCount: { increment: 1 } },
-    create: { discordUserId, xp, messageCount: 1 },
-  });
-  const newLevel = levelForXp(row.xp);
-  if (newLevel > row.level) {
-    await prisma.userActivityLevel.update({ where: { discordUserId }, data: { level: newLevel } });
-    await announceLevelUp(client, discordUserId, newLevel).catch((err) => console.error("[activityRewards] 레벨업 알림 실패:", err));
+  const allTierRoleIds = new Set(levelRoles.map((r) => r.discordRoleId));
+  for (const roleId of member.roles.cache.keys()) {
+    if (allTierRoleIds.has(roleId) && roleId !== target?.discordRoleId) {
+      await member.roles.remove(roleId).catch((err) => console.error("[activityRewards] 이전 등급 역할 제거 실패:", err));
+    }
+  }
+  if (target && !member.roles.cache.has(target.discordRoleId)) {
+    await member.roles.add(target.discordRoleId).catch((err) => console.error("[activityRewards] 등급 역할 부여 실패:", err));
   }
 }
 
@@ -83,7 +87,12 @@ function todayKey(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-async function awardToDiscordUser(client: Client, discordUserId: string, points: number, reason: string): Promise<boolean> {
+/**
+ * 포인트를 지급하는 모든 경로(채팅/부스트/인증완료/서버태그)가 공용으로 쓴다. before/after
+ * 포인트를 어차피 마일스톤 판정용으로 구하므로, 레벨업 감지(+등급 역할 재적용)도 같이 끼워 넣었다 —
+ * 레벨이 더 이상 별도로 안 쌓이고 포인트에서 바로 계산되므로 이 함수 하나로 전부 처리된다.
+ */
+async function awardToDiscordUser(client: Client, guildId: string, discordUserId: string, points: number, reason: string): Promise<boolean> {
   const link = await prisma.discordLink.findUnique({ where: { discordUserId } });
   if (!link) {
     console.log(`[activityRewards] ${discordUserId} 미연동 계정이라 지급 안 함 (${reason})`);
@@ -102,6 +111,13 @@ async function awardToDiscordUser(client: Client, discordUserId: string, points:
     await announceMilestone(client, discordUserId, crossed).catch((err) =>
       console.error("[activityRewards] 마일스톤 DM 실패:", err),
     );
+  }
+
+  const levelBefore = levelForPoints(before.promotionPoints);
+  const levelAfter = levelForPoints(after.promotionPoints);
+  if (levelAfter > levelBefore) {
+    await announceLevelUp(client, discordUserId, levelAfter).catch((err) => console.error("[activityRewards] 레벨업 알림 실패:", err));
+    await applyLevelRole(client, guildId, discordUserId, levelAfter).catch((err) => console.error("[activityRewards] 등급 역할 적용 실패:", err));
   }
   return true;
 }
@@ -126,7 +142,7 @@ async function announceMilestone(client: Client, discordUserId: string, mileston
   const container = panel()
     .addTextDisplayComponents(heading("🎉 포인트 마일스톤 달성!"))
     .addTextDisplayComponents(
-      text(`누적 홍보 포인트 **${milestone.toLocaleString()}점**을 넘었어요! \`/포인트순위\`에서 내 순위를 확인해보세요.`),
+      text(`누적 포인트 **${milestone.toLocaleString()}점**을 넘었어요! \`/포인트순위\`에서 내 순위를 확인해보세요.`),
     );
   await user.send({ components: [container], flags: MessageFlags.IsComponentsV2 }).catch(() => {
     // DM 막아둔 유저면 조용히 무시
@@ -177,11 +193,9 @@ function handleMessageCreate(client: Client, message: Message, officialGuildId: 
   lastRewardedContent.set(message.author.id, normalizedContent);
   chatDailyTotal.set(message.author.id, { day: today, points: soFar + POINTS_PER_MESSAGE });
 
-  awardToDiscordUser(client, message.author.id, POINTS_PER_MESSAGE, `채팅(ch:${message.channelId})`).catch((err) =>
+  awardToDiscordUser(client, officialGuildId, message.author.id, POINTS_PER_MESSAGE, `채팅(ch:${message.channelId})`).catch((err) =>
     console.error("[activityRewards] 채팅 지급 실패:", err),
   );
-  // XP(레벨링)는 포인트와 달리 Burnae 계정 연동 여부와 무관하게 누구나 쌓인다
-  awardXp(client, message.author.id, XP_PER_MESSAGE).catch((err) => console.error("[activityRewards] XP 지급 실패:", err));
 }
 
 function handleGuildMemberUpdate(
@@ -194,14 +208,14 @@ function handleGuildMemberUpdate(
 
   const startedBoosting = !oldMember.premiumSince && newMember.premiumSince;
   if (startedBoosting) {
-    awardToDiscordUser(client, newMember.id, POINTS_PER_BOOST, "서버 부스트").catch((err) => console.error("[activityRewards] 부스트 지급 실패:", err));
+    awardToDiscordUser(client, officialGuildId, newMember.id, POINTS_PER_BOOST, "서버 부스트").catch((err) => console.error("[activityRewards] 부스트 지급 실패:", err));
     announceBoost(newMember).catch((err) => console.error("[activityRewards] 부스트 감사 메시지 실패:", err));
   }
 
   const gainedVerifiedTitle =
     !oldMember.roles.cache.has(VERIFIED_TITLE_ROLE_ID) && newMember.roles.cache.has(VERIFIED_TITLE_ROLE_ID);
   if (gainedVerifiedTitle) {
-    awardToDiscordUser(client, newMember.id, POINTS_PER_VERIFIED_TITLE, "인증완료").catch((err) =>
+    awardToDiscordUser(client, officialGuildId, newMember.id, POINTS_PER_VERIFIED_TITLE, "인증완료").catch((err) =>
       console.error("[activityRewards] 인증완료 지급 실패:", err),
     );
   }
@@ -218,7 +232,7 @@ async function checkServerTags(client: Client, officialGuildId: string) {
     if (member.user.bot) continue;
     const tag = member.user.primaryGuild;
     if (!tag || !tag.identityEnabled || tag.identityGuildId !== officialGuildId) continue;
-    await awardToDiscordUser(client, member.id, POINTS_PER_TAG_HOUR, "서버 태그 착용").catch((err) =>
+    await awardToDiscordUser(client, officialGuildId, member.id, POINTS_PER_TAG_HOUR, "서버 태그 착용").catch((err) =>
       console.error("[activityRewards] 서버 태그 지급 실패:", err),
     );
   }

@@ -26,7 +26,7 @@ interface ShopItem {
 }
 
 const KIND_LABEL: Record<ShopItemKind, string> = {
-  AI_CREDITS: "AI 크레딧 지급 (계정)",
+  AI_CREDITS: "포인트 지급",
   DISCOUNT_COUPON: "할인 쿠폰 발급 (계정)",
   CUSTOM: "기타(수동 처리, 계정)",
   RAM_UPGRADE: "서버 RAM 증설",
@@ -189,9 +189,11 @@ export default function AdminShopPage() {
               value={form.kind}
               onChange={(e) => setForm({ ...form, kind: e.target.value as ShopItemKind })}
             >
-              {Object.entries(KIND_LABEL).map(([k, label]) => (
-                <option key={k} value={k}>{label}</option>
-              ))}
+              {Object.entries(KIND_LABEL)
+                .filter(([k]) => k !== "AI_CREDITS")
+                .map(([k, label]) => (
+                  <option key={k} value={k}>{label}</option>
+                ))}
             </select>
           </div>
           <div>

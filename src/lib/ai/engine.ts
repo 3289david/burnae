@@ -2,7 +2,7 @@ import OpenAI from "openai";
 import { prisma } from "@/lib/prisma";
 import { AI_TOOLS, openAiToolList } from "@/lib/ai/tools";
 import { withUsageTracking, AiTurnFailedError, type UsageAccumulator } from "@/lib/ai/usageTracking";
-import { creditsForUsage, InsufficientCreditsError } from "@/lib/ai/pricing";
+import { pointsForUsage, InsufficientCreditsError } from "@/lib/ai/pricing";
 import { createChatCompletion, createApmixChatCompletion } from "@/lib/ai/provider";
 import { resolveAiModelKey } from "@/lib/ai/models";
 import type { Server } from "@/generated/prisma/client";
@@ -172,13 +172,14 @@ export interface AiTurnResult {
   pendingActivityLogId?: string;
 }
 
-/** usage에 쌓인 실제 토큰 사용량만큼 사용자 크레딧을 깎는다 (0 아래로는 내려가지 않음).
+/** usage에 쌓인 실제 토큰 사용량만큼 포인트를 깎는다 (0 아래로는 내려가지 않음). AI 크레딧이
+ * 따로 있던 시절엔 그 잔액을 깎았는데, 포인트로 통합된 뒤로는 promotionPoints를 바로 깎는다.
  * primary(monken.cloud)/fallback(OpenRouter) 중 어느 쪽을 썼는지에 따라 단가가 달라서
  * pricing.ts가 두 버킷을 합쳐서 계산한다. */
 async function chargeForUsage(userId: string, usage: UsageAccumulator) {
-  const credits = creditsForUsage(usage);
-  if (credits <= 0) return;
-  await prisma.$executeRaw`UPDATE "User" SET "aiCreditsRemaining" = GREATEST(0, "aiCreditsRemaining" - ${credits}) WHERE id = ${userId}`;
+  const points = pointsForUsage(usage);
+  if (points <= 0) return;
+  await prisma.$executeRaw`UPDATE "User" SET "promotionPoints" = GREATEST(0, "promotionPoints" - ${points}) WHERE id = ${userId}`;
 }
 
 /**
@@ -211,9 +212,9 @@ export async function runAiTurn(
   if (!skipBilling) {
     const user = await prisma.user.findUniqueOrThrow({
       where: { id: userId },
-      select: { aiCreditsRemaining: true },
+      select: { promotionPoints: true },
     });
-    if (user.aiCreditsRemaining <= 0) {
+    if (user.promotionPoints <= 0) {
       throw new InsufficientCreditsError();
     }
   }

@@ -6,12 +6,11 @@ import { addDiscordRole, removeDiscordRole } from "@/lib/discordNotify";
 
 const schema = z.object({
   status: z.enum(["ACTIVE", "SUSPENDED"]).optional(),
-  aiCreditsRemaining: z.number().min(0).optional(),
   role: z.enum(["USER", "ADMIN"]).optional(),
   adminRole: z.enum(["COMMUNITY", "PROMOTION", "GENERAL", "SUPER"]).nullable().optional(),
 });
 
-/** 관리자가 특정 유저의 AI 크레딧/정지 상태를 조정하거나(일반 이상), 관리자 권한을 부여(최고관리자만) */
+/** 관리자가 특정 유저의 정지 상태를 조정하거나(일반 이상), 관리자 권한을 부여(최고관리자만) */
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },

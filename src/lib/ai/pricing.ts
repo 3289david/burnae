@@ -23,11 +23,11 @@ const SONNET_COST_KRW_PER_MILLION_TOKENS = 1000;
 const MARKUP_MULTIPLIER = 3;
 const SONNET_KRW_PER_MILLION_TOKENS = SONNET_COST_KRW_PER_MILLION_TOKENS * MARKUP_MULTIPLIER;
 
-const KRW_PER_CREDIT = 20;
-
-/** 실제 토큰 사용량 기반 청구 크레딧 — 소수점을 허용한다(Haiku 같은 저가 모델은 가벼운 턴이
- * 1크레딧도 안 될 수 있음). 모델/제공자마다 단가가 달라서 섞여 쓰인 턴도 정확히 계산한다. */
-export function creditsForUsage(usage: UsageAccumulator): number {
+/** 실제 토큰 사용량 기반 청구 포인트 — 예전엔 "AI 크레딧"이라는 별도 잔액(1크레딧=20원)으로
+ * 냈는데 포인트(1P=1원)로 통합됐다. promotionPoints가 정수라 소수점 과금이 안 되니, 청구가
+ * 생기면(0보다 크면) 최소 1P, 그 외엔 올림해서 정수 포인트로 맞춘다. 모델/제공자마다 단가가
+ * 달라서 섞여 쓰인 턴도 정확히 계산한다. */
+export function pointsForUsage(usage: UsageAccumulator): number {
   let totalKrw = 0;
 
   for (const key of Object.keys(AI_MODEL_CATALOG) as AiModelKey[]) {
@@ -43,12 +43,12 @@ export function creditsForUsage(usage: UsageAccumulator): number {
   totalKrw += fallbackUsd * WON_PER_USD * FALLBACK_SAFETY_MULTIPLIER;
 
   if (totalKrw <= 0) return 0;
-  return Math.round((totalKrw / KRW_PER_CREDIT) * 100) / 100;
+  return Math.max(1, Math.ceil(totalKrw));
 }
 
 export class InsufficientCreditsError extends Error {
   constructor() {
-    super("이번 달 AI 사용 크레딧을 모두 썼어요. 다음 결제 갱신 때 다시 충전돼요.");
+    super("포인트가 부족해서 AI를 쓸 수 없어요. 포인트 상점에서 충전해주세요.");
     this.name = "InsufficientCreditsError";
   }
 }

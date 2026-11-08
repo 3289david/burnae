@@ -404,10 +404,10 @@ export async function createServerForOrder(orderId: string) {
       },
     });
     await tx.order.update({ where: { id: order.id }, data: { serverId: created.id } });
-    if (product.aiCreditsPerMonth > 0) {
+    if (product.pointsPerMonth > 0) {
       await tx.user.update({
         where: { id: order.userId },
-        data: { aiCreditsRemaining: { increment: product.aiCreditsPerMonth } },
+        data: { promotionPoints: { increment: product.pointsPerMonth } },
       });
     }
     await tx.auditLog.create({

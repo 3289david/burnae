@@ -173,7 +173,7 @@ export async function awardPoints(params: {
     if (link) {
       await sendDiscordDM(
         link.discordUserId,
-        `🎁 홍보 포인트 ${params.pointsAwarded}점이 적립됐어요! 대시보드에서 확인해보세요.`,
+        `🎁 포인트 ${params.pointsAwarded}점이 적립됐어요! 대시보드에서 확인해보세요.`,
       ).catch(() => {});
     }
     return completion;

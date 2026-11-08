@@ -29,7 +29,7 @@ interface Product {
   pointsRedeemable: boolean;
   pointsCost: number | null;
   preorderPriceKrw: number | null;
-  aiCreditsPerMonth: number;
+  pointsPerMonth: number;
   requiresDedicatedNode: boolean;
   grobleProductUrl: string | null;
   grobleContentId: string | null;
@@ -47,7 +47,7 @@ const empty = {
   pointsRedeemable: false,
   pointsCost: 1000,
   preorderPriceKrw: "" as number | "",
-  aiCreditsPerMonth: 0,
+  pointsPerMonth: 0,
 };
 
 export default function AdminProductsPage() {
@@ -81,7 +81,7 @@ export default function AdminProductsPage() {
       pointsRedeemable: p.pointsRedeemable,
       pointsCost: p.pointsCost ?? 1000,
       preorderPriceKrw: p.preorderPriceKrw ?? "",
-      aiCreditsPerMonth: p.aiCreditsPerMonth,
+      pointsPerMonth: p.pointsPerMonth,
     });
   }
 
@@ -106,7 +106,7 @@ export default function AdminProductsPage() {
         pointsRedeemable: form.pointsRedeemable,
         pointsCost: form.pointsRedeemable ? form.pointsCost : undefined,
         preorderPriceKrw: form.preorderPriceKrw === "" ? undefined : form.preorderPriceKrw,
-        aiCreditsPerMonth: form.aiCreditsPerMonth,
+        pointsPerMonth: form.pointsPerMonth,
       };
       const res = await fetch(editingId ? `/api/admin/products/${editingId}` : "/api/admin/products", {
         method: editingId ? "PUT" : "POST",
@@ -170,11 +170,11 @@ export default function AdminProductsPage() {
     await load();
   }
 
-  async function updateAiCredits(id: string, value: string) {
+  async function updatePointsPerMonth(id: string, value: string) {
     await fetch(`/api/admin/products/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ aiCreditsPerMonth: value === "" ? 0 : Number(value) }),
+      body: JSON.stringify({ pointsPerMonth: value === "" ? 0 : Number(value) }),
     });
     await load();
   }
@@ -229,7 +229,7 @@ export default function AdminProductsPage() {
                 </p>
                 <p className="text-xs text-text-dim mt-0.5">
                   RAM {(p.ramMb / 1024).toFixed(1)}GB · CPU {p.cpuPercent}% · 디스크 {(p.diskMb / 1024).toFixed(1)}GB ·
-                  백업 {p.backupSlots}개 · {p.priceMonthlyKrw.toLocaleString()}원/월 · AI 크레딧 {p.aiCreditsPerMonth}개/월 ·{" "}
+                  백업 {p.backupSlots}개 · {p.priceMonthlyKrw.toLocaleString()}원/월 · 포인트 {p.pointsPerMonth}P/월 ·{" "}
                   {p.allowedTemplates.map((t) => t.displayName).join(", ")}
                 </p>
               </div>
@@ -246,11 +246,11 @@ export default function AdminProductsPage() {
                 />
               </label>
               <label className="text-xs text-text-dim flex items-center gap-1">
-                AI 크레딧/월
+                포인트/월 보너스
                 <input
                   type="number"
-                  defaultValue={p.aiCreditsPerMonth}
-                  onBlur={(e) => updateAiCredits(p.id, e.target.value)}
+                  defaultValue={p.pointsPerMonth}
+                  onBlur={(e) => updatePointsPerMonth(p.id, e.target.value)}
                   className="input w-20 text-sm"
                 />
               </label>
@@ -310,7 +310,7 @@ export default function AdminProductsPage() {
           <NumField label="디스크 (GB)" value={form.diskGb} onChange={(v) => setForm({ ...form, diskGb: v })} />
           <NumField label="백업 슬롯" value={form.backupSlots} onChange={(v) => setForm({ ...form, backupSlots: v })} />
           <NumField label="월 가격 (원)" value={form.priceMonthlyKrw} onChange={(v) => setForm({ ...form, priceMonthlyKrw: v })} />
-          <NumField label="AI 크레딧 (개/월)" value={form.aiCreditsPerMonth} onChange={(v) => setForm({ ...form, aiCreditsPerMonth: v })} />
+          <NumField label="포인트/월 보너스" value={form.pointsPerMonth} onChange={(v) => setForm({ ...form, pointsPerMonth: v })} />
           <div>
             <label className="text-sm text-text-dim">선주문가 (원, 선택)</label>
             <input
@@ -367,7 +367,7 @@ export default function AdminProductsPage() {
         </div>
         <label className="flex items-center gap-2 text-sm">
           <Toggle checked={form.pointsRedeemable} onChange={(next) => setForm({ ...form, pointsRedeemable: next })} />
-          홍보 포인트로 교환 가능 (예: 무료 체험 서버)
+          포인트로 교환 가능 (예: 무료 체험 서버)
         </label>
         {form.pointsRedeemable && (
           <NumField label="필요 포인트" value={form.pointsCost} onChange={(v) => setForm({ ...form, pointsCost: v })} />

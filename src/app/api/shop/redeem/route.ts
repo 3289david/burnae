@@ -43,12 +43,7 @@ export async function POST(request: Request) {
       }
 
       let couponCode: string | undefined;
-      if (item.kind === "AI_CREDITS") {
-        await tx.user.update({
-          where: { id: user.id },
-          data: { aiCreditsRemaining: { increment: item.amount ?? 0 } },
-        });
-      } else if (item.kind === "DISCOUNT_COUPON") {
+      if (item.kind === "DISCOUNT_COUPON") {
         couponCode = randomCouponCode();
         await tx.coupon.create({
           data: {

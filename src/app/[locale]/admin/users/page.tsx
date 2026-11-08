@@ -10,7 +10,6 @@ interface User {
   role: string;
   adminRole: string | null;
   status: string;
-  aiCreditsRemaining: number;
   promotionPoints: number;
   discordLink: { discordUserId: string } | null;
   _count: { servers: number };
@@ -38,15 +37,6 @@ export default function AdminUsersPage() {
     setProducts(p.filter((x: Product) => x.active));
   }
   useEffect(() => { load(); loadCatalog(); }, []);
-
-  async function updateCredits(id: string, value: string) {
-    await fetch(`/api/admin/users/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ aiCreditsRemaining: Number(value) || 0 }),
-    });
-    await load();
-  }
 
   async function updateAdminRole(id: string, value: string) {
     const adminRole = value === "NONE" ? null : value;
@@ -115,16 +105,6 @@ export default function AdminUsersPage() {
                 </p>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
-                <label className="text-xs text-text-dim flex items-center gap-1">
-                  AI 크레딧
-                  <input
-                    type="number"
-                    step="0.01"
-                    defaultValue={u.aiCreditsRemaining}
-                    onBlur={(e) => updateCredits(u.id, e.target.value)}
-                    className="input w-20 text-sm"
-                  />
-                </label>
                 <button onClick={() => grantPoints(u.id)} className="btn-secondary px-3 py-1.5 text-sm">
                   포인트 지급
                 </button>

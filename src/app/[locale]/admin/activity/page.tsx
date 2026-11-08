@@ -1,25 +1,34 @@
 import { prisma } from "@/lib/prisma";
 import StatTile from "@/components/StatTile";
+import { levelForPoints } from "@/lib/levels";
+import LevelRoleManager from "@/components/admin/LevelRoleManager";
 
 export default async function AdminActivityPage() {
-  const [totalTracked, aggregate, top] = await Promise.all([
-    prisma.userActivityLevel.count(),
-    prisma.userActivityLevel.aggregate({ _sum: { xp: true, messageCount: true }, _avg: { level: true } }),
-    prisma.userActivityLevel.findMany({ orderBy: { xp: "desc" }, take: 50 }),
+  const [totalLinked, aggregate, top] = await Promise.all([
+    prisma.user.count({ where: { discordLink: { isNot: null } } }),
+    prisma.user.aggregate({ where: { discordLink: { isNot: null } }, _sum: { promotionPoints: true } }),
+    prisma.user.findMany({
+      where: { promotionPoints: { gt: 0 }, discordLink: { isNot: null } },
+      orderBy: { promotionPoints: "desc" },
+      take: 50,
+      include: { discordLink: true },
+    }),
   ]);
 
-  const averageLevel = Math.round((aggregate._avg.level ?? 0) * 10) / 10;
+  const totalPoints = aggregate._sum.promotionPoints ?? 0;
+  const averageLevel =
+    top.length > 0 ? Math.round((top.reduce((sum, u) => sum + levelForPoints(u.promotionPoints), 0) / top.length) * 10) / 10 : 0;
 
   return (
     <div>
       <h1 className="text-2xl font-bold">유저 활동 분석</h1>
-      <p className="text-sm text-text-dim mt-1">채팅 레벨링(XP) 집계 — 포인트와는 별개예요.</p>
+      <p className="text-sm text-text-dim mt-1">채팅 레벨은 보유 포인트로 계산돼요.</p>
 
       <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <StatTile label="추적 중인 유저" value={totalTracked} />
-        <StatTile label="누적 메시지(보상 대상)" value={aggregate._sum.messageCount ?? 0} />
-        <StatTile label="누적 XP" value={aggregate._sum.xp ?? 0} />
-        <StatTile label="평균 레벨" value={averageLevel} />
+        <StatTile label="연동된 유저" value={totalLinked} />
+        <StatTile label="연동 유저 보유 포인트 합계" value={totalPoints} />
+        <StatTile label="평균 레벨(TOP 50 기준)" value={averageLevel} />
+        <StatTile label="포인트 보유 유저 수" value={top.length} />
       </div>
 
       <div className="card-glow p-5 mt-6">
@@ -31,29 +40,29 @@ export default async function AdminActivityPage() {
                 <th className="py-2 pr-3">#</th>
                 <th className="py-2 pr-3">디스코드 유저 ID</th>
                 <th className="py-2 pr-3">레벨</th>
-                <th className="py-2 pr-3">XP</th>
-                <th className="py-2 pr-3">메시지 수</th>
+                <th className="py-2 pr-3">보유 포인트</th>
               </tr>
             </thead>
             <tbody>
-              {top.map((row, i) => (
-                <tr key={row.id} className="border-b border-border/50">
+              {top.map((u, i) => (
+                <tr key={u.id} className="border-b border-border/50">
                   <td className="py-2 pr-3 text-text-dim">{i + 1}</td>
-                  <td className="py-2 pr-3 font-mono text-xs">{row.discordUserId}</td>
-                  <td className="py-2 pr-3">{row.level}</td>
-                  <td className="py-2 pr-3">{row.xp.toLocaleString()}</td>
-                  <td className="py-2 pr-3">{row.messageCount.toLocaleString()}</td>
+                  <td className="py-2 pr-3 font-mono text-xs">{u.discordLink?.discordUserId ?? "-"}</td>
+                  <td className="py-2 pr-3">{levelForPoints(u.promotionPoints)}</td>
+                  <td className="py-2 pr-3">{u.promotionPoints.toLocaleString()}P</td>
                 </tr>
               ))}
               {top.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="py-4 text-center text-text-dim">아직 데이터가 없어요.</td>
+                  <td colSpan={4} className="py-4 text-center text-text-dim">아직 데이터가 없어요.</td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
+
+      <LevelRoleManager />
     </div>
   );
 }

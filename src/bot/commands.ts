@@ -22,7 +22,7 @@ import { startPhoneVerification, confirmPhoneVerification, PhoneVerificationErro
 import { updateNodeStatusBoard } from "./nodeStatusBoard";
 import { handleTicketButton } from "./tickets";
 import { handleSummarize } from "./aiFeatures";
-import { xpForLevel } from "./activityRewards";
+import { levelForPoints, pointsForLevel } from "./activityRewards";
 import {
   panel,
   heading,
@@ -118,7 +118,7 @@ export const commandDefinitions = [
     .setDescription("서버 규칙을 봅니다."),
   new SlashCommandBuilder()
     .setName("포인트순위")
-    .setDescription("홍보 포인트 랭킹을 봅니다."),
+    .setDescription("포인트 랭킹을 봅니다."),
   new SlashCommandBuilder()
     .setName("레벨")
     .setDescription("내 채팅 활동 레벨/XP를 봅니다."),
@@ -743,7 +743,7 @@ async function handlePointsLeaderboard(interaction: ChatInputCommandInteraction)
 
   const medal = ["🥇", "🥈", "🥉"];
   const container = panel()
-    .addTextDisplayComponents(heading("🏆 홍보 포인트 랭킹"))
+    .addTextDisplayComponents(heading("🏆 포인트 랭킹"))
     .addTextDisplayComponents(
       text(
         top
@@ -757,28 +757,41 @@ async function handlePointsLeaderboard(interaction: ChatInputCommandInteraction)
   await interaction.reply(v2Reply(container, false));
 }
 
-/** /레벨 — 채팅 활동 레벨/XP + 다음 레벨까지 남은 양 */
+/** /레벨 — 보유 포인트로 바로 계산되는 레벨 + 다음 레벨까지 남은 포인트(XP 테이블은 없어졌다) */
 async function handleLevel(interaction: ChatInputCommandInteraction) {
-  const row = await prisma.userActivityLevel.findUnique({ where: { discordUserId: interaction.user.id } });
-  const xp = row?.xp ?? 0;
-  const level = row?.level ?? 0;
-  const currentFloor = xpForLevel(level);
-  const nextCeil = xpForLevel(level + 1);
-  const progress = Math.min(100, Math.round(((xp - currentFloor) / (nextCeil - currentFloor)) * 100));
+  const user = await findLinkedUser(interaction.user.id);
+  if (!user) {
+    await interaction.reply({
+      components: [text("먼저 `/연동` 명령어로 계정을 연동해주세요.")],
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  const points = user.promotionPoints;
+  const level = levelForPoints(points);
+  const currentFloor = pointsForLevel(level);
+  const nextCeil = pointsForLevel(level + 1);
+  const progress = Math.min(100, Math.round(((points - currentFloor) / (nextCeil - currentFloor)) * 100));
 
   const container = panel()
     .addTextDisplayComponents(heading(`⭐ 레벨 ${level}`))
     .addTextDisplayComponents(
       text(
-        `총 XP: ${xp.toLocaleString()} (메시지 ${row?.messageCount ?? 0}개)\n` +
-          `다음 레벨까지: ${(nextCeil - xp).toLocaleString()} XP (${progress}%)`,
+        `보유 포인트: ${points.toLocaleString()}P\n` +
+          `다음 레벨까지: ${(nextCeil - points).toLocaleString()}P (${progress}%)`,
       ),
     );
   await interaction.reply(v2Reply(container, false));
 }
 
 async function handleLevelLeaderboard(interaction: ChatInputCommandInteraction) {
-  const top = await prisma.userActivityLevel.findMany({ orderBy: { xp: "desc" }, take: 10 });
+  const top = await prisma.user.findMany({
+    where: { promotionPoints: { gt: 0 }, discordLink: { isNot: null } },
+    orderBy: { promotionPoints: "desc" },
+    take: 10,
+    include: { discordLink: true },
+  });
   if (top.length === 0) {
     await interaction.reply({ components: [text("아직 채팅으로 레벨을 올린 사람이 없어요.")], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
     return;
@@ -790,7 +803,7 @@ async function handleLevelLeaderboard(interaction: ChatInputCommandInteraction) 
     .addTextDisplayComponents(
       text(
         top
-          .map((row, i) => `${medal[i] ?? `${i + 1}.`} <@${row.discordUserId}> — 레벨 ${row.level} (${row.xp.toLocaleString()} XP)`)
+          .map((u, i) => `${medal[i] ?? `${i + 1}.`} <@${u.discordLink!.discordUserId}> — 레벨 ${levelForPoints(u.promotionPoints)} (${u.promotionPoints.toLocaleString()}P)`)
           .join("\n"),
       ),
     );
@@ -869,7 +882,7 @@ async function handleMyInfo(interaction: PanelInteraction) {
     .addTextDisplayComponents(heading(`👤 ${user.name}님의 Burnae 정보`))
     .addTextDisplayComponents(
       text(
-        `**보유 포인트**  ${user.promotionPoints.toLocaleString()}P\n**AI 크레딧**  ${user.aiCreditsRemaining.toLocaleString(undefined, { maximumFractionDigits: 2 })}개\n**서버**  ${servers.length}개 (가동 ${runningCount}개)`,
+        `**보유 포인트**  ${user.promotionPoints.toLocaleString()}P (AI 사용도 여기서 차감돼요)\n**서버**  ${servers.length}개 (가동 ${runningCount}개)`,
       ),
     )
     .addSeparatorComponents(divider())

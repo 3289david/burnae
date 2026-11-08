@@ -286,7 +286,7 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
                     <SpecRow label={t("pricing.diskLabel", { size: formatMb(p.diskMb) })} />
                     <SpecRow label={t("pricing.trafficUnlimited")} />
                     <SpecRow label={t("pricing.backupLabel", { count: p.backupSlots })} />
-                    {p.aiCreditsPerMonth > 0 && <SpecRow label={t("pricing.aiCreditsLabel", { count: p.aiCreditsPerMonth })} />}
+                    {p.pointsPerMonth > 0 && <SpecRow label={t("pricing.aiCreditsLabel", { count: p.pointsPerMonth })} />}
                     {p.priceMonthlyKrw > 0 && <SpecRow label={t("pricing.multiAddressLabel")} />}
                   </ul>
                   <Link href="/register" className="btn-primary w-full py-2.5 text-sm text-center mt-6">

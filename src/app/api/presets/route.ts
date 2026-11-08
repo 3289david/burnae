@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { generatePresetThumbnail } from "@/lib/ai/presetImage";
 
 const MAX_ACTIVE_PRESETS_PER_USER = 20;
 
@@ -18,6 +19,7 @@ export async function GET(request: Request) {
       displayName: true,
       blurb: true,
       gitRepoUrl: true,
+      imageUrl: true,
       createdAt: true,
       useCount: true,
       baseTemplateId: true,
@@ -32,6 +34,7 @@ export async function GET(request: Request) {
       displayName: p.displayName,
       blurb: p.blurb,
       gitRepoUrl: p.gitRepoUrl,
+      imageUrl: p.imageUrl,
       createdAt: p.createdAt,
       useCount: p.useCount,
       baseTemplateId: p.baseTemplateId,
@@ -90,6 +93,14 @@ export async function POST(request: Request) {
       gitRepoUrl: parsed.data.gitRepoUrl,
     },
   });
+
+  // 썸네일 생성은 실패해도 프리셋 등록 자체를 막지 않는다 — 응답을 기다리지 않고 백그라운드로 흘려보낸다
+  generatePresetThumbnail({
+    id: preset.id,
+    displayName: preset.displayName,
+    blurb: preset.blurb,
+    baseTemplateName: template.displayName,
+  }).catch(() => {});
 
   return NextResponse.json({ id: preset.id }, { status: 201 });
 }

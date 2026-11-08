@@ -24,6 +24,7 @@ interface CommunityPreset {
   displayName: string;
   blurb: string | null;
   gitRepoUrl: string;
+  imageUrl: string | null;
   creatorName: string;
   verified: boolean;
   useCount: number;
@@ -193,6 +194,16 @@ export default function CommunityEggsPage() {
             style={{ animationDelay: `${Math.min(i, 12) * 0.025}s` }}
           >
             <button type="button" onClick={() => applyEgg(p)} className="text-left w-full active:scale-[0.97] transition-transform">
+              {p.imageUrl ? (
+                <img src={p.imageUrl} alt="" className="w-11 h-11 rounded-xl object-cover mb-1" />
+              ) : (
+                <span
+                  className="w-11 h-11 rounded-xl flex items-center justify-center mb-1"
+                  style={{ background: "color-mix(in srgb, var(--accent) 18%, transparent)" }}
+                >
+                  <Users size={20} className="text-accent" />
+                </span>
+              )}
               <span className="font-semibold text-sm inline-flex items-center gap-1 flex-wrap pr-5">
                 {p.displayName}
                 {p.verified && (

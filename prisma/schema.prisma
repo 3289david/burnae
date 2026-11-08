@@ -247,6 +247,8 @@ model UserPreset {
   /// 신고 누적으로 자동 비공개된 프리셋. 관리자가 /admin/logs 등에서 확인 가능
   delisted       Boolean  @default(false)
   createdAt      DateTime @default(now())
+  /// Gemini로 생성한 썸네일 이미지 경로(/presets/{id}.webp) — 생성 실패/대기 중이면 null
+  imageUrl       String?
 
   reports UserPresetReport[]
 

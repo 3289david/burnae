@@ -89,6 +89,7 @@ interface CommunityPreset {
   displayName: string;
   blurb: string | null;
   gitRepoUrl: string;
+  imageUrl: string | null;
   creatorName: string;
   verified: boolean;
   useCount: number;
@@ -1158,12 +1159,16 @@ function NewServerPageInner() {
                           onClick={() => pickCommunityEgg(p)}
                           className="w-full text-left flex flex-col items-start gap-2 active:scale-[0.97] transition-transform"
                         >
-                          <span
-                            className="w-9 h-9 rounded-xl flex items-center justify-center"
-                            style={{ background: "color-mix(in srgb, var(--accent) 18%, transparent)" }}
-                          >
-                            <Users size={18} className="text-accent" />
-                          </span>
+                          {p.imageUrl ? (
+                            <img src={p.imageUrl} alt="" className="w-9 h-9 rounded-xl object-cover" />
+                          ) : (
+                            <span
+                              className="w-9 h-9 rounded-xl flex items-center justify-center"
+                              style={{ background: "color-mix(in srgb, var(--accent) 18%, transparent)" }}
+                            >
+                              <Users size={18} className="text-accent" />
+                            </span>
+                          )}
                           <span className="font-semibold text-sm inline-flex items-center gap-1 flex-wrap">
                             {p.displayName}
                             {p.verified && (
@@ -1452,7 +1457,9 @@ function NewServerPageInner() {
                       presetId === p.id ? "border-accent bg-accent/[0.08]" : "border-border bg-surface hover:border-accent/40"
                     }`}
                   >
-                    <button type="button" onClick={() => { setPresetId(p.id); setSelectedPreset(p); }} className="flex-1 min-w-0 text-left">
+                    <button type="button" onClick={() => { setPresetId(p.id); setSelectedPreset(p); }} className="flex-1 min-w-0 text-left flex items-start gap-2.5">
+                      {p.imageUrl && <img src={p.imageUrl} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0" />}
+                      <span className="min-w-0 flex-1">
                       <span className="text-sm font-medium inline-flex items-center gap-1.5 flex-wrap">
                         {p.displayName}
                         {p.verified && (
@@ -1465,6 +1472,7 @@ function NewServerPageInner() {
                       <span className="block text-[11px] text-text-dim mt-0.5 truncate">{p.gitRepoUrl}</span>
                       <span className="block text-[11px] text-text-dim mt-0.5">
                         by {p.creatorName}{p.useCount > 0 ? ` · ${p.useCount}번 사용됨` : ""}
+                      </span>
                       </span>
                     </button>
                     {!p.verified && (

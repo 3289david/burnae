@@ -32,6 +32,49 @@ export async function handleTicketButton(interaction: ButtonInteraction) {
   if (interaction.customId.startsWith("ticket_open:")) return handleTicketOpen(interaction);
   if (interaction.customId.startsWith("ticket_close:")) return handleTicketClose(interaction);
   if (interaction.customId.startsWith("ticket_delete:")) return handleTicketDelete(interaction);
+  if (interaction.customId.startsWith("ticket_claim:")) return handleTicketClaim(interaction, true);
+  if (interaction.customId.startsWith("ticket_unclaim:")) return handleTicketClaim(interaction, false);
+}
+
+/**
+ * TicketTool 스타일 "관리 패널" — 담당자 지정/해제 + 닫기를 한 메시지에 모아둔다. 운영진만
+ * 눌러서 실제로 효과가 나게 하고(isTicketStaff), 티켓을 연 사람도 같은 채널에 있으니 메시지
+ * 자체는 보이지만(디스코드는 같은 채널 안에서 유저별로 메시지를 숨길 수 없음) 버튼은 운영진이
+ * 아니면 눌러도 거부된다.
+ */
+function buildAdminPanel(ticket: { id: string; claimedByDiscordId: string | null }) {
+  const container = panel(0x60a5fa)
+    .addTextDisplayComponents(heading("🎛️ 관리 패널"))
+    .addTextDisplayComponents(
+      text(ticket.claimedByDiscordId ? `담당자: <@${ticket.claimedByDiscordId}>` : "담당자: 미지정"),
+    );
+  container.addActionRowComponents(
+    buttonRow(
+      ticket.claimedByDiscordId
+        ? actionButton(`ticket_unclaim:${ticket.id}`, "🙋 담당 해제", ButtonStyle.Secondary)
+        : actionButton(`ticket_claim:${ticket.id}`, "🙋 담당자 지정하기", ButtonStyle.Secondary),
+      actionButton(`ticket_close:${ticket.id}`, "🔒 티켓 닫기", ButtonStyle.Danger),
+    ),
+  );
+  return container;
+}
+
+async function handleTicketClaim(interaction: ButtonInteraction, claim: boolean) {
+  const ticketId = interaction.customId.slice(claim ? "ticket_claim:".length : "ticket_unclaim:".length);
+  if (!isTicketStaff(interaction)) {
+    await interaction.reply({ components: [text("운영진만 담당자를 지정/해제할 수 있어요.")], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+    return;
+  }
+  const ticket = await prisma.supportTicket.findUnique({ where: { id: ticketId } });
+  if (!ticket || ticket.status === "CLOSED") {
+    await interaction.reply({ components: [text("이미 닫힌 티켓이에요.")], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+    return;
+  }
+  const updated = await prisma.supportTicket.update({
+    where: { id: ticket.id },
+    data: { claimedByDiscordId: claim ? interaction.user.id : null },
+  });
+  await interaction.update({ components: [buildAdminPanel(updated)], flags: MessageFlags.IsComponentsV2 });
 }
 
 async function handleTicketOpen(interaction: ButtonInteraction) {
@@ -86,16 +129,18 @@ async function handleTicketOpen(interaction: ButtonInteraction) {
       data: { guildChannelId: channel.id, openedByDiscordId: interaction.user.id, category: category.key },
     });
 
-    const container = panel()
+    // Components V2 메시지는 content를 전혀 못 쓴다(같이 보내면 Discord가 바로 거부함 — 채널은
+    // 이미 만들어진 뒤라 이 send()만 실패하면서 "생성 실패"로 잘못 보였던 버그) — 역할 멘션은
+    // 그래서 content가 아니라 컨테이너 안 텍스트에 넣는다(멘션은 그래도 울린다).
+    const intro = panel()
       .addTextDisplayComponents(heading(`${category.emoji} ${category.title}`))
-      .addTextDisplayComponents(text(`${category.description}\n\n열어주신 분: <@${interaction.user.id}>\n편하게 자세히 적어주시면 운영진이 확인 후 답변드려요.`));
-    container.addActionRowComponents(buttonRow(actionButton(`ticket_close:${ticket.id}`, "🔒 티켓 닫기", ButtonStyle.Danger)));
-
-    await channel.send({
-      content: supportRoleId ? `<@&${supportRoleId}>` : undefined,
-      components: [container],
-      flags: MessageFlags.IsComponentsV2,
-    });
+      .addTextDisplayComponents(
+        text(
+          `${supportRoleId ? `<@&${supportRoleId}>\n` : ""}${category.description}\n\n열어주신 분: <@${interaction.user.id}>\n편하게 자세히 적어주시면 운영진이 확인 후 답변드려요.`,
+        ),
+      );
+    await channel.send({ components: [intro], flags: MessageFlags.IsComponentsV2 });
+    await channel.send({ components: [buildAdminPanel(ticket)], flags: MessageFlags.IsComponentsV2 });
 
     await interaction.editReply({
       components: [text(`✅ 티켓이 생성됐어요: ${channel}`)],

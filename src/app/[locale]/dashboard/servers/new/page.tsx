@@ -1034,7 +1034,11 @@ function NewServerPageInner() {
   if (step === "type") {
     return (
       <div className="max-w-2xl mx-auto pb-16">
-        <StepHeader current="type" title={CATEGORY_FILTER_LABEL[categoryFilter]} subtitle="어떤 로더/프로그램으로 시작할지 골라주세요." />
+        <StepHeader
+          current="type"
+          title={CATEGORY_FILTER_LABEL[categoryFilter]}
+          subtitle={categoryFilter === "BLANK" ? undefined : "어떤 로더/프로그램으로 시작할지 골라주세요."}
+        />
         <div className="space-y-6">
           {loaderGroups.length > 0 && (
             <div>
@@ -1078,35 +1082,39 @@ function NewServerPageInner() {
                 <p className="text-xs text-text-dim">
                   이미 완성된 공식 프로그램과 다른 유저가 공개한 저장소를 함께 볼 수 있어요.
                 </p>
-                <div className="flex flex-col gap-1.5">
-                  {/* 프리셋 버킷(최상위/디스코드봇 하위 모두)에서는 완성된 공식 템플릿도 같은
-                      목록에 섞어서 보여준다 — 공식 뱃지가 이미 구분해주니 별도 그리드로 나눌 필요가 없다 */}
+                {/* 프리셋 버킷(최상위/디스코드봇 하위 모두)에서는 완성된 공식 템플릿도 같은
+                    카드 그리드에 섞어서 보여준다 — 공식 뱃지가 이미 구분해주니 별도 목록으로 나눌 필요가 없다 */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                   {filteredLoaderGroups.map((g, i) => {
                     const meta = loaderMeta(g.base);
+                    const Icon = meta.icon;
                     const active = selectedGroup?.base === g.base;
                     return (
-                      <div
+                      <button
+                        type="button"
                         key={`official-${g.base}`}
-                        className={`animate-fade-up rounded-xl border px-3 py-2 flex items-center gap-2 transition-all duration-150 ${
+                        onClick={() => pickLoader(g.base)}
+                        className={`animate-fade-up rounded-2xl border p-3.5 flex flex-col items-start gap-2 transition-all duration-150 active:scale-[0.97] ${
                           active
                             ? "border-accent bg-accent/[0.08] shadow-[0_0_0_1px_var(--accent)]"
                             : "border-border bg-surface hover:border-accent/40 hover:bg-surface-2"
                         }`}
                         style={{ animationDelay: `${Math.min(i, 12) * 0.025}s` }}
                       >
-                        <button
-                          type="button"
-                          onClick={() => pickLoader(g.base)}
-                          className="flex-1 min-w-0 text-left flex items-center gap-1.5 active:scale-[0.99] transition-transform"
-                          title={meta.blurb}
+                        <span
+                          className="w-9 h-9 rounded-xl flex items-center justify-center"
+                          style={{ background: `color-mix(in srgb, ${meta.color} 18%, transparent)` }}
                         >
-                          <span className="font-semibold text-sm shrink-0 truncate max-w-[40%] capitalize">{g.base}</span>
-                          <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-accent bg-accent/10 rounded-full px-1.5 py-0.5 shrink-0">
+                          <Icon size={18} style={{ color: meta.color }} />
+                        </span>
+                        <span className="font-semibold text-sm capitalize inline-flex items-center gap-1 flex-wrap">
+                          {g.base}
+                          <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-accent bg-accent/10 rounded-full px-1.5 py-0.5">
                             <ShieldCheck size={9} /> 공식
                           </span>
-                          <span className="text-text-dim text-[11px] truncate">{meta.blurb}</span>
-                        </button>
-                      </div>
+                        </span>
+                        <span className="text-text-dim text-[11px] leading-tight -mt-1">{meta.blurb}</span>
+                      </button>
                     );
                   })}
                   {filteredCommunityPresets.map((p, i) => {
@@ -1114,41 +1122,48 @@ function NewServerPageInner() {
                     return (
                       <div
                         key={p.id}
-                        className={`animate-fade-up rounded-xl border px-3 py-2 flex items-center gap-2 transition-all duration-150 ${
+                        className={`relative animate-fade-up rounded-2xl border p-3.5 flex flex-col items-start gap-2 transition-all duration-150 ${
                           active
                             ? "border-accent bg-accent/[0.08] shadow-[0_0_0_1px_var(--accent)]"
                             : "border-border bg-surface hover:border-accent/40 hover:bg-surface-2"
                         }`}
                         style={{ animationDelay: `${Math.min(i, 12) * 0.025}s` }}
                       >
-                        <button
-                          type="button"
-                          onClick={() => pickCommunityEgg(p)}
-                          className="flex-1 min-w-0 text-left flex items-center gap-1.5 active:scale-[0.99] transition-transform"
-                          title={p.blurb ?? undefined}
-                        >
-                          <span className="font-semibold text-sm shrink-0 truncate max-w-[40%]">{p.displayName}</span>
-                          {p.verified && (
-                            <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-accent bg-accent/10 rounded-full px-1.5 py-0.5 shrink-0">
-                              <ShieldCheck size={9} /> 공식
-                            </span>
-                          )}
-                          <span className="text-text-dim text-[11px] truncate">
-                            {p.baseTemplateName} 기반{p.blurb ? ` · ${p.blurb}` : ""} · by {p.creatorName}
-                            {p.useCount > 0 ? ` · ${p.useCount}번 사용됨` : ""}
-                          </span>
-                        </button>
                         {!p.verified && (
                           <button
                             type="button"
                             onClick={() => reportPreset(p.id)}
                             disabled={reportedPresetIds.includes(p.id)}
                             title="신고"
-                            className="shrink-0 text-text-dim hover:text-red p-0.5 disabled:opacity-40"
+                            className="absolute top-2 right-2 text-text-dim hover:text-red p-0.5 disabled:opacity-40 active:scale-90 transition-transform"
                           >
                             <Flag size={11} />
                           </button>
                         )}
+                        <button
+                          type="button"
+                          onClick={() => pickCommunityEgg(p)}
+                          className="w-full text-left flex flex-col items-start gap-2 active:scale-[0.97] transition-transform"
+                        >
+                          <span
+                            className="w-9 h-9 rounded-xl flex items-center justify-center"
+                            style={{ background: "color-mix(in srgb, var(--accent) 18%, transparent)" }}
+                          >
+                            <Users size={18} className="text-accent" />
+                          </span>
+                          <span className="font-semibold text-sm inline-flex items-center gap-1 flex-wrap">
+                            {p.displayName}
+                            {p.verified && (
+                              <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-accent bg-accent/10 rounded-full px-1.5 py-0.5">
+                                <ShieldCheck size={9} /> 공식
+                              </span>
+                            )}
+                          </span>
+                          <span className="text-text-dim text-[11px] leading-tight -mt-1">
+                            {p.blurb ? p.blurb : `${p.baseTemplateName} 기반`} · by {p.creatorName}
+                            {p.useCount > 0 ? ` · ${p.useCount}번 사용됨` : ""}
+                          </span>
+                        </button>
                       </div>
                     );
                   })}

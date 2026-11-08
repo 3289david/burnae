@@ -968,7 +968,8 @@ async function handlePointsPanel(interaction: PanelInteraction) {
   container.addSeparatorComponents(divider());
   container.addActionRowComponents(
     buttonRow(
-      linkButton("포인트 충전 / 포인트샵", `${SITE_URL}/dashboard/promotions`),
+      linkButton("💡 포인트 얻는 법", `${SITE_URL}/dashboard/promotions`),
+      linkButton("🛍️ 포인트 상점", `${SITE_URL}/dashboard/points-shop`),
       actionButton("roleshop_list", "🏷️ 칭호/역할 구매", ButtonStyle.Secondary),
     ),
   );

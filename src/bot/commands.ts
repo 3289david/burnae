@@ -265,7 +265,7 @@ export async function handleCommand(interaction: ChatInputCommandInteraction) {
   }
 }
 
-async function handleHelp(interaction: ChatInputCommandInteraction) {
+async function handleHelp(interaction: PanelInteraction) {
   const container = panel()
     .addTextDisplayComponents(heading("🔥 Burnae 봇 사용법"))
     .addTextDisplayComponents(
@@ -293,7 +293,7 @@ async function handleHelp(interaction: ChatInputCommandInteraction) {
   await interaction.reply(v2Reply(container));
 }
 
-async function handlePlans(interaction: ChatInputCommandInteraction) {
+async function handlePlans(interaction: PanelInteraction) {
   const products = await prisma.product.findMany({
     where: { active: true },
     orderBy: { sortOrder: "asc" },
@@ -317,7 +317,7 @@ async function handlePlans(interaction: ChatInputCommandInteraction) {
   await interaction.reply(v2Reply(container, false));
 }
 
-async function handleEvents(interaction: ChatInputCommandInteraction) {
+async function handleEvents(interaction: PanelInteraction) {
   const now = new Date();
   const events = await prisma.event.findMany({
     where: { active: true, startsAt: { lte: now }, endsAt: { gte: now } },
@@ -700,7 +700,7 @@ async function handleRenewFree(interaction: ChatInputCommandInteraction) {
   }
 }
 
-async function handleLinktree(interaction: ChatInputCommandInteraction) {
+async function handleLinktree(interaction: PanelInteraction) {
   const settings = await prisma.botSettings.findUnique({ where: { id: 1 } });
   const links = await prisma.linktreeLink.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } });
 
@@ -718,7 +718,7 @@ async function handleLinktree(interaction: ChatInputCommandInteraction) {
   await interaction.reply(v2Reply(container, false));
 }
 
-async function handleRules(interaction: ChatInputCommandInteraction) {
+async function handleRules(interaction: PanelInteraction) {
   const settings = await prisma.botSettings.findUnique({ where: { id: 1 } });
   if (!settings?.rulesContent) {
     await interaction.reply({ components: [text("아직 규칙이 등록되지 않았어요.")], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
@@ -728,7 +728,7 @@ async function handleRules(interaction: ChatInputCommandInteraction) {
   await interaction.reply(v2Reply(container));
 }
 
-async function handlePointsLeaderboard(interaction: ChatInputCommandInteraction) {
+async function handlePointsLeaderboard(interaction: PanelInteraction) {
   const top = await prisma.user.findMany({
     where: { promotionPoints: { gt: 0 } },
     orderBy: { promotionPoints: "desc" },
@@ -758,7 +758,7 @@ async function handlePointsLeaderboard(interaction: ChatInputCommandInteraction)
 }
 
 /** /레벨 — 보유 포인트로 바로 계산되는 레벨 + 다음 레벨까지 남은 포인트(XP 테이블은 없어졌다) */
-async function handleLevel(interaction: ChatInputCommandInteraction) {
+async function handleLevel(interaction: PanelInteraction) {
   const user = await findLinkedUser(interaction.user.id);
   if (!user) {
     await interaction.reply({
@@ -785,7 +785,7 @@ async function handleLevel(interaction: ChatInputCommandInteraction) {
   await interaction.reply(v2Reply(container, false));
 }
 
-async function handleLevelLeaderboard(interaction: ChatInputCommandInteraction) {
+async function handleLevelLeaderboard(interaction: PanelInteraction) {
   const top = await prisma.user.findMany({
     where: { promotionPoints: { gt: 0 }, discordLink: { isNot: null } },
     orderBy: { promotionPoints: "desc" },
@@ -852,7 +852,16 @@ async function handlePoll(interaction: ChatInputCommandInteraction) {
   });
 }
 
-async function handleNotificationSettings(interaction: ChatInputCommandInteraction) {
+/** "🎫 문의하기" 버튼 — 티켓 패널이 설정돼 있으면 그 채널로 안내, 아니면 /문의 명령어로 유도 */
+async function handlePanelSupport(interaction: ButtonInteraction) {
+  const settings = await prisma.botSettings.findUnique({ where: { id: 1 } });
+  const message = settings?.ticketPanelChannelId
+    ? `<#${settings.ticketPanelChannelId}> 에서 문의 종류를 고르면 비공개 티켓이 열려요.`
+    : "`/문의 내용` 으로 운영진에게 비공개로 문의할 수 있어요.";
+  await interaction.reply({ components: [text(message)], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+}
+
+async function handleNotificationSettings(interaction: PanelInteraction) {
   const container = panel()
     .addTextDisplayComponents(text("아래 버튼으로 공지 알림 역할을 켜거나 끌 수 있어요."))
     .addActionRowComponents(buttonRow(actionButton("toggle_subscriber", "🔔 공지 알림 켜기/끄기")));
@@ -1091,14 +1100,35 @@ async function handlePanelCommand(interaction: ChatInputCommandInteraction) {
     .addTextDisplayComponents(heading("🔥 Burnae 유저 패널"))
     .addTextDisplayComponents(
       text(
-        "아래 버튼을 눌러주세요 — 아직 연동 안 했으면 로그인 링크를 드리고, 이미 연동했으면 내 정보/서버 관리/포인트 메뉴가 바로 나와요.\n" +
-          "무료 서버를 만들려면 휴대폰 인증도 필요해요 — 📱 버튼으로 여기서 바로 할 수 있어요.",
+        "명령어 안 치고 버튼으로 다 할 수 있어요 — 아직 연동 안 했으면 로그인 링크를 드리고, 이미 연동했으면 내 정보/서버 관리/포인트 메뉴가 바로 나와요.",
       ),
     )
     .addActionRowComponents(
       buttonRow(
         actionButton("panel_open_link", "🔗 내 계정 / 연동"),
         actionButton("panel_open_phoneverify", "📱 휴대폰 인증"),
+        actionButton("panel_open_support", "🎫 문의하기"),
+      ),
+    )
+    .addSeparatorComponents(divider())
+    .addTextDisplayComponents(subtext("정보"))
+    .addActionRowComponents(
+      buttonRow(
+        actionButton("panel_open_help", "📖 도움말", ButtonStyle.Secondary),
+        actionButton("panel_open_plans", "💳 요금제", ButtonStyle.Secondary),
+        actionButton("panel_open_events", "🎉 이벤트", ButtonStyle.Secondary),
+        actionButton("panel_open_rules", "📜 규칙", ButtonStyle.Secondary),
+        actionButton("panel_open_linktree", "🔗 링크 모음", ButtonStyle.Secondary),
+      ),
+    )
+    .addSeparatorComponents(divider())
+    .addTextDisplayComponents(subtext("랭킹 / 설정"))
+    .addActionRowComponents(
+      buttonRow(
+        actionButton("panel_open_pointsboard", "🏆 포인트 랭킹", ButtonStyle.Secondary),
+        actionButton("panel_open_level", "⭐ 내 레벨", ButtonStyle.Secondary),
+        actionButton("panel_open_levelboard", "⭐ 레벨 랭킹", ButtonStyle.Secondary),
+        actionButton("panel_open_notif", "🔔 알림 설정", ButtonStyle.Secondary),
       ),
     );
 
@@ -1194,6 +1224,16 @@ export async function handleButton(interaction: ButtonInteraction) {
   if (interaction.customId === "panel_open_points") return handlePointsPanel(interaction);
   if (interaction.customId === "phoneverify_confirm") return handlePhoneVerifyConfirmButton(interaction);
   if (interaction.customId === "panel_open_phoneverify") return handlePhoneVerifyPanelButton(interaction);
+  if (interaction.customId === "panel_open_support") return handlePanelSupport(interaction);
+  if (interaction.customId === "panel_open_help") return handleHelp(interaction);
+  if (interaction.customId === "panel_open_plans") return handlePlans(interaction);
+  if (interaction.customId === "panel_open_events") return handleEvents(interaction);
+  if (interaction.customId === "panel_open_rules") return handleRules(interaction);
+  if (interaction.customId === "panel_open_linktree") return handleLinktree(interaction);
+  if (interaction.customId === "panel_open_pointsboard") return handlePointsLeaderboard(interaction);
+  if (interaction.customId === "panel_open_level") return handleLevel(interaction);
+  if (interaction.customId === "panel_open_levelboard") return handleLevelLeaderboard(interaction);
+  if (interaction.customId === "panel_open_notif") return handleNotificationSettings(interaction);
   if (interaction.customId.startsWith("ticket_")) return handleTicketButton(interaction);
   if (interaction.customId === "roleshop_list") return handleRoleShopList(interaction);
   if (interaction.customId.startsWith("roleshop_buy:")) return handleRoleShopBuy(interaction);

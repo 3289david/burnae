@@ -5,6 +5,7 @@ import {
   ButtonInteraction,
   ModalSubmitInteraction,
   ModalBuilder,
+  TextChannel,
   ActionRowBuilder,
   TextInputBuilder,
   TextInputStyle,
@@ -167,6 +168,22 @@ export const commandDefinitions = [
     .setName("알림받기패널")
     .setDescription("[관리자] 이 채널에 공지 알림 받기 버튼 패널을 설치합니다.")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+  new SlashCommandBuilder()
+    .setName("도움말패널")
+    .setDescription("[관리자] 봇 사용법 안내 패널을 설치합니다 (채널이 없으면 자동으로 만들어요).")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+  new SlashCommandBuilder()
+    .setName("요금제패널")
+    .setDescription("[관리자] 요금제 보기 버튼 패널을 설치합니다 (채널이 없으면 자동으로 만들어요).")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+  new SlashCommandBuilder()
+    .setName("이벤트패널")
+    .setDescription("[관리자] 이벤트 보기 버튼 패널을 설치합니다 (채널이 없으면 자동으로 만들어요).")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+  new SlashCommandBuilder()
+    .setName("랭킹패널")
+    .setDescription("[관리자] 포인트/레벨 랭킹 버튼 패널을 설치합니다 (채널이 없으면 자동으로 만들어요).")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
 ].map((c) => c.toJSON());
 
 async function findLinkedUser(discordUserId: string) {
@@ -262,6 +279,14 @@ export async function handleCommand(interaction: ChatInputCommandInteraction) {
       return handleNodeStatusPanelCommand(interaction);
     case "알림받기패널":
       return handleNotificationPanelCommand(interaction);
+    case "도움말패널":
+      return handleHelpPanelCommand(interaction);
+    case "요금제패널":
+      return handlePlansPanelCommand(interaction);
+    case "이벤트패널":
+      return handleEventsPanelCommand(interaction);
+    case "랭킹패널":
+      return handleRankingPanelCommand(interaction);
   }
 }
 
@@ -852,15 +877,6 @@ async function handlePoll(interaction: ChatInputCommandInteraction) {
   });
 }
 
-/** "🎫 문의하기" 버튼 — 티켓 패널이 설정돼 있으면 그 채널로 안내, 아니면 /문의 명령어로 유도 */
-async function handlePanelSupport(interaction: ButtonInteraction) {
-  const settings = await prisma.botSettings.findUnique({ where: { id: 1 } });
-  const message = settings?.ticketPanelChannelId
-    ? `<#${settings.ticketPanelChannelId}> 에서 문의 종류를 고르면 비공개 티켓이 열려요.`
-    : "`/문의 내용` 으로 운영진에게 비공개로 문의할 수 있어요.";
-  await interaction.reply({ components: [text(message)], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
-}
-
 async function handleNotificationSettings(interaction: PanelInteraction) {
   const container = panel()
     .addTextDisplayComponents(text("아래 버튼으로 공지 알림 역할을 켜거나 끌 수 있어요."))
@@ -1100,35 +1116,14 @@ async function handlePanelCommand(interaction: ChatInputCommandInteraction) {
     .addTextDisplayComponents(heading("🔥 Burnae 유저 패널"))
     .addTextDisplayComponents(
       text(
-        "명령어 안 치고 버튼으로 다 할 수 있어요 — 아직 연동 안 했으면 로그인 링크를 드리고, 이미 연동했으면 내 정보/서버 관리/포인트 메뉴가 바로 나와요.",
+        "아래 버튼을 눌러주세요 — 아직 연동 안 했으면 로그인 링크를 드리고, 이미 연동했으면 내 정보/서버 관리/포인트 메뉴가 바로 나와요.\n" +
+          "무료 서버를 만들려면 휴대폰 인증도 필요해요 — 📱 버튼으로 여기서 바로 할 수 있어요.",
       ),
     )
     .addActionRowComponents(
       buttonRow(
         actionButton("panel_open_link", "🔗 내 계정 / 연동"),
         actionButton("panel_open_phoneverify", "📱 휴대폰 인증"),
-        actionButton("panel_open_support", "🎫 문의하기"),
-      ),
-    )
-    .addSeparatorComponents(divider())
-    .addTextDisplayComponents(subtext("정보"))
-    .addActionRowComponents(
-      buttonRow(
-        actionButton("panel_open_help", "📖 도움말", ButtonStyle.Secondary),
-        actionButton("panel_open_plans", "💳 요금제", ButtonStyle.Secondary),
-        actionButton("panel_open_events", "🎉 이벤트", ButtonStyle.Secondary),
-        actionButton("panel_open_rules", "📜 규칙", ButtonStyle.Secondary),
-        actionButton("panel_open_linktree", "🔗 링크 모음", ButtonStyle.Secondary),
-      ),
-    )
-    .addSeparatorComponents(divider())
-    .addTextDisplayComponents(subtext("랭킹 / 설정"))
-    .addActionRowComponents(
-      buttonRow(
-        actionButton("panel_open_pointsboard", "🏆 포인트 랭킹", ButtonStyle.Secondary),
-        actionButton("panel_open_level", "⭐ 내 레벨", ButtonStyle.Secondary),
-        actionButton("panel_open_levelboard", "⭐ 레벨 랭킹", ButtonStyle.Secondary),
-        actionButton("panel_open_notif", "🔔 알림 설정", ButtonStyle.Secondary),
       ),
     );
 
@@ -1210,6 +1205,182 @@ async function handleNotificationPanelCommand(interaction: ChatInputCommandInter
   });
 }
 
+function requireManageGuild(interaction: ChatInputCommandInteraction): boolean {
+  return (
+    interaction.inGuild() &&
+    !!(
+      interaction.memberPermissions?.has(PermissionFlagsBits.Administrator) ||
+      interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)
+    )
+  );
+}
+
+/**
+ * 관리자가 채널을 직접 만들어서 명령어를 거기서 치지 않아도 되게, "📋 안내" 카테고리와 그 밑의
+ * 지정된 이름의 채널을 봇이 알아서 찾거나 없으면 만든다. /도움말패널 등 새 전용 패널 명령어들이 이걸 쓴다.
+ */
+async function getOrCreatePanelChannel(
+  interaction: ChatInputCommandInteraction,
+  channelName: string,
+): Promise<TextChannel | null> {
+  if (!interaction.guild) return null;
+  const categoryName = "📋 안내";
+
+  let category = interaction.guild.channels.cache.find(
+    (c) => c.type === ChannelType.GuildCategory && c.name === categoryName,
+  );
+  if (!category) {
+    try {
+      category = await interaction.guild.channels.create({ name: categoryName, type: ChannelType.GuildCategory });
+    } catch (err) {
+      console.error("[bot] 패널 카테고리 생성 실패:", err);
+      return null;
+    }
+  }
+
+  const existing = interaction.guild.channels.cache.find(
+    (c) => c.type === ChannelType.GuildText && c.parentId === category!.id && c.name === channelName,
+  );
+  if (existing) return existing as TextChannel;
+
+  try {
+    return await interaction.guild.channels.create({
+      name: channelName,
+      type: ChannelType.GuildText,
+      parent: category.id,
+    });
+  } catch (err) {
+    console.error(`[bot] ${channelName} 채널 생성 실패:`, err);
+    return null;
+  }
+}
+
+/** /도움말패널 — 내용이 유저별로 다르지 않아서 /도움말과 똑같은 내용을 채널에 한 번 고정으로 올린다 */
+async function handleHelpPanelCommand(interaction: ChatInputCommandInteraction) {
+  if (!requireManageGuild(interaction)) {
+    await interaction.reply({ components: [text("이 명령어는 서버 관리 권한이 있는 분만 사용할 수 있어요.")], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+    return;
+  }
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  const channel = await getOrCreatePanelChannel(interaction, "도움말");
+  if (!channel) {
+    await interaction.editReply({ components: [text("채널을 만들 권한이 없어서 설치에 실패했어요. 봇에 채널 관리 권한을 확인해주세요.")], flags: MessageFlags.IsComponentsV2 });
+    return;
+  }
+
+  const container = panel()
+    .addTextDisplayComponents(heading("🔥 Burnae 봇 사용법"))
+    .addTextDisplayComponents(
+      text(
+        [
+          "**누구나 쓸 수 있는 명령어**",
+          "`/요금제` 현재 판매 중인 플랜 보기",
+          "`/이벤트` 진행 중인 이벤트/쿠폰 보기",
+          "`/문의 내용` 운영진에게 비공개로 문의하기",
+        ].join("\n"),
+      ),
+    )
+    .addSeparatorComponents(divider())
+    .addTextDisplayComponents(
+      text(
+        [
+          "**서버가 있는 분들은 계정을 연동하면 더 쓸 수 있어요**",
+          "**1.** `/연동` 입력 → burnae.kr 로그인 화면에서 \"Discord로 계속하기\"로 로그인",
+          "**2.** `/내정보` `/서버관리` `/포인트` `/서버목록` `/상태` `/시작` `/정지` `/재시작` 사용 가능",
+        ].join("\n"),
+      ),
+    )
+    .addSeparatorComponents(divider())
+    .addTextDisplayComponents(subtext("서버가 예기치 않게 꺼지면 이 봇이 DM으로 알려드려요."));
+
+  await channel.send({ components: [container], flags: MessageFlags.IsComponentsV2 });
+  await interaction.editReply({
+    components: [text(`✅ ${channel} 채널에 도움말 패널을 올렸어요.`)],
+    flags: MessageFlags.IsComponentsV2,
+  });
+}
+
+/** /요금제패널 — 요금제는 관리자가 상품 페이지에서 언제든 바꿀 수 있어서, 고정 텍스트 대신 누르면 항상 최신 /요금제 결과를 보여주는 버튼을 올린다 */
+async function handlePlansPanelCommand(interaction: ChatInputCommandInteraction) {
+  if (!requireManageGuild(interaction)) {
+    await interaction.reply({ components: [text("이 명령어는 서버 관리 권한이 있는 분만 사용할 수 있어요.")], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+    return;
+  }
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  const channel = await getOrCreatePanelChannel(interaction, "요금제");
+  if (!channel) {
+    await interaction.editReply({ components: [text("채널을 만들 권한이 없어서 설치에 실패했어요. 봇에 채널 관리 권한을 확인해주세요.")], flags: MessageFlags.IsComponentsV2 });
+    return;
+  }
+
+  const container = panel()
+    .addTextDisplayComponents(heading("💰 요금제"))
+    .addTextDisplayComponents(text("아래 버튼을 누르면 현재 판매 중인 요금제를 바로 볼 수 있어요."))
+    .addActionRowComponents(buttonRow(actionButton("panel_open_plans", "💳 요금제 보기", ButtonStyle.Secondary)));
+
+  await channel.send({ components: [container], flags: MessageFlags.IsComponentsV2 });
+  await interaction.editReply({
+    components: [text(`✅ ${channel} 채널에 요금제 패널을 올렸어요.`)],
+    flags: MessageFlags.IsComponentsV2,
+  });
+}
+
+/** /이벤트패널 — 이벤트도 기간에 따라 계속 바뀌므로 버튼을 눌러야 항상 최신 /이벤트 결과를 보여준다 */
+async function handleEventsPanelCommand(interaction: ChatInputCommandInteraction) {
+  if (!requireManageGuild(interaction)) {
+    await interaction.reply({ components: [text("이 명령어는 서버 관리 권한이 있는 분만 사용할 수 있어요.")], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+    return;
+  }
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  const channel = await getOrCreatePanelChannel(interaction, "이벤트");
+  if (!channel) {
+    await interaction.editReply({ components: [text("채널을 만들 권한이 없어서 설치에 실패했어요. 봇에 채널 관리 권한을 확인해주세요.")], flags: MessageFlags.IsComponentsV2 });
+    return;
+  }
+
+  const container = panel()
+    .addTextDisplayComponents(heading("🎉 이벤트"))
+    .addTextDisplayComponents(text("아래 버튼을 누르면 지금 진행 중인 이벤트/쿠폰을 바로 볼 수 있어요."))
+    .addActionRowComponents(buttonRow(actionButton("panel_open_events", "🎉 이벤트 보기", ButtonStyle.Secondary)));
+
+  await channel.send({ components: [container], flags: MessageFlags.IsComponentsV2 });
+  await interaction.editReply({
+    components: [text(`✅ ${channel} 채널에 이벤트 패널을 올렸어요.`)],
+    flags: MessageFlags.IsComponentsV2,
+  });
+}
+
+/** /랭킹패널 — 포인트 랭킹/내 레벨/레벨 랭킹은 전부 실시간으로 바뀌므로 버튼 3개로 그때그때 새로 조회한다 */
+async function handleRankingPanelCommand(interaction: ChatInputCommandInteraction) {
+  if (!requireManageGuild(interaction)) {
+    await interaction.reply({ components: [text("이 명령어는 서버 관리 권한이 있는 분만 사용할 수 있어요.")], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+    return;
+  }
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  const channel = await getOrCreatePanelChannel(interaction, "랭킹");
+  if (!channel) {
+    await interaction.editReply({ components: [text("채널을 만들 권한이 없어서 설치에 실패했어요. 봇에 채널 관리 권한을 확인해주세요.")], flags: MessageFlags.IsComponentsV2 });
+    return;
+  }
+
+  const container = panel()
+    .addTextDisplayComponents(heading("🏆 랭킹"))
+    .addTextDisplayComponents(text("아래 버튼으로 포인트 랭킹, 내 레벨, 레벨 랭킹을 바로 확인할 수 있어요."))
+    .addActionRowComponents(
+      buttonRow(
+        actionButton("panel_open_pointsboard", "🏆 포인트 랭킹", ButtonStyle.Secondary),
+        actionButton("panel_open_level", "⭐ 내 레벨", ButtonStyle.Secondary),
+        actionButton("panel_open_levelboard", "⭐ 레벨 랭킹", ButtonStyle.Secondary),
+      ),
+    );
+
+  await channel.send({ components: [container], flags: MessageFlags.IsComponentsV2 });
+  await interaction.editReply({
+    components: [text(`✅ ${channel} 채널에 랭킹 패널을 올렸어요.`)],
+    flags: MessageFlags.IsComponentsV2,
+  });
+}
+
 /** 규칙 인증 버튼 / 알림 구독 토글 버튼 / 서버관리 패널 버튼 — index.ts의 InteractionCreate에서 호출한다 */
 export async function handleButton(interaction: ButtonInteraction) {
   if (interaction.customId === "verify_rules") return handleVerifyButton(interaction);
@@ -1224,7 +1395,6 @@ export async function handleButton(interaction: ButtonInteraction) {
   if (interaction.customId === "panel_open_points") return handlePointsPanel(interaction);
   if (interaction.customId === "phoneverify_confirm") return handlePhoneVerifyConfirmButton(interaction);
   if (interaction.customId === "panel_open_phoneverify") return handlePhoneVerifyPanelButton(interaction);
-  if (interaction.customId === "panel_open_support") return handlePanelSupport(interaction);
   if (interaction.customId === "panel_open_help") return handleHelp(interaction);
   if (interaction.customId === "panel_open_plans") return handlePlans(interaction);
   if (interaction.customId === "panel_open_events") return handleEvents(interaction);

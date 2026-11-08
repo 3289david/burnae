@@ -446,13 +446,16 @@ function NewServerPageInner() {
 
   // "프리셋"은 템플릿이 아니라 커뮤니티 목록이라 항상 보여준다(비어있으면 안내 문구로 처리) —
   // 나머지는 실제로 그 카테고리에 템플릿이 있을 때만 카테고리 선택 화면에 노출한다.
+  // "빈 서버"는 정말로 아무것도 없는 blank-server 하나뿐이다 — code-server/모니터링 도구/게임/
+  // 트위치봇처럼 이미 완성돼서 설치되는 다른 GENERAL 템플릿들은 전부 "프리셋"에서 보여준다.
+  const BLANK_SERVER_TEMPLATE_KEY = "blank-server";
   const availableCategories = useMemo(() => {
     const set = new Set<CategoryFilterKey>(["PRESETS"]);
     for (const t of availableTemplatesForPicker) {
       if (t.category === "MINECRAFT") set.add("MINECRAFT");
       else if (t.category === "DISCORD_BOT") set.add("DISCORD_BOT");
       else if (isDatabaseTemplate(t.key)) set.add("DATABASE");
-      else set.add("BLANK");
+      else if (t.key === BLANK_SERVER_TEMPLATE_KEY) set.add("BLANK");
     }
     return CATEGORY_FILTER_ORDER.filter((c) => set.has(c));
   }, [availableTemplatesForPicker]);
@@ -461,7 +464,17 @@ function NewServerPageInner() {
     if (categoryFilter === "MINECRAFT") return loaderGroups.filter((g) => g.templates[0]?.category === "MINECRAFT");
     if (categoryFilter === "DATABASE") return loaderGroups.filter((g) => isDatabaseTemplate(g.templates[0]?.key ?? ""));
     if (categoryFilter === "BLANK") {
-      return loaderGroups.filter((g) => g.templates[0]?.category === "GENERAL" && !isDatabaseTemplate(g.templates[0]?.key ?? ""));
+      return loaderGroups.filter((g) => g.templates[0]?.key === BLANK_SERVER_TEMPLATE_KEY);
+    }
+    if (categoryFilter === "PRESETS") {
+      // 최상위 "프리셋" — blank-server/데이터베이스/디스코드봇 빼고 나머지 공식 GENERAL
+      // 템플릿(code-server, 모니터링 도구, 게임, 트위치봇 등)을 커뮤니티 프리셋과 한 목록에 섞는다
+      return loaderGroups.filter(
+        (g) =>
+          g.templates[0]?.category === "GENERAL" &&
+          g.templates[0]?.key !== BLANK_SERVER_TEMPLATE_KEY &&
+          !isDatabaseTemplate(g.templates[0]?.key ?? ""),
+      );
     }
     if (categoryFilter === "DISCORD_BOT") {
       if (botSubFilter === "NODEJS") return loaderGroups.filter((g) => g.templates[0]?.key === BOT_CODE_TEMPLATE_KEY.NODEJS);
@@ -475,7 +488,7 @@ function NewServerPageInner() {
           g.templates[0]?.key !== BOT_CODE_TEMPLATE_KEY.PYTHON,
       );
     }
-    return []; // PRESETS(최상위, 일반 서버용)는 로더 카드 없이 커뮤니티 목록만 보여준다
+    return [];
   }, [loaderGroups, categoryFilter, botSubFilter]);
 
   function pickLoader(base: string) {
@@ -1063,15 +1076,12 @@ function NewServerPageInner() {
               ) : (
               <div className="space-y-3">
                 <p className="text-xs text-text-dim">
-                  {categoryFilter === "DISCORD_BOT"
-                    ? "이미 완성된 봇 프로그램과 다른 유저가 공개한 저장소를 함께 볼 수 있어요."
-                    : "다른 유저가 공개한 서버 종류예요."}
+                  이미 완성된 공식 프로그램과 다른 유저가 공개한 저장소를 함께 볼 수 있어요.
                 </p>
                 <div className="flex flex-col gap-1.5">
-                  {/* 디스코드봇 → 프리셋에서는 완성된 공식 봇 프로그램도 같은 목록에 섞어서 보여준다 —
-                      공식 뱃지가 이미 구분해주니 별도 그리드로 나눌 필요가 없다 */}
-                  {categoryFilter === "DISCORD_BOT" && filteredLoaderGroups.map((g, i) => {
-                    const t = g.templates[0];
+                  {/* 프리셋 버킷(최상위/디스코드봇 하위 모두)에서는 완성된 공식 템플릿도 같은
+                      목록에 섞어서 보여준다 — 공식 뱃지가 이미 구분해주니 별도 그리드로 나눌 필요가 없다 */}
+                  {filteredLoaderGroups.map((g, i) => {
                     const meta = loaderMeta(g.base);
                     const active = selectedGroup?.base === g.base;
                     return (
@@ -1143,7 +1153,7 @@ function NewServerPageInner() {
                     );
                   })}
                 </div>
-                {filteredCommunityPresets.length === 0 && (categoryFilter !== "DISCORD_BOT" || filteredLoaderGroups.length === 0) && (
+                {filteredCommunityPresets.length === 0 && filteredLoaderGroups.length === 0 && (
                   <p className="text-sm text-text-dim">아직 공개된 커뮤니티 프리셋이 없어요. 첫 번째로 만들어보세요!</p>
                 )}
 

@@ -53,9 +53,9 @@ export default async function RefundPage({ params }: { params: Promise<{ locale:
           돌려드릴 수 있습니다.
         </Section>
 
-        <Section title="4. AI 크레딧 / 포인트 환불">
+        <Section title="4. 포인트 환불">
           <ul className="list-disc pl-5 space-y-1">
-            <li>구매한 AI 크레딧이나 포인트를 전혀 쓰지 않았다면, 결제일로부터 7일 이내에 환불을 요청할
+            <li>구매한 포인트를 전혀 쓰지 않았다면, 결제일로부터 7일 이내에 환불을 요청할
               수 있습니다.</li>
             <li>일부라도 사용한 뒤에는 환불이 제한됩니다. 사용 여부와 상관없이, 포인트 상점에서 다른
               항목(서버 자원 증설, 슬롯 연장 등)으로 이미 교환한 포인트는 환불 대상이 아닙니다.</li>

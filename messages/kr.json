@@ -307,19 +307,6 @@
     "purchaseFailed": "결제 요청 실패",
     "reopenWindow": "결제 창 다시 열기"
   },
-  "aiCreditsCard": {
-    "title": "AI 크레딧",
-    "subtitlePrefix": "메시지 1건당 1크레딧 소모 · 보유",
-    "subtitleSuffix": "개",
-    "open": "충전하기",
-    "charged": "충전됐어요!",
-    "depositorLabel": "입금자명:",
-    "amountLabel": "금액:",
-    "waiting": "입금 확인 대기 중... (자동으로 충전돼요)",
-    "purchaseFailed": "결제 요청 실패",
-    "creditsUnit": "개",
-    "reopenWindow": "결제 창 다시 열기"
-  },
   "promotionsClient": {
     "titlePrefix": "서버",
     "titleHighlight": "홍보",

@@ -96,7 +96,7 @@ export default function CommunityEggsPage() {
   }, [presets, categoryFilter, query]);
 
   async function reportPreset(id: string) {
-    if (!confirm("이 프리셋을 신고할까요? 여러 명이 신고하면 자동으로 목록에서 내려가요.")) return;
+    if (!confirm("이 프리셋을 신고할까요? 여러 명이 신고하면 목록에서 내려가요.")) return;
     const res = await fetch(`/api/presets/${id}/report`, { method: "POST" });
     if (res.ok) setReportedIds((prev) => [...prev, id]);
   }
@@ -246,7 +246,7 @@ export default function CommunityEggsPage() {
           <div className="card-glow p-4 flex items-center gap-3 animate-fade-up">
             <SuccessCheck size={32} confetti className="shrink-0" />
             <p className="text-sm text-green">
-              공개했어요! 다른 사람이 이 프리셋으로 서버를 만들 때마다 포인트가 쌓여요.
+              공개했어요! 다른 사람이 쓸 때마다 포인트가 쌓여요.
             </p>
           </div>
         ) : (

@@ -123,8 +123,8 @@ export default function AdminSettingsPage() {
           선주문 자동 처리
         </label>
         <p className="text-xs text-text-dim mt-1">
-          켜두면 노드에 자리가 나는 대로 크론이 선주문을 자동으로 서버로 생성해요. 끄면 자동으로는
-          처리하지 않고, <code>/admin/preorders</code>에서 관리자가 직접 확인하고 배치해야 해요.
+          켜두면 자리가 나는 대로 크론이 선주문을 자동 생성해요. 끄면 <code>/admin/preorders</code>에서
+          직접 배치해야 해요.
         </p>
       </div>
 

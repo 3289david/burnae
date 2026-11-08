@@ -37,7 +37,7 @@ export default function AiAutoSetupCard({ serverId }: { serverId: string }) {
         <div className="flex-1">
           <h3 className="font-semibold text-sm">AI가 자동으로 설치/설정해드릴까요?</h3>
           <p className="text-xs text-text-dim">
-            방금 가져온 저장소를 AI가 살펴보고 필요한 패키지 설치, 설정을 자동으로 해드려요. 비용은 저희가 부담해요(내 AI 크레딧 안 써요).
+            방금 가져온 저장소를 AI가 살펴보고 필요한 패키지 설치, 설정을 자동으로 해드려요. 비용은 저희가 부담해요(내 포인트 안 써요).
           </p>
         </div>
       </div>

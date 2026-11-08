@@ -97,11 +97,9 @@ export default function AdminBankAccountPage() {
       <div className="card-glow p-5 mt-6">
         <h2 className="font-semibold">하나은행 Open API 연동</h2>
         <p className="text-sm text-text-dim mt-1">
-          입금 자동확인은 하나은행 거래내역조회 API를 주기적으로 폴링하는 방식이에요. 먼저 하나은행
-          오픈API 포털(apiportal.hanabank.com)에서 서비스 등록 후 앱키를 발급받고, 서버의 아웃바운드
-          IP를 화이트리스트에 등록한 다음 <code className="mx-1">.env</code>를 채워야 동작해요.
-          <strong> 거래내역조회 API는 사업자번호가 연결된 계좌(개인사업자/법인)만 지원</strong>하니,
-          결제받을 계좌가 순수 개인계좌라면 이 방식을 쓸 수 없어요.
+          하나은행 거래내역조회 API를 폴링해 입금을 자동확인해요. apiportal.hanabank.com에서 앱키 발급 +
+          아웃바운드 IP 화이트리스트 등록 후 <code className="mx-1">.env</code>를 채워야 동작해요.
+          <strong> 사업자번호가 연결된 계좌만 지원</strong>하니, 순수 개인계좌는 이 방식을 쓸 수 없어요.
         </p>
 
         <div className="mt-3 flex flex-wrap items-center gap-3">

@@ -91,7 +91,7 @@ export default function AdminUsersPage() {
     <div>
       <h1 className="text-2xl font-bold">유저</h1>
       <p className="text-sm text-text-dim mt-1">
-        AI 크레딧·포인트·서버를 직접 지급하거나 계정을 정지할 수 있어요.
+        포인트·서버를 직접 지급하거나 계정을 정지할 수 있어요.
       </p>
 
       <div className="mt-6 space-y-2">

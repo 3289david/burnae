@@ -188,10 +188,10 @@ export default function AdminAiSettingsPage() {
             <strong>일반 AI 대화:</strong> <a href="https://apmix.ai" target="_blank" rel="noreferrer" className="text-accent underline">apmix.ai</a>의 <code>claude-sonnet-4-6-free</code> 모델을 사용합니다.
           </li>
           <li>
-            <strong>메이커 모드:</strong> 플러그인 생성 및 서버 자동 제작을 위해 기존 프로바이더 설정을 그대로 유지합니다.
+            <strong>메이커 모드:</strong> 플러그인 생성·서버 자동 제작에는 기존 프로바이더 설정을 그대로 씁니다.
           </li>
           <li>
-            <strong>다중 API 키 전환:</strong> 여러 개의 API 키를 등록해두면, 요청 시 첫 번째 키가 할당량 초과나 오류로 실패할 경우 <strong>자동으로 다음 키로 전환</strong>되어 중단 없이 답변을 생성합니다.
+            <strong>다중 API 키 전환:</strong> 여러 개를 등록해두면 첫 번째 키가 실패할 때 <strong>자동으로 다음 키로 전환</strong>돼요.
           </li>
         </ul>
       </div>

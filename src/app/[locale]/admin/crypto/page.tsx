@@ -35,7 +35,7 @@ const COIN_META: Record<string, { label: string; kind: "xpub" | "pool"; help: st
   USDT_TRC20: {
     label: "USDT (TRC20)",
     kind: "pool",
-    help: "대부분의 TRON 지갑(TronLink 등)이 xpub 내보내기를 지원하지 않아서, 오프라인에서 미리 받아둔 받기 전용 주소를 한 줄에 하나씩 붙여넣어 등록해두세요.",
+    help: "TRON 지갑은 대부분 xpub 내보내기가 안 돼서, 받기 전용 주소를 한 줄에 하나씩 붙여넣어 등록해두세요.",
   },
   TRX: {
     label: "TRON (TRX)",
@@ -45,18 +45,18 @@ const COIN_META: Record<string, { label: string; kind: "xpub" | "pool"; help: st
   USDT_SOL: {
     label: "USDT (Solana)",
     kind: "pool",
-    help: "Solana는 공개키만으로 자식 주소를 못 만들어서, 오프라인에서 미리 만들어둔 받기 전용 주소를 한 줄에 하나씩 붙여넣어 등록해두세요.",
+    help: "Solana는 공개키만으로 자식 주소를 못 만들어서, 받기 전용 주소를 한 줄에 하나씩 붙여넣어 등록해두세요.",
   },
   SOL: { label: "Solana (SOL)", kind: "pool", help: "USDT(Solana)와 같은 주소 목록을 공유해도 되고 따로 둬도 돼요." },
   BTC: {
     label: "Bitcoin (BTC)",
     kind: "xpub",
-    help: "BIP32 확장 공개키(네이티브 세그윗 계정, m/84'/0'/0' 기준 xpub) — 공개키만으로 bc1... 주소를 자동으로 여러 개 만들어요.",
+    help: "BIP32 확장 공개키(네이티브 세그윗, m/84'/0'/0' xpub) — bc1... 주소를 자동으로 여러 개 만들어요.",
   },
   LTC: {
     label: "Litecoin (LTC)",
     kind: "xpub",
-    help: "BIP32 확장 공개키(표준 xpub 형식) — 공개키만으로 ltc1... 주소를 자동으로 여러 개 만들어요. Ltub/Mtub 형식은 아직 지원하지 않아요.",
+    help: "BIP32 확장 공개키(표준 xpub) — ltc1... 주소를 자동으로 여러 개 만들어요. Ltub/Mtub은 아직 미지원.",
   },
 };
 

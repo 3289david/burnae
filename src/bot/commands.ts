@@ -149,7 +149,7 @@ export const commandDefinitions = [
     .setDescription("공지 알림 받기를 켜거나 끕니다."),
   new SlashCommandBuilder()
     .setName("내정보")
-    .setDescription("내 Burnae 계정 정보(포인트/서버/AI크레딧)를 패널로 봅니다."),
+    .setDescription("내 Burnae 계정 정보(포인트/서버)를 패널로 봅니다."),
   new SlashCommandBuilder()
     .setName("서버관리")
     .setDescription("내 서버를 버튼으로 바로 시작/정지/재시작할 수 있는 패널을 봅니다."),

@@ -46,14 +46,14 @@ const CHANNEL_FIELDS: { key: keyof BotSettings; label: string; hint: string }[] 
   { key: "rulesChannelId", label: "규칙 채널 ID", hint: "규칙+인증 버튼 임베드가 여기 올라가요" },
   { key: "linktreeChannelId", label: "링크트리 채널 ID", hint: "아래 링크 목록이 임베드로 여기 올라가요" },
   { key: "statusBoardChannelId", label: "실시간 현황판 채널 ID", hint: "1분마다 자동 갱신되는 집계 통계 임베드" },
-  { key: "announcementChannelId", label: "메인 공지 채널 ID", hint: "업데이트/패치노트, 서버 수 마일스톤 등 중요 사안" },
+  { key: "announcementChannelId", label: "메인 공지 채널 ID", hint: "패치노트 등 중요 공지" },
   { key: "subAnnouncementChannelId", label: "서브 공지 채널 ID", hint: "서버 부스트 감사 등 덜 중요한 알림" },
   { key: "logChannelId", label: "운영 로그 채널 ID", hint: "서버 생성/삭제/이전 기록" },
-  { key: "welcomeChannelId", label: "환영 채널 ID", hint: "새 멤버가 들어오면 공개 환영 메시지를 올려요 (비우면 DM만 보냄)" },
-  { key: "ticketPanelChannelId", label: "티켓 패널 채널 ID", hint: "4종 문의 버튼 패널이 여기 올라가요" },
-  { key: "ticketCategoryId", label: "티켓 생성 카테고리 ID", hint: "버튼을 누르면 만들어지는 비공개 채널이 이 카테고리 밑에 생겨요 (비우면 서버 최상위)" },
-  { key: "voiceTriggerChannelId", label: "임시 음성방 트리거 채널 ID", hint: "이 음성채널에 들어가면 자기만의 임시 음성방이 새로 생겨요(비면 자동 삭제)" },
-  { key: "pointPanelChannelId", label: "포인트 패널 채널 ID", hint: "\"💰 포인트 확인\" 버튼만 있는 패널이 여기 올라가요" },
+  { key: "welcomeChannelId", label: "환영 채널 ID", hint: "새 멤버 환영 메시지 (비우면 DM만)" },
+  { key: "ticketPanelChannelId", label: "티켓 패널 채널 ID", hint: "4종 문의 버튼 패널" },
+  { key: "ticketCategoryId", label: "티켓 생성 카테고리 ID", hint: "비공개 티켓 채널이 생길 카테고리 (비우면 최상위)" },
+  { key: "voiceTriggerChannelId", label: "임시 음성방 트리거 채널 ID", hint: "들어가면 전용 임시 음성방 생성(나가면 삭제)" },
+  { key: "pointPanelChannelId", label: "포인트 패널 채널 ID", hint: "\"💰 포인트 확인\" 버튼 패널" },
 ];
 
 const emptyLink = { label: "", url: "", emoji: "", sortOrder: 0 };

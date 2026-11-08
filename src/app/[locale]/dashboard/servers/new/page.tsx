@@ -106,7 +106,7 @@ interface Product {
   diskMb: number;
   backupSlots: number;
   priceMonthlyKrw: number;
-  aiCreditsPerMonth: number;
+  pointsPerMonth: number;
   allowedTemplates: Template[];
 }
 interface BankAccount {
@@ -484,7 +484,7 @@ function NewServerPageInner() {
   );
 
   async function reportPreset(id: string) {
-    if (!confirm("이 프리셋을 신고할까요? 여러 명이 신고하면 자동으로 목록에서 내려가요.")) return;
+    if (!confirm("이 프리셋을 신고할까요? 여러 명이 신고하면 목록에서 내려가요.")) return;
     const res = await fetch(`/api/presets/${id}/report`, { method: "POST" });
     if (res.ok) setReportedPresetIds((prev) => [...prev, id]);
   }
@@ -754,7 +754,7 @@ function NewServerPageInner() {
             title={stillWaitingForNode ? "선주문으로 접수됐어요!" : "서버를 만들고 있어요!"}
             subtitle={
               stillWaitingForNode
-                ? "지금은 배치할 자리가 없어서 선주문으로 접수됐어요. 자리가 나는 대로 자동으로 서버가 생성돼요."
+                ? "자리가 없어서 선주문으로 접수됐어요. 자리가 나면 자동으로 생성돼요."
                 : "잠시 후 서버 페이지로 이동할게요..."
             }
             icon={
@@ -776,7 +776,7 @@ function NewServerPageInner() {
             </p>
             <p className="text-sm text-text-dim mt-1">
               {stillWaitingForNode
-                ? "지금은 배치할 자리가 없어서 선주문으로 접수됐어요. 자리가 나는 대로 자동으로 서버가 생성돼요."
+                ? "자리가 없어서 선주문으로 접수됐어요. 자리가 나면 자동으로 생성돼요."
                 : "잠시 후 서버 페이지로 이동할게요..."}
             </p>
           </div>
@@ -929,7 +929,7 @@ function NewServerPageInner() {
                   <div className="card-glow p-4 flex items-center gap-3 animate-fade-up">
                     <SuccessCheck size={32} confetti className="shrink-0" />
                     <p className="text-sm text-green">
-                      공개했어요! 다른 사람이 이 프리셋으로 서버를 만들 때마다 포인트가 쌓여요.
+                      공개했어요! 다른 사람이 쓸 때마다 포인트가 쌓여요.
                     </p>
                   </div>
                 ) : (
@@ -1134,7 +1134,7 @@ function NewServerPageInner() {
           {presets.length > 0 && (
             <Section step={stepFor("presets")} title="커뮤니티 프리셋 (선택)">
               <p className="text-xs text-text-dim mb-2 flex items-center gap-1.5">
-                <Users size={13} /> 다른 유저가 공개한 설정을 그대로 가져와 시작할 수 있어요. 안 골라도 기본값으로 만들어져요.
+                <Users size={13} /> 다른 유저가 공개한 설정을 그대로 가져와 시작할 수 있어요(선택 안 해도 기본값으로 만들어져요).
               </p>
               <div className="space-y-2">
                 <button
@@ -1259,7 +1259,7 @@ function NewServerPageInner() {
                       <div className="text-text-dim text-xs mt-0.5">
                         RAM {formatMb(p.ramMb)} · CPU {p.cpuPercent}% · 디스크 {formatMb(p.diskMb)} · 트래픽 무제한
                         {p.backupSlots > 0 && <> · 백업 {p.backupSlots}개</>}
-                        {p.aiCreditsPerMonth > 0 && <> · AI 크레딧 매달 {p.aiCreditsPerMonth.toLocaleString()}개 지급</>}
+                        {p.pointsPerMonth > 0 && <> · 포인트 매달 {p.pointsPerMonth.toLocaleString()}P 지급</>}
                       </div>
                     </div>
                   </div>

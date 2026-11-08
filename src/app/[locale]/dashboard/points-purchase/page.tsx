@@ -22,7 +22,6 @@ export default function PointsPurchasePage() {
   const [error, setError] = useState<string | null>(null);
   const [order, setOrder] = useState<{ id: string; amountKrw: number; depositorName: string; status: string } | null>(null);
   const [bank, setBank] = useState<{ bankName: string; accountNumber: string; accountHolder: string } | null>(null);
-  const [cryptoOpen, setCryptoOpen] = useState(false);
   const [depositorEdit, setDepositorEdit] = useState("");
   const [depositorEditBusy, setDepositorEditBusy] = useState(false);
   const [depositorEditError, setDepositorEditError] = useState<string | null>(null);
@@ -148,17 +147,9 @@ export default function PointsPurchasePage() {
               </div>
             </div>
 
-            <button
-              onClick={() => setCryptoOpen((v) => !v)}
-              className="btn-secondary w-full mt-3 py-2.5 text-sm flex items-center justify-center gap-1.5"
-            >
-              코인으로 결제하기 {cryptoOpen ? "▲" : "▼"}
-            </button>
-            {cryptoOpen && (
-              <div className="card mt-2 p-4">
-                <CryptoPaymentOption orderId={order.id} amountKrw={order.amountKrw} />
-              </div>
-            )}
+            <div className="mt-3">
+              <CryptoPaymentOption orderId={order.id} amountKrw={order.amountKrw} />
+            </div>
 
             <div className="card mt-3 p-5">
               <label className="text-sm text-text-dim">입금자명 바꾸기</label>

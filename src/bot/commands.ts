@@ -13,6 +13,7 @@ import {
   MessageFlags,
   ChannelType,
   PermissionFlagsBits,
+  OverwriteResolvable,
 } from "discord.js";
 import { prisma } from "./prismaClient";
 import { PteroClient } from "../lib/pterodactyl";
@@ -1215,9 +1216,27 @@ function requireManageGuild(interaction: ChatInputCommandInteraction): boolean {
   );
 }
 
+/** 안내 패널 채널은 누구나 보고 버튼을 누를 수는 있어야 하지만, 글이 쌓이면 패널이 묻히니 일반 멤버는
+ * 글/반응/스레드를 못 올리게 막는다(공지 채널과 같은 읽기 전용 권한). */
+function panelChannelOverwrites(everyoneRoleId: string): OverwriteResolvable[] {
+  return [
+    {
+      id: everyoneRoleId,
+      allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ReadMessageHistory],
+      deny: [
+        PermissionFlagsBits.SendMessages,
+        PermissionFlagsBits.AddReactions,
+        PermissionFlagsBits.CreatePublicThreads,
+        PermissionFlagsBits.CreatePrivateThreads,
+      ],
+    },
+  ];
+}
+
 /**
  * 관리자가 채널을 직접 만들어서 명령어를 거기서 치지 않아도 되게, "📋 안내" 카테고리와 그 밑의
  * 지정된 이름의 채널을 봇이 알아서 찾거나 없으면 만든다. /도움말패널 등 새 전용 패널 명령어들이 이걸 쓴다.
+ * 이미 있던 채널이라도(예: 이 권한 설정이 생기기 전에 만들어졌던 채널) 매번 권한을 다시 맞춰준다.
  */
 async function getOrCreatePanelChannel(
   interaction: ChatInputCommandInteraction,
@@ -1225,13 +1244,18 @@ async function getOrCreatePanelChannel(
 ): Promise<TextChannel | null> {
   if (!interaction.guild) return null;
   const categoryName = "📋 안내";
+  const overwrites = panelChannelOverwrites(interaction.guild.roles.everyone.id);
 
   let category = interaction.guild.channels.cache.find(
     (c) => c.type === ChannelType.GuildCategory && c.name === categoryName,
   );
   if (!category) {
     try {
-      category = await interaction.guild.channels.create({ name: categoryName, type: ChannelType.GuildCategory });
+      category = await interaction.guild.channels.create({
+        name: categoryName,
+        type: ChannelType.GuildCategory,
+        permissionOverwrites: overwrites,
+      });
     } catch (err) {
       console.error("[bot] 패널 카테고리 생성 실패:", err);
       return null;
@@ -1240,14 +1264,22 @@ async function getOrCreatePanelChannel(
 
   const existing = interaction.guild.channels.cache.find(
     (c) => c.type === ChannelType.GuildText && c.parentId === category!.id && c.name === channelName,
-  );
-  if (existing) return existing as TextChannel;
+  ) as TextChannel | undefined;
+  if (existing) {
+    try {
+      await existing.permissionOverwrites.set(overwrites);
+    } catch (err) {
+      console.error(`[bot] ${channelName} 채널 권한 갱신 실패:`, err);
+    }
+    return existing;
+  }
 
   try {
     return await interaction.guild.channels.create({
       name: channelName,
       type: ChannelType.GuildText,
       parent: category.id,
+      permissionOverwrites: overwrites,
     });
   } catch (err) {
     console.error(`[bot] ${channelName} 채널 생성 실패:`, err);

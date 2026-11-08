@@ -254,7 +254,6 @@ function NewServerPageInner() {
   const [depositorEdit, setDepositorEdit] = useState("");
   const [depositorEditBusy, setDepositorEditBusy] = useState(false);
   const [depositorEditError, setDepositorEditError] = useState<string | null>(null);
-  const [cryptoOpen, setCryptoOpen] = useState(false);
   const [bank, setBank] = useState<BankAccount | null>(null);
   const [stillWaitingForNode, setStillWaitingForNode] = useState(false);
 
@@ -687,17 +686,9 @@ function NewServerPageInner() {
           </a>
         )}
 
-        <button
-          onClick={() => setCryptoOpen((v) => !v)}
-          className="btn-secondary w-full mt-2 py-2.5 text-sm flex items-center justify-center gap-1.5"
-        >
-          코인으로 결제하기 {cryptoOpen ? "▲" : "▼"}
-        </button>
-        {cryptoOpen && (
-          <div className="card mt-2 p-4">
-            <CryptoPaymentOption orderId={order.id} amountKrw={order.amountKrw} />
-          </div>
-        )}
+        <div className="mt-2">
+          <CryptoPaymentOption orderId={order.id} amountKrw={order.amountKrw} />
+        </div>
 
         <div className="card mt-4 p-6 space-y-4">
           <div>

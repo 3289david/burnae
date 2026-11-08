@@ -1,3 +1,5 @@
+import ArtCallout from "@/components/ArtCallout";
+import PageHeader from "@/components/PageHeader";
 import { prisma } from "@/lib/prisma";
 
 export default async function AdminDashboardPage() {
@@ -25,7 +27,7 @@ export default async function AdminDashboardPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">대시보드</h1>
+      <PageHeader art="admin" title="대시보드" />
 
       <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
         <Stat label="전체 유저" value={userCount.toLocaleString()} />
@@ -33,6 +35,8 @@ export default async function AdminDashboardPage() {
         <Stat label="온라인 서버" value={activeServers.toLocaleString()} />
         <Stat label="이번 달 매출" value={`${(revenue._sum.amountKrw ?? 0).toLocaleString()}원`} />
       </div>
+
+      <ArtCallout className="mt-8" src="head-admin" title="서버 노드 상태를 확인하세요" desc="노드별 RAM 사용량과 가동 상태를 점검할 수 있어요." href="/admin/nodes" cta="노드 보기" />
 
       <h2 className="mt-8 font-semibold">노드 현황</h2>
       <div className="mt-3 space-y-2">

@@ -50,7 +50,7 @@ export default function DangerZoneTab({ server }: { server: ServerInfo }) {
   }
 
   return (
-    <div className="space-y-6 animate-fade-up">
+    <div className="tab-grid animate-fade-up">
       <div className="card-glow p-5 space-y-2">
         <h3 className="font-semibold text-sm">서버 재설치</h3>
         <p className="text-xs text-text-dim">

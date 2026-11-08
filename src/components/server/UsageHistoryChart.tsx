@@ -65,7 +65,7 @@ export default function UsageHistoryChart({
     let alive = true;
     fetch(`/api/servers/${serverId}/usage-history`)
       .then((r) => r.json())
-      .then((data) => alive && setSnapshots(data))
+      .then((data) => alive && setSnapshots(Array.isArray(data) ? data : []))
       .catch(() => alive && setSnapshots([]));
     return () => {
       alive = false;

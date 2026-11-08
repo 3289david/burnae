@@ -1,5 +1,7 @@
 "use client";
 
+import PageHeader from "@/components/PageHeader";
+import EmptyState from "@/components/EmptyState";
 import { useEffect, useState } from "react";
 import Toggle from "@/components/Toggle";
 
@@ -78,7 +80,7 @@ export default function AdminAnnouncementsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">공지사항</h1>
+      <PageHeader art="admin" title="공지사항" />
       <p className="text-sm text-text-dim mt-1">랜딩/대시보드 상단 배너로 노출돼요.</p>
 
       <div className="mt-6 space-y-2">
@@ -107,7 +109,7 @@ export default function AdminAnnouncementsPage() {
             </div>
           </div>
         ))}
-        {items.length === 0 && <p className="text-sm text-text-dim">등록된 공지가 없어요.</p>}
+        {items.length === 0 && <EmptyState compact title="등록된 공지가 없어요." />}
       </div>
 
       <form onSubmit={create} className="card-glow p-5 mt-6 space-y-3">

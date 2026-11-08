@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import {
@@ -126,13 +126,6 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
       (server.isOwner || !OWNER_ONLY_TABS.has(t.key)),
   );
 
-  // 토스식 슬라이딩 탭 인디케이터 — 활성 탭 뒤 배경이 색 전환 없이 실제로 미끄러져 이동한다
-  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-  const [indicator, setIndicator] = useState<{ left: number; width: number } | null>(null);
-  useLayoutEffect(() => {
-    const el = tabRefs.current[tab];
-    if (el) setIndicator({ left: el.offsetLeft, width: el.offsetWidth });
-  }, [tab, visibleTabs.length]);
   const primarySubdomain = server.subdomains.find((s) => s.isPrimary) ?? server.subdomains[0];
   const previewAddress =
     server.templateCategory !== "MINECRAFT" && primarySubdomain && server.allocationPort
@@ -161,13 +154,9 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
 
   return (
     <div className="relative">
-      <div className="blob w-64 h-64 bg-purple -top-24 -right-16 animate-float pointer-events-none" />
 
       <div className="relative flex items-center justify-between flex-wrap gap-2 animate-fade-up">
         <div className="flex items-center gap-3">
-          <span className="w-11 h-11 rounded-2xl bg-accent/15 flex items-center justify-center shrink-0">
-            <LayoutGrid size={20} className="text-accent" />
-          </span>
           <div>
             {editingName ? (
               <div className="flex items-center gap-1.5 animate-toast-in">
@@ -216,38 +205,22 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
         </div>
       </div>
 
-      <div
-        className="relative mt-6 flex gap-1 overflow-x-auto p-1 bg-surface-2 rounded-full w-fit max-w-full animate-fade-up"
-        style={{ animationDelay: "0.05s" }}
-      >
-        {indicator && (
-          <span
-            className="absolute top-1 bottom-1 rounded-full bg-accent shadow-sm transition-[left,width] duration-300 ease-[cubic-bezier(0.65,0,0.35,1)]"
-            style={{ left: indicator.left, width: indicator.width }}
-          />
-        )}
+      <div className="mt-6 grid lg:grid-cols-[220px_minmax(0,1fr)] gap-5 lg:gap-10 items-start">
+      <nav className="lg:sticky lg:top-6 flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible border-b lg:border-0 border-border pb-2 lg:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {visibleTabs.map((tabDef) => (
           <button
             key={tabDef.key}
-            ref={(el) => {
-              tabRefs.current[tabDef.key] = el;
-            }}
             onClick={() => setTab(tabDef.key)}
-            className={`relative z-10 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors duration-150 shrink-0 ${
-              tab === tabDef.key
-                ? "text-white"
-                : tabDef.key === "danger"
-                  ? "text-red/70 hover:text-red"
-                  : "text-text-dim hover:text-text"
-            }`}
+            aria-current={tab === tabDef.key ? "page" : undefined}
+            className={`nav-link shrink-0 whitespace-nowrap ${tabDef.key === "danger" ? "!text-red/80" : ""}`}
           >
-            <tabDef.icon size={15} />
+            <tabDef.icon size={17} />
             {t(tabDef.labelKey)}
           </button>
         ))}
-      </div>
+      </nav>
 
-      <div className="relative mt-6 animate-fade-up" style={{ animationDelay: "0.1s" }}>
+      <div className="relative min-w-0 animate-fade-up">
         {tab === "overview" && <OverviewTab server={server} />}
         {tab === "console" && <ConsoleTab serverId={server.id} templateCategory={server.templateCategory} myRole={server.myRole} />}
         {tab === "players" && <PlayersTab serverId={server.id} myRole={server.myRole} />}
@@ -263,6 +236,7 @@ export default function ServerDetailClient({ server }: { server: ServerInfo }) {
           <AiTab serverId={server.id} templateCategory={server.templateCategory} previewAddress={previewAddress} myRole={server.myRole} />
         )}
         {tab === "danger" && <DangerZoneTab server={server} />}
+      </div>
       </div>
     </div>
   );

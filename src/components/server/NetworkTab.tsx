@@ -43,7 +43,7 @@ export default function NetworkTab({ server }: { server: ServerInfo }) {
   }
 
   return (
-    <div className="space-y-6 animate-fade-up">
+    <div className="tab-grid animate-fade-up">
       <div className="card-glow p-5">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold">접속 주소</h3>

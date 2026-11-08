@@ -1,6 +1,7 @@
+import EmptyState from "@/components/EmptyState";
 import { Link } from "@/i18n/navigation";
 import { prisma } from "@/lib/prisma";
-import BrandMark from "@/components/BrandMark";
+import SiteHeader from "@/components/SiteHeader";
 import Footer from "@/components/Footer";
 
 export const metadata = { title: "블로그 — Burnae" };
@@ -17,13 +18,7 @@ export default async function BlogListPage({ params }: PageProps<"/[locale]/blog
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b border-border">
-        <div className="max-w-3xl mx-auto px-6 py-4">
-          <Link href="/" className="inline-flex items-center gap-2 text-lg font-bold font-display">
-            <BrandMark size={22} /> Burnae
-          </Link>
-        </div>
-      </header>
+      <SiteHeader />
 
       <main className="max-w-3xl mx-auto px-6 py-12 flex-1 w-full">
         <h1 className="text-3xl font-bold font-display">블로그</h1>
@@ -45,7 +40,7 @@ export default async function BlogListPage({ params }: PageProps<"/[locale]/blog
             );
           })}
           {posts.length === 0 && (
-            <p className="text-sm text-text-dim">아직 글이 없어요.</p>
+            <EmptyState title="아직 글이 없어요." />
           )}
         </div>
       </main>

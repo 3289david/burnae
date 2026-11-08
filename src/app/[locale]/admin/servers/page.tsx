@@ -1,5 +1,7 @@
 "use client";
 
+import PageHeader from "@/components/PageHeader";
+import EmptyState from "@/components/EmptyState";
 import { useEffect, useState } from "react";
 
 interface Server {
@@ -217,7 +219,7 @@ export default function AdminServersPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">전체 서버</h1>
+      <PageHeader art="admin" title="전체 서버" />
 
       <form
         onSubmit={(e) => {
@@ -302,7 +304,7 @@ export default function AdminServersPage() {
 
             {portsRowId === s.id && (
               <div className="mt-3 pt-3 border-t border-border space-y-2">
-                {allocLoading && allocations.length === 0 && <p className="text-xs text-text-dim">불러오는 중...</p>}
+                {allocLoading && allocations.length === 0 && <EmptyState compact title="불러오는 중..." />}
 
                 {allocations.filter((a) => a.inUseByThisServer).length > 0 && (
                   <div className="space-y-1">
@@ -364,7 +366,7 @@ export default function AdminServersPage() {
             )}
           </div>
         ))}
-        {servers.length === 0 && <p className="text-sm text-text-dim">서버가 없어요.</p>}
+        {servers.length === 0 && <EmptyState compact title="서버가 없어요." />}
       </div>
     </div>
   );

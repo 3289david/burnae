@@ -1,3 +1,6 @@
+import ArtCallout from "@/components/ArtCallout";
+import PageHeader from "@/components/PageHeader";
+import EmptyState from "@/components/EmptyState";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Receipt } from "lucide-react";
@@ -21,14 +24,9 @@ export default async function BillingPage() {
 
   return (
     <div>
-      <div className="flex items-center gap-3 animate-fade-up">
-        <span className="w-11 h-11 rounded-2xl bg-accent/15 flex items-center justify-center shrink-0">
-          <Receipt size={20} className="text-accent" />
-        </span>
-        <h1 className="text-2xl font-bold font-display">결제 내역</h1>
-      </div>
+      <PageHeader art="billing" title="결제 내역" desc="서버 결제와 충전 내역이에요." />
 
-      <div className="mt-6 space-y-2.5">
+      <div className="mt-6 space-y-2.5 max-w-4xl">
         {orders.map((o) => {
           const titleText = `${TYPE_LABEL[o.type] ?? o.type}${
             o.type === "AI_CREDITS"
@@ -54,11 +52,10 @@ export default async function BillingPage() {
           );
         })}
         {orders.length === 0 && (
-          <div className="card-glow p-10 text-center animate-fade-up">
-            <p className="text-sm text-text-dim">아직 결제 내역이 없어요.</p>
-          </div>
+          <div className="card animate-fade-up"><EmptyState art="empty-receipt" title="아직 결제 내역이 없어요." /></div>
         )}
       </div>
+      <ArtCallout className="mt-8 max-w-4xl" src="head-support" title="결제가 보이지 않나요?" desc="입금 후에도 반영되지 않으면 고객지원에 남겨주세요." href="/dashboard/support" cta="고객지원 가기" />
     </div>
   );
 }

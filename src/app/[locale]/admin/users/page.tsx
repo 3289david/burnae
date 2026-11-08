@@ -1,5 +1,6 @@
 "use client";
 
+import PageHeader from "@/components/PageHeader";
 import { useEffect, useState } from "react";
 
 interface Product { id: string; name: string; active: boolean }
@@ -89,7 +90,7 @@ export default function AdminUsersPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">유저</h1>
+      <PageHeader art="admin" title="유저" />
       <p className="text-sm text-text-dim mt-1">
         포인트·서버를 직접 지급하거나 계정을 정지할 수 있어요.
       </p>

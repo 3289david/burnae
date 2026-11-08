@@ -3,7 +3,6 @@ import { Space_Grotesk } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
-import { prisma } from "@/lib/prisma";
 import { routing } from "@/i18n/routing";
 import "../globals.css";
 
@@ -13,23 +12,10 @@ const spaceGrotesk = Space_Grotesk({
   weight: ["500", "600", "700"],
 });
 
-const METADATA_BY_LOCALE = {
-  kr: {
-    MINECRAFT_ONLY: { title: "Burnae — 마인크래프트 호스팅", description: "빠르게 만들고, AI로 쉽게 관리하는 마인크래프트 서버 호스팅" },
-    GENERAL_ONLY: { title: "Burnae — 서버 호스팅", description: "VPS부터 디스코드 봇 호스팅까지 — 빠르게 만들고, AI로 쉽게 관리하세요" },
-    DEFAULT: { title: "Burnae — 마인크래프트·서버 호스팅", description: "마인크래프트부터 VPS, 디스코드 봇 호스팅까지 — 빠르게 만들고, AI로 쉽게 관리하세요" },
-  },
-} as const;
-
-export async function generateMetadata(): Promise<Metadata> {
-  const settings = await prisma.hostingSettings.upsert({
-    where: { id: 1 },
-    update: {},
-    create: { id: 1 },
-  });
-  const key = settings.siteMode === "MINECRAFT_ONLY" || settings.siteMode === "GENERAL_ONLY" ? settings.siteMode : "DEFAULT";
-  return METADATA_BY_LOCALE.kr[key];
-}
+export const metadata: Metadata = {
+  title: "Burnae — VPS·디스코드 봇 호스팅",
+  description: "1분 만에 만들고, 채팅 한 줄로 관리하는 VPS·디스코드 봇 호스팅",
+};
 
 const THEME_INIT_SCRIPT = `
 (function () {
@@ -52,7 +38,7 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[lo
   const htmlLang = "ko";
 
   return (
-    <html lang={htmlLang} data-scroll-behavior="smooth" className={`h-full antialiased ${spaceGrotesk.variable}`}>
+    <html lang={htmlLang} data-scroll-behavior="smooth" className={`min-h-full antialiased ${spaceGrotesk.variable}`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>

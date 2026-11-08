@@ -1,5 +1,6 @@
 "use client";
 
+import PageHeader from "@/components/PageHeader";
 import { useEffect, useState } from "react";
 import Toggle from "@/components/Toggle";
 
@@ -71,7 +72,7 @@ export default function AdminPromotionsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">포인트 받기</h1>
+      <PageHeader art="admin" title="포인트 받기" />
       <p className="text-sm text-text-dim mt-1">홍보하면 받는 포인트 항목 관리.</p>
 
       {reviews.length > 0 && (

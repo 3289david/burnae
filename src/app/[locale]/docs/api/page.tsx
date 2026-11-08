@@ -1,5 +1,5 @@
 import { Link } from "@/i18n/navigation";
-import BrandMark from "@/components/BrandMark";
+import SiteHeader from "@/components/SiteHeader";
 import Footer from "@/components/Footer";
 
 export const metadata = { title: "API 문서 — Burnae" };
@@ -69,13 +69,7 @@ const ENDPOINTS: { method: string; path: string; desc: string; body?: string; sa
 export default function ApiDocsPage() {
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b border-border">
-        <div className="max-w-3xl mx-auto px-6 py-4">
-          <Link href="/" className="inline-flex items-center gap-2 text-lg font-bold font-display">
-            <BrandMark size={22} /> Burnae
-          </Link>
-        </div>
-      </header>
+      <SiteHeader />
 
       <main className="max-w-3xl mx-auto px-6 py-12 flex-1 w-full">
         <h1 className="text-3xl font-bold font-display">API 문서</h1>

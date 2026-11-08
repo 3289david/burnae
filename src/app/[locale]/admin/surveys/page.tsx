@@ -1,5 +1,7 @@
 "use client";
 
+import PageHeader from "@/components/PageHeader";
+import EmptyState from "@/components/EmptyState";
 import { useEffect, useState } from "react";
 
 interface SurveyResponse {
@@ -60,7 +62,7 @@ export default function AdminSurveysPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">설문/피드백</h1>
+      <PageHeader art="admin" title="설문/피드백" />
 
       <form onSubmit={createPoll} className="card-glow p-5 mt-6 space-y-3">
         <h2 className="font-semibold">새 설문(투표) 만들기</h2>
@@ -134,7 +136,7 @@ export default function AdminSurveysPage() {
             </div>
           </div>
         ))}
-        {items.length === 0 && <p className="text-sm text-text-dim">아직 받은 응답이 없어요.</p>}
+        {items.length === 0 && <EmptyState compact title="아직 받은 응답이 없어요." />}
       </div>
     </div>
   );

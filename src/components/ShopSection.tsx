@@ -1,5 +1,6 @@
 "use client";
 
+import PageHeader from "@/components/PageHeader";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Gift, Sparkles, Ticket, Package, Server as ServerIcon } from "lucide-react";
@@ -63,15 +64,15 @@ export default function ShopSection({ points }: { points: number }) {
   if (items.length === 0) return null;
 
   return (
-    <div className="mt-8">
+    <div className="mt-6">
       <div className="flex items-center gap-2 mb-3">
-        <span className="w-8 h-8 rounded-xl bg-purple/15 flex items-center justify-center">
+        <span className="w-8 h-8 rounded-lg border border-border bg-surface-2 flex items-center justify-center">
           <Gift size={16} className="text-purple" />
         </span>
         <h2 className="font-semibold text-[15px]">{t("title")}</h2>
       </div>
 
-      <div className="grid sm:grid-cols-2 gap-3">
+      <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
         {items.map((item, i) => {
           const Icon = KIND_ICON[item.kind];
           const affordable = remainingPoints >= item.pointsCost;
@@ -83,7 +84,7 @@ export default function ShopSection({ points }: { points: number }) {
               style={{ animationDelay: `${Math.min(i, 10) * 0.03}s` }}
             >
               <div className="flex items-start gap-3">
-                <span className="w-9 h-9 rounded-xl bg-purple/15 flex items-center justify-center shrink-0">
+                <span className="w-9 h-9 rounded-lg border border-border bg-surface-2 flex items-center justify-center shrink-0">
                   <Icon size={16} className="text-purple" />
                 </span>
                 <div className="flex-1 min-w-0">

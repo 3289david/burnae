@@ -1,5 +1,7 @@
 "use client";
 
+import PageHeader from "@/components/PageHeader";
+import EmptyState from "@/components/EmptyState";
 import { useEffect, useState } from "react";
 import { ShieldCheck, Flag, Trash2, RotateCcw, Ban } from "lucide-react";
 
@@ -48,11 +50,11 @@ export default function AdminPresetsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">커뮤니티 프리셋</h1>
+      <PageHeader art="admin" title="커뮤니티 프리셋" />
       <p className="text-sm text-text-dim mt-1">유저가 공개한 프리셋 — 신고 3건이면 자동 비공개.</p>
 
       {items === null && <p className="text-sm text-text-dim mt-6">불러오는 중...</p>}
-      {items?.length === 0 && <p className="text-sm text-text-dim mt-6">등록된 프리셋이 없어요.</p>}
+      {items?.length === 0 && <EmptyState compact title="등록된 프리셋이 없어요." />}
 
       <div className="mt-6 space-y-3">
         {items?.map((p, i) => (

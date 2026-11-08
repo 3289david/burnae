@@ -1,5 +1,7 @@
 "use client";
 
+import PageHeader from "@/components/PageHeader";
+import EmptyState from "@/components/EmptyState";
 import { useEffect, useState } from "react";
 
 interface Preorder {
@@ -40,7 +42,7 @@ export default function AdminPreordersPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">선주문 대기 목록</h1>
+      <PageHeader art="admin" title="선주문 대기 목록" />
       <p className="text-sm text-text-dim mt-1">결제됐지만 자리가 없어 대기 중인 주문.</p>
 
       <div className="mt-6 space-y-2">
@@ -64,7 +66,7 @@ export default function AdminPreordersPage() {
             </button>
           </div>
         ))}
-        {items.length === 0 && <p className="text-sm text-text-dim">대기 중인 선주문이 없어요.</p>}
+        {items.length === 0 && <EmptyState compact title="대기 중인 선주문이 없어요." />}
       </div>
       {error && <p className="text-sm text-red mt-3">{error}</p>}
     </div>

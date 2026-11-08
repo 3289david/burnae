@@ -1,5 +1,6 @@
 "use client";
 
+import PageHeader from "@/components/PageHeader";
 import { useEffect, useState } from "react";
 import { CheckCircle2, AlertTriangle } from "lucide-react";
 
@@ -65,7 +66,7 @@ export default function AdminBankAccountPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">결제 계좌</h1>
+      <PageHeader art="admin" title="결제 계좌" />
       <p className="text-sm text-text-dim mt-1">
         고객 결제 화면에 표시될 계좌예요. <strong>반드시 아래 하나은행 API에 등록한 계좌와 동일해야</strong>{" "}
         입금이 자동으로 확인됩니다.

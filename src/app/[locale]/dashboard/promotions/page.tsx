@@ -1,3 +1,4 @@
+import ArtCallout from "@/components/ArtCallout";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import PromotionsClient from "@/components/PromotionsClient";
@@ -40,6 +41,7 @@ export default async function PromotionsPage() {
         };
       })}
     />
+      <ArtCallout className="mt-8" src="head-shop" title="모은 포인트는 상점에서 써요" desc="서버 업그레이드, 추가 주소 등으로 바꿀 수 있어요." href="/dashboard/points-shop" cta="포인트 상점 가기" />
     </>
   );
 }

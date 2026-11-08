@@ -1,5 +1,5 @@
 import { Link } from "@/i18n/navigation";
-import BrandMark from "@/components/BrandMark";
+import SiteHeader from "@/components/SiteHeader";
 import LegalEnglishNotice from "@/components/LegalEnglishNotice";
 
 export const metadata = { title: "이용약관 — Burnae" };
@@ -8,13 +8,7 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
   const { locale } = await params;
   return (
     <div className="min-h-screen">
-      <header className="border-b border-border">
-        <div className="max-w-3xl mx-auto px-6 py-4">
-          <Link href="/" className="inline-flex items-center gap-2 text-lg font-bold font-display">
-            <BrandMark size={22} /> Burnae
-          </Link>
-        </div>
-      </header>
+      <SiteHeader />
 
       <main className="max-w-3xl mx-auto px-6 py-12 prose-sm">
         <LegalEnglishNotice locale={locale} />

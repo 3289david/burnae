@@ -1,5 +1,7 @@
 "use client";
 
+import PageHeader from "@/components/PageHeader";
+import EmptyState from "@/components/EmptyState";
 import { useEffect, useState } from "react";
 
 interface PendingOrder {
@@ -68,7 +70,7 @@ export default function AdminOrdersPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">주문 (입금 대기)</h1>
+      <PageHeader art="admin" title="주문 (입금 대기)" />
       <p className="text-sm text-text-dim mt-1">입금 확인되면 여기서 직접 승인하세요.</p>
 
       {error && <p className="text-sm text-red mt-3">{error}</p>}
@@ -99,7 +101,7 @@ export default function AdminOrdersPage() {
             </button>
           </div>
         ))}
-        {items.length === 0 && <p className="text-sm text-text-dim">대기 중인 주문이 없어요.</p>}
+        {items.length === 0 && <EmptyState compact title="대기 중인 주문이 없어요." />}
       </div>
 
       <h2 className="text-xl font-bold mt-10">지급됐지만 아직 서버를 안 만든 건</h2>
@@ -128,7 +130,7 @@ export default function AdminOrdersPage() {
             </button>
           </div>
         ))}
-        {grants.length === 0 && <p className="text-sm text-text-dim">지급 대기 중인 건이 없어요.</p>}
+        {grants.length === 0 && <EmptyState compact title="지급 대기 중인 건이 없어요." />}
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 "use client";
 
+import PageHeader from "@/components/PageHeader";
 import { useEffect, useState } from "react";
 import Toggle from "@/components/Toggle";
 import { isDatabaseTemplate } from "@/lib/databaseConnect";
@@ -207,7 +208,7 @@ export default function AdminProductsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">상품</h1>
+      <PageHeader art="admin" title="상품" />
       <p className="text-sm text-text-dim mt-1">▲▼로 서버 생성 화면 노출 순서를 바꿀 수 있어요.</p>
 
       <div className="mt-6 space-y-2">

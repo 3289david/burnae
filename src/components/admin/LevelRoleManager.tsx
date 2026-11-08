@@ -1,5 +1,6 @@
 "use client";
 
+import EmptyState from "@/components/EmptyState";
 import { useEffect, useState } from "react";
 
 interface LevelRoleItem {
@@ -84,7 +85,7 @@ export default function LevelRoleManager() {
             </div>
           </div>
         ))}
-        {items.length === 0 && <p className="text-sm text-text-dim">등록된 등급이 없어요.</p>}
+        {items.length === 0 && <EmptyState compact title="등록된 등급이 없어요." />}
       </div>
 
       <form onSubmit={submit} className="mt-4 space-y-3">

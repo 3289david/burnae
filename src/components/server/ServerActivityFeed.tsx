@@ -47,7 +47,7 @@ export default function ServerActivityFeed({ serverId }: { serverId: string }) {
     let alive = true;
     fetch(`/api/servers/${serverId}/activity`)
       .then((r) => r.json())
-      .then((data) => alive && setLogs(data))
+      .then((data) => alive && setLogs(Array.isArray(data) ? data : []))
       .catch(() => alive && setLogs([]));
     return () => {
       alive = false;

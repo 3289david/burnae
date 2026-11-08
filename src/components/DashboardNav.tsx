@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Link } from "@/i18n/navigation";
-import { Menu, Search } from "lucide-react";
+import { Link, usePathname } from "@/i18n/navigation";
+import { Server, Gift, ShoppingBag, CreditCard, LifeBuoy, User, Users, Search, Plus, ShieldCheck, MoreHorizontal, X } from "lucide-react";
 import LogoutButton from "@/components/LogoutButton";
 import ThemeToggle from "@/components/ThemeToggle";
+import BrandMark from "@/components/BrandMark";
+import Image from "next/image";
 import { OPEN_COMMAND_PALETTE_EVENT } from "@/components/CommandPalette";
 
 interface Props {
@@ -13,76 +15,158 @@ interface Props {
   showAdminLink: boolean;
 }
 
-export default function DashboardNav({ userName, showAdminLink }: Props) {
+function useLinks() {
   const t = useTranslations("dashboardNav");
-  const [open, setOpen] = useState(false);
-
-  const LINKS = [
-    { href: "/dashboard/community-eggs", label: t("communityEggs") },
-    { href: "/dashboard/promotions", label: t("promotions") },
-    { href: "/dashboard/points-shop", label: t("pointsShop") },
-    { href: "/dashboard/billing", label: t("billing") },
-    { href: "/dashboard/support", label: t("support") },
-    { href: "/dashboard/account", label: t("account") },
+  return [
+    { href: "/dashboard", label: t("servers"), icon: Server, exact: true },
+    { href: "/dashboard/promotions", label: t("promotions"), icon: Gift },
+    { href: "/dashboard/points-shop", label: t("pointsShop"), icon: ShoppingBag },
+    { href: "/dashboard/community-eggs", label: t("communityEggs"), icon: Users },
+    { href: "/dashboard/billing", label: t("billing"), icon: CreditCard },
+    { href: "/dashboard/support", label: t("support"), icon: LifeBuoy },
+    { href: "/dashboard/account", label: t("account"), icon: User },
   ];
+}
+
+function isActive(pathname: string, href: string, exact?: boolean) {
+  return exact ? pathname === href || pathname.startsWith("/dashboard/servers") : pathname === href || pathname.startsWith(href + "/");
+}
+
+function openSearch() {
+  window.dispatchEvent(new CustomEvent(OPEN_COMMAND_PALETTE_EVENT));
+}
+
+/** 데스크톱(lg+): 왼쪽 고정 사이드바 */
+export function DashboardSidebar({ userName, showAdminLink }: Props) {
+  const t = useTranslations("dashboardNav");
+  const tHome = useTranslations("dashboardHome");
+  const pathname = usePathname();
+  const links = useLinks();
 
   return (
-    <>
-      {/* 데스크톱: 한 줄 */}
-      <nav className="hidden sm:flex items-center gap-4">
-        <span className="text-sm text-text-dim">{t("greeting", { name: userName })}</span>
-        <button
-          onClick={() => window.dispatchEvent(new CustomEvent(OPEN_COMMAND_PALETTE_EVENT))}
-          className="hidden md:inline-flex items-center gap-1.5 text-xs text-text-dim bg-surface-2 rounded-full px-2.5 py-1 hover:text-text active:scale-95 transition-transform"
-        >
-          <Search size={12} /> {t("search")}
-          <kbd className="text-[10px] bg-surface rounded px-1 py-0.5 ml-1">⌘K</kbd>
-        </button>
-        {LINKS.map((l) => (
-          <Link key={l.href} href={l.href} className="text-sm text-text-dim hover:text-text transition-colors">
-            {l.label}
+    <aside className="hidden lg:flex sticky top-0 h-screen w-64 xl:w-72 shrink-0 flex-col border-r border-border bg-surface/50 p-4">
+      <Link href="/dashboard" className="flex items-center gap-2 px-2 py-2 text-xl font-bold font-display">
+        <BrandMark size={26} /> Burnae
+      </Link>
+
+      <Link href="/dashboard/servers/new" className="btn-primary mt-5 px-4 py-3 text-sm inline-flex items-center justify-center gap-1.5">
+        <Plus size={16} /> {tHome("createServer")}
+      </Link>
+
+      <button
+        onClick={openSearch}
+        className="mt-3 flex items-center gap-2 rounded-xl border border-border bg-surface-2 px-3 py-2 text-sm text-text-dim hover:text-text transition-colors"
+      >
+        <Search size={15} /> {t("search")}
+        <kbd className="ml-auto text-[10px] bg-surface rounded px-1.5 py-0.5">⌘K</kbd>
+      </button>
+
+      <nav className="mt-5 flex-1 space-y-1 overflow-y-auto">
+        {links.map((l) => (
+          <Link key={l.href} href={l.href} className="nav-link" aria-current={isActive(pathname, l.href, l.exact) ? "page" : undefined}>
+            <l.icon size={18} /> {l.label}
           </Link>
         ))}
         {showAdminLink && (
-          <Link href="/admin" className="text-sm text-accent hover:underline">{t("admin")}</Link>
+          <Link href="/admin" className="nav-link !text-accent">
+            <ShieldCheck size={18} /> {t("admin")}
+          </Link>
         )}
-        <ThemeToggle />
-        <LogoutButton />
       </nav>
 
-      {/* 모바일: 햄버거 메뉴 */}
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="sm:hidden flex items-center gap-1.5 text-sm text-text-dim px-2 py-1 active:scale-95 transition-transform"
-        aria-label={t("menu")}
-      >
-        <Menu size={18} className={`transition-transform duration-200 ${open ? "rotate-90" : ""}`} /> {t("menu")}
-      </button>
+      <Link href="/dashboard/promotions" className="group mb-4 block overflow-hidden rounded-xl border border-border bg-surface">
+        <div className="relative aspect-[16/9] bg-[#141414] border-b border-border">
+          <Image src="/img/illus-free.webp" alt="" fill sizes="260px" className="object-cover" />
+        </div>
+        <p className="px-3 py-2.5 text-xs text-text-dim group-hover:text-text transition-colors">포인트로 무료 서버 받기 →</p>
+      </Link>
+
+      <div className="border-t border-border pt-4 flex items-center justify-between gap-2">
+        <span className="text-sm font-medium truncate">{t("greeting", { name: userName })}</span>
+        <div className="flex items-center gap-2 shrink-0">
+          <ThemeToggle />
+          <LogoutButton />
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+/** 모바일/태블릿(<lg): 상단 바 */
+export function DashboardTopBar({ userName }: Pick<Props, "userName">) {
+  const t = useTranslations("dashboardNav");
+  return (
+    <header className="lg:hidden sticky top-0 z-30 glass border-b border-border/70">
+      <div className="h-14 px-4 flex items-center justify-between gap-3">
+        <Link href="/dashboard" className="flex items-center gap-2 text-lg font-bold font-display">
+          <BrandMark size={24} /> Burnae
+        </Link>
+        <div className="flex items-center gap-1">
+          <span className="hidden sm:block text-sm text-text-dim mr-2">{t("greeting", { name: userName })}</span>
+          <button onClick={openSearch} aria-label={t("search")} className="w-10 h-10 rounded-full flex items-center justify-center text-text-dim hover:bg-surface-2">
+            <Search size={18} />
+          </button>
+          <ThemeToggle />
+        </div>
+      </div>
+    </header>
+  );
+}
+
+/** 모바일/태블릿(<lg): 하단 탭바 — 엄지로 닿는 핵심 메뉴 4개 + 더보기 */
+export function DashboardTabBar({ showAdminLink }: Pick<Props, "showAdminLink">) {
+  const t = useTranslations("dashboardNav");
+  const pathname = usePathname();
+  const links = useLinks();
+  const [open, setOpen] = useState(false);
+
+  const main = [links[0], links[1], links[4], links[6]];
+  const more = [links[2], links[3], links[5]];
+  const moreActive = more.some((l) => isActive(pathname, l.href));
+
+  return (
+    <>
       {open && (
-        <div className="sm:hidden absolute top-full left-0 right-0 bg-surface border-b border-border px-6 py-3 space-y-3 z-10 animate-toast-in">
-          <p className="text-sm text-text-dim">{t("greeting", { name: userName })}</p>
-          {LINKS.map((l, i) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className="block text-sm text-text animate-fade-up"
-              style={{ animationDelay: `${i * 0.03}s` }}
-              onClick={() => setOpen(false)}
-            >
-              {l.label}
-            </Link>
-          ))}
-          {showAdminLink && (
-            <Link href="/admin" className="block text-sm text-accent" onClick={() => setOpen(false)}>
-              {t("admin")}
-            </Link>
-          )}
-          <div className="flex items-center justify-between">
-            <ThemeToggle />
-            <LogoutButton />
+        <div className="lg:hidden fixed inset-0 z-40" onClick={() => setOpen(false)}>
+          <div className="absolute inset-0 bg-black/50" />
+          <div className="absolute inset-x-0 bottom-0 bg-surface border-t border-border rounded-t-3xl p-4 pb-24 animate-slide-in-bottom" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-2 pb-2">
+              <p className="font-semibold">{t("menu")}</p>
+              <button onClick={() => setOpen(false)} className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-surface-2" aria-label="close"><X size={18} /></button>
+            </div>
+            {more.map((l) => (
+              <Link key={l.href} href={l.href} onClick={() => setOpen(false)} className="nav-link !py-3.5 !text-base" aria-current={isActive(pathname, l.href) ? "page" : undefined}>
+                <l.icon size={20} /> {l.label}
+              </Link>
+            ))}
+            {showAdminLink && (
+              <Link href="/admin" onClick={() => setOpen(false)} className="nav-link !py-3.5 !text-base !text-accent">
+                <ShieldCheck size={20} /> {t("admin")}
+              </Link>
+            )}
+            <div className="mt-3 flex items-center justify-between border-t border-border pt-3 px-2">
+              <LogoutButton />
+            </div>
           </div>
         </div>
       )}
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-50 glass border-t border-border safe-bottom">
+        <div className="grid grid-cols-5 h-16">
+          {main.map((l) => {
+            const active = isActive(pathname, l.href, l.exact);
+            return (
+              <Link key={l.href} href={l.href} aria-current={active ? "page" : undefined} className={`flex flex-col items-center justify-center gap-1 text-[11px] font-medium ${active ? "text-accent" : "text-text-dim"}`}>
+                <l.icon size={21} />
+                {l.label}
+              </Link>
+            );
+          })}
+          <button onClick={() => setOpen(true)} className={`flex flex-col items-center justify-center gap-1 text-[11px] font-medium ${moreActive || open ? "text-accent" : "text-text-dim"}`}>
+            <MoreHorizontal size={21} />
+            {t("more")}
+          </button>
+        </div>
+      </nav>
     </>
   );
 }

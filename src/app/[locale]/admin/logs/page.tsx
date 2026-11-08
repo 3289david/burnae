@@ -1,3 +1,5 @@
+import PageHeader from "@/components/PageHeader";
+import EmptyState from "@/components/EmptyState";
 import { prisma } from "@/lib/prisma";
 
 export default async function AdminLogsPage() {
@@ -9,7 +11,7 @@ export default async function AdminLogsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">로그</h1>
+      <PageHeader art="admin" title="로그" />
       <p className="text-sm text-text-dim mt-1">최근 관리자/시스템 작업 150건</p>
 
       <div className="mt-6 card p-0 overflow-hidden animate-fade-up">
@@ -28,7 +30,7 @@ export default async function AdminLogsPage() {
               )}
             </div>
           ))}
-          {logs.length === 0 && <p className="px-4 py-6 text-sm text-text-dim">아직 기록된 로그가 없어요.</p>}
+          {logs.length === 0 && <EmptyState compact title="아직 기록된 로그가 없어요." />}
         </div>
       </div>
     </div>

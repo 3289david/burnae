@@ -215,7 +215,7 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
     server.isOwner && (server.status === "SUSPENDED" || (daysLeft !== null && daysLeft <= renewalWarningDays));
 
   return (
-    <div className="space-y-6">
+    <div className="tab-grid">
       {server.isOwner && <GettingStartedCard server={server} />}
       {server.isOwner && server.aiAutoSetupAvailable && <AiAutoSetupCard serverId={server.id} />}
 
@@ -339,7 +339,7 @@ export default function OverviewTab({ server }: { server: ServerInfo }) {
 
       {/* 이 서버의 디스크 사용량 (전체 계정 저장공간 한도와는 별개) */}
       <div className="card-glow p-5 flex items-center gap-4 animate-fade-up">
-        <span className="w-11 h-11 rounded-2xl bg-lime/15 flex items-center justify-center shrink-0">
+        <span className="w-11 h-11 rounded-lg border border-border bg-surface-2 flex items-center justify-center shrink-0">
           <HardDrive size={20} className="text-lime" />
         </span>
         <div className="flex-1 min-w-0">

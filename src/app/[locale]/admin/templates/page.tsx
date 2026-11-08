@@ -1,5 +1,6 @@
 "use client";
 
+import PageHeader from "@/components/PageHeader";
 import { useEffect, useState } from "react";
 
 type ServerCategory = "MINECRAFT" | "DISCORD_BOT" | "GENERAL";
@@ -213,7 +214,7 @@ export default function AdminTemplatesPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">서버 종류 (Egg)</h1>
+      <PageHeader art="admin" title="서버 종류 (Egg)" />
       <p className="text-sm text-text-dim mt-1">Pterodactyl에서 자동으로 가져와요.</p>
 
       <div className="mt-6 space-y-2">

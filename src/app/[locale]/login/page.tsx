@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import OAuthButtons from "@/components/OAuthButtons";
 import EmailLoginForm from "@/components/EmailLoginForm";
-import BrandMark from "@/components/BrandMark";
+import AuthShell from "@/components/AuthShell";
 
 export default function LoginPage() {
   const t = useTranslations("login");
@@ -18,13 +18,9 @@ export default function LoginPage() {
   }, []);
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6">
-      <div className="w-full max-w-sm animate-fade-up">
-        <Link href="/" className="inline-flex items-center gap-2 text-xl font-bold font-display">
-          <BrandMark /> Burnae
-        </Link>
-        <h1 className="mt-6 text-2xl font-bold">{t("title")}</h1>
-        <p className="mt-2 text-sm text-text-dim">{t("subtitle")}</p>
+    <AuthShell>
+      <div>
+        <h1 className="text-3xl font-bold font-display">{t("title")}</h1>
 
         <div className="mt-6 animate-fade-up" style={{ animationDelay: "0.1s" }}>
           <OAuthButtons />
@@ -45,6 +41,6 @@ export default function LoginPage() {
           <Link href="/register" className="text-accent">{t("startLink")}</Link>
         </p>
       </div>
-    </div>
+    </AuthShell>
   );
 }

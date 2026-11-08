@@ -1,5 +1,7 @@
 "use client";
 
+import PageHeader from "@/components/PageHeader";
+import EmptyState from "@/components/EmptyState";
 import { useEffect, useState } from "react";
 import Toggle from "@/components/Toggle";
 
@@ -151,7 +153,7 @@ export default function AdminCryptoPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold">코인 결제</h1>
+        <PageHeader art="admin" title="코인 결제" />
         <p className="text-sm text-text-dim mt-1">⚠️ 공개키/주소만 등록 — 개인키 입력 금지.</p>
       </div>
 
@@ -260,7 +262,7 @@ export default function AdminCryptoPage() {
               )}
             </div>
           ))}
-          {payments?.length === 0 && <p className="text-sm text-text-dim">결제 내역이 없어요.</p>}
+          {payments?.length === 0 && <EmptyState compact title="결제 내역이 없어요." />}
         </div>
       </div>
     </div>

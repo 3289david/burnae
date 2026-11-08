@@ -1,5 +1,6 @@
 "use client";
 
+import EmptyState from "@/components/EmptyState";
 import { useEffect, useState } from "react";
 
 interface Coupon {
@@ -113,7 +114,7 @@ export default function AdminEventsPage() {
               {ev.active && <button onClick={() => endEvent(ev.id)} className="btn-secondary px-3 py-1.5 text-sm shrink-0">종료</button>}
             </div>
           ))}
-          {events.length === 0 && <p className="text-sm text-text-dim">등록된 이벤트가 없어요.</p>}
+          {events.length === 0 && <EmptyState compact title="등록된 이벤트가 없어요." />}
         </div>
 
         <form onSubmit={createEvent} className="card-glow p-5 mt-4 space-y-3">

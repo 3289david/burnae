@@ -1,5 +1,8 @@
 "use client";
 
+import ArtCallout from "@/components/ArtCallout";
+import PageHeader from "@/components/PageHeader";
+import EmptyState from "@/components/EmptyState";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import SuccessCheck from "@/components/SuccessCheck";
@@ -143,13 +146,8 @@ export default function CommunityEggsPage() {
   }, [presets]);
 
   return (
-    <div className="max-w-3xl mx-auto pb-16">
-      <h1 className="text-2xl font-bold flex items-center gap-2">
-        <Users size={22} className="text-accent" /> 커뮤니티 프리셋
-      </h1>
-      <p className="text-sm text-text-dim mt-1">
-        다른 유저가 공개한 GitHub 저장소 조합 — 설치하거나, 공개해서 포인트를 모으세요.
-      </p>
+    <div className="max-w-6xl mx-auto pb-16">
+      <PageHeader art="community" title="커뮤니티 프리셋" desc="다른 유저가 공개한 설정을 설치하거나, 내 설정을 공개해 포인트를 모아요." className="mb-6" />
 
       {presets.length > 4 && (
         <div className="relative mt-4 animate-fade-up">
@@ -187,7 +185,7 @@ export default function CommunityEggsPage() {
         </div>
       )}
 
-      <div className="grid sm:grid-cols-2 gap-2.5 mt-4">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2.5 mt-4">
         {filteredPresets.map((p, i) => (
           <div
             key={p.id}
@@ -228,10 +226,10 @@ export default function CommunityEggsPage() {
         ))}
       </div>
       {filteredPresets.length === 0 && (
-        <p className="text-sm text-text-dim mt-4">
-          {query || categoryFilter !== "ALL" ? "검색 결과가 없어요." : "아직 공개된 커뮤니티 프리셋이 없어요. 첫 번째로 만들어보세요!"}
-        </p>
+        <EmptyState art={query || categoryFilter !== "ALL" ? "search" : "empty-list"} title={query || categoryFilter !== "ALL" ? "검색 결과가 없어요." : "아직 공개된 프리셋이 없어요."} />
       )}
+
+      <ArtCallout className="mt-8" src="head-community" title="내 설정을 공개해 보세요" desc="내 GitHub 저장소 조합을 공개하면 다른 사람이 설치할 때마다 포인트가 쌓여요." />
 
       <div className="mt-6">
         {!showForm ? (

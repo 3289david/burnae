@@ -2,7 +2,7 @@ import { Link } from "@/i18n/navigation";
 import { getTranslations } from "next-intl/server";
 import OAuthButtons from "@/components/OAuthButtons";
 import EmailRegisterForm from "@/components/EmailRegisterForm";
-import BrandMark from "@/components/BrandMark";
+import AuthShell from "@/components/AuthShell";
 
 export default async function RegisterPage({
   searchParams,
@@ -13,17 +13,15 @@ export default async function RegisterPage({
   const t = await getTranslations("register");
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6">
-      <div className="w-full max-w-sm animate-fade-up">
-        <div className="flex items-center justify-between gap-3">
-          <Link href="/" className="inline-flex items-center gap-2 text-xl font-bold font-display">
-            <BrandMark /> Burnae
-          </Link>
-          <Link href="/login" className="text-xs text-text-dim hover:text-text border border-border rounded-full px-3 py-1.5">
-            {t("loginLink")}
-          </Link>
-        </div>
-        <h1 className="mt-6 text-2xl font-bold">{t("title")}</h1>
+    <AuthShell
+      action={
+        <Link href="/login" className="text-sm text-text-dim hover:text-text border border-border rounded-full px-4 py-2">
+          {t("loginLink")}
+        </Link>
+      }
+    >
+      <div>
+        <h1 className="text-3xl font-bold font-display">{t("title")}</h1>
         <p className="mt-2 text-sm text-text-dim">{t("subtitle")}</p>
         {ref && (
           <p className="animate-toast-in mt-2 text-xs text-accent">{t("referralNote")}</p>
@@ -44,6 +42,6 @@ export default async function RegisterPage({
           <Link href="/legal/privacy" className="text-accent">{t("privacyLink")}</Link>{t("agreementSuffix")}
         </p>
       </div>
-    </div>
+    </AuthShell>
   );
 }

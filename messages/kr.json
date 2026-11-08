@@ -11,22 +11,28 @@
     "nav": {
       "login": "로그인",
       "start": "시작하기",
-      "dashboard": "대시보드"
+      "dashboard": "대시보드",
+      "features": "기능",
+      "steps": "시작 방법",
+      "pricing": "요금제",
+      "faq": "FAQ",
+      "menu": "메뉴"
     },
     "hero": {
       "titleMinecraft": "마인크래프트 서버",
-      "titleGeneral": "서버 호스팅",
+      "titleGeneral": "VPS·디스코드 봇 호스팅",
       "titleBoth": "마인크래프트·서버 호스팅",
       "titleGradient": "말로 관리하는",
       "titleEra": "시대",
       "descMinecraft": "1분 안에 서버를 만들고, 설정도 플러그인도 오류 해결도 채팅 한 줄로 끝내세요. 복잡한 관리 패널은 저희가 다 가려드릴게요.",
-      "descGeneral": "VPS부터 디스코드 봇 호스팅까지 — 1분 안에 만들고, 설정도 오류 해결도 채팅 한 줄로 끝내세요.",
+      "descGeneral": "1분 안에 서버를 만들고, 설정도 오류 해결도 채팅 한 줄로 끝내세요. 어려운 서버 관리는 저희가 대신해 드려요.",
       "descBoth": "마인크래프트부터 VPS, 디스코드 봇 호스팅까지 — 1분 안에 만들고, 설정도 오류 해결도 채팅 한 줄로 끝내세요.",
       "ctaPrimary": "무료로 시작하기",
       "ctaDiscord": "공식 디스코드 참여",
       "trustNoCard": "카드 없이 계좌이체 결제",
       "trustNoSignup": "가입 없이 가격 확인",
-      "trustCancelAnytime": "언제든 해지 가능"
+      "trustCancelAnytime": "언제든 해지 가능",
+      "ctaSecondary": "요금제 보기"
     },
     "features": {
       "title": "호스팅에 필요한 모든 것",
@@ -138,6 +144,18 @@
       "title": "지금 바로 서버를 만들어보세요",
       "desc": "가입은 30초, 서버 생성은 1분이면 충분해요.",
       "cta": "무료로 시작하기"
+    },
+    "presets": {
+      "title": "내 서비스에 맞는 서버를 골라요",
+      "subtitle": "프리셋을 고르면 설치까지 자동이에요.",
+      "bot": "디스코드 봇",
+      "botDesc": "Red, Muse 등 인기 봇을 클릭 한 번으로",
+      "vps": "VPS",
+      "vpsDesc": "웹에서 바로 쓰는 코드 서버",
+      "minecraft": "마인크래프트",
+      "minecraftDesc": "Paper·Fabric·Forge 지원",
+      "deploy": "GitHub 배포",
+      "deployDesc": "Node.js·Python 코드를 저장소 그대로"
     }
   },
   "footer": {
@@ -161,7 +179,7 @@
   "register": {
     "loginLink": "로그인하기",
     "title": "시작하기",
-    "subtitle": "아래 계정 중 하나로 바로 시작할 수 있어요. 처음이면 자동으로 가입돼요.",
+    "subtitle": "처음이면 자동으로 가입돼요.",
     "referralNote": "추천 링크로 들어오셨네요 — 가입하면 추천인에게 포인트가 적립돼요.",
     "or": "또는",
     "agreementPrefix": "계속 진행하면",
@@ -180,7 +198,10 @@
     "admin": "관리자",
     "search": "검색",
     "menu": "메뉴",
-    "greeting": "{name}님"
+    "greeting": "{name}님",
+    "servers": "내 서버",
+    "more": "더보기",
+    "logoutShort": "로그아웃"
   },
   "dashboardHome": {
     "greeting": "안녕하세요,",
@@ -227,7 +248,7 @@
     "linkedDesc": "공식 디스코드에서 /서버목록, /상태 명령어를 써요.",
     "justLinked": "방금 연동이 완료됐어요.",
     "title": "디스코드 연동",
-    "desc": "디스코드를 연동하면 봇으로 서버 상태 확인 및 알림을 받을 수 있어요.",
+    "desc": "연동하면 서버 상태 알림을 받아요.",
     "inviteCta": "아직 서버에 없다면 Burnae 공식 디스코드 참여하기 →",
     "linkCta": "디스코드 계정 연동하기"
   },
@@ -251,7 +272,7 @@
     "resendFailed": "재전송 실패"
   },
   "emailRegisterForm": {
-    "sentMessage": "<b>{email}</b>로 인증 메일을 보냈어요 — 버튼 누르면 로그인돼요.",
+    "sentMessage": "<b>{email}</b>로 인증 메일을 보냈어요.",
     "checkSpam": "메일이 안 보이면 스팸함(스팸 메일함)도 확인해주세요.",
     "namePlaceholder": "이름",
     "emailPlaceholder": "이메일",
@@ -311,7 +332,7 @@
     "titlePrefix": "서버",
     "titleHighlight": "홍보",
     "titleSuffix": "하고 포인트 받기",
-    "subtitle": "Burnae를 홍보하면 포인트가 쌓여요 — 무료 체험 서버로 교환 가능.",
+    "subtitle": "홍보하면 포인트가 쌓여요.",
     "myPoints": "내 포인트",
     "myReferralLink": "내 추천 링크",
     "sectionTitle": "홍보 방법",
@@ -801,7 +822,7 @@
   },
   "discordInviteCard": {
     "title": "디스코드에 봇 초대하기",
-    "desc": "클라이언트 ID를 직접 찾을 필요 없이 초대 링크를 자동으로 만들어줘요.",
+    "desc": "초대 링크를 자동으로 만들어줘요.",
     "checking": "확인하는 중...",
     "foundBot": "봇을 찾았어요. 아래 링크로 원하는 서버에 초대하세요.",
     "inviteButton": "서버에 초대하기",
@@ -860,7 +881,7 @@
   },
   "sftpCard": {
     "title": "파일 전송 접속 정보",
-    "desc": "FTP 클라이언트에 아래 정보를 입력하면 서버 파일을 직접 다룰 수 있어요.",
+    "desc": "FTP 프로그램에 아래 정보를 입력하세요.",
     "host": "호스트",
     "port": "포트",
     "username": "사용자명",

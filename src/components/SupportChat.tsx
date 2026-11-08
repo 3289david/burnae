@@ -1,5 +1,6 @@
 "use client";
 
+import PageHeader from "@/components/PageHeader";
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { MessageCircle } from "lucide-react";
@@ -69,13 +70,8 @@ export default function SupportChat() {
   }
 
   return (
-    <div className="max-w-md">
-      <div className="flex items-center gap-3 animate-fade-up">
-        <span className="w-11 h-11 rounded-2xl bg-accent/15 flex items-center justify-center shrink-0">
-          <MessageCircle size={20} className="text-accent" />
-        </span>
-        <h1 className="text-2xl font-bold font-display">{t("title")}</h1>
-      </div>
+    <div className="max-w-3xl">
+      <PageHeader art="support" title={t("title")} desc="궁금한 점은 여기에 남겨주세요." />
 
       <div className="card-glow p-4 mt-5 text-xs text-text-dim space-y-0.5">
         <p>{t("smsLine")}</p>

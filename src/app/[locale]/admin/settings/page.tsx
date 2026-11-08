@@ -1,5 +1,6 @@
 "use client";
 
+import PageHeader from "@/components/PageHeader";
 import { useEffect, useState } from "react";
 import { Link } from "@/i18n/navigation";
 import Toggle from "@/components/Toggle";
@@ -63,7 +64,7 @@ export default function AdminSettingsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">호스팅 설정</h1>
+      <PageHeader art="admin" title="호스팅 설정" />
       <p className="text-sm text-text-dim mt-1">
         여기서 바꾸는 값은 즉시 고객 화면(가격, 저장공간 한도 등)에 반영됩니다.
       </p>

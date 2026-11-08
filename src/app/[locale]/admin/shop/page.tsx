@@ -1,5 +1,7 @@
 "use client";
 
+import PageHeader from "@/components/PageHeader";
+import EmptyState from "@/components/EmptyState";
 import { useEffect, useState } from "react";
 import Toggle from "@/components/Toggle";
 
@@ -139,7 +141,7 @@ export default function AdminShopPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">포인트 상점</h1>
+      <PageHeader art="admin" title="포인트 상점" />
       <p className="text-sm text-text-dim mt-1">포인트로 교환하는 아이템 관리.</p>
 
       <div className="mt-6 space-y-2">
@@ -172,7 +174,7 @@ export default function AdminShopPage() {
             </div>
           </div>
         ))}
-        {items.length === 0 && <p className="text-sm text-text-dim">아직 등록된 상품이 없어요.</p>}
+        {items.length === 0 && <EmptyState compact title="아직 등록된 상품이 없어요." />}
       </div>
 
       <form onSubmit={submit} className="card-glow p-5 mt-6 space-y-3">

@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { marked } from "marked";
 import { Link } from "@/i18n/navigation";
 import { prisma } from "@/lib/prisma";
-import BrandMark from "@/components/BrandMark";
+import SiteHeader from "@/components/SiteHeader";
 import Footer from "@/components/Footer";
 
 export default async function BlogPostPage({ params }: PageProps<"/[locale]/blog/[slug]">) {
@@ -16,13 +16,7 @@ export default async function BlogPostPage({ params }: PageProps<"/[locale]/blog
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b border-border">
-        <div className="max-w-3xl mx-auto px-6 py-4">
-          <Link href="/" className="inline-flex items-center gap-2 text-lg font-bold font-display">
-            <BrandMark size={22} /> Burnae
-          </Link>
-        </div>
-      </header>
+      <SiteHeader />
 
       <main className="max-w-3xl mx-auto px-6 py-12 flex-1 w-full">
         <Link href="/blog" className="text-sm text-accent hover:underline">

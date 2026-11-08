@@ -1,5 +1,6 @@
 "use client";
 
+import PageHeader from "@/components/PageHeader";
 import { useEffect, useState } from "react";
 import Toggle from "@/components/Toggle";
 
@@ -91,7 +92,7 @@ export default function AdminNodesPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">노드</h1>
+      <PageHeader art="admin" title="노드" />
       <p className="text-sm text-text-dim mt-1">Pterodactyl에 등록된 노드만 연결돼요.</p>
 
       <div className="mt-6 space-y-2">

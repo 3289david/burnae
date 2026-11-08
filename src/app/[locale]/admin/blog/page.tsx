@@ -1,5 +1,7 @@
 "use client";
 
+import PageHeader from "@/components/PageHeader";
+import EmptyState from "@/components/EmptyState";
 import { useEffect, useState } from "react";
 import Toggle from "@/components/Toggle";
 
@@ -168,7 +170,7 @@ export default function AdminBlogPage() {
   return (
     <div>
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">블로그</h1>
+        <PageHeader art="admin" title="블로그" />
         <button onClick={startNew} className="btn-primary px-4 py-2 text-sm">새 글 작성</button>
       </div>
 
@@ -188,7 +190,7 @@ export default function AdminBlogPage() {
             </div>
           </div>
         ))}
-        {posts.length === 0 && <p className="text-sm text-text-dim">작성된 글이 없어요.</p>}
+        {posts.length === 0 && <EmptyState compact title="작성된 글이 없어요." />}
       </div>
     </div>
   );

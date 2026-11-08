@@ -1,5 +1,7 @@
 "use client";
 
+import PageHeader from "@/components/PageHeader";
+import EmptyState from "@/components/EmptyState";
 import { useEffect, useState } from "react";
 import Toggle from "@/components/Toggle";
 
@@ -80,7 +82,7 @@ export default function AdminRoleShopPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">칭호/역할 상점</h1>
+      <PageHeader art="admin" title="칭호/역할 상점" />
       <p className="text-sm text-text-dim mt-1">포인트로 교환하는 디스코드 역할 관리.</p>
 
       <div className="mt-6 space-y-2">
@@ -103,7 +105,7 @@ export default function AdminRoleShopPage() {
             </div>
           </div>
         ))}
-        {items.length === 0 && <p className="text-sm text-text-dim">등록된 상품이 없어요.</p>}
+        {items.length === 0 && <EmptyState compact title="등록된 상품이 없어요." />}
       </div>
 
       <form onSubmit={submit} className="card-glow p-5 mt-4 space-y-3">

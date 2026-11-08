@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { Link } from "@/i18n/navigation";
-import { Search, X, CheckSquare, Check, Play, Square as StopIcon, RotateCw } from "lucide-react";
+import { Search, X, CheckSquare, Check, Play, Square as StopIcon, RotateCw, ChevronRight } from "lucide-react";
 import StatusDot from "@/components/StatusDot";
 import { formatMb } from "@/lib/formatSize";
 import FavoriteButton from "@/components/FavoriteButton";
@@ -232,16 +232,16 @@ export default function ServerListClient({ servers }: { servers: DashboardServer
         </div>
       )}
 
-      <div className={`mt-4 grid sm:grid-cols-2 gap-4 ${selected.size > 0 ? "pb-20" : ""}`}>
+      <div className={`mt-4 flex flex-col gap-3 ${selected.size > 0 ? "pb-20" : ""}`}>
         {filtered.map((s, i) => {
           const effectiveStatus = liveStatus[s.id] ?? s.status;
           const label = STATUS_LABEL[effectiveStatus] ?? { text: effectiveStatus, dot: "gray" as const };
           const checkable = selectMode && s.isOwner;
           const isChecked = selected.has(s.id);
           const cardContent = (
-            <>
-              <div className="flex flex-wrap items-center justify-between gap-x-2">
-                <span className="flex items-center gap-1.5 min-w-0">
+            <div className="grid gap-3 md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_auto] md:items-center md:gap-6">
+              <div className="min-w-0">
+                <span className="flex items-center gap-2 min-w-0">
                   {checkable && (
                     <span
                       className={`w-4 h-4 rounded-md border shrink-0 flex items-center justify-center transition-colors ${
@@ -252,25 +252,20 @@ export default function ServerListClient({ servers }: { servers: DashboardServer
                     </span>
                   )}
                   {!selectMode && s.isOwner && <FavoriteButton serverId={s.id} initial={s.isFavorite} />}
-                  <span className="font-semibold truncate min-w-0">{s.name}</span>
+                  <span className="font-semibold truncate min-w-0 text-base">{s.name}</span>
                 </span>
-                <span className="text-sm shrink-0 inline-flex items-center gap-1.5">
-                  <StatusDot color={label.dot} /> {label.text}
-                </span>
+                <p className="mt-1 text-sm text-text-dim font-mono truncate">{s.address}</p>
               </div>
-              <p className="mt-1 text-sm text-text-dim font-mono truncate">{s.address}</p>
-              <div className="mt-4 flex flex-wrap gap-2 text-xs">
-                <span className="rounded-full bg-surface-2 px-2.5 py-1 text-text-dim">
-                  {CATEGORY_BADGE_LABEL[s.category]}
-                </span>
-                <span className="rounded-full bg-surface-2 px-2.5 py-1 text-text-dim">
-                  RAM {formatMb(s.ramMb)}
-                </span>
-                <span className="rounded-full bg-surface-2 px-2.5 py-1 text-text-dim">
-                  디스크 {formatMb(s.diskMb)}
-                </span>
+              <div className="flex flex-wrap gap-2 text-xs">
+                <span className="rounded-md border border-border px-2.5 py-1 text-text-dim">{CATEGORY_BADGE_LABEL[s.category]}</span>
+                <span className="rounded-md border border-border px-2.5 py-1 text-text-dim">RAM {formatMb(s.ramMb)}</span>
+                <span className="rounded-md border border-border px-2.5 py-1 text-text-dim">디스크 {formatMb(s.diskMb)}</span>
               </div>
-            </>
+              <div className="flex items-center justify-between md:justify-end gap-3 text-sm">
+                <span className="inline-flex items-center gap-1.5"><StatusDot color={label.dot} /> {label.text}</span>
+                {!selectMode && <ChevronRight size={18} className="text-text-dim" />}
+              </div>
+            </div>
           );
 
           if (checkable) {
@@ -278,7 +273,7 @@ export default function ServerListClient({ servers }: { servers: DashboardServer
               <button
                 key={s.id}
                 onClick={() => toggleSelected(s.id)}
-                className={`card-glow p-5 text-left animate-fade-up hover-lift active:scale-[0.98] transition-transform ${
+                className={`card-glow w-full p-5 text-left animate-fade-up ${
                   isChecked ? "border-accent shadow-[0_0_0_1px_var(--accent)]" : ""
                 }`}
                 style={{ animationDelay: `${0.1 + i * 0.05}s` }}
@@ -293,7 +288,7 @@ export default function ServerListClient({ servers }: { servers: DashboardServer
               key={s.id}
               href={selectMode ? "#" : `/dashboard/servers/${s.id}`}
               onClick={(e) => selectMode && e.preventDefault()}
-              className={`card-glow p-5 block animate-fade-up hover-lift active:scale-[0.98] transition-transform ${
+              className={`card-glow p-5 block animate-fade-up ${
                 selectMode ? "opacity-50" : ""
               }`}
               style={{ animationDelay: `${0.1 + i * 0.05}s` }}

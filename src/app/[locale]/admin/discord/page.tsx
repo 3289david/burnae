@@ -1,5 +1,7 @@
 "use client";
 
+import PageHeader from "@/components/PageHeader";
+import EmptyState from "@/components/EmptyState";
 import { useEffect, useState } from "react";
 import Toggle from "@/components/Toggle";
 
@@ -145,7 +147,7 @@ export default function AdminDiscordPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold">디스코드 봇</h1>
+        <PageHeader art="admin" title="디스코드 봇" />
         <p className="text-sm text-text-dim mt-1">우클릭 → ID 복사해서 입력하세요.</p>
       </div>
 
@@ -290,7 +292,7 @@ export default function AdminDiscordPage() {
               </div>
             </div>
           ))}
-          {links.length === 0 && <p className="text-sm text-text-dim">등록된 링크가 없어요.</p>}
+          {links.length === 0 && <EmptyState compact title="등록된 링크가 없어요." />}
         </div>
 
         <form onSubmit={addLink} className="card-glow p-5 mt-4 space-y-3">

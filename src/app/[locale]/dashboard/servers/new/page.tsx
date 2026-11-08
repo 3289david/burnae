@@ -1,5 +1,7 @@
 "use client";
 
+import PageHeader from "@/components/PageHeader";
+import WizardArt from "@/components/WizardArt";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "@/i18n/navigation";
@@ -881,7 +883,14 @@ function NewServerPageInner() {
     return (
       <div className="mb-8">
         {activeSteps.length > 1 && (
-          <p className="text-xs text-text-dim font-medium mb-2">{idx + 1} / {activeSteps.length}</p>
+          <div className="mb-5">
+            <div className="flex gap-1.5">
+              {activeSteps.map((k, i) => (
+                <span key={k} className={`h-1 flex-1 rounded-full ${i <= idx ? "bg-accent" : "bg-surface-2"}`} />
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-text-dim font-medium">{idx + 1} / {activeSteps.length}</p>
+          </div>
         )}
         <h1 className="text-2xl font-bold">{title}</h1>
         {subtitle && <p className="text-sm text-text-dim mt-1">{subtitle}</p>}
@@ -922,7 +931,8 @@ function NewServerPageInner() {
 
   if (step === "name") {
     return (
-      <div className="max-w-2xl mx-auto pb-16">
+      <div className="max-w-5xl mx-auto pb-16 lg:pr-[400px] relative">
+        <WizardArt />
         <StepHeader current="name" title="서버 이름" subtitle="먼저 서버 이름부터 정해주세요." />
         <div className="flex gap-2">
           <input
@@ -957,9 +967,10 @@ function NewServerPageInner() {
       BLANK: Box,
     };
     return (
-      <div className="max-w-2xl mx-auto pb-16">
+      <div className="max-w-5xl mx-auto pb-16 lg:pr-[400px] relative">
+        <WizardArt />
         <StepHeader current="category" title="어떤 종류를 찾으세요?" subtitle="먼저 분류를 고르면, 다음 화면에서 그 안에서만 골라요." />
-        <div className="flex flex-wrap gap-2">
+        <div className="grid sm:grid-cols-2 gap-3">
           {availableCategories.map((c) => {
             const active = categoryFilter === c;
             const Icon = categoryIcon[c];
@@ -968,9 +979,9 @@ function NewServerPageInner() {
                 type="button"
                 key={c}
                 onClick={() => setCategoryFilter(c)}
-                className={`px-4 py-2.5 rounded-xl text-sm font-medium border transition-all duration-150 inline-flex items-center gap-1.5 ${
+                className={`px-5 py-5 rounded-xl text-base font-semibold border text-left transition-all duration-150 inline-flex items-center gap-1.5 ${
                   active
-                    ? "border-accent bg-accent text-white shadow-[0_4px_14px_-4px_rgba(255,106,26,0.6)]"
+                    ? "border-accent bg-accent text-white"
                     : "border-border bg-surface text-text-dim hover:border-accent/40 hover:text-text"
                 }`}
               >
@@ -990,9 +1001,10 @@ function NewServerPageInner() {
 
   if (step === "botSubFilter") {
     return (
-      <div className="max-w-2xl mx-auto pb-16">
+      <div className="max-w-5xl mx-auto pb-16 lg:pr-[400px] relative">
+        <WizardArt />
         <StepHeader current="botSubFilter" title="어떤 봇인가요?" subtitle="직접 코드를 짤지, 이미 있는 걸 가져올지 골라주세요." />
-        <div className="flex flex-wrap gap-2">
+        <div className="grid sm:grid-cols-2 gap-3">
           {(["NODEJS", "PYTHON", "PRESETS"] as const).map((f) => {
             const active = botSubFilter === f;
             return (
@@ -1012,9 +1024,9 @@ function NewServerPageInner() {
                     }
                   }
                 }}
-                className={`px-4 py-2.5 rounded-xl text-sm font-medium border transition-all duration-150 ${
+                className={`px-5 py-5 rounded-xl text-base font-semibold border text-left transition-all duration-150 ${
                   active
-                    ? "border-accent bg-accent text-white shadow-[0_4px_14px_-4px_rgba(255,106,26,0.6)]"
+                    ? "border-accent bg-accent text-white"
                     : "border-border bg-surface text-text-dim hover:border-accent/40 hover:text-text"
                 }`}
               >
@@ -1033,7 +1045,8 @@ function NewServerPageInner() {
 
   if (step === "type") {
     return (
-      <div className="max-w-2xl mx-auto pb-16">
+      <div className="max-w-5xl mx-auto pb-16 lg:pr-[400px] relative">
+        <WizardArt />
         <StepHeader
           current="type"
           title={CATEGORY_FILTER_LABEL[categoryFilter]}
@@ -1043,7 +1056,7 @@ function NewServerPageInner() {
           {loaderGroups.length > 0 && (
             <div>
               {eggSource === "official" ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
                 {filteredLoaderGroups.map((g, i) => {
                   const meta = loaderMeta(g.base);
                   const Icon = meta.icon;
@@ -1084,7 +1097,7 @@ function NewServerPageInner() {
                 </p>
                 {/* 프리셋 버킷(최상위/디스코드봇 하위 모두)에서는 완성된 공식 템플릿도 같은
                     카드 그리드에 섞어서 보여준다 — 공식 뱃지가 이미 구분해주니 별도 목록으로 나눌 필요가 없다 */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
                   {filteredLoaderGroups.map((g, i) => {
                     const meta = loaderMeta(g.base);
                     const Icon = meta.icon;
@@ -1290,7 +1303,8 @@ function NewServerPageInner() {
 
   if (step === "version") {
     return (
-      <div className="max-w-2xl mx-auto pb-16">
+      <div className="max-w-5xl mx-auto pb-16 lg:pr-[400px] relative">
+        <WizardArt />
         <StepHeader current="version" title={selectedTemplate?.category === "MINECRAFT" ? "마인크래프트 버전" : "버전"} />
         {selectedTemplate?.category === "MINECRAFT" && (
           <>
@@ -1315,7 +1329,7 @@ function NewServerPageInner() {
                     onClick={() => setVersion(v)}
                     className={`px-3.5 py-2 rounded-xl text-sm font-medium border transition-all duration-150 flex items-center gap-1.5 ${
                       active
-                        ? "border-accent bg-accent text-white shadow-[0_4px_14px_-4px_rgba(255,106,26,0.6)]"
+                        ? "border-accent bg-accent text-white"
                         : "border-border bg-surface text-text-dim hover:border-accent/40 hover:text-text"
                     }`}
                   >
@@ -1362,7 +1376,8 @@ function NewServerPageInner() {
 
   if (step === "startupCode") {
     return (
-      <div className="max-w-2xl mx-auto pb-16">
+      <div className="max-w-5xl mx-auto pb-16 lg:pr-[400px] relative">
+        <WizardArt />
         <StepHeader current="startupCode" title="시작 코드" subtitle="어떤 코드로 서버를 시작할지 골라주세요." />
         <div className="space-y-8">
           {selectedTemplate && isGitRepoTemplate(selectedTemplate) && (
@@ -1482,7 +1497,8 @@ function NewServerPageInner() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto pb-16">
+    <div className="max-w-5xl mx-auto pb-16 lg:pr-[400px] relative">
+        <WizardArt />
       <StepHeader current="plan" title="플랜 선택" subtitle="이제 결제할 플랜을 골라주세요." />
 
       <form onSubmit={submitOrder} className="space-y-6">

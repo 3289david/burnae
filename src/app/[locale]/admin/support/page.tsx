@@ -1,5 +1,7 @@
 "use client";
 
+import PageHeader from "@/components/PageHeader";
+import EmptyState from "@/components/EmptyState";
 import { useEffect, useRef, useState } from "react";
 
 interface ThreadSummary {
@@ -94,12 +96,12 @@ export default function AdminSupportPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">고객지원</h1>
+      <PageHeader art="admin" title="고객지원" />
       <p className="text-sm text-text-dim mt-1">대시보드에서 들어온 1:1 문의예요.</p>
 
       <div className="mt-6 grid md:grid-cols-[280px_1fr] gap-4">
         <div className="space-y-1.5">
-          {threads.length === 0 && <p className="text-sm text-text-dim">아직 문의가 없어요.</p>}
+          {threads.length === 0 && <EmptyState compact title="아직 문의가 없어요." />}
           {threads.map((t) => (
             <button
               key={t.id}

@@ -1,5 +1,6 @@
 "use client";
 
+import EmptyState from "@/components/EmptyState";
 import { useEffect, useState } from "react";
 import { KeyRound, Copy, Check, Trash2 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
@@ -113,7 +114,7 @@ export default function ApiTokensCard() {
             </button>
           </div>
         ))}
-        {tokens?.length === 0 && <p className="text-xs text-text-dim">아직 만든 토큰이 없어요.</p>}
+        {tokens?.length === 0 && <EmptyState compact title="아직 만든 토큰이 없어요." />}
       </div>
 
       <form onSubmit={create} className="flex gap-2 pt-2 border-t border-border">

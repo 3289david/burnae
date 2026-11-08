@@ -6,7 +6,7 @@ import type { ServerInfo } from "./ServerDetailClient";
 
 export default function AutomationTab({ server }: { server: ServerInfo }) {
   return (
-    <div className="space-y-6 animate-fade-up">
+    <div className="tab-grid animate-fade-up">
       <AutomationCard
         serverId={server.id}
         autoBackupEnabled={server.autoBackupEnabled}

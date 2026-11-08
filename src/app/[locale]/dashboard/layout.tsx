@@ -1,13 +1,11 @@
-import { Link, redirect } from "@/i18n/navigation";
+import { redirect } from "@/i18n/navigation";
 import { getCurrentUser, isAdminEmail } from "@/lib/auth";
-import DashboardNav from "@/components/DashboardNav";
-import BrandMark from "@/components/BrandMark";
+import { DashboardSidebar, DashboardTopBar, DashboardTabBar } from "@/components/DashboardNav";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import DiscordPromoBanner from "@/components/DiscordPromoBanner";
 import CommandPalette from "@/components/CommandPalette";
 
-export default async function DashboardLayout({ children, params }: LayoutProps<"/[locale]/dashboard">) {
-  const { locale } = await params;
+export default async function DashboardLayout({ children }: LayoutProps<"/[locale]/dashboard">) {
   const user = await getCurrentUser();
   if (!user) {
     redirect({ href: "/login", locale: "kr" });
@@ -17,19 +15,16 @@ export default async function DashboardLayout({ children, params }: LayoutProps<
   const showAdminLink = user.role === "ADMIN" && isAdminEmail(user.email);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex">
       <CommandPalette showAdminLink={showAdminLink} />
-      <header className="border-b border-border relative">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/dashboard" className="inline-flex items-center gap-2 text-xl font-bold font-display">
-            <BrandMark size={24} /> Burnae
-          </Link>
-          <DashboardNav userName={user.name} showAdminLink={showAdminLink} />
-        </div>
-      </header>
-      <DiscordPromoBanner />
-      <AnnouncementBanner />
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-8">{children}</main>
+      <DashboardSidebar userName={user.name} showAdminLink={showAdminLink} />
+      <div className="flex-1 min-w-0 flex flex-col">
+        <DashboardTopBar userName={user.name} />
+        <DiscordPromoBanner />
+        <AnnouncementBanner maxWidthClass="max-w-[1600px]" />
+        <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 py-6 sm:py-8 pb-28 lg:pb-12">{children}</main>
+      </div>
+      <DashboardTabBar showAdminLink={showAdminLink} />
     </div>
   );
 }

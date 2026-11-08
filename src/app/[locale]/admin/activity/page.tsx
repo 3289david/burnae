@@ -1,3 +1,4 @@
+import PageHeader from "@/components/PageHeader";
 import { prisma } from "@/lib/prisma";
 import StatTile from "@/components/StatTile";
 import { levelForPoints } from "@/lib/levels";
@@ -21,7 +22,7 @@ export default async function AdminActivityPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">유저 활동 분석</h1>
+      <PageHeader art="admin" title="유저 활동 분석" />
       <p className="text-sm text-text-dim mt-1">채팅 레벨은 보유 포인트로 계산돼요.</p>
 
       <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4">

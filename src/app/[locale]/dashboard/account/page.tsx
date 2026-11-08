@@ -1,3 +1,5 @@
+import ArtCallout from "@/components/ArtCallout";
+import PageHeader from "@/components/PageHeader";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import DiscordLinkCard from "@/components/DiscordLinkCard";
@@ -18,41 +20,39 @@ export default async function AccountPage({
   const params = await searchParams;
 
   return (
-    <div className="max-w-md">
-      <div className="flex items-center gap-3 animate-fade-up">
-        <span className="w-11 h-11 rounded-2xl bg-accent/15 flex items-center justify-center shrink-0">
-          <UserCircle2 size={20} className="text-accent" />
-        </span>
-        <h1 className="text-2xl font-bold font-display">계정</h1>
-      </div>
+    <div className="max-w-5xl">
+      <PageHeader art="account" title="계정" desc="내 정보와 보안 설정이에요." />
 
-      <div className="card-glow p-5 mt-6 space-y-2 text-sm animate-fade-up" style={{ animationDelay: "0.05s" }}>
+      <div className="card p-5 mt-6 space-y-2 text-sm animate-fade-up max-w-md" style={{ animationDelay: "0.05s" }}>
         <div className="flex justify-between"><span className="text-text-dim">이름</span><span>{user!.name}</span></div>
         <div className="flex justify-between"><span className="text-text-dim">이메일</span><span>{user!.email}</span></div>
       </div>
 
-      <div className="mt-4 animate-fade-up" style={{ animationDelay: "0.1s" }}>
+      <div className="mt-4 grid gap-4 md:grid-cols-2 items-start">
+      <div className="animate-fade-up" style={{ animationDelay: "0.1s" }}>
         <DepositorNameCard initial={user!.preferredDepositorName} />
       </div>
 
-      <div className="mt-4 animate-fade-up" style={{ animationDelay: "0.13s" }}>
+      <div className="animate-fade-up" style={{ animationDelay: "0.13s" }}>
         <PhoneVerificationCard verified={!!user!.verifiedPhoneNumber} />
       </div>
 
-      <div className="mt-4 animate-fade-up" style={{ animationDelay: "0.15s" }}>
+      <div className="animate-fade-up" style={{ animationDelay: "0.15s" }}>
         <DiscordLinkCard linked={!!link} error={params.discordError} justLinked={params.discordLinked === "1"} />
       </div>
 
-      <div className="mt-4 animate-fade-up" style={{ animationDelay: "0.18s" }}>
+      <div className="animate-fade-up" style={{ animationDelay: "0.18s" }}>
         <TwoFactorCard enabled={user!.twoFactorEnabled} />
       </div>
 
-      <div className="mt-4 animate-fade-up" style={{ animationDelay: "0.2s" }}>
+      <div className="animate-fade-up" style={{ animationDelay: "0.2s" }}>
         <ApiTokensCard />
       </div>
 
-      <div className="mt-4 animate-fade-up" style={{ animationDelay: "0.23s" }}>
+      <div className="animate-fade-up" style={{ animationDelay: "0.23s" }}>
         <SshGatewayCodeCard />
+      </div>
+        <ArtCallout className="md:col-span-2" src="head-account" title="계정을 안전하게" desc="2단계 인증과 휴대폰 인증을 켜두면 서버를 더 안전하게 지킬 수 있어요." />
       </div>
     </div>
   );

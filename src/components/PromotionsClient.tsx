@@ -1,5 +1,6 @@
 "use client";
 
+import PageHeader from "@/components/PageHeader";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Copy, Check, CheckCircle2, Clock, Gift } from "lucide-react";
@@ -69,21 +70,15 @@ export default function PromotionsClient({
 
   return (
     <div className="relative">
-      <div className="blob w-72 h-72 bg-pink -top-28 -right-16 animate-float pointer-events-none" />
 
-      <h1 className="text-2xl font-bold font-display animate-fade-up">
-        {t("titlePrefix")}<span className="text-gradient">{t("titleHighlight")}</span>{t("titleSuffix")}
-      </h1>
-      <p className="text-sm text-text-dim mt-1 animate-fade-up" style={{ animationDelay: "0.05s" }}>
-        {t("subtitle")}
-      </p>
+      <PageHeader art="promo" title={<>{t("titlePrefix")}{t("titleHighlight")}{t("titleSuffix")}</>} desc={t("subtitle")} />
 
       <div
         className="relative card-glow p-5 mt-6 flex flex-wrap items-center justify-between gap-4 animate-fade-up"
         style={{ animationDelay: "0.1s" }}
       >
         <div className="flex items-center gap-3">
-          <span className="w-11 h-11 rounded-2xl bg-accent/15 flex items-center justify-center shrink-0">
+          <span className="w-11 h-11 rounded-lg border border-border bg-surface-2 flex items-center justify-center shrink-0">
             <Gift size={20} className="text-accent" />
           </span>
           <div>

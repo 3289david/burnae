@@ -1,3 +1,4 @@
+import PageHeader from "@/components/PageHeader";
 import { prisma } from "@/lib/prisma";
 import StatTile from "@/components/StatTile";
 
@@ -36,7 +37,7 @@ export default async function AdminStatisticsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">통계</h1>
+      <PageHeader art="admin" title="통계" />
 
       <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
         <StatTile label="전체 서버" value={totalServers} />

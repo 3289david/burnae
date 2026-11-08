@@ -44,14 +44,31 @@ export interface GithubRepoSummary {
   updatedAt: string;
 }
 
-/** 연동된 계정이 접근할 수 있는 저장소 목록(비공개 포함) — 최근 수정 순으로 100개까지 */
+/** 연동된 계정이 접근할 수 있는 저장소 목록(비공개 포함) — 최근 수정 순으로 100개까지.
+ * GitHub API는 affiliation(소속 범위)과 sort를 같이 쓰면 여러 조직을 합쳐서 정렬해야 해서
+ * 계정에 속한 조직이 많을수록 체감될 만큼 느려진다 — sort는 빼고 받아온 뒤 여기서 직접
+ * updated_at 기준으로 정렬한다. 응답이 아예 멈추는 경우를 대비해 타임아웃도 건다. */
 export async function fetchGithubRepos(accessToken: string): Promise<GithubRepoSummary[]> {
-  const res = await fetch("https://api.github.com/user/repos?per_page=100&sort=updated&affiliation=owner,collaborator,organization_member", {
-    headers: { Authorization: `Bearer ${accessToken}`, "User-Agent": "burnae.kr" },
-  });
-  if (!res.ok) throw new Error("저장소 목록 조회 실패");
-  const repos = (await res.json()) as { full_name: string; clone_url: string; private: boolean; updated_at: string }[];
-  return repos.map((r) => ({ fullName: r.full_name, cloneUrl: r.clone_url, private: r.private, updatedAt: r.updated_at }));
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  try {
+    const res = await fetch("https://api.github.com/user/repos?per_page=100&affiliation=owner,collaborator,organization_member", {
+      headers: { Authorization: `Bearer ${accessToken}`, "User-Agent": "burnae.kr" },
+      signal: controller.signal,
+    });
+    if (!res.ok) throw new Error("저장소 목록 조회 실패");
+    const repos = (await res.json()) as { full_name: string; clone_url: string; private: boolean; updated_at: string }[];
+    return repos
+      .map((r) => ({ fullName: r.full_name, cloneUrl: r.clone_url, private: r.private, updatedAt: r.updated_at }))
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new Error("GitHub 응답이 너무 느려서 중단했어요. 잠시 후 다시 시도해주세요.");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export function githubConnectStartUrl(serverId: string): string {

@@ -5,8 +5,6 @@ import { supportsSsh } from "@/lib/sshSupport";
 import AddressActions from "./AddressActions";
 import CustomDomainCard from "./CustomDomainCard";
 import SftpCard from "./SftpCard";
-import ExtraResourcesCard from "./ExtraResourcesCard";
-import FreeUpgradeCard from "./FreeUpgradeCard";
 import type { ServerInfo } from "./ServerDetailClient";
 
 /** 주소/도메인/SFTP/SSH처럼 "이 서버에 어떻게 접속하는가"에 관한 모든 걸 한 곳에 모은다 —
@@ -113,8 +111,6 @@ export default function NetworkTab({ server }: { server: ServerInfo }) {
       )}
 
       {server.isOwner && <SftpCard serverId={server.id} />}
-      {server.isFreeServer && server.isOwner && <FreeUpgradeCard serverId={server.id} />}
-      {server.isFreeServer && server.isOwner && <ExtraResourcesCard serverId={server.id} />}
     </div>
   );
 }

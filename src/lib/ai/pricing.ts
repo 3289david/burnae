@@ -13,11 +13,12 @@ const FALLBACK_SAFETY_MULTIPLIER = 2;
 const WON_PER_USD = 1600;
 
 /**
- * monken.cloud(기본 제공자)는 토큰당 단가를 API로 공개하지 않아서, 운영 합의로 정한 원가
- * 기준(Sonnet 100만 토큰당 1,000원, prompt/completion 구분 없음)에 마진을 곱해서 고객
- * 청구가로 쓴다. Opus/Haiku는 이 Sonnet 단가에 models.ts의 priceMultiplier를 곱한
- * 상대값이다(Opus 1.5배, Haiku 0.8배) — 마진 비율이나 모델별 배율이 바뀌면 이 두 상수만
- * 조정하면 된다.
+ * opus/sonnet/haiku 버킷은 과거 monken.cloud(토큰당 단가를 API로 공개하지 않던 제공자) 호출
+ * 분의 과금용이었다 — 운영 합의로 정한 원가 기준(Sonnet 100만 토큰당 1,000원, prompt/completion
+ * 구분 없음)에 마진을 곱해서 고객 청구가로 썼고, Opus/Haiku는 이 Sonnet 단가에 models.ts의
+ * priceMultiplier를 곱한 상대값이었다(Opus 1.5배, Haiku 0.8배). 지금은 모든 호출이 OpenRouter
+ * fallback 버킷으로만 기록되니(provider.ts) 이 버킷들은 항상 0이지만, 계산 로직은 그대로 둬도
+ * 안전하다 — 과거 기록이 섞인 대화의 과금 재계산에도 쓸 수 있다.
  */
 const SONNET_COST_KRW_PER_MILLION_TOKENS = 1000;
 const MARKUP_MULTIPLIER = 3;

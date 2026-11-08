@@ -5,8 +5,8 @@ import { createChatCompletion } from "../lib/ai/provider";
 /**
  * "임시 개인 음성방"(Voice Trigger) + "스마트 보이스" — voiceTriggerChannelId에 들어가면 자기만의
  * 음성채널이 새로 만들어지고 거기로 옮겨진다(비면 자동 삭제). 그 채널 안에서 인원이 바뀌거나
- * 화면공유가 토글되거나 채팅이 올라오면, 잠깐 조용해지길 기다렸다가(디바운스) monken.cloud의
- * 저렴한 모델(haiku)로 그 순간 분위기에 맞는 방 이름을 지어서 자동으로 바꿔준다.
+ * 화면공유가 토글되거나 채팅이 올라오면, 잠깐 조용해지길 기다렸다가(디바운스) OpenRouter의
+ * 저렴한 모델로 그 순간 분위기에 맞는 방 이름을 지어서 자동으로 바꿔준다.
  *
  * AI 비용은 플랫폼이 부담하는 거라(고객 AI 크레딧과 무관) src/lib/ai/provider.ts의
  * createChatCompletion을 usageTracking 컨텍스트 밖에서 직접 호출한다 — recordUsage는 그 경우

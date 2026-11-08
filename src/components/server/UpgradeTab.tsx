@@ -3,12 +3,16 @@
 import { Copy } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import UpgradeCard from "./UpgradeCard";
+import FreeUpgradeCard from "./FreeUpgradeCard";
+import ExtraResourcesCard from "./ExtraResourcesCard";
 import type { ServerInfo } from "./ServerDetailClient";
 
 export default function UpgradeTab({ server }: { server: ServerInfo }) {
   return (
     <div className="space-y-6 animate-fade-up">
       <UpgradeCard serverId={server.id} currentProductId={server.productId} />
+      {server.isFreeServer && <FreeUpgradeCard serverId={server.id} />}
+      {server.isFreeServer && <ExtraResourcesCard serverId={server.id} />}
 
       {server.productId && (
         <div className="card-glow p-5 flex items-center justify-between gap-3 flex-wrap">

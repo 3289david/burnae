@@ -4,7 +4,7 @@ import { createChatCompletion } from "../lib/ai/provider";
 import { panel, heading, text } from "../lib/discordComponentsV2";
 
 /**
- * monken.cloud(저렴한 haiku 모델)를 써서 AI 비용은 플랫폼이 부담하는 디스코드 전용 기능들.
+ * OpenRouter를 써서 AI 비용은 플랫폼이 부담하는 디스코드 전용 기능들.
  * 고객 AI 크레딧(src/lib/ai/engine.ts)과는 완전히 별개 — createChatCompletion을
  * usageTracking의 AsyncLocalStorage 컨텍스트 밖에서 호출해서 과금 집계와 안 섞인다.
  */
@@ -120,7 +120,7 @@ async function classifyMessage(content: string): Promise<ModerationResult | null
 
 /**
  * AI 비전 OCR 검열 — 이미지 첨부가 있으면 이미지 속 텍스트(사기 QR/피싱 링크 안내 등)까지
- * 같이 본다. monken.cloud가 OpenAI 호환이라 image_url에 디스코드 CDN 주소를 그대로 넘기면
+ * 같이 본다. OpenRouter가 OpenAI 호환이라 image_url에 디스코드 CDN 주소를 그대로 넘기면
  * (base64 인코딩 없이) 자기가 직접 가져다가 본다 — 공개 첨부 URL이라 인증 없이도 받아진다.
  */
 const IMAGE_MODERATION_COOLDOWN_MS = 20_000;

@@ -174,8 +174,8 @@ export interface AiTurnResult {
 
 /** usage에 쌓인 실제 토큰 사용량만큼 포인트를 깎는다 (0 아래로는 내려가지 않음). AI 크레딧이
  * 따로 있던 시절엔 그 잔액을 깎았는데, 포인트로 통합된 뒤로는 promotionPoints를 바로 깎는다.
- * primary(monken.cloud)/fallback(OpenRouter) 중 어느 쪽을 썼는지에 따라 단가가 달라서
- * pricing.ts가 두 버킷을 합쳐서 계산한다. */
+ * 지금은 모든 호출이 OpenRouter(provider.ts)를 통해서만 나가지만, 과거 monken.cloud 호출분이
+ * 섞인 대화도 정확히 계산하려고 pricing.ts가 모델별 버킷을 합쳐서 계산한다. */
 async function chargeForUsage(userId: string, usage: UsageAccumulator) {
   const points = pointsForUsage(usage);
   if (points <= 0) return;

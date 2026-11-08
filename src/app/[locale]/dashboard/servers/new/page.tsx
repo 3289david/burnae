@@ -28,7 +28,6 @@ import {
   Database,
   Network,
   Code2,
-  GitBranch,
   Terminal,
   Radio,
   Waves,
@@ -197,15 +196,23 @@ function loaderMeta(baseKey: string) {
 
 const TIER_ORDER: Record<string, number> = { 최신: 0, 중간: 1, 레거시: 2 };
 
-const CATEGORY_FILTER_LABEL: Record<"ALL" | "MINECRAFT" | "DISCORD_BOT" | "GENERAL" | "COMMUNITY" | "DATABASE" | "GIT_REPO", string> = {
-  ALL: "전체",
-  GIT_REPO: "기본",
+// 카테고리는 5개뿐이다 — 마인크래프트는 기존 로더/버전 방식 그대로, 나머지(일반 서버)는
+// 빈 서버/디스코드봇/데이터베이스/프리셋으로 나눈다. "전체" 같은 더 잘게 쪼개는 옵션은 두지 않는다.
+type CategoryFilterKey = "MINECRAFT" | "BLANK" | "DISCORD_BOT" | "DATABASE" | "PRESETS";
+const CATEGORY_FILTER_ORDER: CategoryFilterKey[] = ["MINECRAFT", "BLANK", "DISCORD_BOT", "DATABASE", "PRESETS"];
+const CATEGORY_FILTER_LABEL: Record<CategoryFilterKey, string> = {
   MINECRAFT: "마인크래프트",
+  BLANK: "빈 서버",
   DISCORD_BOT: "디스코드 봇",
-  GENERAL: "일반 서버",
   DATABASE: "데이터베이스",
-  COMMUNITY: "커뮤니티",
+  PRESETS: "프리셋",
 };
+
+// 디스코드봇을 고르면 한 번 더 — 직접 코드를 짜는 Node.js/Python 템플릿 각각 하나씩, 아니면
+// 이미 완성된 봇 프로그램(공식)과 커뮤니티가 공유한 저장소를 한 목록에 섞어서 보여주는 "프리셋".
+type BotSubFilterKey = "NODEJS" | "PYTHON" | "PRESETS";
+const BOT_SUB_FILTER_LABEL: Record<BotSubFilterKey, string> = { NODEJS: "Node.js", PYTHON: "Python", PRESETS: "프리셋" };
+const BOT_CODE_TEMPLATE_KEY: Record<"NODEJS" | "PYTHON", string> = { NODEJS: "nodejs-bot", PYTHON: "python-bot" };
 
 function isGitRepoTemplate(t: Template | undefined): boolean {
   return !!t && "GIT_ADDRESS" in t.defaultEnvironment;
@@ -223,8 +230,8 @@ function randomServerName(): string {
 // 예전엔 "이름+플랜 고르기" → 결제 → "종류 고르기(최대 5개 섹션 한 화면)" 순서라 결제를 뭘 살지도
 // 모른 채 먼저 해야 했고, 결제 뒤 화면엔 섹션이 잔뜩 쌓여 있었다. 이제는 "뭘 만들지" 먼저 정하고
 // 마지막에 결제하도록 순서를 바꾸고, 화면당 결정 하나씩만 보이게 쪼갰다 — STEP_ORDER가 그 순서다.
-type StepKey = "name" | "type" | "version" | "startupCode" | "plan";
-const STEP_ORDER: StepKey[] = ["name", "type", "version", "startupCode", "plan"];
+type StepKey = "name" | "category" | "botSubFilter" | "type" | "version" | "startupCode" | "plan";
+const STEP_ORDER: StepKey[] = ["name", "category", "botSubFilter", "type", "version", "startupCode", "plan"];
 type Step = "loading" | StepKey | "pay" | "done";
 
 export default function NewServerPage() {
@@ -277,8 +284,12 @@ function NewServerPageInner() {
   // 서버 종류가 38개까지 늘어나서 한 화면에 다 보여주면 찾기 어려우니, 카테고리별로 걸러 볼 수 있게 한다.
   // 소스(공식/커뮤니티)와 카테고리를 각자 다른 필터로 나누면 한 화면에 필터가 2개 생겨 복잡해지니,
   // "커뮤니티"를 카테고리 필터의 선택지 중 하나로 합쳐서 필터를 하나로 유지한다
-  const [categoryFilter, setCategoryFilter] = useState<"ALL" | Template["category"] | "COMMUNITY" | "DATABASE" | "GIT_REPO">("ALL");
-  const eggSource: "official" | "community" = categoryFilter === "COMMUNITY" ? "community" : "official";
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilterKey>("MINECRAFT");
+  const [botSubFilter, setBotSubFilter] = useState<BotSubFilterKey | null>(null);
+  // "프리셋" 버킷(최상위 일반서버용, 디스코드봇 하위 모두)만 공식+커뮤니티를 한 목록에 섞어서 보여준다 —
+  // 나머지(마인크래프트/빈 서버/데이터베이스/Node.js/Python)는 로더 카드 하나짜리 그리드 그대로.
+  const eggSource: "official" | "community" =
+    categoryFilter === "PRESETS" || (categoryFilter === "DISCORD_BOT" && botSubFilter === "PRESETS") ? "community" : "official";
 
   const [allPresets, setAllPresets] = useState<CommunityPreset[]>([]);
   const [showPresetForm, setShowPresetForm] = useState(false);
@@ -381,7 +392,7 @@ function NewServerPageInner() {
           setProductId(data.product.id);
         }
         setOrder({ id: data.id, amountKrw: data.amountKrw, depositorName: data.depositorName, isPreorder: data.isPreorder, status: data.status });
-        setStep("type");
+        setStep("category");
       })
       .catch(() => {
         setError("주문 정보를 불러오지 못했어요.");
@@ -433,23 +444,39 @@ function NewServerPageInner() {
     [loaderGroups, templateId],
   );
 
+  // "프리셋"은 템플릿이 아니라 커뮤니티 목록이라 항상 보여준다(비어있으면 안내 문구로 처리) —
+  // 나머지는 실제로 그 카테고리에 템플릿이 있을 때만 카테고리 선택 화면에 노출한다.
   const availableCategories = useMemo(() => {
-    const set = new Set(loaderGroups.map((g) => g.templates[0]?.category).filter(Boolean));
-    return [...set] as Template["category"][];
-  }, [loaderGroups]);
+    const set = new Set<CategoryFilterKey>(["PRESETS"]);
+    for (const t of availableTemplatesForPicker) {
+      if (t.category === "MINECRAFT") set.add("MINECRAFT");
+      else if (t.category === "DISCORD_BOT") set.add("DISCORD_BOT");
+      else if (isDatabaseTemplate(t.key)) set.add("DATABASE");
+      else set.add("BLANK");
+    }
+    return CATEGORY_FILTER_ORDER.filter((c) => set.has(c));
+  }, [availableTemplatesForPicker]);
+
   const filteredLoaderGroups = useMemo(() => {
-    if (categoryFilter === "ALL" || categoryFilter === "COMMUNITY") return loaderGroups;
+    if (categoryFilter === "MINECRAFT") return loaderGroups.filter((g) => g.templates[0]?.category === "MINECRAFT");
     if (categoryFilter === "DATABASE") return loaderGroups.filter((g) => isDatabaseTemplate(g.templates[0]?.key ?? ""));
-    if (categoryFilter === "GIT_REPO") return loaderGroups.filter((g) => isGitRepoTemplate(g.templates[0]));
-    // 일반 서버(GENERAL)/디스코드 봇 필터에서는 데이터베이스·GitHub 저장소형을 각자 전용
-    // 필터로 빼뒀으니 중복으로 또 안 보여준다
-    return loaderGroups.filter(
-      (g) =>
-        g.templates[0]?.category === categoryFilter &&
-        !isDatabaseTemplate(g.templates[0]?.key ?? "") &&
-        !isGitRepoTemplate(g.templates[0]),
-    );
-  }, [loaderGroups, categoryFilter]);
+    if (categoryFilter === "BLANK") {
+      return loaderGroups.filter((g) => g.templates[0]?.category === "GENERAL" && !isDatabaseTemplate(g.templates[0]?.key ?? ""));
+    }
+    if (categoryFilter === "DISCORD_BOT") {
+      if (botSubFilter === "NODEJS") return loaderGroups.filter((g) => g.templates[0]?.key === BOT_CODE_TEMPLATE_KEY.NODEJS);
+      if (botSubFilter === "PYTHON") return loaderGroups.filter((g) => g.templates[0]?.key === BOT_CODE_TEMPLATE_KEY.PYTHON);
+      // "프리셋" 하위에서는 직접 코드를 짜는 템플릿(Node.js/Python) 2개는 빼고, 이미 완성된
+      // 공식 봇 프로그램만 커뮤니티 프리셋과 한 목록에 섞어서 보여준다
+      return loaderGroups.filter(
+        (g) =>
+          g.templates[0]?.category === "DISCORD_BOT" &&
+          g.templates[0]?.key !== BOT_CODE_TEMPLATE_KEY.NODEJS &&
+          g.templates[0]?.key !== BOT_CODE_TEMPLATE_KEY.PYTHON,
+      );
+    }
+    return []; // PRESETS(최상위, 일반 서버용)는 로더 카드 없이 커뮤니티 목록만 보여준다
+  }, [loaderGroups, categoryFilter, botSubFilter]);
 
   function pickLoader(base: string) {
     const group = loaderGroups.find((g) => g.base === base);
@@ -467,15 +494,20 @@ function NewServerPageInner() {
     setSelectedPreset(null);
   }
 
-  // /dashboard/community-eggs에서 "이 종류로 서버 만들기"로 넘어온 경우 — 종류 선택 단계에
-  // 도착하면 그 템플릿/프리셋을 자동으로 골라준다
+  // /dashboard/community-eggs에서 "이 종류로 서버 만들기"로 넘어온 경우 — 필터 단계에
+  // 도착하면 그 템플릿/프리셋과 커뮤니티 필터를 미리 골라준다(종류 단계엔 이미 선택된 채로 도착)
   useEffect(() => {
-    if (step !== "type" || !prefillTemplateId || templateId) return;
+    if (step !== "category" || !prefillTemplateId || templateId) return;
     const t = availableTemplatesForPicker.find((x) => x.id === prefillTemplateId);
     if (!t) return;
     pickTier(t);
     if (prefillPresetId) setPresetId(prefillPresetId);
-    setCategoryFilter("COMMUNITY");
+    if (t.category === "DISCORD_BOT") {
+      setCategoryFilter("DISCORD_BOT");
+      setBotSubFilter("PRESETS");
+    } else {
+      setCategoryFilter("PRESETS");
+    }
   }, [step, availableTemplatesForPicker, prefillTemplateId, prefillPresetId, templateId]);
 
   useEffect(() => {
@@ -497,13 +529,13 @@ function NewServerPageInner() {
       .catch(() => setPresets([]));
   }, [templateId, presetId]);
 
-  const filteredCommunityPresets = useMemo(
-    () =>
-      categoryFilter === "ALL" || categoryFilter === "COMMUNITY"
-        ? allPresets
-        : allPresets.filter((p) => p.baseTemplateCategory === categoryFilter),
-    [allPresets, categoryFilter],
-  );
+  const filteredCommunityPresets = useMemo(() => {
+    if (categoryFilter === "PRESETS") return allPresets.filter((p) => p.baseTemplateCategory === "GENERAL");
+    if (categoryFilter === "DISCORD_BOT" && botSubFilter === "PRESETS") {
+      return allPresets.filter((p) => p.baseTemplateCategory === "DISCORD_BOT");
+    }
+    return [];
+  }, [allPresets, categoryFilter, botSubFilter]);
 
   async function reportPreset(id: string) {
     if (!confirm("이 프리셋을 신고할까요? 여러 명이 신고하면 목록에서 내려가요.")) return;
@@ -811,6 +843,10 @@ function NewServerPageInner() {
   function isStepActive(key: StepKey): boolean {
     // 관리자 지급 등으로 결제가 이미 끝난 채로 들어온 경우(grantOrderId) 이름/플랜은 이미 정해져 있다
     if (grantOrderId && (key === "name" || key === "plan")) return false;
+    // 디스코드봇을 고른 경우에만 Node.js/Python/프리셋 하위 필터를 한 번 더 보여준다
+    if (key === "botSubFilter") return categoryFilter === "DISCORD_BOT";
+    // Node.js/Python은 템플릿이 하나뿐이라 고르는 즉시 확정되니, 종류 단계를 또 보여줄 필요가 없다
+    if (key === "type") return !(categoryFilter === "DISCORD_BOT" && (botSubFilter === "NODEJS" || botSubFilter === "PYTHON"));
     if (key === "version") return versionStepActive;
     if (key === "startupCode") return startupCodeStepActive;
     return true;
@@ -900,31 +936,95 @@ function NewServerPageInner() {
     );
   }
 
+  if (step === "category") {
+    const categoryIcon: Partial<Record<CategoryFilterKey, typeof Bot>> = {
+      DISCORD_BOT: Bot,
+      DATABASE: Database,
+      PRESETS: Users,
+      BLANK: Box,
+    };
+    return (
+      <div className="max-w-2xl mx-auto pb-16">
+        <StepHeader current="category" title="어떤 종류를 찾으세요?" subtitle="먼저 분류를 고르면, 다음 화면에서 그 안에서만 골라요." />
+        <div className="flex flex-wrap gap-2">
+          {availableCategories.map((c) => {
+            const active = categoryFilter === c;
+            const Icon = categoryIcon[c];
+            return (
+              <button
+                type="button"
+                key={c}
+                onClick={() => setCategoryFilter(c)}
+                className={`px-4 py-2.5 rounded-xl text-sm font-medium border transition-all duration-150 inline-flex items-center gap-1.5 ${
+                  active
+                    ? "border-accent bg-accent text-white shadow-[0_4px_14px_-4px_rgba(255,106,26,0.6)]"
+                    : "border-border bg-surface text-text-dim hover:border-accent/40 hover:text-text"
+                }`}
+              >
+                {Icon && <Icon size={14} />}
+                {CATEGORY_FILTER_LABEL[c]}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="mt-8">
+          <StepFooter current="category" />
+        </div>
+      </div>
+    );
+  }
+
+  if (step === "botSubFilter") {
+    return (
+      <div className="max-w-2xl mx-auto pb-16">
+        <StepHeader current="botSubFilter" title="어떤 봇인가요?" subtitle="직접 코드를 짤지, 이미 있는 걸 가져올지 골라주세요." />
+        <div className="flex flex-wrap gap-2">
+          {(["NODEJS", "PYTHON", "PRESETS"] as const).map((f) => {
+            const active = botSubFilter === f;
+            return (
+              <button
+                type="button"
+                key={f}
+                onClick={() => {
+                  setBotSubFilter(f);
+                  // Node.js/Python은 템플릿이 하나뿐이라 고르자마자 바로 확정하고, "종류" 단계는
+                  // 건너뛰어 다음 단계(버전/시작 코드/플랜)로 바로 넘어간다
+                  if (f === "NODEJS" || f === "PYTHON") {
+                    const t = availableTemplatesForPicker.find((x) => x.key === BOT_CODE_TEMPLATE_KEY[f]);
+                    if (t) {
+                      pickTier(t);
+                      const next = nextActiveStep("type");
+                      if (next) setStep(next);
+                    }
+                  }
+                }}
+                className={`px-4 py-2.5 rounded-xl text-sm font-medium border transition-all duration-150 ${
+                  active
+                    ? "border-accent bg-accent text-white shadow-[0_4px_14px_-4px_rgba(255,106,26,0.6)]"
+                    : "border-border bg-surface text-text-dim hover:border-accent/40 hover:text-text"
+                }`}
+              >
+                {BOT_SUB_FILTER_LABEL[f]}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="mt-8">
+          <StepFooter current="botSubFilter" nextDisabled={!botSubFilter} />
+        </div>
+      </div>
+    );
+  }
+
   if (step === "type") {
     return (
       <div className="max-w-2xl mx-auto pb-16">
-        <StepHeader current="type" title="서버 종류" subtitle="어떤 로더/프로그램으로 시작할지 골라주세요." />
+        <StepHeader current="type" title={CATEGORY_FILTER_LABEL[categoryFilter]} subtitle="어떤 로더/프로그램으로 시작할지 골라주세요." />
         <div className="space-y-6">
           {loaderGroups.length > 0 && (
             <div>
-              <div className="flex flex-nowrap gap-1.5 mb-3 p-1 bg-surface-2 rounded-full overflow-x-auto max-w-full [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {(["ALL", "GIT_REPO", ...availableCategories, "DATABASE", "COMMUNITY"] as const).map((c) => (
-                  <button
-                    type="button"
-                    key={c}
-                    onClick={() => setCategoryFilter(c)}
-                    className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-150 inline-flex items-center gap-1 whitespace-nowrap ${
-                      categoryFilter === c ? "bg-accent text-white shadow-sm" : "text-text-dim hover:text-text"
-                    }`}
-                  >
-                    {c === "COMMUNITY" && <Users size={12} />}
-                    {c === "DATABASE" && <Database size={12} />}
-                    {c === "GIT_REPO" && <GitBranch size={12} />}
-                    {CATEGORY_FILTER_LABEL[c]}
-                  </button>
-                ))}
-              </div>
-
               {eggSource === "official" ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                 {filteredLoaderGroups.map((g, i) => {
@@ -962,8 +1062,43 @@ function NewServerPageInner() {
               </div>
               ) : (
               <div className="space-y-3">
-                <p className="text-xs text-text-dim">다른 유저가 공개한 서버 종류예요.</p>
+                <p className="text-xs text-text-dim">
+                  {categoryFilter === "DISCORD_BOT"
+                    ? "이미 완성된 봇 프로그램과 다른 유저가 공개한 저장소를 함께 볼 수 있어요."
+                    : "다른 유저가 공개한 서버 종류예요."}
+                </p>
                 <div className="flex flex-col gap-1.5">
+                  {/* 디스코드봇 → 프리셋에서는 완성된 공식 봇 프로그램도 같은 목록에 섞어서 보여준다 —
+                      공식 뱃지가 이미 구분해주니 별도 그리드로 나눌 필요가 없다 */}
+                  {categoryFilter === "DISCORD_BOT" && filteredLoaderGroups.map((g, i) => {
+                    const t = g.templates[0];
+                    const meta = loaderMeta(g.base);
+                    const active = selectedGroup?.base === g.base;
+                    return (
+                      <div
+                        key={`official-${g.base}`}
+                        className={`animate-fade-up rounded-xl border px-3 py-2 flex items-center gap-2 transition-all duration-150 ${
+                          active
+                            ? "border-accent bg-accent/[0.08] shadow-[0_0_0_1px_var(--accent)]"
+                            : "border-border bg-surface hover:border-accent/40 hover:bg-surface-2"
+                        }`}
+                        style={{ animationDelay: `${Math.min(i, 12) * 0.025}s` }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => pickLoader(g.base)}
+                          className="flex-1 min-w-0 text-left flex items-center gap-1.5 active:scale-[0.99] transition-transform"
+                          title={meta.blurb}
+                        >
+                          <span className="font-semibold text-sm shrink-0 truncate max-w-[40%] capitalize">{g.base}</span>
+                          <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-accent bg-accent/10 rounded-full px-1.5 py-0.5 shrink-0">
+                            <ShieldCheck size={9} /> 공식
+                          </span>
+                          <span className="text-text-dim text-[11px] truncate">{meta.blurb}</span>
+                        </button>
+                      </div>
+                    );
+                  })}
                   {filteredCommunityPresets.map((p, i) => {
                     const active = presetId === p.id;
                     return (
@@ -1008,7 +1143,7 @@ function NewServerPageInner() {
                     );
                   })}
                 </div>
-                {filteredCommunityPresets.length === 0 && (
+                {filteredCommunityPresets.length === 0 && (categoryFilter !== "DISCORD_BOT" || filteredLoaderGroups.length === 0) && (
                   <p className="text-sm text-text-dim">아직 공개된 커뮤니티 프리셋이 없어요. 첫 번째로 만들어보세요!</p>
                 )}
 

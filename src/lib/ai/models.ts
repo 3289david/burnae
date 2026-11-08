@@ -1,13 +1,12 @@
-/** 고객이 고를 수 있는 AI 모델 3종. Sonnet을 가격 기준점으로 두고(기존에 쓰던 단가 그대로),
- * Opus는 1.5배, Haiku는 0.8배로 차등 과금한다 — 전부 monken.cloud(기본 제공자)를 통해 호출된다.
- * OpenRouter(Qwen) 폴백은 모델 선택과 무관하게 항상 같은 모델/단가로 동작한다(pricing.ts 참고). */
+/** 고객이 고를 수 있는 AI 모델 3종(라벨/과금 배율만 남은 레거시) — 실제 호출은 전부 OpenRouter의
+ * 고정 모델로 나가므로(provider.ts), apiModel 필드는 더 이상 실제 호출에 쓰이지 않는다. */
 export type AiModelKey = "opus" | "sonnet" | "haiku";
 
 export const DEFAULT_AI_MODEL: AiModelKey = "sonnet";
 
 interface AiModelInfo {
   label: string;
-  /** monken.cloud에 실제로 보낼 모델 이름 */
+  /** 레거시 필드(과거 monken.cloud 모델명) — 더 이상 실제 호출에 쓰이지 않는다 */
   apiModel: string;
   /** 기준 단가(Sonnet) 대비 배율 */
   priceMultiplier: number;

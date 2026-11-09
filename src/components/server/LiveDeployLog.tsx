@@ -46,7 +46,10 @@ export default function LiveDeployLog({ serverId, active, onClose }: { serverId:
             ws?.send(JSON.stringify({ event: "send logs", args: [null] }));
           }
           if (frame.event === "console output" && frame.args?.[0]) {
-            setLines((prev) => [...prev.slice(-300), stripAnsi(frame.args![0])]);
+            const line = stripAnsi(frame.args[0]);
+            // deploy.ts가 명령 완료 감지용으로 붙이는 echo 마커 — 사람이 보는 로그엔 안 보여준다
+            if (line.includes("__BURNAE_DONE_")) return;
+            setLines((prev) => [...prev.slice(-300), line]);
           }
           if (frame.event === "token expiring") {
             fetch(`/api/servers/${serverId}/websocket`)

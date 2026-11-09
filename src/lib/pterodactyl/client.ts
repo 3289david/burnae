@@ -428,3 +428,74 @@ export async function runCommandAndCapture(
     });
   });
 }
+
+/**
+ * git 배포용 — runCommandAndCapture는 "windowMs만큼 무조건 기다렸다가" 끊는데, 명령이 더 빨리
+ * 끝나도 똑같이 기다리고(느림) 더 오래 걸리면 중간에 잘려버린다(틀림 — deploy.ts의 성공/실패
+ * 판단이 잘린 출력을 보고 내려짐). Wings 콘솔엔 "명령 끝남" 이벤트가 따로 없어서, 명령 뒤에
+ * 유일한 echo 문구를 붙여 그 줄이 보이는 순간을 "끝남"으로 본다 — 이게 보이면 즉시 끝내고,
+ * 못 보면(연결이 끊기는 등) maxWaitMs가 안전망으로 작동한다.
+ *
+ * git-deploy는 항상 GIT_ADDRESS가 있는 일반 런타임(쉘이 있는 컨테이너)에서만 쓰이고 마인크래프트
+ * 콘솔(RCON 스타일 명령)에는 절대 안 쓰이므로, 명령 뒤에 `; echo ...`를 붙이는 게 안전하다 —
+ * 마인크래프트 쪽(players.ts)은 이 함수가 아니라 원래 runCommandAndCapture를 그대로 쓴다.
+ */
+export async function runShellCommandAndCapture(
+  identifier: string,
+  command: string,
+  maxWaitMs = 10000,
+): Promise<string[]> {
+  const { token, socket } = await getWebsocketCredentials(identifier);
+  const lines: string[] = [];
+  const marker = `__BURNAE_DONE_${Math.random().toString(36).slice(2)}__`;
+
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(socket, { headers: { Origin: process.env.PTERODACTYL_URL } });
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let settled = false;
+
+    function finish() {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      ws.close();
+      resolve(lines.slice(-200));
+    }
+
+    ws.on("open", () => {
+      ws.send(JSON.stringify({ event: "auth", args: [token] }));
+    });
+
+    ws.on("message", (raw) => {
+      try {
+        const msg = JSON.parse(raw.toString()) as { event: string; args?: string[] };
+        if (msg.event === "auth success") {
+          ws.send(JSON.stringify({ event: "send command", args: [`${command}; echo "${marker}"`] }));
+          // 마커가 끝까지 안 보일 경우를 위한 안전망 — 정상적으로는 마커가 먼저 와서 finish()가 먼저 불린다
+          timer = setTimeout(finish, maxWaitMs);
+        }
+        if (msg.event === "console output" && msg.args?.[0]) {
+          const line = msg.args[0];
+          if (line.includes(marker)) {
+            finish();
+            return;
+          }
+          lines.push(line);
+        }
+      } catch {
+        // 파싱 불가한 프레임은 무시
+      }
+    });
+
+    ws.on("error", (err) => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      reject(err);
+    });
+
+    ws.on("close", () => {
+      finish();
+    });
+  });
+}

@@ -92,7 +92,7 @@ export async function redeployFromGit(
       await recordDeploymentLog(server.id, trigger, actorId, false, output, startedAt, null, null);
       return { ok: false, output };
     }
-    const branchLines = await PteroClient.runCommandAndCapture(
+    const branchLines = await PteroClient.runShellCommandAndCapture(
       server.pterodactylIdentifier,
       `git fetch origin ${shellQuote(server.gitBranch)} && git checkout -- ${shellQuote(server.gitBranch)}`,
       10000,
@@ -107,7 +107,7 @@ export async function redeployFromGit(
     }
   }
 
-  const pullLines = await PteroClient.runCommandAndCapture(server.pterodactylIdentifier, "git pull", 10000).catch((err) => {
+  const pullLines = await PteroClient.runShellCommandAndCapture(server.pterodactylIdentifier, "git pull", 10000).catch((err) => {
     console.error(`[deploy] 서버 ${server.id} git pull 실패:`, err);
     return null;
   });
@@ -124,7 +124,7 @@ export async function redeployFromGit(
   // 빌드 명령이 설정돼 있으면(예: npm install && npm run build) pull 다음, 재시작 전에 실행한다 —
   // Render/Railway의 "build command"와 같은 개념. 느릴 수 있어서 좀 더 길게 기다린다
   if (server.buildCommand) {
-    const buildLines = await PteroClient.runCommandAndCapture(server.pterodactylIdentifier, server.buildCommand, 30000).catch(
+    const buildLines = await PteroClient.runShellCommandAndCapture(server.pterodactylIdentifier, server.buildCommand, 30000).catch(
       (err) => {
         console.error(`[deploy] 서버 ${server.id} 빌드 명령 실패:`, err);
         return null;
@@ -148,7 +148,7 @@ export async function redeployFromGit(
 
   // 롤백 버튼에서 "이 시점으로 되돌리기"가 가리킬 지점을 남겨둔다 — 콘솔 출력엔 안 보여주고
   // 커밋 해시만 따로 캡처(pull 성공 여부와 무관하게 지금 HEAD가 어디인지는 항상 의미 있음)
-  const shaLines = await PteroClient.runCommandAndCapture(server.pterodactylIdentifier, "git rev-parse HEAD", 5000).catch(
+  const shaLines = await PteroClient.runShellCommandAndCapture(server.pterodactylIdentifier, "git rev-parse HEAD", 5000).catch(
     () => null,
   );
   const commitSha = shaLines?.find((l) => /^[0-9a-f]{40}$/i.test(l.trim()))?.trim() ?? null;
@@ -188,7 +188,7 @@ export async function rollbackToCommit(server: Server, commitSha: string, actorI
     return { ok: false, output: "서버가 아직 준비 중이에요." };
   }
 
-  const lines = await PteroClient.runCommandAndCapture(server.pterodactylIdentifier, `git checkout -- ${shellQuote(commitSha)}`, 10000).catch(
+  const lines = await PteroClient.runShellCommandAndCapture(server.pterodactylIdentifier, `git checkout -- ${shellQuote(commitSha)}`, 10000).catch(
     (err) => {
       console.error(`[deploy] 서버 ${server.id} 롤백 실패:`, err);
       return null;
@@ -306,7 +306,7 @@ export async function changeGitRemote(
   // 빈 서버(blank-server) 등 install 스크립트가 git clone을 하지 않는 템플릿은 .git이 아예
   // 없을 수 있다 — 그럴 땐 remote만 바꿔봐야 소용없으니(다음 git pull이 "not a git repository"로
   // 실패) 처음 연결하는 거면 그 자리에 바로 clone한다
-  const probeLines = await PteroClient.runCommandAndCapture(
+  const probeLines = await PteroClient.runShellCommandAndCapture(
     server.pterodactylIdentifier,
     "test -d .git && echo __BURNAE_HAS_GIT__ || echo __BURNAE_NO_GIT__",
     5000,
@@ -314,11 +314,11 @@ export async function changeGitRemote(
   const hasGit = probeLines?.some((l) => l.includes("__BURNAE_HAS_GIT__")) ?? true;
 
   if (hasGit) {
-    await PteroClient.runCommandAndCapture(server.pterodactylIdentifier, `git remote set-url origin ${shellQuote(remoteUrl.toString())}`, 5000).catch(
+    await PteroClient.runShellCommandAndCapture(server.pterodactylIdentifier, `git remote set-url origin ${shellQuote(remoteUrl.toString())}`, 5000).catch(
       (err) => console.error(`[deploy] 서버 ${server.id} git remote 변경 실패:`, err),
     );
   } else {
-    const cloneLines = await PteroClient.runCommandAndCapture(server.pterodactylIdentifier, `git clone ${shellQuote(remoteUrl.toString())} .`, 30000).catch(
+    const cloneLines = await PteroClient.runShellCommandAndCapture(server.pterodactylIdentifier, `git clone ${shellQuote(remoteUrl.toString())} .`, 30000).catch(
       (err) => {
         console.error(`[deploy] 서버 ${server.id} git clone 실패:`, err);
         return null;

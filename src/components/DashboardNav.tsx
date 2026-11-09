@@ -7,7 +7,6 @@ import { Server, Gift, ShoppingBag, CreditCard, LifeBuoy, User, Users, Search, P
 import LogoutButton from "@/components/LogoutButton";
 import ThemeToggle from "@/components/ThemeToggle";
 import BrandMark from "@/components/BrandMark";
-import Image from "next/image";
 import { OPEN_COMMAND_PALETTE_EVENT } from "@/components/CommandPalette";
 
 interface Props {
@@ -73,13 +72,6 @@ export function DashboardSidebar({ userName, showAdminLink }: Props) {
           </Link>
         )}
       </nav>
-
-      <Link href="/dashboard/promotions" className="group mb-4 block overflow-hidden rounded-xl border border-border bg-surface">
-        <div className="relative aspect-[16/9] bg-[#141414] border-b border-border">
-          <Image src="/img/illus-free.webp" alt="" fill sizes="260px" className="object-cover" />
-        </div>
-        <p className="px-3 py-2.5 text-xs text-text-dim group-hover:text-text transition-colors">포인트로 무료 서버 받기 →</p>
-      </Link>
 
       <div className="border-t border-border pt-4 flex items-center justify-between gap-2">
         <span className="text-sm font-medium truncate">{t("greeting", { name: userName })}</span>

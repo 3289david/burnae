@@ -31,9 +31,7 @@ export default function AiAutoSetupCard({ serverId }: { serverId: string }) {
   return (
     <div className="card-glow p-5 space-y-3 border-accent/30">
       <div className="flex items-center gap-2">
-        <span className="w-8 h-8 rounded-lg bg-accent/15 flex items-center justify-center shrink-0">
-          <Sparkles size={15} className="text-accent" />
-        </span>
+        <Sparkles size={18} className="text-accent shrink-0" />
         <div className="flex-1">
           <h3 className="font-semibold text-sm">AI가 자동으로 설치/설정해드릴까요?</h3>
           <p className="text-xs text-text-dim">

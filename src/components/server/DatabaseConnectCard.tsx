@@ -51,9 +51,7 @@ export default function DatabaseConnectCard({ serverId }: { serverId: string }) 
   return (
     <div className="card-glow p-5 space-y-3">
       <div className="flex items-center gap-2">
-        <span className="w-8 h-8 rounded-lg bg-accent/15 flex items-center justify-center shrink-0">
-          <Database size={15} className="text-accent" />
-        </span>
+        <Database size={18} className="text-accent shrink-0" />
         <div>
           <h3 className="font-semibold text-sm">데이터베이스 연결</h3>
           <p className="text-xs text-text-dim">내 DB 서버 접속 정보를 이 서버의 .env에 바로 써줘요.</p>

@@ -63,9 +63,7 @@ export default function StatusPageCard({ serverId }: { serverId: string }) {
   return (
     <div className="card-glow p-5 space-y-3">
       <div className="flex items-center gap-2">
-        <span className="w-8 h-8 rounded-lg bg-accent/15 flex items-center justify-center shrink-0">
-          <Activity size={15} className="text-accent" />
-        </span>
+        <Activity size={18} className="text-accent shrink-0" />
         <div className="flex-1">
           <h3 className="font-semibold text-sm">공개 상태 페이지</h3>
           <p className="text-xs text-text-dim">가동률과 장애 이력을 보여주는 링크를 플레이어에게 공유할 수 있어요.</p>

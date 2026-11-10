@@ -53,9 +53,7 @@ export default function DiscordInviteCard({ serverId }: { serverId: string }) {
   return (
     <div className="card-glow p-5 space-y-3">
       <div className="flex items-center gap-2">
-        <span className="w-8 h-8 rounded-lg bg-accent/15 flex items-center justify-center shrink-0">
-          <Bot size={15} className="text-accent" />
-        </span>
+        <Bot size={18} className="text-accent shrink-0" />
         <div>
           <h3 className="font-semibold text-sm">{t("title")}</h3>
           <p className="text-xs text-text-dim">{t("desc")}</p>

@@ -42,9 +42,7 @@ export default function HealthCheckCard({ serverId }: { serverId: string }) {
   return (
     <div className="card-glow p-5 space-y-3">
       <div className="flex items-center gap-2">
-        <span className="w-8 h-8 rounded-lg bg-green/15 flex items-center justify-center shrink-0">
-          <HeartPulse size={15} className="text-green" />
-        </span>
+        <HeartPulse size={18} className="text-green shrink-0" />
         <div>
           <h3 className="font-semibold text-sm">헬스체크</h3>
           <p className="text-xs text-text-dim">설정한 경로가 계속 응답 없으면 자동으로 재시작해요.</p>

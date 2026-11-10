@@ -12,9 +12,7 @@ export default function PointsPurchaseCard() {
     <div className="card-glow p-4 mb-3 animate-fade-up">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <span className="w-8 h-8 rounded-lg bg-yellow/15 flex items-center justify-center shrink-0">
-            <Coins size={15} className="text-yellow" />
-          </span>
+          <Coins size={18} className="text-yellow shrink-0" />
           <div>
             <p className="text-sm font-medium">{t("title")}</p>
             <p className="text-xs text-text-dim">{t("subtitle")}</p>

@@ -22,9 +22,7 @@ export default function AiCreditsCard() {
     <div className="card-glow p-4 mb-3 animate-fade-up">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <span className="w-8 h-8 rounded-lg bg-purple/15 flex items-center justify-center shrink-0">
-            <Sparkles size={15} className="text-purple" />
-          </span>
+          <Sparkles size={18} className="text-purple shrink-0" />
           <div>
             <p className="text-sm font-medium">AI 사용 포인트</p>
             <p className="text-xs text-text-dim">

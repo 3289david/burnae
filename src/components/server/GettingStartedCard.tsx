@@ -39,9 +39,7 @@ export default function GettingStartedCard({ server }: { server: ServerInfo }) {
     <div className="card-glow p-5 space-y-2.5 border-accent/40 animate-fade-up">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="w-8 h-8 rounded-lg bg-accent/15 flex items-center justify-center shrink-0">
-            <Compass size={15} className="text-accent" />
-          </span>
+          <Compass size={18} className="text-accent shrink-0" />
           <h3 className="font-semibold text-sm">{t("title")}</h3>
         </div>
         <button onClick={dismiss} className="text-text-dim hover:text-text p-1 active:scale-90 transition-transform" aria-label={t("close")}>

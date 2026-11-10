@@ -225,7 +225,7 @@ input[type="range"]::-moz-range-track { height: 6px; border-radius: 999px; backg
 .input {
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: .8rem;
+  border-radius: var(--radius-btn);
   color: var(--text);
   padding: .7rem 1rem;
   transition: border-color .15s ease, box-shadow .15s ease;

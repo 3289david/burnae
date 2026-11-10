@@ -9,6 +9,8 @@ export interface OAuthProfile {
   providerAccountId: string;
   email: string;
   name: string;
+  /// 제공자가 주는 프로필 사진 URL — 디스코드는 커스텀 아바타가 없으면(기본 아바타) undefined
+  avatarUrl?: string;
 }
 
 interface ProviderConfig {
@@ -115,7 +117,7 @@ async function fetchProfile(provider: OAuthProviderKey, accessToken: string): Pr
     if (!data.email_verified) {
       throw new Error("구글 계정에 인증된 이메일이 없습니다. 구글에서 이메일을 인증해주세요.");
     }
-    return { providerAccountId: data.sub, email: data.email, name: data.name ?? data.email };
+    return { providerAccountId: data.sub, email: data.email, name: data.name ?? data.email, avatarUrl: data.picture || undefined };
   }
 
   if (provider === "github") {
@@ -138,7 +140,7 @@ async function fetchProfile(provider: OAuthProviderKey, accessToken: string): Pr
     }
     if (!email) throw new Error("깃허브 계정에 공개/인증된 이메일이 없습니다. GitHub 이메일 설정을 확인해주세요.");
 
-    return { providerAccountId: String(user.id), email, name: user.name ?? user.login };
+    return { providerAccountId: String(user.id), email, name: user.name ?? user.login, avatarUrl: user.avatar_url || undefined };
   }
 
   // discord
@@ -153,6 +155,9 @@ async function fetchProfile(provider: OAuthProviderKey, accessToken: string): Pr
     providerAccountId: data.id,
     email: data.email,
     name: data.global_name ?? data.username,
+    // 커스텀 아바타를 설정 안 한 유저는 avatar가 null — 디스코드 기본 아바타 규칙은 버전마다
+    // 바뀌어서 추측하지 않고, 그 경우엔 그냥 avatarUrl 없이 둔다(클라이언트가 이니셜로 대체)
+    avatarUrl: data.avatar ? `https://cdn.discordapp.com/avatars/${data.id}/${data.avatar}.png` : undefined,
   };
 }
 

@@ -151,6 +151,7 @@ export async function GET(
         data: {
           email: profile.email,
           name: profile.name.slice(0, 20),
+          avatarUrl: profile.avatarUrl,
           role: resolveInitialRole(profile.email),
           referredByUserId: referrer?.id,
           signupIp: extractClientIp(request),
@@ -165,6 +166,11 @@ export async function GET(
           console.error("[oauth] 추천 가입 포인트 지급 실패:", err);
         });
       }
+    }
+
+    // 로그인마다 제공자 프로필 사진을 최신으로 맞춘다(바꿨으면 반영, 비어있으면 기존 값 유지)
+    if (profile.avatarUrl && profile.avatarUrl !== user.avatarUrl) {
+      user = await prisma.user.update({ where: { id: user.id }, data: { avatarUrl: profile.avatarUrl } });
     }
 
     if (user.status !== "ACTIVE") {

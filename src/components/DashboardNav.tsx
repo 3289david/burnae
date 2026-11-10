@@ -7,10 +7,12 @@ import { Server, Gift, ShoppingBag, CreditCard, LifeBuoy, User, Users, Search, P
 import LogoutButton from "@/components/LogoutButton";
 import ThemeToggle from "@/components/ThemeToggle";
 import BrandMark from "@/components/BrandMark";
+import Avatar from "@/components/Avatar";
 import { OPEN_COMMAND_PALETTE_EVENT } from "@/components/CommandPalette";
 
 interface Props {
   userName: string;
+  userAvatarUrl: string | null;
   showAdminLink: boolean;
 }
 
@@ -36,7 +38,7 @@ function openSearch() {
 }
 
 /** 데스크톱(lg+): 왼쪽 고정 사이드바 */
-export function DashboardSidebar({ userName, showAdminLink }: Props) {
+export function DashboardSidebar({ userName, userAvatarUrl, showAdminLink }: Props) {
   const t = useTranslations("dashboardNav");
   const tHome = useTranslations("dashboardHome");
   const pathname = usePathname();
@@ -74,7 +76,10 @@ export function DashboardSidebar({ userName, showAdminLink }: Props) {
       </nav>
 
       <div className="border-t border-border pt-4 flex items-center justify-between gap-2">
-        <span className="text-sm font-medium truncate">{t("greeting", { name: userName })}</span>
+        <Link href="/dashboard/account" className="flex items-center gap-2 min-w-0 hover:opacity-80 transition-opacity">
+          <Avatar src={userAvatarUrl} name={userName} size={28} />
+          <span className="text-sm font-medium truncate">{t("greeting", { name: userName })}</span>
+        </Link>
         <div className="flex items-center gap-2 shrink-0">
           <ThemeToggle />
           <LogoutButton />
@@ -85,7 +90,7 @@ export function DashboardSidebar({ userName, showAdminLink }: Props) {
 }
 
 /** 모바일/태블릿(<lg): 상단 바 */
-export function DashboardTopBar({ userName }: Pick<Props, "userName">) {
+export function DashboardTopBar({ userName, userAvatarUrl }: Pick<Props, "userName" | "userAvatarUrl">) {
   const t = useTranslations("dashboardNav");
   return (
     <header className="lg:hidden sticky top-0 z-30 glass border-b border-border/70">
@@ -99,6 +104,9 @@ export function DashboardTopBar({ userName }: Pick<Props, "userName">) {
             <Search size={18} />
           </button>
           <ThemeToggle />
+          <Link href="/dashboard/account" className="ml-1">
+            <Avatar src={userAvatarUrl} name={userName} size={30} />
+          </Link>
         </div>
       </div>
     </header>
@@ -112,8 +120,9 @@ export function DashboardTabBar({ showAdminLink }: Pick<Props, "showAdminLink">)
   const links = useLinks();
   const [open, setOpen] = useState(false);
 
-  const main = [links[0], links[1], links[4], links[6]];
-  const more = [links[2], links[3], links[5]];
+  // 내 서버/포인트 받기/고객지원/커뮤니티 프리셋을 엄지로 바로 닿는 4개로 둔다
+  const main = [links[0], links[1], links[5], links[3]];
+  const more = [links[2], links[4], links[6]];
   const moreActive = more.some((l) => isActive(pathname, l.href));
 
   return (

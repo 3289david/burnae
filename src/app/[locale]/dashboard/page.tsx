@@ -58,7 +58,7 @@ export default async function DashboardPage() {
         title={<>{t("greeting")} {user!.name}{t("greetingSuffix")}</>}
         desc={<>{t("serverCountPrefix")}<CountUp value={servers.length} />{t("serverCountMiddle")}<CountUp value={runningCount} />{t("serverCountSuffix")}</>}
       >
-        <Link href="/dashboard/servers/new" className="btn-light px-6 py-3 text-sm inline-flex items-center gap-1.5" style={{ borderRadius: 8 }}>
+        <Link href="/dashboard/servers/new" className="btn-primary px-6 py-3 text-sm inline-flex items-center gap-1.5 active:scale-[0.97] transition-transform">
           <Plus size={16} /> {t("createServer")}
         </Link>
       </PageHeader>

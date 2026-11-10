@@ -8,7 +8,7 @@ import PhoneVerificationCard from "@/components/PhoneVerificationCard";
 import TwoFactorCard from "@/components/TwoFactorCard";
 import ApiTokensCard from "@/components/ApiTokensCard";
 import SshGatewayCodeCard from "@/components/SshGatewayCodeCard";
-import { UserCircle2 } from "lucide-react";
+import Avatar from "@/components/Avatar";
 
 export default async function AccountPage({
   searchParams,
@@ -23,9 +23,12 @@ export default async function AccountPage({
     <div className="max-w-5xl">
       <PageHeader art="account" title="계정" desc="내 정보와 보안 설정이에요." />
 
-      <div className="card p-5 mt-6 space-y-2 text-sm animate-fade-up max-w-md" style={{ animationDelay: "0.05s" }}>
-        <div className="flex justify-between"><span className="text-text-dim">이름</span><span>{user!.name}</span></div>
-        <div className="flex justify-between"><span className="text-text-dim">이메일</span><span>{user!.email}</span></div>
+      <div className="card p-5 mt-6 flex items-center gap-4 animate-fade-up max-w-md" style={{ animationDelay: "0.05s" }}>
+        <Avatar src={user!.avatarUrl} name={user!.name} size={48} />
+        <div className="flex-1 min-w-0 space-y-1.5 text-sm">
+          <div className="flex justify-between"><span className="text-text-dim">이름</span><span>{user!.name}</span></div>
+          <div className="flex justify-between"><span className="text-text-dim">이메일</span><span>{user!.email}</span></div>
+        </div>
       </div>
 
       <div className="mt-4 grid gap-4 md:grid-cols-2 items-start">

@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 import { Coins } from "lucide-react";
 
 /** 포인트 충전 — 클릭하면 전용 페이지를 새 탭으로 연다(모달로 카드 안에서 띄우지 않음).
- * 결제 자체도 그 탭 안에서 끝까지 진행된다(points-purchase/page.tsx). */
+ * 결제 자체도 그 탭 안에서 끝까지 진행된다(대시보드 레이아웃 밖의 /points-purchase). */
 export default function PointsPurchaseCard() {
   const t = useTranslations("pointsPurchaseCard");
 
@@ -19,7 +19,7 @@ export default function PointsPurchaseCard() {
           </div>
         </div>
         <button
-          onClick={() => window.open("/dashboard/points-purchase", "_blank")}
+          onClick={() => window.open("/points-purchase", "_blank")}
           className="btn-secondary px-3.5 py-1.5 text-xs shrink-0 active:scale-95 transition-transform"
         >
           {t("open")}

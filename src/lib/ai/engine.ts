@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { AI_TOOLS, openAiToolList } from "@/lib/ai/tools";
 import { withUsageTracking, AiTurnFailedError, type UsageAccumulator } from "@/lib/ai/usageTracking";
 import { pointsForUsage, InsufficientCreditsError } from "@/lib/ai/pricing";
-import { createChatCompletion, createApmixChatCompletion } from "@/lib/ai/provider";
+import { createChatCompletion } from "@/lib/ai/provider";
 import { resolveAiModelKey } from "@/lib/ai/models";
 import type { Server } from "@/generated/prisma/client";
 import type { AiMessage } from "@/generated/prisma/client";
@@ -257,23 +257,15 @@ export async function runAiTurn(
         orderBy: { createdAt: "asc" },
       });
 
-      const response =
-        kind === "MAKER"
-          ? await createChatCompletion(
-              {
-                messages: toOpenAiMessages(rows, template.category, kind),
-                tools: openAiToolList(template.category, kind),
-                tool_choice: "auto",
-                parallel_tool_calls: false,
-              },
-              modelKey,
-            )
-          : await createApmixChatCompletion({
-              messages: toOpenAiMessages(rows, template.category, kind),
-              tools: openAiToolList(template.category, kind),
-              tool_choice: "auto",
-              parallel_tool_calls: false,
-            });
+      const response = await createChatCompletion(
+        {
+          messages: toOpenAiMessages(rows, template.category, kind),
+          tools: openAiToolList(template.category, kind),
+          tool_choice: "auto",
+          parallel_tool_calls: false,
+        },
+        modelKey,
+      );
 
       const message = response.choices[0]?.message;
       if (!message) {

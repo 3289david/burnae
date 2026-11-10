@@ -140,16 +140,6 @@ export default function AdminSettingsPage() {
         <p className="text-xs text-text-dim mt-1">점검/용량 제한 시 대기열로만 받을 때 사용.</p>
       </div>
 
-      <div className="card-glow p-5 mt-4 flex items-center justify-between">
-        <div>
-          <h3 className="text-sm font-semibold text-text">AI API 키 설정 (apmix.ai)</h3>
-          <p className="text-xs text-text-dim mt-0.5">API 키 자동 전환(Failover) 관리.</p>
-        </div>
-        <Link href="/admin/ai" className="btn-secondary text-xs px-3.5 py-2 shrink-0">
-          AI 키 관리 이동 →
-        </Link>
-      </div>
-
       <div className="mt-4 flex items-center gap-3">
         <button onClick={save} disabled={saving} className="btn-primary px-5 py-2.5">
           {saving ? "저장 중..." : "저장"}

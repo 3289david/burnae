@@ -33,7 +33,7 @@ export default function AiCreditsCard() {
           </div>
         </div>
         <button
-          onClick={() => window.open("/dashboard/points-purchase", "_blank")}
+          onClick={() => window.open("/points-purchase", "_blank")}
           className="btn-secondary px-3.5 py-1.5 text-xs shrink-0 active:scale-95 transition-transform"
         >
           충전

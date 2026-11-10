@@ -15,7 +15,7 @@ const DEFAULT_POINTS = 2500;
  * PointsPurchaseCard의 "충전" 버튼이 새 탭으로 여는 전용 페이지 — 모달이 아니라 완전히 분리된
  * 탭에서 진행한다(결제 흐름이 섞이지 않게). 금액은 슬라이더로 직접 고른다(1원=1포인트).
  */
-export default function PointsPurchasePage() {
+export default function PointsPurchaseClient() {
   const [points, setPoints] = useState(DEFAULT_POINTS);
   const [depositorName, setDepositorName] = useState("");
   const [busy, setBusy] = useState(false);

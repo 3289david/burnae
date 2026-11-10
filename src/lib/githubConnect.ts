@@ -1,4 +1,4 @@
-import { exchangeCodeForToken, buildAuthorizeUrl, siteUrl } from "@/lib/oauth";
+import { exchangeCodeForToken, buildAuthorizeUrl } from "@/lib/oauth";
 
 /** 로그인용 GitHub 연동과 같은 OAuth App(GITHUB_CLIENT_ID/SECRET)을 재사용하지만, 이 흐름은
  * 로그인이 아니라 "비공개 저장소 접근 허용"이 목적이라 repo 범위로 다시 동의를 받는다 —
@@ -9,18 +9,28 @@ const REPO_SCOPE = "repo";
  * 저장소 연동을 구분하게 한다. */
 const STATE_PREFIX = "repo_connect:";
 
-export function buildGithubConnectState(csrf: string, serverId: string): string {
-  return `${STATE_PREFIX}${csrf}:${serverId}`;
+export type GithubConnectTarget = { serverId: string } | { returnTo: string };
+
+export function buildGithubConnectState(csrf: string, target: GithubConnectTarget): string {
+  const suffix = "serverId" in target ? `server:${target.serverId}` : `return:${encodeURIComponent(target.returnTo)}`;
+  return `${STATE_PREFIX}${csrf}:${suffix}`;
 }
 
-export function parseGithubConnectState(state: string): { serverId: string } | null {
+export function parseGithubConnectState(state: string): GithubConnectTarget | null {
   if (!state.startsWith(STATE_PREFIX)) return null;
   const rest = state.slice(STATE_PREFIX.length);
-  const sepIndex = rest.lastIndexOf(":");
+  const sepIndex = rest.indexOf(":");
   if (sepIndex === -1) return null;
-  const serverId = rest.slice(sepIndex + 1);
-  if (!serverId) return null;
-  return { serverId };
+  const tail = rest.slice(sepIndex + 1);
+  if (tail.startsWith("server:")) {
+    const serverId = tail.slice("server:".length);
+    return serverId ? { serverId } : null;
+  }
+  if (tail.startsWith("return:")) {
+    const returnTo = decodeURIComponent(tail.slice("return:".length));
+    return returnTo.startsWith("/") ? { returnTo } : null;
+  }
+  return null;
 }
 
 export function buildGithubConnectAuthorizeUrl(state: string): string {
@@ -69,8 +79,4 @@ export async function fetchGithubRepos(accessToken: string): Promise<GithubRepoS
   } finally {
     clearTimeout(timeout);
   }
-}
-
-export function githubConnectStartUrl(serverId: string): string {
-  return `${siteUrl()}/api/github/connect/start?serverId=${encodeURIComponent(serverId)}`;
 }

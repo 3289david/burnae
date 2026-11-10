@@ -51,7 +51,11 @@ export async function GET(
       if (!currentUser) {
         return NextResponse.redirect(new URL(localizedPath(preLocale, "/login"), siteUrl()));
       }
-      const settingsPath = `${localizedPath(preLocale, `/dashboard/servers/${connectState.serverId}`)}?tab=settings`;
+      const redirectPath =
+        "serverId" in connectState
+          ? `${localizedPath(preLocale, `/dashboard/servers/${connectState.serverId}`)}?tab=settings`
+          : localizedPath(preLocale, connectState.returnTo);
+      const sep = redirectPath.includes("?") ? "&" : "?";
       try {
         const { accessToken, githubLogin } = await exchangeGithubConnectCode(code);
         await prisma.gitHubConnection.upsert({
@@ -59,10 +63,10 @@ export async function GET(
           update: { accessToken, githubLogin },
           create: { userId: currentUser.id, accessToken, githubLogin },
         });
-        return NextResponse.redirect(new URL(`${settingsPath}&githubConnected=1`, siteUrl()));
+        return NextResponse.redirect(new URL(`${redirectPath}${sep}githubConnected=1`, siteUrl()));
       } catch (err) {
         console.error("[oauth:github] 저장소 연동 실패:", err);
-        return NextResponse.redirect(new URL(`${settingsPath}&githubError=1`, siteUrl()));
+        return NextResponse.redirect(new URL(`${redirectPath}${sep}githubError=1`, siteUrl()));
       }
     }
   }

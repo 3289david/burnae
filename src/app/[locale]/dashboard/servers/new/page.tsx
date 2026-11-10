@@ -6,6 +6,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "@/i18n/navigation";
 import SuccessCheck from "@/components/SuccessCheck";
+import GithubRepoPicker from "@/components/GithubRepoPicker";
 import FullScreenCelebration from "@/components/FullScreenCelebration";
 import CryptoPaymentOption from "@/components/CryptoPaymentOption";
 import { formatMb } from "@/lib/formatSize";
@@ -295,7 +296,8 @@ function NewServerPageInner() {
     categoryFilter === "PRESETS" || (categoryFilter === "DISCORD_BOT" && botSubFilter === "PRESETS") ? "community" : "official";
 
   const [allPresets, setAllPresets] = useState<CommunityPreset[]>([]);
-  const [showPresetForm, setShowPresetForm] = useState(false);
+  // GitHub 연동 후 이 페이지로 돌아왔을 때는 프리셋 공유 폼이 열려 있던 흐름이니 다시 펼쳐준다
+  const [showPresetForm, setShowPresetForm] = useState(() => searchParams.get("githubConnected") === "1");
   const [presetFormTemplateId, setPresetFormTemplateId] = useState("");
   const [presetFormName, setPresetFormName] = useState("");
   const [presetFormBlurb, setPresetFormBlurb] = useState("");
@@ -1236,14 +1238,10 @@ function NewServerPageInner() {
                       onChange={(e) => setPresetFormBlurb(e.target.value)}
                     />
                     <div>
-                      <label className="text-xs font-medium">코드 저장소 주소 (GitHub 등)</label>
-                      <input
-                        type="url"
-                        className="input w-full text-sm font-mono mt-1"
-                        placeholder="https://github.com/아이디/저장소이름"
-                        value={presetFormGitRepoUrl}
-                        onChange={(e) => setPresetFormGitRepoUrl(e.target.value)}
-                      />
+                      <label className="text-xs font-medium">코드 저장소</label>
+                      <div className="mt-1">
+                        <GithubRepoPicker value={presetFormGitRepoUrl} onChange={setPresetFormGitRepoUrl} returnTo="/dashboard/servers/new" />
+                      </div>
                       <p className="text-[11px] text-text-dim mt-1">
                         이 저장소로 서버가 만들어져요.
                       </p>

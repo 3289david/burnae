@@ -3,9 +3,10 @@
 import ArtCallout from "@/components/ArtCallout";
 import PageHeader from "@/components/PageHeader";
 import EmptyState from "@/components/EmptyState";
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import SuccessCheck from "@/components/SuccessCheck";
+import GithubRepoPicker from "@/components/GithubRepoPicker";
 import { ShieldCheck, Flag, Users, ArrowRight, Search, X } from "lucide-react";
 
 interface Template {
@@ -41,14 +42,24 @@ const CATEGORY_LABEL: Record<"ALL" | Template["category"], string> = {
 };
 
 export default function CommunityEggsPage() {
+  return (
+    <Suspense fallback={null}>
+      <CommunityEggsPageInner />
+    </Suspense>
+  );
+}
+
+function CommunityEggsPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [presets, setPresets] = useState<CommunityPreset[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<"ALL" | Template["category"]>("ALL");
   const [query, setQuery] = useState("");
   const [reportedIds, setReportedIds] = useState<string[]>([]);
 
-  const [showForm, setShowForm] = useState(false);
+  // GitHub 연동 후 이 페이지로 돌아왔을 때는 프리셋 공유 폼이 열려 있던 흐름이니 다시 펼쳐준다
+  const [showForm, setShowForm] = useState(() => searchParams.get("githubConnected") === "1");
   const [formTemplateId, setFormTemplateId] = useState("");
   const [formName, setFormName] = useState("");
   const [formBlurb, setFormBlurb] = useState("");
@@ -289,14 +300,10 @@ export default function CommunityEggsPage() {
               onChange={(e) => setFormBlurb(e.target.value)}
             />
             <div>
-              <label className="text-xs font-medium">코드 저장소 주소 (GitHub 등)</label>
-              <input
-                type="url"
-                className="input w-full text-sm font-mono mt-1"
-                placeholder="https://github.com/아이디/저장소이름"
-                value={formGitRepoUrl}
-                onChange={(e) => setFormGitRepoUrl(e.target.value)}
-              />
+              <label className="text-xs font-medium">코드 저장소</label>
+              <div className="mt-1">
+                <GithubRepoPicker value={formGitRepoUrl} onChange={setFormGitRepoUrl} returnTo="/dashboard/community-eggs" />
+              </div>
               <p className="text-[11px] text-text-dim mt-1">
                 이 저장소로 서버가 만들어져요.
               </p>

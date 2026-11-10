@@ -181,41 +181,42 @@ input[type="range"]::-moz-range-thumb {
 }
 input[type="range"]::-moz-range-track { height: 6px; border-radius: 999px; background: var(--surface-2); }
 
-/* ── 버튼 ─────────────────────────────────────────────── */
+/* ── 버튼: 모던 플랫(Linear/Vercel 스타일) ──────────────── */
+:root { --radius-btn: 10px; }
+
 .btn-primary {
-  background: linear-gradient(135deg, var(--flame-1), var(--flame-2) 60%, var(--flame-3));
-  color: white; border-radius: 999px; font-weight: 700;
-  box-shadow: 0 8px 24px -10px rgba(255,106,26,.7);
-  transition: transform .15s ease, box-shadow .15s ease, opacity .15s ease, filter .15s ease;
+  background: var(--accent); color: white; border-radius: var(--radius-btn); font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0,0,0,.08);
+  transition: background-color .15s ease, box-shadow .15s ease;
 }
 @media (hover: hover) {
-  .btn-primary:hover { transform: translateY(-1px); filter: brightness(1.08); box-shadow: 0 12px 30px -10px rgba(255,106,26,.8); }
+  .btn-primary:hover { background: color-mix(in srgb, var(--accent) 88%, black 12%); }
 }
-.btn-primary:active { transform: scale(.98); }
-.btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; filter: none; }
+.btn-primary:active { background: color-mix(in srgb, var(--accent) 78%, black 22%); }
+.btn-primary:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
 
 .btn-secondary {
   background: var(--surface-2); color: var(--text);
-  border: 1px solid var(--border); border-radius: 999px; font-weight: 600;
-  transition: background .15s ease, border-color .15s ease, transform .15s ease;
+  border: 1px solid var(--border); border-radius: var(--radius-btn); font-weight: 600;
+  transition: background .15s ease, border-color .15s ease;
 }
 @media (hover: hover) {
   .btn-secondary:hover { background: color-mix(in srgb, var(--surface-2) 80%, var(--text) 8%); border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); }
 }
-.btn-secondary:active { transform: scale(.98); }
+.btn-secondary:active { background: color-mix(in srgb, var(--surface-2) 70%, var(--text) 10%); }
 
-/* 히어로 주 버튼: 다크=흰 알약, 라이트=검정 알약 */
+/* 히어로 주 버튼: 다크=흰 배경, 라이트=검정 배경 */
 .btn-light {
   background: var(--text); color: var(--bg);
-  border-radius: 999px; font-weight: 700;
-  transition: transform .15s ease, opacity .15s ease;
+  border-radius: var(--radius-btn); font-weight: 600;
+  transition: opacity .15s ease;
 }
-@media (hover: hover) { .btn-light:hover { opacity: .88; transform: translateY(-1px); } }
-.btn-light:active { transform: scale(.98); }
+@media (hover: hover) { .btn-light:hover { opacity: .88; } }
+.btn-light:active { opacity: .78; }
 
 .btn-ghost {
-  border: 1px solid var(--border); border-radius: 999px; font-weight: 600; color: var(--text);
-  background: color-mix(in srgb, var(--surface) 60%, transparent);
+  border: 1px solid var(--border); border-radius: var(--radius-btn); font-weight: 600; color: var(--text);
+  background: transparent;
   transition: border-color .15s ease, background .15s ease;
 }
 @media (hover: hover) { .btn-ghost:hover { border-color: color-mix(in srgb, var(--text) 40%, var(--border)); background: var(--surface-2); } }

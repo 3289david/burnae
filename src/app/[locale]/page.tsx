@@ -149,7 +149,7 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
               </h1>
               <p className="mt-6 text-text-dim text-base sm:text-lg leading-relaxed max-w-lg">{heroDesc}</p>
               <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
-                <Link href="/register" className="btn-light rounded-lg px-6 py-3 text-sm inline-flex items-center gap-2" style={{ borderRadius: 8 }}>
+                <Link href="/register" className="btn-light px-6 py-3 text-sm inline-flex items-center gap-2">
                   {t("hero.ctaPrimary")} <ArrowRight size={16} />
                 </Link>
                 {discordInviteUrl && (
@@ -279,7 +279,7 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
                       {p.pointsPerMonth > 0 && <SpecRow label={t("pricing.aiCreditsLabel", { count: p.pointsPerMonth })} />}
                       {p.priceMonthlyKrw > 0 && <SpecRow label={t("pricing.multiAddressLabel")} />}
                     </ul>
-                    <Link href="/register" className={`${i === 1 ? "btn-light" : "btn-ghost"} w-full py-2.5 text-sm mt-7 inline-flex items-center justify-center gap-1.5`} style={{ borderRadius: 8 }}>
+                    <Link href="/register" className={`${i === 1 ? "btn-light" : "btn-ghost"} w-full py-2.5 text-sm mt-7 inline-flex items-center justify-center gap-1.5`}>
                       {t("pricing.startPlan")} <ArrowUpRight size={14} />
                     </Link>
                   </div>
@@ -300,7 +300,7 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
                 <Label>{t("pricing.freeBadge")}</Label>
                 <h3 className="mt-4 text-2xl sm:text-3xl font-semibold tracking-tight">{t("pricing.freeTitle")}</h3>
                 <p className="mt-4 text-sm text-text-dim leading-relaxed">{t("pricing.freeDesc")}</p>
-                <Link href="/register" className="btn-light mt-7 self-start px-6 py-3 text-sm inline-flex items-center gap-1.5" style={{ borderRadius: 8 }}>
+                <Link href="/register" className="btn-light mt-7 self-start px-6 py-3 text-sm inline-flex items-center gap-1.5">
                   {t("pricing.freeCta")} <ArrowUpRight size={14} />
                 </Link>
               </div>
@@ -334,7 +334,7 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
               <Label>Burnae Hosting</Label>
               <h2 className="mt-4 text-[clamp(2rem,4.6vw,3.75rem)] font-semibold leading-[1.08] tracking-tight">{t("finalCta.title")}</h2>
               <p className="mt-4 text-text-dim">{t("finalCta.desc")}</p>
-              <Link href="/register" className="btn-light mt-8 px-7 py-3.5 text-sm inline-flex items-center gap-2" style={{ borderRadius: 8 }}>
+              <Link href="/register" className="btn-light mt-8 px-7 py-3.5 text-sm inline-flex items-center gap-2">
                 {t("finalCta.cta")} <ArrowUpRight size={15} />
               </Link>
             </div>

@@ -5,7 +5,7 @@ export default function WizardArt() {
   return (
     <aside className="hidden lg:block absolute right-0 top-0 w-[340px]">
       <div className="relative aspect-[4/3] overflow-hidden rounded-xl border border-border bg-[#141414]">
-        <Image src="/img/onboard.webp" alt="" fill sizes="340px" className="object-cover" />
+        <Image src="/img/onboard.webp" alt="" fill quality={95} sizes="340px" className="object-cover" />
       </div>
       <ol className="mt-5 space-y-3 text-sm text-text-dim">
         <li><span className="text-accent font-mono mr-2">01</span>이름과 종류를 고르고</li>

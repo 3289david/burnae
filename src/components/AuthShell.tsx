@@ -7,7 +7,7 @@ export default function AuthShell({ children, action }: { children: React.ReactN
   return (
     <div className="min-h-screen grid lg:grid-cols-[1.05fr_1fr]">
       <div className="relative hidden lg:flex flex-col justify-center gap-6 p-12 xl:p-16 bg-surface border-r border-border">
-                <div className="relative mx-auto w-full max-w-sm aspect-[3/4] overflow-hidden rounded-xl border border-border bg-[#141414]"><Image src="/img/illus-auth.webp" alt="" fill priority sizes="30vw" className="object-cover" /></div>
+                <div className="relative mx-auto w-full max-w-sm aspect-[3/4] overflow-hidden rounded-xl border border-border bg-[#141414]"><Image src="/img/illus-auth.webp" alt="" fill priority quality={95} sizes="30vw" className="object-cover" /></div>
         <Link href="/" className="absolute top-8 left-10 flex items-center gap-2 text-xl font-bold font-display">
           <BrandMark size={28} /> Burnae
         </Link>

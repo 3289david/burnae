@@ -9,7 +9,7 @@ export default function PageHeader({
   return (
     <header className={`flex flex-wrap items-center gap-x-4 gap-y-4 ${className}`}>
       <div className="relative shrink-0 w-14 h-14 sm:w-16 sm:h-16 overflow-hidden rounded-xl border border-border bg-[#141414]">
-        <Image src={`/img/head-${art}.webp`} alt="" fill sizes="64px" className="object-cover object-right" />
+        <Image src={`/img/head-${art}.webp`} alt="" fill quality={95} sizes="64px" className="object-cover object-right" />
       </div>
       <div className="min-w-0 flex-1 basis-56">
         <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight leading-tight">{title}</h1>

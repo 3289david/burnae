@@ -10,7 +10,7 @@ export default function EmptyState({
   return (
     <div className={`flex ${compact ? "items-center gap-4 py-3" : "flex-col items-center text-center py-12 sm:py-16"}`}>
       <div className="relative shrink-0 overflow-hidden rounded-xl bg-[#141414] border border-border" style={{ width: size, height: Math.round(size * 0.75) }}>
-        <Image src={`/img/illus-${art}.webp`} alt="" fill sizes={`${size}px`} className="object-cover" />
+        <Image src={`/img/illus-${art}.webp`} alt="" fill quality={95} sizes={`${size}px`} className="object-cover" />
       </div>
       <div className={compact ? "" : "mt-6"}>
         <p className={compact ? "text-sm text-text-dim" : "text-lg font-semibold"}>{title}</p>

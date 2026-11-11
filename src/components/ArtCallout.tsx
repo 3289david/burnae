@@ -18,7 +18,7 @@ export default function ArtCallout({
         )}
       </div>
       <div className="relative min-h-36 sm:min-h-full bg-[#141414] border-t sm:border-t-0 sm:border-l border-border sm:[direction:ltr]">
-        <Image src={`/img/${src}.webp`} alt="" fill sizes="(min-width: 640px) 30vw, 100vw" className={`object-cover ${src.startsWith("illus-") ? "object-center" : "object-right"}`} />
+        <Image src={`/img/${src}.webp`} alt="" fill quality={95} sizes="(min-width: 640px) 30vw, 100vw" className={`object-cover ${src.startsWith("illus-") ? "object-center" : "object-right"}`} />
       </div>
     </div>
   );

@@ -685,7 +685,8 @@
     "modelOpus": "Opus (고성능)",
     "modelSonnet": "Sonnet (기본)",
     "modelHaiku": "Haiku (저렴/빠름)",
-    "modelPickerHint": "모델마다 크레딧 단가가 달라요 — Opus 1.5배, Sonnet 기본, Haiku 0.8배"
+    "modelPickerHint": "모델마다 크레딧 단가가 달라요 — Opus 1.5배, Sonnet 기본, Haiku 0.8배",
+    "modelFree": "기본 모델 (무료)"
   },
   "serverDetailClient": {
     "tabOverview": "개요",

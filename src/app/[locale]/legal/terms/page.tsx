@@ -13,7 +13,7 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
       <main className="max-w-3xl mx-auto px-6 py-12 prose-sm">
         <LegalEnglishNotice locale={locale} />
         <h1 className="text-3xl font-bold font-display">이용약관</h1>
-        <p className="text-sm text-text-dim mt-2">시행일: 2026년 8월 31일</p>
+        <p className="text-sm text-text-dim mt-2">시행일: 2026년 11월 11일</p>
 
         <Section title="제1조 (목적)">
           이 약관은 Burnae(이하 &ldquo;회사&rdquo;)가 제공하는 서버 호스팅(마인크래프트 등 게임 서버, VPS,
@@ -29,7 +29,8 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
           그리고 AI 챗봇을 통한 서버 관리 보조 및 &ldquo;메이커&rdquo; 기능(대화를 통해 플러그인·디스코드
           봇·웹사이트 등 실행 가능한 결과물을 생성·수정)입니다. 또한 홍보 활동으로 적립한 포인트를 무료
           서버 이용, 무료 서버의 서버 자원(RAM/CPU/디스크/백업 슬롯/추가 주소) 업그레이드, 무료 서버
-          슬롯 연장 등으로 교환할 수 있는 포인트 상점을 제공합니다(무료 서버는 1인당 기본 1개이며,
+          슬롯 연장, 공식 디스코드 서버의 칭호/역할 교환 등으로 쓸 수 있는 포인트 상점을 제공합니다
+          (무료 서버는 1인당 기본 1개이며,
           포인트로 슬롯을 하나 사면 기간 한정으로 1개 더 운영할 수 있습니다). 회사는 운영 정책에
           따라 특정 시점에 제공하는 서버 종류의 범위를
           조정할 수 있습니다(예: 마인크래프트 서버만 제공, 일반 서버만 제공, 또는 둘 다 제공). 회사는

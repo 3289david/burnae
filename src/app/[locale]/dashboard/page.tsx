@@ -81,7 +81,7 @@ export default async function DashboardPage() {
             </Link>
           </div>
           <div className="relative min-h-64 overflow-hidden rounded-xl border border-border bg-[#141414]">
-            <Image src="/img/onboard.webp" alt="" fill sizes="(min-width: 1024px) 40vw, 100vw" className="object-cover" />
+            <Image src="/img/onboard.webp" alt="" fill quality={95} sizes="(min-width: 1024px) 40vw, 100vw" className="object-cover" />
           </div>
         </div>
       ) : (

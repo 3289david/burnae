@@ -188,7 +188,7 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
                 {presets.map((p) => (
                   <Link key={p.id} href="/register" className="group block">
                     <div className="relative aspect-[4/3] overflow-hidden rounded-[var(--radius)] border border-border bg-[#141414]">
-                      <Image src={`/img/illus-${p.id}.webp`} alt="" fill sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" className="object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
+                      <Image src={`/img/illus-${p.id}.webp`} alt="" fill quality={95} sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" className="object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
                     </div>
                     <div className="mt-4 flex items-start justify-between gap-3">
                       <div>
@@ -304,7 +304,7 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
                   {t("pricing.freeCta")} <ArrowUpRight size={14} />
                 </Link>
               </div>
-              <div className="relative min-h-60 md:min-h-full md:border-l border-border bg-[#141414]"><Image src="/img/illus-free.webp" alt="" fill sizes="(min-width: 768px) 50vw, 100vw" className="object-cover" /></div>
+              <div className="relative min-h-60 md:min-h-full md:border-l border-border bg-[#141414]"><Image src="/img/illus-free.webp" alt="" fill quality={95} sizes="(min-width: 768px) 50vw, 100vw" className="object-cover" /></div>
             </div>
           </div>
         </section>
@@ -338,7 +338,7 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
                 {t("finalCta.cta")} <ArrowUpRight size={15} />
               </Link>
             </div>
-            <div className="relative aspect-[16/10] overflow-hidden rounded-[var(--radius)] border border-border bg-[#141414]"><Image src="/img/illus-cta.webp" alt="" fill sizes="(min-width: 768px) 50vw, 100vw" className="object-cover object-[50%_30%]" /></div>
+            <div className="relative aspect-[16/10] overflow-hidden rounded-[var(--radius)] border border-border bg-[#141414]"><Image src="/img/illus-cta.webp" alt="" fill quality={95} sizes="(min-width: 768px) 50vw, 100vw" className="object-cover object-[50%_30%]" /></div>
           </div>
         </section>
       </main>

@@ -322,7 +322,7 @@ export default function AiTab({
         ) : (
           <span className="text-xs text-text-dim px-2.5 py-1 rounded-md bg-surface-2 border border-border shrink-0 flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-            claude-sonnet-4-6-free (무료 기본 관리)
+            {t("modelFree")}
           </span>
         )}
         {conversations.length > 1 ? (

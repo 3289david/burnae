@@ -13,7 +13,7 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
       <main className="max-w-3xl mx-auto px-6 py-12">
         <LegalEnglishNotice locale={locale} />
         <h1 className="text-3xl font-bold font-display">개인정보처리방침</h1>
-        <p className="text-sm text-text-dim mt-2">시행일: 2026년 8월 31일</p>
+        <p className="text-sm text-text-dim mt-2">시행일: 2026년 11월 11일</p>
 
         <Section title="1. 수집하는 개인정보 항목">
           <ul className="list-disc pl-5 space-y-1">
@@ -25,7 +25,7 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
             <li>서비스 이용 기록: 서버 생성/삭제/이전 이력, 콘솔 명령 실행 로그, 파일 작업 로그, AI 챗봇 및
               &ldquo;메이커&rdquo; 대화 내역(메이커가 자동 실행한 파일 생성·수정·명령 실행 기록 포함), 접속 로그</li>
             <li>포인트·상점 이용 내역: 홍보 활동으로 적립된 포인트 잔액 및 적립·차감 내역, 포인트 상점에서
-              교환한 항목(자원 업그레이드, 무료 슬롯 연장 등)</li>
+              교환한 항목(자원 업그레이드, 무료 슬롯 연장, 디스코드 칭호/역할 등)</li>
             <li>커뮤니티 프리셋 이용 내역: 이용자가 공개한 프리셋의 이름·설명·코드 저장소 주소·설정값
               (공개 정보, 다른 이용자에게 노출됨), 신고 접수 시 신고자·사유·대상 정보</li>
             <li>디스코드 연동 시 디스코드 사용자 ID, 규칙 인증·공지 알림 구독 등 역할 부여 여부</li>

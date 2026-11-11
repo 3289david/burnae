@@ -4,10 +4,16 @@ import { prisma } from "@/lib/prisma";
 import { sendVerificationEmail, RESEND_COOLDOWN_SECONDS } from "@/lib/emailAuth";
 import { ResendError } from "@/lib/resend";
 import { withApiErrorHandling } from "@/lib/apiHandler";
+import { extractClientIp } from "@/lib/altAccountDetection";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rateLimit";
 
 const schema = z.object({ email: z.string().email() });
 
 export const POST = withApiErrorHandling(async (request: Request) => {
+  const ip = extractClientIp(request) ?? "unknown";
+  const rl = checkRateLimit(`resend-verification:${ip}`, 5, 300_000);
+  if (!rl.allowed) return rateLimitResponse(rl.retryAfterSec);
+
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "입력값이 올바르지 않습니다." }, { status: 422 });
   const email = parsed.data.email.toLowerCase();

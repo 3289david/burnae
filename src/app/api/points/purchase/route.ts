@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { resolveDepositorName, isValidDepositorName } from "@/lib/hanabank";
 import { markOrderPaidAndFulfill } from "@/lib/orderFulfillment";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rateLimit";
 
 /** 1원 = 1포인트. 슬라이더로 직접 금액을 고르므로 패키지 대신 범위만 검증한다 */
 const MIN_POINTS = 100;
@@ -17,6 +18,9 @@ const schema = z.object({
 export async function POST(request: Request) {
   const user = await requireUser();
   if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+
+  const rl = checkRateLimit(`points-purchase:${user.id}`, 10, 300_000);
+  if (!rl.allowed) return rateLimitResponse(rl.retryAfterSec);
 
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 422 });

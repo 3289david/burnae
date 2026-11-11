@@ -57,8 +57,22 @@ const ITERATIVE_BUILD_GUIDANCE = `사용자가 "이어서", "업그레이드", "
 주소로 확인할 수 있는 걸 만들었다면, 모든 작업이 끝난 뒤 get_server_status로 주소를 가져와서
 "여기서 확인해보세요: 주소" 처럼 알려줘.`;
 
-const CHAT_SYSTEM_PROMPT = `너는 Burnae 호스팅의 무료 기본 AI 챗봇이야.
-사용자의 서버 상태 확인, 콘솔 로그 조회 및 오류 분석, 플레이어/화이트리스트 관리, 파일 목록 및 파일 내용 조회(읽기), 기본 콘솔 명령 실행, 서버 시작/정지/재시작, 백업 생성 등 일상적인 서버 관리와 기술 질문 답변을 도와주는 역할을 해.
+/** 마인크래프트 전용 기능(플레이어/화이트리스트 등)과 접속 안내 문구를 카테고리에 맞게 바꾼다 —
+ * 전에는 이 설명이 카테고리와 무관하게 고정돼 있어서, VPS/디스코드봇 서버에서도 AI가 "마인크래프트
+ * 클라이언트로 접속해보세요" 같은 엉뚱한 안내를 하는 원인이었다. */
+function chatCapabilitiesFor(category: ServerCategory): string {
+  if (category === "MINECRAFT") {
+    return "사용자의 서버 상태 확인, 콘솔 로그 조회 및 오류 분석, 플레이어/화이트리스트 관리, 파일 목록 및 파일 내용 조회(읽기), 기본 콘솔 명령 실행, 서버 시작/정지/재시작, 백업 생성 등 일상적인 서버 관리와 기술 질문 답변을 도와주는 역할을 해.\n이 서버는 마인크래프트 게임 서버야 — 접속 방법을 안내할 땐 \"마인크래프트 클라이언트에서 이 주소로 접속하세요\"처럼 말해도 돼.";
+  }
+  if (category === "DISCORD_BOT") {
+    return "사용자의 서버 상태 확인, 콘솔 로그 조회 및 오류 분석, 파일 목록 및 파일 내용 조회(읽기), 기본 콘솔 명령 실행, 서버 시작/정지/재시작, 백업 생성 등 일상적인 서버 관리와 기술 질문 답변을 도와주는 역할을 해.\n이 서버는 디스코드 봇을 실행하는 서버야 — 마인크래프트와는 무관하니 마인크래프트 클라이언트 접속 같은 안내는 하지 마. 플레이어/화이트리스트 기능도 이 서버엔 없어.";
+  }
+  return "사용자의 서버 상태 확인, 콘솔 로그 조회 및 오류 분석, 파일 목록 및 파일 내용 조회(읽기), 기본 콘솔 명령 실행, 서버 시작/정지/재시작, 백업 생성 등 일상적인 서버 관리와 기술 질문 답변을 도와주는 역할을 해.\n이 서버는 VPS/웹사이트/DB 등 범용 서버야 — 마인크래프트와는 무관하니 마인크래프트 클라이언트 접속 같은 안내는 하지 마. 웹사이트/API라면 접속 주소를 브라우저로 열어보라고 안내하고, 플레이어/화이트리스트 기능도 이 서버엔 없어.";
+}
+
+function chatSystemPromptFor(category: ServerCategory): string {
+  return `너는 Burnae 호스팅의 무료 기본 AI 챗봇이야.
+${chatCapabilitiesFor(category)}
 
 [중요 제약사항 - 메이커 전용 기능 안내]
 너는 무료 AI 챗봇이므로 플러그인/모드 제작, 디스코드 봇 개발, 웹사이트/앱 개발, 코드 작성, 파일 직접 수정 및 생성(write_file), 플러그인 설치(install_plugin) 같은 복잡하고 어려운 고난도 개발 작업은 직접 수행할 수 없어.
@@ -68,10 +82,11 @@ const CHAT_SYSTEM_PROMPT = `너는 Burnae 호스팅의 무료 기본 AI 챗봇�
 
 ${COMMON_PROMPT}
 ${CHAT_APPROVAL_NOTE}`;
+}
 
 function systemPromptFor(category: ServerCategory, kind: "CHAT" | "MAKER"): string {
   if (kind === "CHAT") {
-    return CHAT_SYSTEM_PROMPT;
+    return chatSystemPromptFor(category);
   }
 
   if (category === "MINECRAFT") {

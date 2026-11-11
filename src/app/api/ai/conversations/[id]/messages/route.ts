@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { runAiTurn, InsufficientCreditsError } from "@/lib/ai/engine";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rateLimit";
 
 const schema = z.object({
   message: z.string().min(1).max(2000),
@@ -16,6 +17,9 @@ export async function POST(
 ) {
   const user = await requireUser();
   if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+
+  const rl = checkRateLimit(`ai-message:${user.id}`, 20, 60_000);
+  if (!rl.allowed) return rateLimitResponse(rl.retryAfterSec);
 
   const { id } = await params;
   const conversation = await prisma.aiConversation.findFirst({

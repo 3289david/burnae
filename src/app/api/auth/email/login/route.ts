@@ -5,6 +5,8 @@ import { createSessionCookie } from "@/lib/auth";
 import { verifyPassword, matchAndRemoveBackupCode } from "@/lib/password";
 import { verifyTotp } from "@/lib/totp";
 import { withApiErrorHandling } from "@/lib/apiHandler";
+import { extractClientIp } from "@/lib/altAccountDetection";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rateLimit";
 
 const schema = z.object({
   email: z.string().email(),
@@ -13,6 +15,10 @@ const schema = z.object({
 });
 
 export const POST = withApiErrorHandling(async (request: Request) => {
+  const ip = extractClientIp(request) ?? "unknown";
+  const rl = checkRateLimit(`login:${ip}`, 10, 60_000);
+  if (!rl.allowed) return rateLimitResponse(rl.retryAfterSec);
+
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "입력값이 올바르지 않습니다." }, { status: 422 });
   const { password, code } = parsed.data;

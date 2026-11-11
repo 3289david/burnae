@@ -3,7 +3,7 @@
 import PageHeader from "@/components/PageHeader";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Copy, Check, CheckCircle2, Clock, Gift, Calendar, MessageCircle, Mic, Tag, Gem, ArrowUpRight } from "lucide-react";
+import { Copy, Check, CheckCircle2, Clock, Gift, Calendar, MessageCircle, Mic, Tag, Gem, ArrowUpRight, Smile, UserPlus } from "lucide-react";
 import CountUp from "@/components/CountUp";
 
 const DISCORD_INVITE_URL = process.env.NEXT_PUBLIC_DISCORD_SERVER_INVITE_URL;
@@ -14,6 +14,8 @@ const DISCORD_EARN_METHODS = [
   { icon: Mic, label: "음성채널 체류", desc: "음성 채널에 머무르면 10분마다 +1P (하루 최대 30P)" },
   { icon: Tag, label: "서버 태그 착용", desc: "디스코드 프로필에 Burnae 서버 태그를 달아두면 시간당 +2P" },
   { icon: Gem, label: "서버 부스트", desc: "공식 디스코드 서버를 부스트하면 한 번에 +2000P" },
+  { icon: Smile, label: "공지 반응", desc: "공지 채널 게시글에 이모지 반응을 남기면 게시글당 +5P" },
+  { icon: UserPlus, label: "친구 초대", desc: "내 디스코드 초대 링크로 친구가 들어오면 한 명당 +20P" },
 ];
 
 type VerifyMethod =

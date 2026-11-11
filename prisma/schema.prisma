@@ -1512,6 +1512,26 @@ model LevelRole {
   @@index([level])
 }
 
+/// 공지 채널에 올라온 메시지(봇이 올린 것만)에 리액션을 달면 1회 지급 — 같은 메시지에 같은
+/// 유저가 또 받지 못하게 유니크 제약으로 막는다(activityRewards.ts)
+model ReactionRewardClaim {
+  id            String   @id @default(cuid())
+  messageId     String
+  discordUserId String
+  createdAt     DateTime @default(now())
+
+  @@unique([messageId, discordUserId])
+}
+
+/// 디스코드 자체 초대 링크로 새 멤버가 들어오면 초대한 사람에게 지급 — 같은 피초대자가 중복으로
+/// 집계되지 않게 invitedDiscordUserId를 유니크로 둔다(activityRewards.ts)
+model DiscordInviteReward {
+  id                    String   @id @default(cuid())
+  inviterDiscordUserId  String
+  invitedDiscordUserId  String   @unique
+  createdAt             DateTime @default(now())
+}
+
 /// "임시 개인 음성방" — voiceTriggerChannelId에 들어가면 만들어지는 전용 음성채널 한 칸당 한 줄.
 /// 안에 아무도 없으면 자동으로 삭제되고(voiceTrigger.ts), 봇이 재시작돼도 이 테이블을 보고
 /// 이미 빈 채널이 된 걸 정리할 수 있다(재시작 중 놓친 퇴장 이벤트 보정)

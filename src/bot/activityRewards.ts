@@ -1,4 +1,14 @@
-import type { Client, GuildMember, Message, PartialGuildMember, VoiceState } from "discord.js";
+import type {
+  Client,
+  GuildMember,
+  Message,
+  PartialGuildMember,
+  VoiceState,
+  MessageReaction,
+  PartialMessageReaction,
+  User,
+  PartialUser,
+} from "discord.js";
 import { Events, MessageFlags } from "discord.js";
 import { prisma } from "./prismaClient";
 import { panel, heading, text } from "../lib/discordComponentsV2";
@@ -285,13 +295,81 @@ async function checkServerTags(client: Client, officialGuildId: string) {
 }
 
 /**
- * 디스코드 활동(채팅/서버 태그/부스트/음성채널 체류)으로 포인트를 지급한다. 연동(DiscordLink)된 계정만
+ * 디스코드 활동(채팅/서버 태그/부스트/음성채널 체류/공지 반응/초대)으로 포인트를 지급한다. 연동(DiscordLink)된 계정만
  * 대상이며, 공식 서버(officialGuildId) 밖의 활동은 무시한다.
  */
+/** 공지 채널에 봇이 올린 메시지에 리액션을 달면 1회 지급 — 같은 메시지에 같은 유저가 또 받진
+ * 못하게 DB 유니크 제약(ReactionRewardClaim)으로 막는다. 사람이 올린 일반 채팅은 대상이 아니다 */
+const POINTS_PER_REACTION = 5;
+
+async function handleReactionAdd(
+  client: Client,
+  reaction: MessageReaction | PartialMessageReaction,
+  user: User | PartialUser,
+  officialGuildId: string,
+) {
+  if (user.bot) return;
+  if (reaction.message.guildId !== officialGuildId) return;
+
+  const settings = await prisma.botSettings.findUnique({ where: { id: 1 } });
+  const allowedChannelIds = new Set([settings?.announcementChannelId, settings?.subAnnouncementChannelId].filter(Boolean));
+  if (!allowedChannelIds.has(reaction.message.channelId)) return;
+
+  const message = reaction.message.partial ? await reaction.message.fetch().catch(() => null) : reaction.message;
+  if (!message?.author?.bot) return;
+
+  try {
+    await prisma.reactionRewardClaim.create({ data: { messageId: message.id, discordUserId: user.id } });
+  } catch {
+    return; // 이미 이 메시지에서 받았음(유니크 제약 위반) — 조용히 무시
+  }
+  await awardToDiscordUser(client, officialGuildId, user.id, POINTS_PER_REACTION, `공지 반응(msg:${message.id})`).catch((err) =>
+    console.error("[activityRewards] 공지 반응 지급 실패:", err),
+  );
+}
+
+/** 디스코드 자체 초대 링크로 새 멤버가 들어오면 초대한 사람에게 지급 — 가입 시점 스냅샷과 비교해
+ * 어떤 초대 코드가 쓰였는지 찾는다(vanity URL로 들어온 경우는 초대 코드가 없어서 대상 제외). */
+const POINTS_PER_INVITE = 20;
+const inviteUsesCache = new Map<string, number>();
+
+async function cacheInvites(client: Client, officialGuildId: string) {
+  const guild = await client.guilds.fetch(officialGuildId).catch(() => null);
+  const invites = await guild?.invites.fetch().catch(() => null);
+  if (!invites) return;
+  for (const invite of invites.values()) inviteUsesCache.set(invite.code, invite.uses ?? 0);
+}
+
+async function handleGuildMemberAdd(client: Client, member: GuildMember, officialGuildId: string) {
+  if (member.guild.id !== officialGuildId) return;
+  if (member.user.bot) return;
+
+  const invites = await member.guild.invites.fetch().catch(() => null);
+  if (!invites) return;
+  const usedInvite = invites.find((invite) => (invite.uses ?? 0) > (inviteUsesCache.get(invite.code) ?? 0));
+  for (const invite of invites.values()) inviteUsesCache.set(invite.code, invite.uses ?? 0);
+
+  if (!usedInvite?.inviter || usedInvite.inviter.bot || usedInvite.inviter.id === member.id) return;
+
+  try {
+    await prisma.discordInviteReward.create({
+      data: { inviterDiscordUserId: usedInvite.inviter.id, invitedDiscordUserId: member.id },
+    });
+  } catch {
+    return; // 이미 집계된 피초대자(유니크 제약 위반) — 조용히 무시
+  }
+  await awardToDiscordUser(client, officialGuildId, usedInvite.inviter.id, POINTS_PER_INVITE, `초대(${member.user.tag})`).catch((err) =>
+    console.error("[activityRewards] 초대 지급 실패:", err),
+  );
+}
+
 export function startActivityRewards(client: Client, officialGuildId: string) {
   client.on(Events.MessageCreate, (message) => handleMessageCreate(client, message, officialGuildId));
   client.on(Events.GuildMemberUpdate, (oldMember, newMember) => handleGuildMemberUpdate(client, oldMember, newMember, officialGuildId));
   client.on(Events.VoiceStateUpdate, (oldState, newState) => handleVoiceStateUpdate(client, oldState, newState, officialGuildId));
+  client.on(Events.MessageReactionAdd, (reaction, user) => handleReactionAdd(client, reaction, user, officialGuildId));
+  client.on(Events.GuildMemberAdd, (member) => handleGuildMemberAdd(client, member, officialGuildId));
+  cacheInvites(client, officialGuildId).catch((err) => console.error("[activityRewards] 초대 캐시 초기화 실패:", err));
 
   setInterval(() => {
     checkServerTags(client, officialGuildId).catch((err) => console.error("[activityRewards] 서버 태그 점검 오류:", err));

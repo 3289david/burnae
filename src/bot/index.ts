@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { ActivityType, Client, GatewayIntentBits, Events, TextChannel, MessageFlags } from "discord.js";
+import { ActivityType, Client, GatewayIntentBits, Events, TextChannel, MessageFlags, Partials } from "discord.js";
 import { handleCommand, handleAutocomplete, handleButton, handleModalSubmit } from "./commands";
 import { startCrashWatcher } from "./watcher";
 import { startStatusBoard } from "./statusBoard";
@@ -41,7 +41,13 @@ const client = new Client({
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildVoiceStates,
     GatewayIntentBits.GuildModeration,
+    // 공지 반응 포인트(GuildMessageReactions)와 초대 포인트(GuildInvites) — 둘 다 포털에서
+    // 따로 켤 필요 없는 일반 인텐트
+    GatewayIntentBits.GuildMessageReactions,
+    GatewayIntentBits.GuildInvites,
   ],
+  // 오래된(캐시 안 된) 공지 메시지에 반응을 달아도 MessageReactionAdd가 뜨게 하려면 partial을 켜야 한다
+  partials: [Partials.Message, Partials.Reaction],
 });
 
 client.once(Events.ClientReady, (c) => {

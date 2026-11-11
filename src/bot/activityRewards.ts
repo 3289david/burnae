@@ -1,4 +1,4 @@
-import type { Client, GuildMember, Message, PartialGuildMember } from "discord.js";
+import type { Client, GuildMember, Message, PartialGuildMember, VoiceState } from "discord.js";
 import { Events, MessageFlags } from "discord.js";
 import { prisma } from "./prismaClient";
 import { panel, heading, text } from "../lib/discordComponentsV2";
@@ -92,7 +92,7 @@ function todayKey(): string {
  * 포인트를 어차피 마일스톤 판정용으로 구하므로, 레벨업 감지(+등급 역할 재적용)도 같이 끼워 넣었다 —
  * 레벨이 더 이상 별도로 안 쌓이고 포인트에서 바로 계산되므로 이 함수 하나로 전부 처리된다.
  */
-async function awardToDiscordUser(client: Client, guildId: string, discordUserId: string, points: number, reason: string): Promise<boolean> {
+export async function awardToDiscordUser(client: Client, guildId: string, discordUserId: string, points: number, reason: string): Promise<boolean> {
   const link = await prisma.discordLink.findUnique({ where: { discordUserId } });
   if (!link) {
     console.log(`[activityRewards] ${discordUserId} 미연동 계정이라 지급 안 함 (${reason})`);
@@ -221,6 +221,52 @@ function handleGuildMemberUpdate(
   }
 }
 
+/** 음성 채널 체류 10분당 지급 포인트 — 채팅처럼 적극적인 활동이 아니라 낮게 유지하고, 하루 상한을 둔다 */
+const POINTS_PER_VOICE_10MIN = 1;
+const VOICE_DAILY_CAP = 30;
+
+const voiceJoinedAt = new Map<string, number>();
+const voiceDailyTotal = new Map<string, { day: string; points: number }>();
+
+/** 음성 채널에서 나간 시점에 머문 시간을 계산해서 10분 단위로 지급한다(하루 상한 적용) */
+async function awardVoiceTime(client: Client, guildId: string, userId: string, joinedAt: number) {
+  const minutes = Math.floor((Date.now() - joinedAt) / 60_000);
+  const chunks = Math.floor(minutes / 10);
+  if (chunks <= 0) return;
+
+  const today = todayKey();
+  const record = voiceDailyTotal.get(userId);
+  const soFar = record?.day === today ? record.points : 0;
+  const points = Math.min(chunks * POINTS_PER_VOICE_10MIN, Math.max(0, VOICE_DAILY_CAP - soFar));
+  if (points <= 0) return;
+
+  voiceDailyTotal.set(userId, { day: today, points: soFar + points });
+  await awardToDiscordUser(client, guildId, userId, points, `음성채널 체류(${minutes}분)`);
+}
+
+/** 음성 채널 입장/퇴장만 본다(채널 이동은 계속 체류 중인 걸로 취급) — 재시작 중이던 세션의
+ * 체류 시간은 메모리에만 있어서 유실될 수 있지만, 봇 재시작은 드물고 포인트도 적어서 감수한다 */
+function handleVoiceStateUpdate(client: Client, oldState: VoiceState, newState: VoiceState, officialGuildId: string) {
+  const guildId = newState.guild?.id ?? oldState.guild?.id;
+  if (guildId !== officialGuildId) return;
+  if ((newState.member ?? oldState.member)?.user.bot) return;
+
+  const userId = newState.id;
+  if (!oldState.channelId && newState.channelId) {
+    voiceJoinedAt.set(userId, Date.now());
+    return;
+  }
+  if (oldState.channelId && !newState.channelId) {
+    const joinedAt = voiceJoinedAt.get(userId);
+    voiceJoinedAt.delete(userId);
+    if (joinedAt) {
+      awardVoiceTime(client, officialGuildId, userId, joinedAt).catch((err) =>
+        console.error("[activityRewards] 음성채널 지급 실패:", err),
+      );
+    }
+  }
+}
+
 /** 매 시간마다 그 순간 서버 태그를 켜둔 멤버 전원에게 한 시간치 포인트를 지급한다 */
 async function checkServerTags(client: Client, officialGuildId: string) {
   const guild = await client.guilds.fetch(officialGuildId).catch(() => null);
@@ -239,12 +285,13 @@ async function checkServerTags(client: Client, officialGuildId: string) {
 }
 
 /**
- * 디스코드 활동(채팅/서버 태그/부스트)으로 포인트를 지급한다. 연동(DiscordLink)된 계정만
+ * 디스코드 활동(채팅/서버 태그/부스트/음성채널 체류)으로 포인트를 지급한다. 연동(DiscordLink)된 계정만
  * 대상이며, 공식 서버(officialGuildId) 밖의 활동은 무시한다.
  */
 export function startActivityRewards(client: Client, officialGuildId: string) {
   client.on(Events.MessageCreate, (message) => handleMessageCreate(client, message, officialGuildId));
   client.on(Events.GuildMemberUpdate, (oldMember, newMember) => handleGuildMemberUpdate(client, oldMember, newMember, officialGuildId));
+  client.on(Events.VoiceStateUpdate, (oldState, newState) => handleVoiceStateUpdate(client, oldState, newState, officialGuildId));
 
   setInterval(() => {
     checkServerTags(client, officialGuildId).catch((err) => console.error("[activityRewards] 서버 태그 점검 오류:", err));

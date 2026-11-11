@@ -24,7 +24,7 @@ import { startPhoneVerification, confirmPhoneVerification, PhoneVerificationErro
 import { updateNodeStatusBoard } from "./nodeStatusBoard";
 import { handleTicketButton } from "./tickets";
 import { handleSummarize } from "./aiFeatures";
-import { levelForPoints, pointsForLevel } from "./activityRewards";
+import { levelForPoints, pointsForLevel, awardToDiscordUser } from "./activityRewards";
 import {
   panel,
   heading,
@@ -118,6 +118,9 @@ export const commandDefinitions = [
   new SlashCommandBuilder()
     .setName("규칙")
     .setDescription("서버 규칙을 봅니다."),
+  new SlashCommandBuilder()
+    .setName("출석")
+    .setDescription("매일 한 번, 출석 체크로 포인트를 받습니다."),
   new SlashCommandBuilder()
     .setName("포인트순위")
     .setDescription("포인트 랭킹을 봅니다."),
@@ -256,6 +259,8 @@ export async function handleCommand(interaction: ChatInputCommandInteraction) {
       return handleLinktree(interaction);
     case "규칙":
       return handleRules(interaction);
+    case "출석":
+      return handleCheckin(interaction);
     case "포인트순위":
       return handlePointsLeaderboard(interaction);
     case "레벨":
@@ -311,6 +316,7 @@ async function handleHelp(interaction: PanelInteraction) {
           "**서버가 있는 분들은 계정을 연동하면 더 쓸 수 있어요**",
           "**1.** `/연동` 입력 → burnae.kr 로그인 화면에서 \"Discord로 계속하기\"로 로그인",
           "**2.** `/내정보` `/서버관리` `/포인트` `/서버목록` `/상태` `/시작` `/정지` `/재시작` 사용 가능",
+          "**3.** `/출석` 매일 한 번 출석 체크하면 포인트, 채팅·음성채널·서버 태그·부스트로도 포인트가 쌓여요",
         ].join("\n"),
       ),
     )
@@ -784,6 +790,54 @@ async function handlePointsLeaderboard(interaction: PanelInteraction) {
 }
 
 /** /레벨 — 보유 포인트로 바로 계산되는 레벨 + 다음 레벨까지 남은 포인트(XP 테이블은 없어졌다) */
+const POINTS_PER_CHECKIN = 10;
+const CHECKIN_STREAK_BONUS_EVERY = 7;
+const CHECKIN_STREAK_BONUS = 50;
+
+function dayKeyOf(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+async function handleCheckin(interaction: PanelInteraction) {
+  const link = await prisma.discordLink.findUnique({ where: { discordUserId: interaction.user.id } });
+  if (!link) {
+    await interaction.reply(v2Reply(panel().addTextDisplayComponents(text("먼저 `/연동` 명령어로 계정을 연동해주세요."))));
+    return;
+  }
+
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: link.userId } });
+  const today = dayKeyOf(new Date());
+  const lastDay = user.lastCheckinAt ? dayKeyOf(user.lastCheckinAt) : null;
+  if (lastDay === today) {
+    await interaction.reply(
+      v2Reply(
+        panel()
+          .addTextDisplayComponents(heading("📅 출석 체크"))
+          .addTextDisplayComponents(text(`오늘은 이미 출석했어요! 내일 다시 출석해주세요. (연속 ${user.checkinStreak}일째)`)),
+      ),
+    );
+    return;
+  }
+
+  const yesterday = dayKeyOf(new Date(Date.now() - 24 * 60 * 60 * 1000));
+  const newStreak = lastDay === yesterday ? user.checkinStreak + 1 : 1;
+  const bonus = newStreak % CHECKIN_STREAK_BONUS_EVERY === 0 ? CHECKIN_STREAK_BONUS : 0;
+  const points = POINTS_PER_CHECKIN + bonus;
+
+  await prisma.user.update({ where: { id: user.id }, data: { lastCheckinAt: new Date(), checkinStreak: newStreak } });
+  await awardToDiscordUser(interaction.client, interaction.guildId!, interaction.user.id, points, "출석체크");
+
+  const container = panel()
+    .addTextDisplayComponents(heading("📅 출석 체크 완료!"))
+    .addTextDisplayComponents(
+      text(
+        `+${points}P 받았어요! (연속 ${newStreak}일째)` +
+          (bonus ? `\n🎉 ${CHECKIN_STREAK_BONUS_EVERY}일 연속 출석 보너스 +${bonus}P 포함!` : ""),
+      ),
+    );
+  await interaction.reply(v2Reply(container, false));
+}
+
 async function handleLevel(interaction: PanelInteraction) {
   const user = await findLinkedUser(interaction.user.id);
   if (!user) {
@@ -1319,6 +1373,7 @@ async function handleHelpPanelCommand(interaction: ChatInputCommandInteraction) 
           "**서버가 있는 분들은 계정을 연동하면 더 쓸 수 있어요**",
           "**1.** `/연동` 입력 → burnae.kr 로그인 화면에서 \"Discord로 계속하기\"로 로그인",
           "**2.** `/내정보` `/서버관리` `/포인트` `/서버목록` `/상태` `/시작` `/정지` `/재시작` 사용 가능",
+          "**3.** `/출석` 매일 한 번 출석 체크하면 포인트, 채팅·음성채널·서버 태그·부스트로도 포인트가 쌓여요",
         ].join("\n"),
       ),
     )

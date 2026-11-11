@@ -3,8 +3,18 @@
 import PageHeader from "@/components/PageHeader";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Copy, Check, CheckCircle2, Clock, Gift } from "lucide-react";
+import { Copy, Check, CheckCircle2, Clock, Gift, Calendar, MessageCircle, Mic, Tag, Gem, ArrowUpRight } from "lucide-react";
 import CountUp from "@/components/CountUp";
+
+const DISCORD_INVITE_URL = process.env.NEXT_PUBLIC_DISCORD_SERVER_INVITE_URL;
+
+const DISCORD_EARN_METHODS = [
+  { icon: Calendar, label: "출석체크", desc: "`/출석` 명령어로 하루 한 번 체크하면 +10P (7일 연속이면 +50P 보너스)" },
+  { icon: MessageCircle, label: "채팅하기", desc: "지정된 채널에서 채팅하면 메시지당 +1P (하루 최대 100P)" },
+  { icon: Mic, label: "음성채널 체류", desc: "음성 채널에 머무르면 10분마다 +1P (하루 최대 30P)" },
+  { icon: Tag, label: "서버 태그 착용", desc: "디스코드 프로필에 Burnae 서버 태그를 달아두면 시간당 +2P" },
+  { icon: Gem, label: "서버 부스트", desc: "공식 디스코드 서버를 부스트하면 한 번에 +2000P" },
+];
 
 type VerifyMethod =
   | "URL_CONTAINS_LINK"
@@ -97,6 +107,32 @@ export default function PromotionsClient({
             </button>
           </div>
         </div>
+      </div>
+
+      <h2 className="font-semibold mt-8 mb-3 animate-fade-up" style={{ animationDelay: "0.13s" }}>디스코드에서도 모아요</h2>
+      <div className="card-glow p-4 space-y-3 animate-fade-up" style={{ animationDelay: "0.14s" }}>
+        <p className="text-xs text-text-dim">공식 디스코드 서버에서 계정을 연동(`/연동`)해두면 아래 활동으로 자동으로 포인트가 쌓여요.</p>
+        <div className="grid sm:grid-cols-2 gap-2.5">
+          {DISCORD_EARN_METHODS.map((m) => (
+            <div key={m.label} className="flex items-start gap-2.5 rounded-xl border border-border bg-surface-2/50 p-3">
+              <m.icon size={16} className="text-accent shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <p className="text-sm font-medium">{m.label}</p>
+                <p className="text-xs text-text-dim mt-0.5">{m.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        {DISCORD_INVITE_URL && (
+          <a
+            href={DISCORD_INVITE_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 text-sm font-medium text-accent hover:underline"
+          >
+            공식 디스코드 참여하기 <ArrowUpRight size={14} />
+          </a>
+        )}
       </div>
 
       <h2 className="font-semibold mt-8 mb-3 animate-fade-up" style={{ animationDelay: "0.15s" }}>{t("sectionTitle")}</h2>

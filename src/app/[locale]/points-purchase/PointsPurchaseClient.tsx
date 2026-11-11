@@ -10,6 +10,7 @@ const MIN_POINTS = 100;
 const MAX_POINTS = 50_000;
 const STEP = 100;
 const DEFAULT_POINTS = 2500;
+const QUICK_PICKS = [1000, 5000, 10000, 30000];
 
 /**
  * PointsPurchaseCard의 "충전" 버튼이 새 탭으로 여는 전용 페이지 — 모달이 아니라 완전히 분리된
@@ -26,6 +27,7 @@ export default function PointsPurchaseClient() {
   const [depositorEditBusy, setDepositorEditBusy] = useState(false);
   const [depositorEditError, setDepositorEditError] = useState<string | null>(null);
   const [paid, setPaid] = useState(false);
+  const sliderPct = ((points - MIN_POINTS) / (MAX_POINTS - MIN_POINTS)) * 100;
 
   async function buy() {
     setBusy(true);
@@ -116,11 +118,26 @@ export default function PointsPurchaseClient() {
                 step={STEP}
                 value={points}
                 onChange={(e) => setPoints(Number(e.target.value))}
-                className="w-full mt-2"
+                className="w-full mt-3"
+                style={{ background: `linear-gradient(to right, var(--accent) ${sliderPct}%, var(--surface-2) ${sliderPct}%)` }}
               />
               <div className="flex justify-between text-xs text-text-dim mt-1">
                 <span>{MIN_POINTS.toLocaleString()}P</span>
                 <span>{MAX_POINTS.toLocaleString()}P</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5 mt-3">
+                {QUICK_PICKS.map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setPoints(p)}
+                    className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors active:scale-95 ${
+                      points === p ? "bg-accent border-accent text-white" : "border-border text-text-dim hover:text-text hover:border-text-dim"
+                    }`}
+                  >
+                    {p.toLocaleString()}P
+                  </button>
+                ))}
               </div>
             </div>
             <DepositorNameField value={depositorName} onChange={setDepositorName} />

@@ -101,6 +101,7 @@ async function handleRenewals() {
     where: {
       deletedAt: null,
       status: { notIn: ["SUSPENDED", "DELETING"] },
+      pausedAt: null,
       renewalDueAt: { lte: in3days, gt: new Date(now) },
     },
   });
@@ -128,6 +129,7 @@ async function handleRenewals() {
     where: {
       deletedAt: null,
       status: { notIn: ["SUSPENDED", "DELETING", "PROVISIONING"] },
+      pausedAt: null,
       renewalDueAt: { lt: new Date(now) },
     },
   });

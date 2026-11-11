@@ -16,7 +16,7 @@ export default function DeveloperTab({ server }: { server: ServerInfo }) {
   const isMinecraft = server.templateCategory === "MINECRAFT";
   return (
     <div className="tab-grid animate-fade-up">
-      <StartupVariablesCard serverId={server.id} templateId={server.templateId} />
+      <StartupVariablesCard serverId={server.id} templateId={server.templateId} envGroup={server.envGroup} />
       {server.templateCategory === "DISCORD_BOT" && <DiscordInviteCard serverId={server.id} />}
       <GitDeployCard serverId={server.id} />
       <DeployHistoryCard serverId={server.id} />

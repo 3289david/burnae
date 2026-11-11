@@ -61,7 +61,15 @@ function friendlyHelp(envVariable: string, t: ReturnType<typeof useTranslations<
   return null;
 }
 
-export default function StartupVariablesCard({ serverId, templateId }: { serverId: string; templateId: string }) {
+export default function StartupVariablesCard({
+  serverId,
+  templateId,
+  envGroup,
+}: {
+  serverId: string;
+  templateId: string;
+  envGroup?: { id: string; name: string } | null;
+}) {
   const t = useTranslations("startupVariablesCard");
   const [variables, setVariables] = useState<StartupVariable[] | null>(null);
   const [values, setValues] = useState<Record<string, string>>({});
@@ -222,6 +230,12 @@ export default function StartupVariablesCard({ serverId, templateId }: { serverI
           <p className="text-xs text-text-dim">{t("desc")}</p>
         </div>
       </div>
+
+      {envGroup && (
+        <p className="text-xs text-text-dim bg-surface-2/50 rounded-lg px-3 py-2">
+          이 서버는 <strong>{envGroup.name}</strong> 환경변수 그룹에 연결돼 있어요 — <a href="/dashboard/env-groups" className="text-accent hover:underline">그룹에서 관리</a>
+        </p>
+      )}
 
       {variables === null && <p className="text-sm text-text-dim">{t("loading")}</p>}
 

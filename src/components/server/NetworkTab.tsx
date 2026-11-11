@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { Wrench } from "lucide-react";
 import { supportsSsh } from "@/lib/sshSupport";
+import Toggle from "@/components/Toggle";
 import AddressActions from "./AddressActions";
 import CustomDomainCard from "./CustomDomainCard";
 import SftpCard from "./SftpCard";
@@ -14,6 +16,22 @@ export default function NetworkTab({ server }: { server: ServerInfo }) {
   const [newName, setNewName] = useState("");
   const [subError, setSubError] = useState<string | null>(null);
   const [subLoading, setSubLoading] = useState(false);
+  const [maintenanceMode, setMaintenanceMode] = useState(server.maintenanceModeEnabled);
+  const [maintenanceBusy, setMaintenanceBusy] = useState(false);
+
+  async function toggleMaintenanceMode(next: boolean) {
+    setMaintenanceBusy(true);
+    try {
+      const res = await fetch(`/api/servers/${server.id}/maintenance-mode`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: next }),
+      });
+      if (res.ok) setMaintenanceMode(next);
+    } finally {
+      setMaintenanceBusy(false);
+    }
+  }
 
   async function addSubdomain(e: React.FormEvent) {
     e.preventDefault();
@@ -82,6 +100,21 @@ export default function NetworkTab({ server }: { server: ServerInfo }) {
         )}
         {subError && <p className="text-xs text-red mt-2">{subError}</p>}
       </div>
+
+      {server.isOwner && server.templateCategory !== "MINECRAFT" && (
+        <div className="card-glow p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <Wrench size={18} className="text-accent shrink-0" />
+              <div className="min-w-0">
+                <h3 className="font-semibold text-sm">유지보수 모드</h3>
+                <p className="text-xs text-text-dim mt-0.5">켜면 주소로 들어온 방문자에게 실제 서버 대신 "점검 중" 페이지를 보여줘요.</p>
+              </div>
+            </div>
+            <Toggle checked={maintenanceMode} onChange={toggleMaintenanceMode} disabled={maintenanceBusy} />
+          </div>
+        </div>
+      )}
 
       <CustomDomainCard serverId={server.id} isOwner={server.isOwner} initial={server.customDomains} />
 

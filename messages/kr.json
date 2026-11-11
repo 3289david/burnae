@@ -195,6 +195,7 @@
     "billing": "결제 내역",
     "support": "고객지원",
     "account": "계정",
+    "envGroups": "환경변수 그룹",
     "admin": "관리자",
     "search": "검색",
     "menu": "메뉴",
@@ -542,6 +543,9 @@
     "regenSecret": "비밀값 재발급",
     "buildCommandLabel": "빌드 명령 (선택) — pull 뒤 재시작 전에 실행해요",
     "buildCommandPlaceholder": "예: npm install && npm run build",
+    "preDeployCommandLabel": "Pre-Deploy 명령 (선택)",
+    "preDeployCommandHint": "빌드 다음, 재시작 직전에 한 번 더 실행해요 — DB 마이그레이션 같은 작업에 써요.",
+    "preDeployCommandPlaceholder": "예: npx prisma migrate deploy",
     "save": "저장",
     "deploying": "배포 중...",
     "deployNow": "지금 배포",
@@ -794,7 +798,9 @@
     "ownerTransfer": "소유권 이전",
     "gitDeploySuccess": "Git 배포 완료",
     "gitDeployFailed": "Git 배포 실패",
-    "scheduledTaskRun": "예약 작업 실행"
+    "scheduledTaskRun": "예약 작업 실행",
+    "serverPaused": "서버 일시정지",
+    "serverResumed": "서버 일시정지 해제"
   },
   "addressActions": {
     "copyAddress": "주소 복사",

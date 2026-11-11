@@ -75,6 +75,9 @@ export interface ServerInfo {
   myRole: ServerAccessRole | null;
   isFreeServer: boolean;
   accessSecret: string | null;
+  maintenanceModeEnabled: boolean;
+  pausedAt: string | null;
+  envGroup: { id: string; name: string } | null;
 }
 
 const TABS = [

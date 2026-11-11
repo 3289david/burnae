@@ -14,6 +14,7 @@ interface DeployConfig {
   hasSecret: boolean;
   deployWebhookSecret: string | null;
   buildCommand: string | null;
+  preDeployCommand: string | null;
   currentRepoUrl: string | null;
   githubLogin: string | null;
   gitBranch: string | null;
@@ -36,6 +37,7 @@ export default function GitDeployCard({ serverId }: { serverId: string }) {
   const [deployResult, setDeployResult] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [buildCommand, setBuildCommand] = useState("");
+  const [preDeployCommand, setPreDeployCommand] = useState("");
   const [gitBranch, setGitBranch] = useState("");
   const [notifyWebhookUrl, setNotifyWebhookUrl] = useState("");
   const [editingRepo, setEditingRepo] = useState(false);
@@ -56,6 +58,7 @@ export default function GitDeployCard({ serverId }: { serverId: string }) {
       .then((data) => {
         setConfig(data);
         setBuildCommand(data?.buildCommand ?? "");
+        setPreDeployCommand(data?.preDeployCommand ?? "");
         setGitBranch(data?.gitBranch ?? "");
         setNotifyWebhookUrl(data?.deployNotifyWebhookUrl ?? "");
         setRepoMode(data?.githubLogin ? "github" : "manual");
@@ -76,6 +79,7 @@ export default function GitDeployCard({ serverId }: { serverId: string }) {
     buildCommandOverride?: string,
     gitBranchOverride?: string,
     notifyWebhookOverride?: string,
+    preDeployCommandOverride?: string,
   ) {
     setSaving(true);
     try {
@@ -88,6 +92,7 @@ export default function GitDeployCard({ serverId }: { serverId: string }) {
           ...(buildCommandOverride !== undefined ? { buildCommand: buildCommandOverride || null } : {}),
           ...(gitBranchOverride !== undefined ? { gitBranch: gitBranchOverride || null } : {}),
           ...(notifyWebhookOverride !== undefined ? { deployNotifyWebhookUrl: notifyWebhookOverride || null } : {}),
+          ...(preDeployCommandOverride !== undefined ? { preDeployCommand: preDeployCommandOverride || null } : {}),
         }),
       });
       const data = await res.json();
@@ -432,6 +437,26 @@ export default function GitDeployCard({ serverId }: { serverId: string }) {
               />
               <button
                 onClick={() => toggle(true, false, buildCommand)}
+                disabled={saving}
+                className="btn-secondary px-3 py-1.5 text-xs shrink-0"
+              >
+                {t("save")}
+              </button>
+            </div>
+          </div>
+
+          <div className="pt-2 border-t border-border">
+            <label className="text-text-dim">{t("preDeployCommandLabel")}</label>
+            <p className="text-text-dim/70 text-[11px] mt-0.5 mb-1">{t("preDeployCommandHint")}</p>
+            <div className="flex gap-2">
+              <input
+                className="input flex-1 font-mono text-xs"
+                placeholder={t("preDeployCommandPlaceholder")}
+                value={preDeployCommand}
+                onChange={(e) => setPreDeployCommand(e.target.value)}
+              />
+              <button
+                onClick={() => toggle(true, false, undefined, undefined, undefined, preDeployCommand)}
                 disabled={saving}
                 className="btn-secondary px-3 py-1.5 text-xs shrink-0"
               >

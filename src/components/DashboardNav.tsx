@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
-import { Server, Gift, ShoppingBag, CreditCard, LifeBuoy, User, Users, Search, Plus, ShieldCheck, MoreHorizontal, X } from "lucide-react";
+import { Server, Gift, ShoppingBag, CreditCard, LifeBuoy, User, Users, Search, Plus, ShieldCheck, MoreHorizontal, X, Layers } from "lucide-react";
 import LogoutButton from "@/components/LogoutButton";
 import ThemeToggle from "@/components/ThemeToggle";
 import BrandMark from "@/components/BrandMark";
@@ -26,6 +26,7 @@ function useLinks() {
     { href: "/dashboard/billing", label: t("billing"), icon: CreditCard },
     { href: "/dashboard/support", label: t("support"), icon: LifeBuoy },
     { href: "/dashboard/account", label: t("account"), icon: User },
+    { href: "/dashboard/env-groups", label: t("envGroups"), icon: Layers },
   ];
 }
 
@@ -122,7 +123,7 @@ export function DashboardTabBar({ showAdminLink }: Pick<Props, "showAdminLink">)
 
   // 내 서버/포인트 받기/고객지원/커뮤니티 프리셋을 엄지로 바로 닿는 4개로 둔다
   const main = [links[0], links[1], links[5], links[3]];
-  const more = [links[2], links[4], links[6]];
+  const more = [links[2], links[4], links[6], links[7]];
   const moreActive = more.some((l) => isActive(pathname, l.href));
 
   return (

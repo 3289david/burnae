@@ -35,11 +35,15 @@ export async function syncAppProxyMap(prisma: PrismaClient) {
     include: { subdomains: { where: { isPrimary: true }, take: 1 } },
   });
 
+  // 유지보수 모드(Render의 Maintenance Mode)를 켠 서버는 실제 컨테이너 대신, 이 서버 자신에만
+  // 열려있는 로컬 "점검 중" 페이지(burnae-maintenance-page.conf, 127.0.0.1:8099)로 보낸다.
+  const MAINTENANCE_TARGET = "127.0.0.1:8099";
+
   // Wings가 발행하는 도커 포트는 노드의 공인 IP에만 바인딩되고 127.0.0.1(loopback)에는 안 열려있어서
   // nginx도 그 공인 IP:포트로 직접 proxy_pass 해야 한다
   const lines = servers
     .filter((s) => s.subdomains[0])
-    .map((s) => `    ${JSON.stringify(s.subdomains[0].subdomain)} ${s.allocationIp}:${s.allocationPort};`);
+    .map((s) => `    ${JSON.stringify(s.subdomains[0].subdomain)} ${s.maintenanceModeEnabled ? MAINTENANCE_TARGET : `${s.allocationIp}:${s.allocationPort}`};`);
   const content = lines.length > 0 ? lines.join("\n") + "\n" : "";
 
   const existing = fs.existsSync(MAP_FILE_PATH) ? fs.readFileSync(MAP_FILE_PATH, "utf-8") : null;

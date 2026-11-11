@@ -14,4 +14,6 @@ export const SERVER_ACTIVITY_LABEL_KEYS: Record<string, string> = {
   GIT_DEPLOY_SUCCESS: "gitDeploySuccess",
   GIT_DEPLOY_FAILED: "gitDeployFailed",
   SCHEDULED_TASK_RUN: "scheduledTaskRun",
+  SERVER_PAUSED: "serverPaused",
+  SERVER_RESUMED: "serverResumed",
 };

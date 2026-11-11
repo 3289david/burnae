@@ -23,6 +23,7 @@ export default async function ServerDetailPage({
       product: true,
       subdomains: { orderBy: { isPrimary: "desc" } },
       customDomains: { orderBy: { createdAt: "asc" } },
+      envGroup: { select: { id: true, name: true } },
     },
   });
   const settings = await prisma.hostingSettings.upsert({
@@ -78,6 +79,9 @@ export default async function ServerDetailPage({
         myRole,
         isFreeServer: (server.priceMonthlyKrwSnapshot ?? server.product?.priceMonthlyKrw ?? 0) === 0,
         accessSecret: server.ownerId === user.id ? server.accessSecret : null,
+        maintenanceModeEnabled: server.maintenanceModeEnabled,
+        pausedAt: server.pausedAt?.toISOString() ?? null,
+        envGroup: server.envGroup,
       }}
     />
   );

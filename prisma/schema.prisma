@@ -81,6 +81,7 @@ model User {
   updatedAt              DateTime   @updatedAt
 
   servers              Server[]
+  envGroups            EnvGroup[]
   orders               Order[]
   aiConversations      AiConversation[]
   aiActivityLogs       AiActivityLog[]
@@ -631,6 +632,22 @@ model Server {
   suspendedReason  String?
   renewalDueAt     DateTime?
   lastBackupAt     DateTime?
+  /// 소유자가 직접 끈(Render의 "Suspend") 시각 — null이면 정지 안 됨. 관리자가 미납/정책위반으로
+  /// 거는 SUSPENDED 상태(suspendedReason)와는 별개다. 정지돼 있는 동안은 유지보수 크론이 결제
+  /// 만료·자동절전·헬스체크·예약 작업을 전부 건너뛰고, 다시 켤 때 정지했던 시간만큼 renewalDueAt을
+  /// 뒤로 밀어서(과금 시계를 멈춘 것처럼) 손해 보지 않게 한다.
+  pausedAt         DateTime?
+  /// 켜면 이 서버의 app.krl.kr 주소가 실제 컨테이너 대신 "점검 중입니다" 안내 페이지로 연결된다
+  /// (Render의 Maintenance Mode) — HTTP로 접속하는 종류(GENERAL/DISCORD_BOT)에서만 의미 있다.
+  maintenanceModeEnabled Boolean @default(false)
+  /// 배포(git pull + buildCommand) 뒤, 재시작 직전에 한 번 더 실행하는 명령(예: DB 마이그레이션).
+  /// Render의 "Pre-Deploy Command"와 같은 개념 — 새 코드/마이그레이션 파일은 받은 상태에서 아직
+  /// 새 프로세스가 트래픽을 받기 전에 끝내야 하는 작업을 위한 자리.
+  preDeployCommand String?
+  /// 여러 서버에 같은 환경변수를 한 번에 적용하는 그룹(Render의 "Environment Group") — null이면
+  /// 이 서버는 어떤 그룹에도 속하지 않고 개별 시작 변수만 쓴다.
+  envGroupId       String?
+  envGroup         EnvGroup? @relation(fields: [envGroupId], references: [id], onDelete: SetNull)
   /// groble.im 정기결제로 이 서버를 결제 중이면 ACTIVE/PAST_DUE/CANCEL_REQUESTED/TERMINATED
   /// 중 하나. null이면 정기결제가 아예 연결된 적 없음(무통장입금/코인/groble 일회성 등)
   grobleSubscriptionStatus String?
@@ -716,6 +733,24 @@ model Server {
 
   @@index([ownerId])
   @@index([status])
+}
+
+/// 여러 서버에 같은 환경변수(API 키 등)를 한 번에 적용/관리하는 그룹(Render의 Environment Group).
+/// variables는 {KEY: value} 평문 JSON — 이 그룹을 쓰는 서버들의 실제 시작 변수(Pterodactyl)에
+/// applyEnvGroupToServer가 그대로 밀어넣는다. 그룹 자체는 서버에 아무 영향도 안 주고, "적용" 시점에만
+/// 실제로 반영된다(그룹을 수정해도 연결된 서버들에 다시 적용해야 바뀐 값이 실제로 나간다).
+model EnvGroup {
+  id        String   @id @default(cuid())
+  ownerId   String
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name      String
+  variables Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  servers Server[]
+
+  @@index([ownerId])
 }
 
 /// 헬스체크 연속 실패(HEALTH_CHECK_FAILURE_THRESHOLD)로 "다운"으로 판정한 구간 하나.

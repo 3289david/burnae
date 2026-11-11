@@ -146,6 +146,31 @@ export async function redeployFromGit(
     }
   }
 
+  // Render의 "Pre-Deploy Command"와 같은 개념 — 빌드까지 끝난 새 코드 위에서, 재시작(새 프로세스가
+  // 트래픽을 받기 전)에 꼭 끝나 있어야 하는 작업(DB 마이그레이션 등)을 여기서 실행한다
+  if (server.preDeployCommand) {
+    const preDeployLines = await PteroClient.runShellCommandAndCapture(server.pterodactylIdentifier, server.preDeployCommand, 30000).catch(
+      (err) => {
+        console.error(`[deploy] 서버 ${server.id} Pre-Deploy 명령 실패:`, err);
+        return null;
+      },
+    );
+    if (preDeployLines === null) {
+      const failureOutput = `${output}\nPre-Deploy 명령을 실행하지 못했어요.`;
+      await logServerActivity(server.id, actorId, "GIT_DEPLOY_FAILED", failureOutput.slice(0, 500));
+      await notifyDeployResult(server, false, failureOutput.slice(0, 300));
+      await recordDeploymentLog(server.id, trigger, actorId, false, failureOutput, startedAt, null, null);
+      return { ok: false, output: failureOutput };
+    }
+    output += "\n" + preDeployLines.join("\n");
+    if (FAILURE_PATTERN.test(preDeployLines.join("\n"))) {
+      await logServerActivity(server.id, actorId, "GIT_DEPLOY_FAILED", output.slice(0, 500));
+      await notifyDeployResult(server, false, output.slice(0, 300));
+      await recordDeploymentLog(server.id, trigger, actorId, false, output, startedAt, null, null);
+      return { ok: false, output };
+    }
+  }
+
   // 롤백 버튼에서 "이 시점으로 되돌리기"가 가리킬 지점을 남겨둔다 — 콘솔 출력엔 안 보여주고
   // 커밋 해시만 따로 캡처(pull 성공 여부와 무관하게 지금 HEAD가 어디인지는 항상 의미 있음)
   const shaLines = await PteroClient.runShellCommandAndCapture(server.pterodactylIdentifier, "git rev-parse HEAD", 5000).catch(

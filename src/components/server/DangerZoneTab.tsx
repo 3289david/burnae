@@ -13,6 +13,29 @@ export default function DangerZoneTab({ server }: { server: ServerInfo }) {
   const [reinstallDone, setReinstallDone] = useState(false);
   const [keepBackup, setKeepBackup] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [paused, setPaused] = useState(!!server.pausedAt);
+  const [pauseBusy, setPauseBusy] = useState(false);
+
+  async function togglePause(next: boolean) {
+    if (next && !confirm("서버를 일시정지할까요? 서버가 꺼지고, 다시 켤 때까지 결제 만료일이 미뤄져요.")) return;
+    setPauseBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/servers/${server.id}/pause`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paused: next }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "처리 실패");
+      setPaused(next);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "오류가 발생했습니다.");
+    } finally {
+      setPauseBusy(false);
+    }
+  }
 
   async function reinstall() {
     if (!confirm("서버를 재설치할까요? 설치 스크립트를 다시 실행해 초기 상태로 되돌립니다. 파일 대부분이 사라질 수 있어요.")) return;
@@ -62,6 +85,19 @@ export default function DangerZoneTab({ server }: { server: ServerInfo }) {
           {reinstalling ? "재설치 중..." : "재설치"}
         </button>
         {reinstallDone && <p className="text-sm text-green">재설치를 시작했어요. 콘솔에서 진행 상황을 확인하세요.</p>}
+      </div>
+
+      <div className="card-glow p-5 space-y-2">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="font-semibold text-sm">서버 일시정지</h3>
+            <p className="text-xs text-text-dim mt-1">
+              삭제하지 않고 꺼둬요. 정지한 기간만큼 결제 만료일이 그대로 뒤로 밀려서 손해 보지 않아요.
+            </p>
+          </div>
+          <Toggle checked={paused} onChange={togglePause} disabled={pauseBusy} />
+        </div>
+        {paused && <p className="text-xs text-accent">지금 일시정지 상태예요. 다시 켜면 대시보드로 돌아와요.</p>}
       </div>
 
       <div className="card-glow p-5 border-red">

@@ -19,6 +19,7 @@ export async function GET(request: Request) {
       name: true,
       status: true,
       pterodactylIdentifier: true,
+      lxcContainerName: true,
       allocationIp: true,
       sshPort: true,
       accessSecret: true,
@@ -31,7 +32,7 @@ export async function GET(request: Request) {
       id: s.id,
       name: s.name,
       status: s.status,
-      canControl: !!s.pterodactylIdentifier,
+      canControl: !!(s.pterodactylIdentifier || s.lxcContainerName),
       canSsh: !!(s.allocationIp && s.sshPort && s.accessSecret),
     })),
   );

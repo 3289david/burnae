@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { PteroClient } from "@/lib/pterodactyl";
 import { hasValidInternalSecret } from "@/lib/internalAuth";
+import { startVpsContainer, stopVpsContainer, restartVpsContainer } from "@/lib/vpsLxc";
 
 const schema = z.object({
   userId: z.string(),
@@ -22,12 +23,17 @@ export async function POST(request: Request) {
 
   const server = await prisma.server.findFirst({
     where: { id: parsed.data.serverId, ownerId: parsed.data.userId, deletedAt: null },
-    select: { pterodactylIdentifier: true },
+    select: { pterodactylIdentifier: true, lxcContainerName: true },
   });
-  if (!server || !server.pterodactylIdentifier) {
+  if (!server || (!server.pterodactylIdentifier && !server.lxcContainerName)) {
     return NextResponse.json({ error: "서버를 찾을 수 없습니다." }, { status: 404 });
   }
 
-  await PteroClient.sendPowerAction(server.pterodactylIdentifier, parsed.data.signal);
+  if (server.lxcContainerName) {
+    const action = { start: startVpsContainer, stop: stopVpsContainer, restart: restartVpsContainer }[parsed.data.signal];
+    await action(server.lxcContainerName);
+  } else {
+    await PteroClient.sendPowerAction(server.pterodactylIdentifier!, parsed.data.signal);
+  }
   return NextResponse.json({ ok: true });
 }

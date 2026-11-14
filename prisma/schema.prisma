@@ -603,6 +603,11 @@ model Server {
   pterodactylServerId   Int?    @unique
   pterodactylUuid       String? @unique
   pterodactylIdentifier String?
+  /// Pterodactyl/Docker가 아니라 이 호스트에 직접 만든 LXC 컨테이너(진짜 OS 가상화)로 서비스되는
+  /// "VPS" 서버면 그 컨테이너 이름("vps-"로 시작, src/lib/vpsLxc.ts). null이면 기존처럼
+  /// Pterodactyl 기반. 이 경우에도 SSH 접속 정보는 기존 필드(allocationIp/sshPort/accessSecret)를
+  /// 그대로 쓴다 — ssh burnae.kr 게이트웨이 쪽 코드를 바꿀 필요가 없게 하기 위함.
+  lxcContainerName      String? @unique
 
   ramMb       Int
   cpuPercent  Int

@@ -6,6 +6,14 @@ import { PteroClient } from "@/lib/pterodactyl";
 import { withApiErrorHandling } from "@/lib/apiHandler";
 import { logServerActivity } from "@/lib/serverActivityLog";
 import { prisma } from "@/lib/prisma";
+import { startVpsContainer, stopVpsContainer, restartVpsContainer, killVpsContainer } from "@/lib/vpsLxc";
+
+const LXC_POWER_ACTION = {
+  start: startVpsContainer,
+  stop: stopVpsContainer,
+  restart: restartVpsContainer,
+  kill: killVpsContainer,
+} as const;
 
 const POWER_ACTION_LOG = {
   start: "POWER_START",
@@ -26,7 +34,7 @@ export const POST = withApiErrorHandling(async (
   const { id } = await params;
   const server = await authorizeServerAccess(user, id);
   if (!server) return NextResponse.json({ error: "서버를 찾을 수 없습니다." }, { status: 404 });
-  if (!server.pterodactylIdentifier) {
+  if (!server.pterodactylIdentifier && !server.lxcContainerName) {
     return NextResponse.json({ error: "서버가 아직 준비 중입니다." }, { status: 409 });
   }
   if (!hasServerRank(await getServerRole(user, server), "MODERATOR")) {
@@ -38,7 +46,11 @@ export const POST = withApiErrorHandling(async (
     return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 422 });
   }
 
-  await PteroClient.sendPowerAction(server.pterodactylIdentifier, parsed.data.signal);
+  if (server.lxcContainerName) {
+    await LXC_POWER_ACTION[parsed.data.signal](server.lxcContainerName);
+  } else {
+    await PteroClient.sendPowerAction(server.pterodactylIdentifier!, parsed.data.signal);
+  }
   await logServerActivity(server.id, user.id, POWER_ACTION_LOG[parsed.data.signal]);
   if (parsed.data.signal === "start" && server.autoSleptAt) {
     await prisma.server.update({ where: { id: server.id }, data: { autoSleptAt: null } });

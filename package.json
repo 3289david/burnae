@@ -15,7 +15,8 @@
     "db:seed": "tsx prisma/seed.ts",
     "make-admin": "tsx scripts/make-admin.ts",
     "maintenance:cron": "tsx scripts/maintenance-cron.ts",
-    "crypto:watch": "tsx scripts/crypto-watch-cron.ts"
+    "crypto:watch": "tsx scripts/crypto-watch-cron.ts",
+    "lxc-console": "tsx scripts/lxc-console-server.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.9.1",

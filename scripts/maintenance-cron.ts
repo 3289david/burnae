@@ -11,6 +11,7 @@ import { syncAppProxyMap } from "../src/lib/appProxy";
 import { provisionCustomDomainSsl } from "../src/lib/customDomainSsl";
 import { pingHealthCheck } from "../src/lib/healthCheck";
 import { notifyServerEvent } from "../src/lib/notify";
+import { runVpsCommand } from "../src/lib/vpsLxc";
 
 /**
  * 주기적으로(예: 5~10분마다) 실행하는 운영 크론.
@@ -589,18 +590,22 @@ async function handleAutoSleep() {
 async function handleScheduledTasks() {
   const tasks = await prisma.scheduledTask.findMany({
     where: { enabled: true },
-    include: { server: { select: { id: true, name: true, status: true, pterodactylIdentifier: true, deletedAt: true } } },
+    include: { server: { select: { id: true, name: true, status: true, pterodactylIdentifier: true, lxcContainerName: true, deletedAt: true } } },
   });
 
   for (const task of tasks) {
     const server = task.server;
-    if (!server || server.deletedAt || server.status !== "RUNNING" || !server.pterodactylIdentifier) continue;
+    if (!server || server.deletedAt || server.status !== "RUNNING" || !(server.pterodactylIdentifier || server.lxcContainerName)) continue;
     const dueMs = task.intervalMinutes * 60 * 1000;
     const last = task.lastRunAt?.getTime() ?? 0;
     if (Date.now() - last < dueMs) continue;
 
     try {
-      await PteroClient.sendConsoleCommand(server.pterodactylIdentifier, task.command);
+      if (server.lxcContainerName) {
+        await runVpsCommand(server.lxcContainerName, task.command);
+      } else {
+        await PteroClient.sendConsoleCommand(server.pterodactylIdentifier!, task.command);
+      }
       await prisma.scheduledTask.update({ where: { id: task.id }, data: { lastRunAt: new Date() } });
       await prisma.serverActivityLog.create({
         data: { serverId: server.id, actorId: null, action: "SCHEDULED_TASK_RUN", detail: `${task.name}: ${task.command}` },

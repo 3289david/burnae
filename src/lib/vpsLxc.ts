@@ -1,4 +1,4 @@
-import { execFile } from "node:child_process";
+import { execFile, spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
@@ -29,6 +29,26 @@ function assertValidName(name: string) {
 async function runHelper(args: string[]): Promise<string> {
   const { stdout } = await execFileAsync("sudo", ["-n", HELPER_PATH, ...args], { timeout: 120_000 });
   return stdout.trim();
+}
+
+/** run-command처럼 stdin으로 입력을 넘겨야 하는 액션용 — execFile은 stdin을 못 써서 직접 spawn. */
+function runHelperWithStdin(args: string[], input: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const child = spawn("sudo", ["-n", HELPER_PATH, ...args]);
+    let stdout = "";
+    let stderr = "";
+    const timer = setTimeout(() => { child.kill(); reject(new Error("명령 실행 시간이 초과되었습니다.")); }, 35_000);
+    child.stdout.on("data", (d) => { stdout += d; });
+    child.stderr.on("data", (d) => { stderr += d; });
+    child.on("error", (err) => { clearTimeout(timer); reject(err); });
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      if (code !== 0) reject(new Error(stderr.trim() || `종료 코드 ${code}`));
+      else resolve(stdout);
+    });
+    child.stdin.write(input);
+    child.stdin.end();
+  });
 }
 
 /** 새 컨테이너를 만든다(부팅은 안 함) — name은 "vps-" + 서버 id 등으로 호출부에서 만들어 전달.
@@ -105,6 +125,21 @@ export async function setupVpsContainerSsh(name: string): Promise<string> {
   const match = output.match(/^PASSWORD=(.+)$/m);
   if (!match) throw new Error("SSH 설정 응답에서 비밀번호를 찾지 못했습니다.");
   return match[1];
+}
+
+/** 콘솔 REST/AI 툴/예약 작업처럼 한 번 실행하고 결과만 받으면 되는 명령 — Pterodactyl
+ * sendConsoleCommand와 동등한 "fire-and-forget + 베스트에포트 출력"용. */
+export async function runVpsCommand(name: string, command: string): Promise<string> {
+  assertValidName(name);
+  return runHelperWithStdin(["run-command", name], command);
+}
+
+/** 대시보드 콘솔용 — 컨테이너에 pty로 붙은 대화형 bash 프로세스를 하나 띄워서 돌려준다.
+ * 호출한 쪽(콘솔 WS 서버)이 stdin에 명령을 써넣고 stdout/stderr를 스트리밍으로 읽으면 된다.
+ * 소켓 연결이 끝나면 호출한 쪽에서 반드시 kill() 해야 한다(계속 떠 있는 프로세스임). */
+export function spawnVpsConsoleShell(name: string): ChildProcessWithoutNullStreams {
+  assertValidName(name);
+  return spawn("sudo", ["-n", HELPER_PATH, "attach-shell", name], { stdio: ["pipe", "pipe", "pipe"] });
 }
 
 /** 생성(+RAM/CPU 한도 적용) → 시작 → IP 할당 대기 → SSH 설정까지 한 번에 처리하고, 바로

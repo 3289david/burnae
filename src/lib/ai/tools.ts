@@ -1,5 +1,6 @@
 import type OpenAI from "openai";
 import { PteroClient } from "@/lib/pterodactyl";
+import { runVpsCommand, getVpsContainerStats, startVpsContainer, stopVpsContainer, restartVpsContainer } from "@/lib/vpsLxc";
 import * as Players from "@/lib/players";
 import { prisma } from "@/lib/prisma";
 import {
@@ -104,6 +105,10 @@ export const AI_TOOLS: Record<string, ToolDef> = {
       ]);
       const address = subdomain && settings ? `${subdomain.subdomain}.${settings.subdomainZone}` : null;
 
+      if (server.lxcContainerName) {
+        const stats = await getVpsContainerStats(server.lxcContainerName);
+        return { status: "RUNNING", address, ...stats };
+      }
       if (!server.pterodactylIdentifier) return { status: "PROVISIONING", address };
       const resources = await PteroClient.getServerResources(server.pterodactylIdentifier);
       return { ...resources, address };
@@ -116,6 +121,8 @@ export const AI_TOOLS: Record<string, ToolDef> = {
     description: "서버 콘솔의 최근 출력 로그를 읽어 오류나 상태를 분석한다.",
     parameters: { type: "object", properties: {} },
     run: async (server) => {
+      // VPS(LXC)는 지속되는 콘솔 백로그가 없다 — 필요하면 run-command로 직접 조회하는 게 낫다
+      // (예: journalctl, 로그 파일 tail 등). execute_console_command 쪽을 안내한다.
       if (!server.pterodactylIdentifier) return { lines: [] };
       const lines = await PteroClient.captureRecentConsoleOutput(server.pterodactylIdentifier);
       return { lines };
@@ -318,8 +325,12 @@ export const AI_TOOLS: Record<string, ToolDef> = {
       required: ["command"],
     },
     run: async (server, input) => {
-      if (!server.pterodactylIdentifier) throw new Error("서버가 아직 준비 중입니다.");
-      await PteroClient.sendConsoleCommand(server.pterodactylIdentifier, String(input.command));
+      if (!server.pterodactylIdentifier && !server.lxcContainerName) throw new Error("서버가 아직 준비 중입니다.");
+      if (server.lxcContainerName) {
+        const output = await runVpsCommand(server.lxcContainerName, String(input.command));
+        return { ok: true, output: output.slice(0, 4000) };
+      }
+      await PteroClient.sendConsoleCommand(server.pterodactylIdentifier!, String(input.command));
       return { ok: true };
     },
   },
@@ -330,8 +341,9 @@ export const AI_TOOLS: Record<string, ToolDef> = {
     description: "서버를 재시작한다. 설정 변경 후 적용할 때 사용.",
     parameters: { type: "object", properties: {} },
     run: async (server) => {
-      if (!server.pterodactylIdentifier) throw new Error("서버가 아직 준비 중입니다.");
-      await PteroClient.sendPowerAction(server.pterodactylIdentifier, "restart");
+      if (!server.pterodactylIdentifier && !server.lxcContainerName) throw new Error("서버가 아직 준비 중입니다.");
+      if (server.lxcContainerName) await restartVpsContainer(server.lxcContainerName);
+      else await PteroClient.sendPowerAction(server.pterodactylIdentifier!, "restart");
       return { ok: true };
     },
   },
@@ -342,8 +354,9 @@ export const AI_TOOLS: Record<string, ToolDef> = {
     description: "서버를 정지한다.",
     parameters: { type: "object", properties: {} },
     run: async (server) => {
-      if (!server.pterodactylIdentifier) throw new Error("서버가 아직 준비 중입니다.");
-      await PteroClient.sendPowerAction(server.pterodactylIdentifier, "stop");
+      if (!server.pterodactylIdentifier && !server.lxcContainerName) throw new Error("서버가 아직 준비 중입니다.");
+      if (server.lxcContainerName) await stopVpsContainer(server.lxcContainerName);
+      else await PteroClient.sendPowerAction(server.pterodactylIdentifier!, "stop");
       return { ok: true };
     },
   },
@@ -354,8 +367,9 @@ export const AI_TOOLS: Record<string, ToolDef> = {
     description: "서버를 시작한다.",
     parameters: { type: "object", properties: {} },
     run: async (server) => {
-      if (!server.pterodactylIdentifier) throw new Error("서버가 아직 준비 중입니다.");
-      await PteroClient.sendPowerAction(server.pterodactylIdentifier, "start");
+      if (!server.pterodactylIdentifier && !server.lxcContainerName) throw new Error("서버가 아직 준비 중입니다.");
+      if (server.lxcContainerName) await startVpsContainer(server.lxcContainerName);
+      else await PteroClient.sendPowerAction(server.pterodactylIdentifier!, "start");
       return { ok: true };
     },
   },

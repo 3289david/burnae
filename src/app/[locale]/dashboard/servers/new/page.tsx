@@ -151,7 +151,7 @@ const LOADER_META: Record<string, { icon: typeof Package; color: string; blurb: 
   mohist: { icon: Sparkles, color: "var(--yellow)", blurb: "모드+플러그인 동시 지원" },
 
   // 일반 서버(VPS/디스코드 봇/유틸리티) 종류
-  "blank-server": { icon: Box, color: "var(--text-dim)", blurb: "실제 가상화 기반 VPS — SSH로 접속해 원하는 대로 설치하세요" },
+  "blank-server": { icon: Box, color: "var(--text-dim)", blurb: "완전한 나만의 서버 — 뭐든 자유롭게 설치하고 운영하세요" },
   "code-server": { icon: Terminal, color: "var(--accent)", blurb: "브라우저에서 VS Code로 코딩" },
   "nodejs-bot": { icon: Bot, color: "var(--lime)", blurb: "Node.js로 직접 만드는 봇" },
   "python-bot": { icon: Bot, color: "var(--lime)", blurb: "Python으로 직접 만드는 봇" },
@@ -272,6 +272,10 @@ function NewServerPageInner() {
   const [depositorEditError, setDepositorEditError] = useState<string | null>(null);
   const [bank, setBank] = useState<BankAccount | null>(null);
   const [stillWaitingForNode, setStillWaitingForNode] = useState(false);
+  // 서버 생성은 이제 백그라운드에서 돈다(오래 걸려도 타임아웃 에러가 안 나게) — 그래서
+  // 이 응답엔 아직 serverId가 없는 게 정상이다. 그럴 때는 "곧 서버 페이지로 이동"이 아니라
+  // "대시보드에서 확인해주세요"로 정확하게 안내한다.
+  const [stillProvisioning, setStillProvisioning] = useState(false);
 
   // 결제 후 서버 종류/버전 선택용 상태
   const [templateId, setTemplateId] = useState("");
@@ -576,6 +580,9 @@ function NewServerPageInner() {
       setTimeout(() => router.push("/dashboard/billing"), 2500);
       return;
     }
+    // 생성이 백그라운드에서 계속 진행 중이라 아직 serverId가 없을 수 있다(정상) — 그 경우엔
+    // 서버 페이지로 바로 이동한다고 말하지 않고 대시보드에서 확인하라고 정확히 안내한다.
+    if (!data.serverId) setStillProvisioning(true);
     setCelebrationOpen(true);
     setStep("done");
     setTimeout(() => {
@@ -821,7 +828,9 @@ function NewServerPageInner() {
             subtitle={
               stillWaitingForNode
                 ? "자리가 없어서 선주문으로 접수됐어요. 자리가 나면 자동으로 생성돼요."
-                : "잠시 후 서버 페이지로 이동할게요..."
+                : stillProvisioning
+                  ? "조금 걸릴 수 있어요 — 대시보드에서 확인해주세요."
+                  : "잠시 후 서버 페이지로 이동할게요..."
             }
             icon={
               stillWaitingForNode ? (
@@ -843,7 +852,9 @@ function NewServerPageInner() {
             <p className="text-sm text-text-dim mt-1">
               {stillWaitingForNode
                 ? "자리가 없어서 선주문으로 접수됐어요. 자리가 나면 자동으로 생성돼요."
-                : "잠시 후 서버 페이지로 이동할게요..."}
+                : stillProvisioning
+                  ? "조금 걸릴 수 있어요 — 대시보드에서 확인해주세요."
+                  : "잠시 후 서버 페이지로 이동할게요..."}
             </p>
           </div>
         </div>

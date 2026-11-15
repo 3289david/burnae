@@ -158,7 +158,7 @@ function CommunityEggsPageInner() {
   }, [presets]);
 
   return (
-    <div className="max-w-6xl mx-auto pb-16">
+    <div className="max-w-[1800px] mx-auto pb-16">
       <PageHeader art="community" title="커뮤니티 프리셋" desc="다른 유저가 공개한 설정을 설치하거나, 내 설정을 공개해 포인트를 모아요." className="mb-6" />
 
       {presets.length > 4 && (
@@ -197,7 +197,7 @@ function CommunityEggsPageInner() {
         </div>
       )}
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2.5 mt-4">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2.5 mt-4">
         {filteredPresets.map((p, i) => (
           <div
             key={p.id}

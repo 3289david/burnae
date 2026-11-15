@@ -20,7 +20,7 @@ export default async function AccountPage({
   const params = await searchParams;
 
   return (
-    <div className="max-w-5xl">
+    <div className="max-w-7xl">
       <PageHeader art="account" title="계정" desc="내 정보와 보안 설정이에요." />
 
       <div className="card p-5 mt-6 flex items-center gap-4 animate-fade-up max-w-md" style={{ animationDelay: "0.05s" }}>

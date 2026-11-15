@@ -26,7 +26,7 @@ export default async function BillingPage() {
     <div>
       <PageHeader art="billing" title="결제 내역" desc="서버 결제와 충전 내역이에요." />
 
-      <div className="mt-6 space-y-2.5 max-w-4xl">
+      <div className="mt-6 space-y-2.5 max-w-6xl">
         {orders.map((o) => {
           const titleText = `${TYPE_LABEL[o.type] ?? o.type}${
             o.type === "AI_CREDITS"
@@ -55,7 +55,7 @@ export default async function BillingPage() {
           <div className="card animate-fade-up"><EmptyState art="empty-receipt" title="아직 결제 내역이 없어요." /></div>
         )}
       </div>
-      <ArtCallout className="mt-8 max-w-4xl" src="head-support" title="결제가 보이지 않나요?" desc="입금 후에도 반영되지 않으면 고객지원에 남겨주세요." href="/dashboard/support" cta="고객지원 가기" />
+      <ArtCallout className="mt-8 max-w-6xl" src="head-support" title="결제가 보이지 않나요?" desc="입금 후에도 반영되지 않으면 고객지원에 남겨주세요." href="/dashboard/support" cta="고객지원 가기" />
     </div>
   );
 }

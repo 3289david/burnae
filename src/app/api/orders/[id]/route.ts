@@ -181,7 +181,16 @@ export const POST = withApiErrorHandling(async (
     },
   });
 
-  await provisionNewServerOrder(order.id);
+  // 실제 프로비저닝(특히 LXC VPS는 rootfs 다운로드/압축풀기 + openssh-server 설치까지 포함)은
+  // 수십~백 수 초가 걸릴 수 있어서, 여기서 await 해버리면 Cloudflare 엣지 타임아웃(~100초)에
+  // 먼저 걸려 524 HTML 에러 페이지가 내려가고, 프론트가 그걸 res.json()으로 파싱하려다
+  // "Unexpected token '<'"로 깨진다. 이 요청은 "선택 저장 + 생성 시작"만 책임지고 즉시
+  // 응답한다 — 실제 생성은 백그라운드에서 계속 진행되고(createServerForOrder는
+  // provisioningStartedAt으로 멱등하게 처리되므로 안전함), 프론트는 serverId가 아직 없는
+  // 응답을 "만드는 중"으로 이미 처리하고 있다(goToOutcome).
+  provisionNewServerOrder(order.id).catch((err) => {
+    console.error(`[orders] 주문 ${order.id} 프로비저닝 실패:`, err);
+  });
 
   const refreshed = await prisma.order.findUniqueOrThrow({
     where: { id: order.id },

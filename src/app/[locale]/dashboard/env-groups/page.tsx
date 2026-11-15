@@ -12,7 +12,7 @@ export default async function EnvGroupsPage() {
   });
 
   return (
-    <div className="max-w-4xl mx-auto pb-16">
+    <div className="max-w-6xl mx-auto pb-16">
       <PageHeader
         art="new"
         title="환경변수 그룹"

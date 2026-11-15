@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { authorizeServerAccess, getServerRole, hasServerRank } from "@/lib/serverAccess";
 import { PteroClient } from "@/lib/pterodactyl";
+import { listVpsBackups, createVpsBackup } from "@/lib/vpsLxc";
 import { withApiErrorHandling } from "@/lib/apiHandler";
 
 export const GET = withApiErrorHandling(async (
@@ -14,11 +15,13 @@ export const GET = withApiErrorHandling(async (
 
   const { id } = await params;
   const server = await authorizeServerAccess(user, id);
-  if (!server || !server.pterodactylIdentifier) {
+  if (!server || !(server.pterodactylIdentifier || server.lxcContainerName)) {
     return NextResponse.json({ error: "서버를 찾을 수 없습니다." }, { status: 404 });
   }
 
-  const backups = await PteroClient.listBackups(server.pterodactylIdentifier);
+  const backups = server.lxcContainerName
+    ? await listVpsBackups(server.lxcContainerName)
+    : await PteroClient.listBackups(server.pterodactylIdentifier!);
   return NextResponse.json(backups);
 });
 
@@ -33,14 +36,16 @@ export const POST = withApiErrorHandling(async (
 
   const { id } = await params;
   const server = await authorizeServerAccess(user, id);
-  if (!server || !server.pterodactylIdentifier) {
+  if (!server || !(server.pterodactylIdentifier || server.lxcContainerName)) {
     return NextResponse.json({ error: "서버를 찾을 수 없습니다." }, { status: 404 });
   }
   if (!hasServerRank(await getServerRole(user, server), "DEVELOPER")) {
     return NextResponse.json({ error: "백업을 만들 권한이 없어요." }, { status: 403 });
   }
 
-  const existing = await PteroClient.listBackups(server.pterodactylIdentifier);
+  const existing = server.lxcContainerName
+    ? await listVpsBackups(server.lxcContainerName)
+    : await PteroClient.listBackups(server.pterodactylIdentifier!);
   if (existing.length >= server.backupSlots) {
     return NextResponse.json(
       { error: `백업 슬롯이 가득 찼습니다 (최대 ${server.backupSlots}개). 기존 백업을 삭제해주세요.` },
@@ -52,9 +57,9 @@ export const POST = withApiErrorHandling(async (
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 422 });
 
-  const backup = await PteroClient.createBackup(
-    server.pterodactylIdentifier,
-    parsed.data.name ?? `수동 백업 ${new Date().toLocaleString("ko-KR")}`,
-  );
+  const backupName = parsed.data.name ?? `수동 백업 ${new Date().toLocaleString("ko-KR")}`;
+  const backup = server.lxcContainerName
+    ? await createVpsBackup(server.lxcContainerName, backupName)
+    : await PteroClient.createBackup(server.pterodactylIdentifier!, backupName);
   return NextResponse.json(backup);
 });

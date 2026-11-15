@@ -11,7 +11,7 @@ import { syncAppProxyMap } from "../src/lib/appProxy";
 import { provisionCustomDomainSsl } from "../src/lib/customDomainSsl";
 import { pingHealthCheck } from "../src/lib/healthCheck";
 import { notifyServerEvent } from "../src/lib/notify";
-import { runVpsCommand } from "../src/lib/vpsLxc";
+import { runVpsCommand, listVpsBackups, createVpsBackup } from "../src/lib/vpsLxc";
 
 /**
  * 주기적으로(예: 5~10분마다) 실행하는 운영 크론.
@@ -376,22 +376,32 @@ async function handleResourceUpgradeExpiry() {
 
 async function handleScheduledBackups() {
   const servers = await prisma.server.findMany({
-    where: { deletedAt: null, autoBackupEnabled: true, status: "RUNNING", pterodactylIdentifier: { not: null } },
+    where: {
+      deletedAt: null, autoBackupEnabled: true, status: "RUNNING",
+      OR: [{ pterodactylIdentifier: { not: null } }, { lxcContainerName: { not: null } }],
+    },
   });
 
   for (const server of servers) {
     const dueMs = server.autoBackupIntervalHours * 60 * 60 * 1000;
     const last = server.lastBackupAt?.getTime() ?? 0;
     if (Date.now() - last < dueMs) continue;
-    if (!server.pterodactylIdentifier) continue;
+    if (!server.pterodactylIdentifier && !server.lxcContainerName) continue;
 
     try {
-      const existing = await PteroClient.listBackups(server.pterodactylIdentifier);
+      const existing = server.lxcContainerName
+        ? await listVpsBackups(server.lxcContainerName)
+        : await PteroClient.listBackups(server.pterodactylIdentifier!);
       if (existing.length >= server.backupSlots) {
         console.log(`[cron] ${server.name} — 자동 백업 스킵(슬롯 가득 참)`);
         continue;
       }
-      await PteroClient.createBackup(server.pterodactylIdentifier, `자동 백업 ${new Date().toLocaleString("ko-KR")}`);
+      const backupName = `자동 백업 ${new Date().toLocaleString("ko-KR")}`;
+      if (server.lxcContainerName) {
+        await createVpsBackup(server.lxcContainerName, backupName);
+      } else {
+        await PteroClient.createBackup(server.pterodactylIdentifier!, backupName);
+      }
       await prisma.server.update({ where: { id: server.id }, data: { lastBackupAt: new Date() } });
       await notifyServerEvent(server, `💾 **${server.name}** 자동 백업이 완료됐어요.`);
       console.log(`[cron] ${server.name} — 자동 백업 생성`);

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { authorizeServerAccess, getServerRole, hasServerRank } from "@/lib/serverAccess";
 import { PteroClient } from "@/lib/pterodactyl";
+import { stopVpsContainer, restoreVpsBackup } from "@/lib/vpsLxc";
 import { withApiErrorHandling } from "@/lib/apiHandler";
 import { logServerActivity } from "@/lib/serverActivityLog";
 
@@ -14,7 +15,7 @@ export const POST = withApiErrorHandling(async (
 
   const { id, backupId } = await params;
   const server = await authorizeServerAccess(user, id);
-  if (!server || !server.pterodactylIdentifier) {
+  if (!server || !(server.pterodactylIdentifier || server.lxcContainerName)) {
     return NextResponse.json({ error: "서버를 찾을 수 없습니다." }, { status: 404 });
   }
   // 백업 삭제/잠금해제/복원은 되돌릴 수 없거나 현재 데이터를 통째로 덮어쓴다 — 소유자가
@@ -23,8 +24,13 @@ export const POST = withApiErrorHandling(async (
     return NextResponse.json({ error: "백업을 관리할 권한이 없어요." }, { status: 403 });
   }
 
-  await PteroClient.sendPowerAction(server.pterodactylIdentifier, "stop");
-  await PteroClient.restoreBackup(server.pterodactylIdentifier, backupId);
+  if (server.lxcContainerName) {
+    await stopVpsContainer(server.lxcContainerName);
+    await restoreVpsBackup(server.lxcContainerName, backupId);
+  } else {
+    await PteroClient.sendPowerAction(server.pterodactylIdentifier!, "stop");
+    await PteroClient.restoreBackup(server.pterodactylIdentifier!, backupId);
+  }
   await logServerActivity(server.id, user.id, "BACKUP_RESTORE");
   return NextResponse.json({ ok: true });
 });

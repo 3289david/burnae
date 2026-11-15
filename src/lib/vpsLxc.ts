@@ -26,8 +26,8 @@ function assertValidName(name: string) {
   }
 }
 
-async function runHelper(args: string[]): Promise<string> {
-  const { stdout } = await execFileAsync("sudo", ["-n", HELPER_PATH, ...args], { timeout: 120_000 });
+async function runHelper(args: string[], timeoutMs = 120_000): Promise<string> {
+  const { stdout } = await execFileAsync("sudo", ["-n", HELPER_PATH, ...args], { timeout: timeoutMs, maxBuffer: 10_000_000 });
   return stdout.trim();
 }
 
@@ -232,4 +232,47 @@ export async function compressVpsFiles(name: string, dir: string, files: string[
 export async function decompressVpsFile(name: string, dir: string, file: string): Promise<void> {
   assertValidName(name);
   await runHelper(["file-decompress", name, dir, file]);
+}
+
+/** 백업 — Pterodactyl의 PteroBackup과 같은 모양으로 맞춘다. 실제로는 컨테이너 rootfs 전체를
+ * /var/lib/burnae-vps-backups/<name>/<uuid>.tar.gz로 tar 떠서 호스트에 보관한다(이름/잠금
+ * 상태는 같은 디렉터리의 <uuid>.json 사이드카에). */
+export interface VpsBackup {
+  uuid: string;
+  name: string;
+  ignored_files: string[];
+  is_successful: boolean;
+  is_locked: boolean;
+  checksum: string | null;
+  bytes: number;
+  created_at: string;
+  completed_at: string | null;
+}
+
+export async function listVpsBackups(name: string): Promise<VpsBackup[]> {
+  assertValidName(name);
+  const out = await runHelper(["backup-list", name]);
+  return JSON.parse(out);
+}
+
+export async function createVpsBackup(name: string, backupName: string): Promise<VpsBackup> {
+  assertValidName(name);
+  const out = await runHelper(["backup-create", name, backupName], 600_000);
+  return JSON.parse(out);
+}
+
+export async function deleteVpsBackup(name: string, backupUuid: string): Promise<void> {
+  assertValidName(name);
+  await runHelper(["backup-delete", name, backupUuid]);
+}
+
+export async function toggleVpsBackupLock(name: string, backupUuid: string): Promise<VpsBackup> {
+  assertValidName(name);
+  const out = await runHelper(["backup-lock", name, backupUuid]);
+  return JSON.parse(out);
+}
+
+export async function restoreVpsBackup(name: string, backupUuid: string): Promise<void> {
+  assertValidName(name);
+  await runHelper(["backup-restore", name, backupUuid], 600_000);
 }

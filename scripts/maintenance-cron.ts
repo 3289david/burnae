@@ -11,7 +11,7 @@ import { syncAppProxyMap } from "../src/lib/appProxy";
 import { provisionCustomDomainSsl } from "../src/lib/customDomainSsl";
 import { pingHealthCheck } from "../src/lib/healthCheck";
 import { notifyServerEvent } from "../src/lib/notify";
-import { runVpsCommand, listVpsBackups, createVpsBackup } from "../src/lib/vpsLxc";
+import { runVpsCommand, listVpsBackups, createVpsBackup, getVpsContainerStats } from "../src/lib/vpsLxc";
 
 /**
  * 주기적으로(예: 5~10분마다) 실행하는 운영 크론.
@@ -512,22 +512,31 @@ const USAGE_SNAPSHOT_RETENTION_DAYS = 30;
 
 async function handleUsageSnapshots() {
   const servers = await prisma.server.findMany({
-    where: { deletedAt: null, status: "RUNNING", pterodactylIdentifier: { not: null } },
+    where: {
+      deletedAt: null, status: "RUNNING",
+      OR: [{ pterodactylIdentifier: { not: null } }, { lxcContainerName: { not: null } }],
+    },
   });
 
   for (const server of servers) {
-    if (!server.pterodactylIdentifier) continue;
-    let resources;
+    if (!server.pterodactylIdentifier && !server.lxcContainerName) continue;
+    let cpuPercent: number, ramMb: number, diskMb: number;
     try {
-      resources = await PteroClient.getServerResources(server.pterodactylIdentifier);
+      if (server.lxcContainerName) {
+        const stats = await getVpsContainerStats(server.lxcContainerName);
+        cpuPercent = stats.cpuPercent;
+        ramMb = Math.round(stats.memBytes / 1024 / 1024);
+        diskMb = Math.round(stats.diskKb / 1024);
+      } else {
+        const resources = await PteroClient.getServerResources(server.pterodactylIdentifier!);
+        cpuPercent = resources.resources.cpu_absolute;
+        ramMb = Math.round(resources.resources.memory_bytes / 1024 / 1024);
+        diskMb = Math.round(resources.resources.disk_bytes / 1024 / 1024);
+      }
     } catch (err) {
       console.error(`[cron] ${server.name} 리소스 조회 실패:`, err);
       continue;
     }
-
-    const cpuPercent = resources.resources.cpu_absolute;
-    const ramMb = Math.round(resources.resources.memory_bytes / 1024 / 1024);
-    const diskMb = Math.round(resources.resources.disk_bytes / 1024 / 1024);
 
     await prisma.serverUsageSnapshot.create({ data: { serverId: server.id, cpuPercent, ramMb, diskMb } });
 

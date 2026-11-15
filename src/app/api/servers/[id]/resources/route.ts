@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { authorizeServerAccess } from "@/lib/serverAccess";
 import { PteroClient } from "@/lib/pterodactyl";
+import { getVpsContainerStats } from "@/lib/vpsLxc";
 import { withApiErrorHandling } from "@/lib/apiHandler";
 import { supportsSsh } from "@/lib/sshSupport";
 import { prisma } from "@/lib/prisma";
@@ -20,6 +21,19 @@ export const GET = withApiErrorHandling(async (
   const { id } = await params;
   const server = await authorizeServerAccess(user, id);
   if (!server) return NextResponse.json({ error: "서버를 찾을 수 없습니다." }, { status: 404 });
+
+  if (server.lxcContainerName) {
+    const stats = await getVpsContainerStats(server.lxcContainerName);
+    return NextResponse.json({
+      current_state: server.status === "RUNNING" ? "running" : "offline",
+      is_suspended: false,
+      resources: {
+        memory_bytes: stats.memBytes, cpu_absolute: stats.cpuPercent, disk_bytes: stats.diskKb * 1024,
+        network_rx_bytes: 0, network_tx_bytes: 0, uptime: 0,
+      },
+    });
+  }
+
   if (!server.pterodactylIdentifier) {
     return NextResponse.json({
       current_state: "offline",

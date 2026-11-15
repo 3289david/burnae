@@ -106,7 +106,7 @@ export async function killVpsContainer(name: string): Promise<void> {
 /** 대시보드 자원 그래프용 — RAM/CPU/디스크 현재 사용량(읽기 전용, 즉시 반환). */
 export async function getVpsContainerStats(
   name: string,
-): Promise<{ memBytes: number; memMaxBytes: number; cpuUsageUsec: number; diskKb: number }> {
+): Promise<{ memBytes: number; memMaxBytes: number; cpuPercent: number; diskKb: number }> {
   assertValidName(name);
   const output = await runHelper(["stats", name]);
   return JSON.parse(output);

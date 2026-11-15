@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { authorizeServerAccess } from "@/lib/serverAccess";
 import { PteroClient } from "@/lib/pterodactyl";
+import { listVpsFiles } from "@/lib/vpsLxc";
 import { withApiErrorHandling } from "@/lib/apiHandler";
 
 export const GET = withApiErrorHandling(async (
@@ -13,12 +14,14 @@ export const GET = withApiErrorHandling(async (
 
   const { id } = await params;
   const server = await authorizeServerAccess(user, id);
-  if (!server || !server.pterodactylIdentifier) {
+  if (!server || !(server.pterodactylIdentifier || server.lxcContainerName)) {
     return NextResponse.json({ error: "서버를 찾을 수 없습니다." }, { status: 404 });
   }
 
   const dir = new URL(request.url).searchParams.get("dir") ?? "/";
-  const files = await PteroClient.listFiles(server.pterodactylIdentifier, dir);
+  const files = server.lxcContainerName
+    ? await listVpsFiles(server.lxcContainerName, dir)
+    : await PteroClient.listFiles(server.pterodactylIdentifier!, dir);
   // burnae-boot.sh가 컨테이너 루트에 만들어두는 내부 구현 파일들(SSH 비밀번호 등 민감한 것도
   // 있음) — 고객이 직접 건드릴 일이 없고 괜히 헷갈리기만 하니 파일 탭 목록에서는 숨긴다.
   // 루트 디렉터리에서만 숨기면 되고(이 파일들은 항상 /home/container 바로 아래에 생김),

@@ -31,20 +31,22 @@ async function runHelper(args: string[]): Promise<string> {
   return stdout.trim();
 }
 
-/** run-command처럼 stdin으로 입력을 넘겨야 하는 액션용 — execFile은 stdin을 못 써서 직접 spawn. */
-function runHelperWithStdin(args: string[], input: string): Promise<string> {
+/** stdin으로 입력을 넘겨야 하는 액션용(run-command, 파일 쓰기/업로드 등) — execFile은 stdin을
+ * 못 써서 직접 spawn. 바이너리 파일(업로드/다운로드)도 다루므로 stdout은 Buffer로 모은다 —
+ * 텍스트가 필요한 호출부는 .toString("utf8")로 직접 변환한다. */
+function runHelperWithStdin(args: string[], input: string | Buffer, timeoutMs = 35_000): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const child = spawn("sudo", ["-n", HELPER_PATH, ...args]);
-    let stdout = "";
+    const chunks: Buffer[] = [];
     let stderr = "";
-    const timer = setTimeout(() => { child.kill(); reject(new Error("명령 실행 시간이 초과되었습니다.")); }, 35_000);
-    child.stdout.on("data", (d) => { stdout += d; });
+    const timer = setTimeout(() => { child.kill(); reject(new Error("명령 실행 시간이 초과되었습니다.")); }, timeoutMs);
+    child.stdout.on("data", (d: Buffer) => { chunks.push(d); });
     child.stderr.on("data", (d) => { stderr += d; });
     child.on("error", (err) => { clearTimeout(timer); reject(err); });
     child.on("close", (code) => {
       clearTimeout(timer);
       if (code !== 0) reject(new Error(stderr.trim() || `종료 코드 ${code}`));
-      else resolve(stdout);
+      else resolve(Buffer.concat(chunks));
     });
     child.stdin.write(input);
     child.stdin.end();
@@ -131,7 +133,8 @@ export async function setupVpsContainerSsh(name: string): Promise<string> {
  * sendConsoleCommand와 동등한 "fire-and-forget + 베스트에포트 출력"용. */
 export async function runVpsCommand(name: string, command: string): Promise<string> {
   assertValidName(name);
-  return runHelperWithStdin(["run-command", name], command);
+  const buf = await runHelperWithStdin(["run-command", name], command);
+  return buf.toString("utf8");
 }
 
 /** 대시보드 콘솔용 — 컨테이너에 pty로 붙은 대화형 bash 프로세스를 하나 띄워서 돌려준다.
@@ -156,4 +159,77 @@ export async function provisionVpsContainer(
   const ip = await getVpsContainerIp(name);
   const password = await setupVpsContainerSsh(name);
   return { ip, sshPort: 22, password };
+}
+
+/** 파일관리자용 — Pterodactyl의 FileObject와 같은 모양으로 맞춘다(프론트가 이미 그 모양을
+ * 기대하고 있어서 FilesTab.tsx를 안 건드려도 됨). 실제로는 lxc-attach 없이 호스트에서 바로
+ * rootfs를 읽는다(권한을 그대로 쓰는 특권(privileged) 컨테이너라 UID가 호스트와 1:1 대응). */
+export interface VpsFileObject {
+  name: string;
+  mode: string;
+  size: number;
+  is_file: boolean;
+  is_symlink: boolean;
+  is_editable: boolean;
+  mimetype: string;
+  created_at: string;
+  modified_at: string;
+}
+
+export async function listVpsFiles(name: string, dir: string): Promise<VpsFileObject[]> {
+  assertValidName(name);
+  const out = await runHelper(["file-list", name, dir]);
+  return JSON.parse(out);
+}
+
+export async function readVpsFile(name: string, file: string): Promise<string> {
+  assertValidName(name);
+  const buf = await runHelperWithStdin(["file-read", name, file], "");
+  return buf.toString("utf8");
+}
+
+export async function writeVpsFile(name: string, file: string, content: string): Promise<void> {
+  assertValidName(name);
+  await runHelperWithStdin(["file-write", name, file], content);
+}
+
+export async function downloadVpsFile(name: string, file: string): Promise<Buffer> {
+  assertValidName(name);
+  return runHelperWithStdin(["file-download", name, file], "", 60_000);
+}
+
+export async function writeVpsFileBinary(name: string, file: string, content: Buffer): Promise<void> {
+  assertValidName(name);
+  await runHelperWithStdin(["file-write-binary", name, file], content, 60_000);
+}
+
+export async function deleteVpsFiles(name: string, dir: string, files: string[]): Promise<void> {
+  assertValidName(name);
+  await runHelper(["file-delete", name, dir, ...files]);
+}
+
+export async function renameVpsFile(name: string, dir: string, from: string, to: string): Promise<void> {
+  assertValidName(name);
+  await runHelper(["file-rename", name, dir, from, to]);
+}
+
+export async function copyVpsFile(name: string, location: string): Promise<void> {
+  assertValidName(name);
+  await runHelper(["file-copy", name, location]);
+}
+
+export async function createVpsFolder(name: string, dir: string, folderName: string): Promise<void> {
+  assertValidName(name);
+  await runHelper(["file-folder", name, dir, folderName]);
+}
+
+export async function compressVpsFiles(name: string, dir: string, files: string[]): Promise<VpsFileObject> {
+  assertValidName(name);
+  const out = await runHelper(["file-compress", name, dir, ...files]);
+  return JSON.parse(out);
+}
+
+export async function decompressVpsFile(name: string, dir: string, file: string): Promise<void> {
+  assertValidName(name);
+  await runHelper(["file-decompress", name, dir, file]);
 }

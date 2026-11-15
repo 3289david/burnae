@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { authorizeServerAccess, getServerRole, hasServerRank } from "@/lib/serverAccess";
 import { PteroClient } from "@/lib/pterodactyl";
+import { readVpsFile, writeVpsFile } from "@/lib/vpsLxc";
 import { withApiErrorHandling } from "@/lib/apiHandler";
 
 export const GET = withApiErrorHandling(async (
@@ -14,14 +15,16 @@ export const GET = withApiErrorHandling(async (
 
   const { id } = await params;
   const server = await authorizeServerAccess(user, id);
-  if (!server || !server.pterodactylIdentifier) {
+  if (!server || !(server.pterodactylIdentifier || server.lxcContainerName)) {
     return NextResponse.json({ error: "서버를 찾을 수 없습니다." }, { status: 404 });
   }
 
   const file = new URL(request.url).searchParams.get("file");
   if (!file) return NextResponse.json({ error: "file 파라미터가 필요합니다." }, { status: 422 });
 
-  const content = await PteroClient.readFile(server.pterodactylIdentifier, file);
+  const content = server.lxcContainerName
+    ? await readVpsFile(server.lxcContainerName, file)
+    : await PteroClient.readFile(server.pterodactylIdentifier!, file);
   return NextResponse.json({ content });
 });
 
@@ -36,7 +39,7 @@ export const PUT = withApiErrorHandling(async (
 
   const { id } = await params;
   const server = await authorizeServerAccess(user, id);
-  if (!server || !server.pterodactylIdentifier) {
+  if (!server || !(server.pterodactylIdentifier || server.lxcContainerName)) {
     return NextResponse.json({ error: "서버를 찾을 수 없습니다." }, { status: 404 });
   }
   if (!hasServerRank(await getServerRole(user, server), "DEVELOPER")) {
@@ -48,6 +51,10 @@ export const PUT = withApiErrorHandling(async (
     return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 422 });
   }
 
-  await PteroClient.writeFile(server.pterodactylIdentifier, parsed.data.file, parsed.data.content);
+  if (server.lxcContainerName) {
+    await writeVpsFile(server.lxcContainerName, parsed.data.file, parsed.data.content);
+  } else {
+    await PteroClient.writeFile(server.pterodactylIdentifier!, parsed.data.file, parsed.data.content);
+  }
   return NextResponse.json({ ok: true });
 });

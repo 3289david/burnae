@@ -13,7 +13,7 @@ export const GET = withApiErrorHandling(async (
 
   const { id } = await params;
   const server = await authorizeServerAccess(user, id);
-  if (!server || !server.pterodactylIdentifier) {
+  if (!server || !(server.pterodactylIdentifier || server.lxcContainerName)) {
     return NextResponse.json({ error: "서버를 찾을 수 없습니다." }, { status: 404 });
   }
   if (!hasServerRank(await getServerRole(user, server), "DEVELOPER")) {
@@ -21,6 +21,8 @@ export const GET = withApiErrorHandling(async (
   }
 
   const dir = new URL(request.url).searchParams.get("dir") ?? "/";
-  const url = await PteroClient.getUploadUrl(server.pterodactylIdentifier, dir);
+  const url = server.lxcContainerName
+    ? `/api/servers/${id}/files/lxc-upload?dir=${encodeURIComponent(dir)}`
+    : await PteroClient.getUploadUrl(server.pterodactylIdentifier!, dir);
   return NextResponse.json({ url });
 });

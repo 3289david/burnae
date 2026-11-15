@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { authorizeServerAccess, getServerRole, hasServerRank } from "@/lib/serverAccess";
 import { PteroClient } from "@/lib/pterodactyl";
+import { renameVpsFile } from "@/lib/vpsLxc";
 
 const schema = z.object({ directory: z.string().min(1), from: z.string().min(1), to: z.string().min(1) });
 
@@ -15,7 +16,7 @@ export async function PUT(
 
   const { id } = await params;
   const server = await authorizeServerAccess(user, id);
-  if (!server || !server.pterodactylIdentifier) {
+  if (!server || !(server.pterodactylIdentifier || server.lxcContainerName)) {
     return NextResponse.json({ error: "서버를 찾을 수 없습니다." }, { status: 404 });
   }
   if (!hasServerRank(await getServerRole(user, server), "DEVELOPER")) {
@@ -26,7 +27,11 @@ export async function PUT(
   if (!parsed.success) return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 422 });
 
   try {
-    await PteroClient.renameFile(server.pterodactylIdentifier, parsed.data.directory, parsed.data.from, parsed.data.to);
+    if (server.lxcContainerName) {
+      await renameVpsFile(server.lxcContainerName, parsed.data.directory, parsed.data.from, parsed.data.to);
+    } else {
+      await PteroClient.renameFile(server.pterodactylIdentifier!, parsed.data.directory, parsed.data.from, parsed.data.to);
+    }
     return NextResponse.json({ ok: true });
   } catch (err) {
     return NextResponse.json(

@@ -151,7 +151,7 @@ const LOADER_META: Record<string, { icon: typeof Package; color: string; blurb: 
   mohist: { icon: Sparkles, color: "var(--yellow)", blurb: "모드+플러그인 동시 지원" },
 
   // 일반 서버(VPS/디스코드 봇/유틸리티) 종류
-  "blank-server": { icon: Box, color: "var(--text-dim)", blurb: "아무것도 없는 빈 서버" },
+  "blank-server": { icon: Box, color: "var(--text-dim)", blurb: "실제 가상화 기반 VPS — SSH로 접속해 원하는 대로 설치하세요" },
   "code-server": { icon: Terminal, color: "var(--accent)", blurb: "브라우저에서 VS Code로 코딩" },
   "nodejs-bot": { icon: Bot, color: "var(--lime)", blurb: "Node.js로 직접 만드는 봇" },
   "python-bot": { icon: Bot, color: "var(--lime)", blurb: "Python으로 직접 만드는 봇" },
@@ -206,7 +206,7 @@ type CategoryFilterKey = "MINECRAFT" | "BLANK" | "DISCORD_BOT" | "DATABASE" | "P
 const CATEGORY_FILTER_ORDER: CategoryFilterKey[] = ["MINECRAFT", "BLANK", "DISCORD_BOT", "DATABASE", "PRESETS"];
 const CATEGORY_FILTER_LABEL: Record<CategoryFilterKey, string> = {
   MINECRAFT: "마인크래프트",
-  BLANK: "빈 서버",
+  BLANK: "VPS",
   DISCORD_BOT: "디스코드 봇",
   DATABASE: "데이터베이스",
   PRESETS: "프리셋",

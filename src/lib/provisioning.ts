@@ -15,6 +15,7 @@ import { panelUsernameForUser } from "@/lib/pterodactylUser";
 import { syncAppProxyMap } from "@/lib/appProxy";
 import { rewardPresetInstalled } from "@/lib/promotions";
 import { supportsSsh } from "@/lib/sshSupport";
+import { provisionVpsContainer, destroyVpsContainer } from "@/lib/vpsLxc";
 import type { HostNode, Server } from "@/generated/prisma/client";
 
 export class ProvisioningError extends Error {}
@@ -236,7 +237,7 @@ export async function createServerForOrder(orderId: string) {
   let server: Server;
   let node: HostNode;
   let preset: { id: string; gitRepoUrl: string | null; createdById: string } | null;
-  let template: { category: string; startupCommand: string; dockerImage: string; defaultEnvironment: unknown; pterodactylEggId: number; pterodactylNestId: number; id: string; key: string };
+  let template: { category: string; startupCommand: string; dockerImage: string; defaultEnvironment: unknown; pterodactylEggId: number; pterodactylNestId: number; id: string; key: string; usesLxc: boolean };
   let pteroServer: PteroApp.PteroServer;
   try {
 
@@ -258,6 +259,15 @@ export async function createServerForOrder(orderId: string) {
     product.cpuPercent,
     product.requiresDedicatedNode ? order.userId : undefined,
   );
+
+  // "VPS" 템플릿은 Pterodactyl이 아니라 이 호스트에 직접 만든 LXC 컨테이너(진짜 OS 가상화)로
+  // 서비스된다 — egg/nest/allocation 같은 Pterodactyl 전용 로직을 전부 건너뛰고 완전히 별도
+  // 경로로 처리한다. 같은 물리 자원을 Pterodactyl 서버들과 나눠 쓰므로 node(용량 계산)는
+  // 그대로 같이 쓴다.
+  if (template.usesLxc) {
+    server = await createLxcServer(order, product, template, node);
+    return server;
+  }
 
   const [firstName, ...rest] = order.user.name.split(" ");
   const pteroUser = await PteroApp.findOrCreateUser({
@@ -501,6 +511,82 @@ export async function createServerForOrder(orderId: string) {
 }
 
 /** 구매자 역할 자동 부여 + 관리자 로그 채널 알림 — 디스코드 연동을 안 했거나 채널 설정이 없으면 조용히 건너뛴다 */
+/**
+ * "VPS" 템플릿(usesLxc) 전용 — Pterodactyl을 전혀 거치지 않고 이 호스트에 직접 LXC 컨테이너를
+ * 만들어서 서비스한다. SSH 접속 정보는 Pterodactyl 서버와 같은 필드(allocationIp/sshPort/
+ * accessSecret)에 저장해서 ssh burnae.kr 게이트웨이가 백엔드 구분 없이 그대로 동작한다.
+ */
+async function createLxcServer(
+  order: { id: string; userId: string; user: { name: string }; serverNameRequested: string | null },
+  product: { id: string; name: string; priceMonthlyKrw: number; ramMb: number; diskMb: number; cpuPercent: number; backupSlots: number; pointsPerMonth: number },
+  template: { id: string },
+  node: HostNode,
+): Promise<Server> {
+  // cuid는 영문소문자/숫자라 그대로 이어 붙여도 헬퍼의 "vps-[a-z0-9-]+" 검증을 통과한다
+  const containerName = `vps-${order.id.toLowerCase()}`.slice(0, 44);
+  let containerCreated = false;
+
+  let server: Server;
+  try {
+    const { ip, sshPort, password } = await provisionVpsContainer(containerName, product.ramMb, product.cpuPercent);
+    containerCreated = true;
+
+    server = await prisma.$transaction(async (tx) => {
+      const created = await tx.server.create({
+        data: {
+          ownerId: order.userId,
+          productId: product.id,
+          productNameSnapshot: product.name,
+          priceMonthlyKrwSnapshot: product.priceMonthlyKrw,
+          templateId: template.id,
+          nodeId: node.id,
+          name: order.serverNameRequested ?? `${order.user.name}의 서버`,
+          status: "RUNNING",
+          lxcContainerName: containerName,
+          ramMb: product.ramMb,
+          cpuPercent: product.cpuPercent,
+          diskMb: product.diskMb,
+          backupSlots: product.backupSlots,
+          allocationIp: ip,
+          sshPort,
+          accessSecret: password,
+          renewalDueAt: new Date(
+            Date.now() + (product.priceMonthlyKrw === 0 ? FREE_SERVER_RENEWAL_DAYS : 30) * 24 * 60 * 60 * 1000,
+          ),
+        },
+      });
+      await tx.order.update({ where: { id: order.id }, data: { serverId: created.id } });
+      if (product.pointsPerMonth > 0) {
+        await tx.user.update({ where: { id: order.userId }, data: { promotionPoints: { increment: product.pointsPerMonth } } });
+      }
+      await tx.auditLog.create({
+        data: {
+          actorUserId: order.userId,
+          action: "SERVER_CREATED",
+          targetType: "Server",
+          targetId: created.id,
+          metadata: { orderId: order.id, node: node.name, backend: "LXC" },
+        },
+      });
+      return created;
+    });
+  } catch (err) {
+    if (containerCreated) {
+      await destroyVpsContainer(containerName).catch((cleanupErr) => {
+        console.error(`[provisioning] 고아 LXC 컨테이너(${containerName}) 정리 실패 — 수동 확인 필요:`, cleanupErr);
+      });
+    }
+    await prisma.order.update({ where: { id: order.id }, data: { provisioningStartedAt: null } }).catch(() => {});
+    throw err;
+  }
+
+  notifyServerCreated(server, order.userId, node.name).catch((err) => {
+    console.error("[provisioning] 디스코드 알림/역할 부여 실패(서버 생성 자체는 정상):", err);
+  });
+
+  return server;
+}
+
 async function notifyServerCreated(server: Server, ownerId: string, nodeName: string) {
   const settings = await getBotSettings();
   if (!settings) return;

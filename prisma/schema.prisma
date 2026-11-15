@@ -226,6 +226,9 @@ model ServerTemplate {
   variableSchema     Json?
   active             Boolean        @default(true)
   sortOrder          Int            @default(0)
+  /// true면 Pterodactyl이 아니라 이 호스트에 직접 만든 LXC 컨테이너(진짜 OS 가상화)로
+  /// 서비스된다(src/lib/vpsLxc.ts) — pterodactylNestId/EggId는 이 경우 안 쓰이는 값이다.
+  usesLxc            Boolean        @default(false)
 
   servers      Server[]
   products     Product[]

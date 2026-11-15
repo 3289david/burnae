@@ -31,10 +31,28 @@ async function runHelper(args: string[]): Promise<string> {
   return stdout.trim();
 }
 
-/** 새 컨테이너를 만든다(부팅은 안 함) — name은 "vps-" + 서버 id 등으로 호출부에서 만들어 전달 */
-export async function createVpsContainer(name: string, dist = "ubuntu", release = "jammy"): Promise<void> {
+/** 새 컨테이너를 만든다(부팅은 안 함) — name은 "vps-" + 서버 id 등으로 호출부에서 만들어 전달.
+ * ramMb/cpuPercent를 주면 결제한 플랜만큼만 쓰도록 cgroup으로 강제한다(생성 시 바로 적용,
+ * 디스크는 이 버전에서 하드 쿼터 없음 — 알려진 한계). */
+export async function createVpsContainer(
+  name: string,
+  dist = "ubuntu",
+  release = "jammy",
+  ramMb?: number,
+  cpuPercent?: number,
+): Promise<void> {
   assertValidName(name);
-  await runHelper(["create", name, dist, release]);
+  const args = ["create", name, dist, release];
+  if (ramMb !== undefined || cpuPercent !== undefined) {
+    args.push(String(ramMb ?? ""), String(cpuPercent ?? ""));
+  }
+  await runHelper(args);
+}
+
+/** 이미 만든 컨테이너의 RAM/CPU 한도를 바꾼다(플랜 업그레이드 등) — 재시작해야 반영된다. */
+export async function setVpsContainerLimits(name: string, ramMb?: number, cpuPercent?: number): Promise<void> {
+  assertValidName(name);
+  await runHelper(["limit", name, String(ramMb ?? ""), String(cpuPercent ?? "")]);
 }
 
 export async function startVpsContainer(name: string): Promise<void> {
@@ -57,6 +75,21 @@ export async function destroyVpsContainer(name: string): Promise<void> {
   await runHelper(["destroy", name]);
 }
 
+/** 강제 종료(정상 종료가 멈춰있을 때) — lxc-stop -k */
+export async function killVpsContainer(name: string): Promise<void> {
+  assertValidName(name);
+  await runHelper(["kill", name]);
+}
+
+/** 대시보드 자원 그래프용 — RAM/CPU/디스크 현재 사용량(읽기 전용, 즉시 반환). */
+export async function getVpsContainerStats(
+  name: string,
+): Promise<{ memBytes: number; memMaxBytes: number; cpuUsageUsec: number; diskKb: number }> {
+  assertValidName(name);
+  const output = await runHelper(["stats", name]);
+  return JSON.parse(output);
+}
+
 /** DHCP 할당을 기다렸다가 사설 IP를 돌려준다(헬퍼 쪽에서 최대 20초 재시도) */
 export async function getVpsContainerIp(name: string): Promise<string> {
   assertValidName(name);
@@ -74,14 +107,16 @@ export async function setupVpsContainerSsh(name: string): Promise<string> {
   return match[1];
 }
 
-/** 생성 → 시작 → IP 할당 대기 → SSH 설정까지 한 번에 처리하고, 바로 DB에 저장할 수 있는
- * 접속 정보를 돌려준다. */
+/** 생성(+RAM/CPU 한도 적용) → 시작 → IP 할당 대기 → SSH 설정까지 한 번에 처리하고, 바로
+ * DB에 저장할 수 있는 접속 정보를 돌려준다. */
 export async function provisionVpsContainer(
   name: string,
+  ramMb: number,
+  cpuPercent: number,
   dist = "ubuntu",
   release = "jammy",
 ): Promise<{ ip: string; sshPort: number; password: string }> {
-  await createVpsContainer(name, dist, release);
+  await createVpsContainer(name, dist, release, ramMb, cpuPercent);
   await startVpsContainer(name);
   const ip = await getVpsContainerIp(name);
   const password = await setupVpsContainerSsh(name);
